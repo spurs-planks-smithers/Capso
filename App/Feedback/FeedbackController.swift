@@ -28,6 +28,7 @@ final class FeedbackController {
     private var settings: AppSettings?
     private var inlineEditor: InlineAnnotationEditorWindow?
     private var fullEditor: AnnotationEditorWindow?
+    private var escapeMonitor: Any?
     private let statusItem = FeedbackStatusItem()
     private let notePanel = FeedbackNotePanel()
     private var shortcutPanel: FeedbackShortcutPanel?
@@ -180,10 +181,46 @@ final class FeedbackController {
             },
             onClose: { [weak self] in
                 self?.inlineEditor = nil
+                self?.removeEscapeMonitor()
             }
         )
         inlineEditor?.show()
+        installEscapeMonitor()
         return true
+    }
+
+    /// Upstream's `AnnotationEscapePolicy` never closes the editor on Esc.
+    /// In a feedback session, Esc on an editor with no marks yet goes back to
+    /// area selection, so a wrong selection is one key press to redo. With
+    /// marks present, upstream's step-back behavior stays, so Esc never
+    /// throws away work.
+    private func installEscapeMonitor() {
+        removeEscapeMonitor()
+        escapeMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            let isPlainEscape = event.keyCode == 53
+                && event.modifierFlags.intersection(.deviceIndependentFlagsMask).isEmpty
+            guard isPlainEscape else { return event }
+            let handled = MainActor.assumeIsolated { () -> Bool in
+                guard let editor = self.inlineEditor, editor.isKeyWindow, editor.document.objects.isEmpty else {
+                    return false
+                }
+                FeedbackLog.logger.notice("Esc on an empty editor: back to area selection")
+                editor.close()
+                // Let the editor's windows leave the screen before the new selection freezes it.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    self.captureCoordinator?.captureAreaForFeedback()
+                }
+                return true
+            }
+            return handled ? nil : event
+        }
+    }
+
+    private func removeEscapeMonitor() {
+        if let escapeMonitor {
+            NSEvent.removeMonitor(escapeMonitor)
+        }
+        escapeMonitor = nil
     }
 
     private func saveFromInlineEditor(_ rendered: CGImage, result: CaptureResult) {
