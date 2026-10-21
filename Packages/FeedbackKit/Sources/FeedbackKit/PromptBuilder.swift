@@ -1,13 +1,14 @@
 // Packages/FeedbackKit/Sources/FeedbackKit/PromptBuilder.swift
 import Foundation
 
-/// Renders `prompt.md`, the text that Copy Prompt puts on the clipboard.
+/// Renders the prompts an agent receives.
 ///
 /// The structure follows the bundle-format decision
 /// (`docs/decisions/2026-10-20-feedback-bundle-format.md`): a bundle tag, how
 /// to read, an authority rule, a work method, a verify step, a report, and a
 /// context note.
 public enum PromptBuilder {
+    /// `prompt.md`: the whole session. Copy Prompt in the menu copies it.
     public static func render(_ session: FeedbackSession, folderPath: String) -> String {
         let missingInstructions = session.captures
             .flatMap { FeedbackItems.split($0).items }
@@ -25,6 +26,66 @@ public enum PromptBuilder {
             "4. Badge N in a capture with item prefix K is item K.N. Each capture section in manifest.md gives its prefix.",
             "5. Coordinates are pixels in that PNG, origin top-left. A box is x1 y1 x2 y2.",
             "",
+        ]
+        lines += rules(missingInstructions: missingInstructions)
+        lines += [
+            "",
+            "Context:",
+            "- Read each image only when you work on its items. Each image costs up to \(ImageSizing.Limits.feedbackExport.maxTokens) tokens.",
+            "</feedback_bundle>",
+        ]
+        return lines.joined(separator: "\n") + "\n"
+    }
+
+    /// One capture, with absolute file paths. The app copies it when the note
+    /// panel finishes, so a single paste hands the capture to any agent.
+    ///
+    /// The item list holds only the reviewer's own answers. Screen text (OCR
+    /// text, window titles) stays in `manifest.md`: a pasted prompt is the
+    /// user's own message, and screen text there would read as the user's.
+    public static func renderCapture(_ capture: FeedbackCapture, folderPath: String) -> String {
+        let split = FeedbackItems.split(capture)
+        let prefix = capture.index
+
+        var lines = [
+            #"<feedback_capture path="\#(folderPath)" capture="\#(prefix)" items="\#(split.items.count)">"#,
+            "Goal: Apply the review feedback in this capture to the code in the current repository.",
+            "",
+            "Open these files first, with your file-reading tool:",
+            "- \(folderPath)/\(capture.imageFile) (annotated: the numbered badges and marks)",
+            #"- \#(folderPath)/manifest.md (the section with "Item prefix: \#(prefix)": pixel boxes and the screen text under each mark)"#,
+            "Open \(folderPath)/\(capture.cleanImageFile) only when a mark hides content.",
+            "",
+        ]
+        if split.items.isEmpty {
+            lines.append("Items: none. The note says what should change.")
+        } else {
+            lines.append("Items (badge N in the image is item \(prefix).N):")
+            lines += split.items.map { item in
+                "- \(item.id): \(item.badge.instruction.map(oneLine) ?? "(no instruction)")"
+            }
+        }
+        if !split.otherMarks.isEmpty {
+            lines.append("Marks without a badge: \(split.otherMarks.count). The manifest describes them.")
+        }
+        if let note = capture.note.map(oneLine), !note.isEmpty {
+            lines.append("Note: \(note)")
+        }
+        lines.append("")
+        lines += rules(missingInstructions: split.items.filter { $0.badge.instruction == nil }.map(\.id))
+        lines += [
+            "",
+            "Context:",
+            "- The annotated image costs up to \(ImageSizing.Limits.feedbackExport.maxTokens) tokens.",
+            "</feedback_capture>",
+        ]
+        return lines.joined(separator: "\n") + "\n"
+    }
+
+    /// The Authority, Work method, Verify, and Report sections. Both prompts
+    /// use them, so an agent gets the same rules either way.
+    private static func rules(missingInstructions: [String]) -> [String] {
+        var lines = [
             "Authority:",
             "- The written instruction wins. The image shows where the item is and how it looks now.",
             "- If the text and the image conflict, or an item has no instruction, ask before you change it.",
@@ -46,11 +107,12 @@ public enum PromptBuilder {
             "",
             "Report:",
             "- One line per item: done, not done, or needs input, with evidence.",
-            "",
-            "Context:",
-            "- Read each image only when you work on its items. Each image costs up to \(ImageSizing.Limits.feedbackExport.maxTokens) tokens.",
-            "</feedback_bundle>",
         ]
-        return lines.joined(separator: "\n") + "\n"
+        return lines
+    }
+
+    /// An answer on one line, so each item stays one list entry.
+    private static func oneLine(_ text: String) -> String {
+        text.split(whereSeparator: \.isWhitespace).joined(separator: " ")
     }
 }

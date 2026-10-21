@@ -26,7 +26,7 @@ enum ScreenText {
         repeat {
             previous = text
             text = text.replacingOccurrences(
-                of: #"</?\s*feedback_bundle[^>]*>"#,
+                of: #"</?\s*feedback_(?:bundle|capture)[^>]*>"#,
                 with: "",
                 options: [.regularExpression, .caseInsensitive]
             )

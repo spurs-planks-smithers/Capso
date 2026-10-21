@@ -46,6 +46,7 @@ public actor FeedbackSessionStore {
         case noActiveSession
         case captureNotFound(Int)
         case badgeNotFound(Int)
+        case markCountMismatch
     }
 
     private struct ActiveMarker: Codable {
@@ -193,6 +194,19 @@ public actor FeedbackSessionStore {
         try updateCapture(index) { capture in
             let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
             capture.note = trimmed.isEmpty ? nil : trimmed
+        }
+    }
+
+    /// Sets the screen text that OCR finds after the capture is stored. Entry
+    /// N of `markTexts` belongs to mark N. The text gets the same cleaning as
+    /// in `addCapture`. Instructions and the note stay as they are.
+    public func setScreenText(capture index: Int, ocrText: String?, markTexts: [String?]) throws {
+        try updateCapture(index) { capture in
+            guard markTexts.count == capture.marks.count else { throw StoreError.markCountMismatch }
+            capture.ocrText = ScreenText.field(ocrText, singleLine: false, maxScalars: ScreenText.maxBlockLength)
+            for position in capture.marks.indices {
+                capture.marks[position].ocrText = ScreenText.field(markTexts[position])
+            }
         }
     }
 

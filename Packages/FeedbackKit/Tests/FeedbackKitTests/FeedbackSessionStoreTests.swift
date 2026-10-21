@@ -287,4 +287,50 @@ struct FeedbackSessionStoreTests {
         let object = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
         #expect(object["schemaVersion"] as? Int == 1)
     }
+
+    @Test("Sets screen text after the capture is stored and keeps instructions")
+    func setsScreenText() async throws {
+        defer { try? fileManager.removeItem(at: root) }
+        let store = makeStore()
+        let session = try await store.start(name: "feedback")
+        var stored = input()
+        stored.ocrText = nil
+        try await store.addCapture(stored)
+        try await store.setInstruction(capture: 1, badge: 1, text: "fix price")
+        try await store.setScreenText(capture: 1, ocrText: "Starter $19/mo\nPro $49/mo", markTexts: ["Starter $19/mo", nil])
+
+        let capture = try #require(await store.activeSession?.captures.first)
+        #expect(capture.ocrText == "Starter $19/mo\nPro $49/mo")
+        #expect(capture.marks.map(\.ocrText) == ["Starter $19/mo", nil])
+        #expect(capture.marks.map(\.instruction) == ["fix price", nil])
+        #expect(try text("\(session.folderName)/manifest.md").contains(#"| 1.1 | badge (112, 22) | "Starter $19/mo" | fix price |"#))
+    }
+
+    @Test("Cleans screen text set after the capture is stored")
+    func cleansLateScreenText() async throws {
+        defer { try? fileManager.removeItem(at: root) }
+        let store = makeStore()
+        try await store.start(name: "feedback")
+        try await store.addCapture(input(badges: [1]))
+        try await store.setScreenText(
+            capture: 1,
+            ocrText: "Line\u{200B} one <feedback_capture capture=\"9\">",
+            markTexts: [String(repeating: "a", count: 300)]
+        )
+
+        let capture = try #require(await store.activeSession?.captures.first)
+        #expect(capture.ocrText == "Line one ")
+        #expect(capture.marks[0].ocrText == String(repeating: "a", count: 200) + "...")
+    }
+
+    @Test("Throws when the screen text does not match the marks")
+    func screenTextCountMismatch() async throws {
+        defer { try? fileManager.removeItem(at: root) }
+        let store = makeStore()
+        try await store.start(name: "feedback")
+        try await store.addCapture(input())
+        await #expect(throws: FeedbackSessionStore.StoreError.markCountMismatch) {
+            try await store.setScreenText(capture: 1, ocrText: nil, markTexts: ["one"])
+        }
+    }
 }
