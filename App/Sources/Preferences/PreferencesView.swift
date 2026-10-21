@@ -92,7 +92,7 @@ struct PreferencesView: View {
 
     private var sidebarContent: some View {
         VStack(spacing: 2) {
-            ForEach(PreferencesTab.allCases, id: \.self) { tab in
+            ForEach(PreferencesTab.allCases.filter { $0 != .cloudShare }, id: \.self) { tab in // Fork: Cloud Share hidden
                 SidebarButton(tab: tab, isSelected: selectedTab == tab) {
                     selectedTab = tab
                 }

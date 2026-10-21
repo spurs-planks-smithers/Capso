@@ -2,7 +2,7 @@
 
 - Date: 2026-10-20
 - Code: upstream `8f07fb6` (v1.2.5), the fork base
-- Status: recommendations wait for Drew's approval. None is applied.
+- Status: Drew approved the recommendations on 2026-10-20. Applied: 1 (Sparkle off), 2 as "hide now" (the picker lists only Apple; full removal of the provider code moves to its own branch after Phase 1), 3 (Cloud Share tab hidden), 4 (nettop check at verification), 5 (no change).
 
 ## Summary
 
