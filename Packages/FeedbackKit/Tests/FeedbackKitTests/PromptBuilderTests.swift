@@ -39,7 +39,7 @@ struct PromptBuilderTests {
 
     @Test("Asks for a located-items table, a narrow change, and a re-check of every item")
     func workMethodAndVerify() {
-        #expect(prompt.contains("Before any edit, show a table with the columns item, file, and planned change."))
+        #expect(prompt.contains("2. Write a table with the columns item, file, and planned change. Make no edit before this table is in your reply."))
         #expect(prompt.contains("Change only the listed items."))
         #expect(prompt.contains("re-check every item against its capture"))
         #expect(prompt.contains("One line per item: done, not done, or needs input, with evidence."))

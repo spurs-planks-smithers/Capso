@@ -104,7 +104,7 @@ public enum PromptBuilder {
             "",
             "Work method:",
             "1. Locate each item in the code. Search the repository for its OCR text and labels.",
-            "2. Before any edit, show a table with the columns item, file, and planned change.",
+            "2. Write a table with the columns item, file, and planned change. Make no edit before this table is in your reply.",
             "3. Change only the listed items. Leave everything else as it is.",
             "",
             "Verify:",

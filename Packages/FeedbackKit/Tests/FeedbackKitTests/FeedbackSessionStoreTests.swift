@@ -323,6 +323,20 @@ struct FeedbackSessionStoreTests {
         #expect(capture.marks[0].ocrText == String(repeating: "a", count: 200) + "...")
     }
 
+    @Test("Writes each capture's prompt next to its images and keeps it current")
+    func writesCapturePromptFile() async throws {
+        defer { try? fileManager.removeItem(at: root) }
+        let store = makeStore()
+        let session = try await store.start(name: "feedback")
+        let capture = try await store.addCapture(input())
+        #expect(capture.promptFile == "2224-pricing-acme-prompt.md")
+        try await store.setInstruction(capture: 1, badge: 1, text: "fix price")
+
+        let file = try text("\(session.folderName)/2224-pricing-acme-prompt.md")
+        #expect(file.hasPrefix(#"<feedback_capture path="\#(root.path)/\#(session.folderName)" capture="1" items="2">"#))
+        #expect(file.contains("- 1.1: fix price\n"))
+    }
+
     @Test("Throws when the screen text does not match the marks")
     func screenTextCountMismatch() async throws {
         defer { try? fileManager.removeItem(at: root) }

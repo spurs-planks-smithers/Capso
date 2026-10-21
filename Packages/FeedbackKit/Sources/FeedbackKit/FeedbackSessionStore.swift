@@ -245,6 +245,12 @@ public actor FeedbackSessionStore {
         try Self.encoder().encode(session).write(to: folder.appendingPathComponent(Self.sessionFileName), options: .atomic)
         try Data(manifest.utf8).write(to: folder.appendingPathComponent(Self.manifestFileName), options: .atomic)
         try Data(prompt.utf8).write(to: folder.appendingPathComponent(Self.promptFileName), options: .atomic)
+        // Each capture's own prompt, so it can be pasted again after the
+        // clipboard changes (dictation tools paste through the clipboard).
+        for capture in session.captures {
+            let capturePrompt = PromptBuilder.renderCapture(capture, folderPath: folder.path)
+            try Data(capturePrompt.utf8).write(to: folder.appendingPathComponent(capture.promptFile), options: .atomic)
+        }
     }
 
     /// The session named by `.active.json`, or nil when there is none or it

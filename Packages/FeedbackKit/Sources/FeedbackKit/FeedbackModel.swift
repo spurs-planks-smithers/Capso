@@ -81,6 +81,12 @@ public struct FeedbackCapture: Codable, Equatable, Sendable {
     public var badgeNumbers: Set<Int> {
         Set(marks.compactMap(\.badge))
     }
+
+    /// The capture's own prompt, next to its images: `<stem>-prompt.md`.
+    public var promptFile: String {
+        let stem = imageFile.hasSuffix(".png") ? String(imageFile.dropLast(4)) : imageFile
+        return "\(stem)-prompt.md"
+    }
 }
 
 /// One annotation on a capture.
