@@ -67,9 +67,7 @@ final class FeedbackController {
     func capture() {
         Task {
             do {
-                if await store.activeSession == nil {
-                    try await store.start(name: FeedbackNaming.defaultSlug)
-                }
+                try await store.startIfNeeded(name: FeedbackNaming.defaultSlug)
                 await refresh()
                 captureCoordinator?.captureAreaForFeedback()
             } catch {
@@ -205,28 +203,46 @@ final class FeedbackController {
     /// Maps the marks, runs on-device OCR on the clean image, sizes both PNG
     /// files for export, adds the capture, then opens the note panel.
     private func save(rendered: CGImage, objects: [any AnnotationObject], result: CaptureResult) {
-        let clean = result.image
         let source = PixelSize(width: rendered.width, height: rendered.height)
         let target = ImageSizing.resizedSize(source, limits: .feedbackExport)
         // Mark coordinates match the rendered image only when the editor kept
         // the capture's size. The inline editor never crops or grows the canvas.
-        let sameGeometry = clean.width == rendered.width && clean.height == rendered.height
+        let sameGeometry = result.image.width == rendered.width && result.image.height == rendered.height
         let marks = sameGeometry ? FeedbackMarkMapper.marks(from: objects, source: source, target: target) : []
-        let cleanTarget = sameGeometry
-            ? target
-            : ImageSizing.resizedSize(PixelSize(width: clean.width, height: clean.height), limits: .feedbackExport)
+
+        // The clean copy keeps Redact marks applied, so redacted content never
+        // reaches the bundle. When marks cannot be mapped, the rendered image
+        // is the clean copy too.
+        let redactions = objects.filter { $0 is PixelateObject }
+        let clean: CGImage
+        if !sameGeometry {
+            clean = rendered
+        } else if redactions.isEmpty {
+            clean = result.image
+        } else if let redacted = AnnotationRenderer.render(sourceImage: result.image, objects: redactions) {
+            clean = redacted
+        } else {
+            report(CocoaError(.fileWriteUnknown), context: "Feedback capture was not saved: redaction failed")
+            return
+        }
 
         Task {
             do {
                 let regions = (try? await TextRecognizer.recognize(image: clean)) ?? []
                 let lines = sameGeometry
-                    ? regions.map { FeedbackTextLine(text: $0.text, box: ImageSizing.scale($0.boundingBox, from: source, to: target)) }
+                    ? OCRMatcher.removingRedacted(
+                        regions.map { FeedbackTextLine(text: $0.text, box: ImageSizing.scale($0.boundingBox, from: source, to: target)) },
+                        marks: marks
+                    )
                     : []
                 guard let annotatedPNG = FeedbackImageExport.png(rendered, size: target),
-                      let cleanPNG = FeedbackImageExport.png(clean, size: cleanTarget) else {
+                      let cleanPNG = FeedbackImageExport.png(clean, size: target) else {
                     throw CocoaError(.fileWriteUnknown)
                 }
-                let ocrText = regions.map(\.text).joined(separator: "\n")
+                let ocrText = (sameGeometry ? lines.map(\.text) : regions.map(\.text)).joined(separator: "\n")
+                // A session can end while the editor is open. Start a new one
+                // rather than lose the capture.
+                try await store.startIfNeeded(name: FeedbackNaming.defaultSlug)
                 let capture = try await store.addCapture(FeedbackCaptureInput(
                     annotatedPNG: annotatedPNG,
                     cleanPNG: cleanPNG,

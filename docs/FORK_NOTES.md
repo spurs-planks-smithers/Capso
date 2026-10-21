@@ -6,7 +6,7 @@ This file logs every edit to an upstream file: the file, the reason, the lines, 
 
 ## Upstream file edits
 
-Line numbers are in the fork's version of each file. Added Swift lines carry a `Fork:` comment. Changed lines inside existing `switch` arms and lists do not (`CaptureCoordinator.swift` 90, 99, 172, 1643-1644), so use this table to find them.
+Line numbers are in the fork's version of each file. Added Swift lines carry a `Fork:` comment. Changed lines inside existing `switch` arms and lists do not (`CaptureCoordinator.swift` 90, 99, 172, 1644-1645), so use this table to find them.
 
 Compile risk: `PostCaptureAction.feedback` is a new enum case. An upstream change that adds an exhaustive `switch` over `PostCaptureAction` fails to compile after a merge until it handles `.feedback`.
 
@@ -17,7 +17,8 @@ Compile risk: `PostCaptureAction.feedback` is a new enum case. An upstream chang
 | `App/Sources/Capture/CaptureCoordinator.swift` | `.feedback` in `playsShutterSound` and `savesOriginalCaptureToHistory` (both false, as for the editors) | 90, 99 (changed) | none |
 | `App/Sources/Capture/CaptureCoordinator.swift` | `.feedback` skips auto-Beautify, as the editors do | 172 (changed) | none |
 | `App/Sources/Capture/CaptureCoordinator.swift` | `captureAreaForFeedback()` starts an area capture with `.feedback` | 421-425 (added) | none |
-| `App/Sources/Capture/CaptureCoordinator.swift` | `handleCaptureResult` arm: `.feedback` calls `feedbackSink` | 1643-1644 (added) | none |
+| `App/Sources/Capture/CaptureCoordinator.swift` | `showFrozenOverlay` cancel handler resets `pendingAction`, so Esc on a feedback selection cannot send the next fullscreen or window capture to the session (Drew approved this hook point on 2026-10-20). It also fixes upstream's same leak for `.annotate` and `.clipboard`. | 987 (added) | none |
+| `App/Sources/Capture/CaptureCoordinator.swift` | `handleCaptureResult` arm: `.feedback` calls `feedbackSink` | 1644-1645 (added) | none |
 | `App/Sources/AppDelegate.swift` | One call to `FeedbackController.shared.start(captureCoordinator:settings:)` after `registerGlobalShortcuts()` | 88 (added) | [#349](https://github.com/lzhgus/Capso/pull/349), [#291](https://github.com/lzhgus/Capso/pull/291) |
 | `project.yml` | `FeedbackKit` local package | 50-51 (added) | [#349](https://github.com/lzhgus/Capso/pull/349), [#348](https://github.com/lzhgus/Capso/pull/348) |
 | `project.yml` | `App/Feedback` source path for the Capso target | 71 (added) | [#349](https://github.com/lzhgus/Capso/pull/349), [#348](https://github.com/lzhgus/Capso/pull/348) |

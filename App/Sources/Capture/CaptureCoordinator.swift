@@ -984,6 +984,7 @@ final class CaptureCoordinator {
             }
             overlay.onCancelled = { [weak self] in
                 self?.pendingSourceApplication = nil
+                self?.pendingAction = .default // Fork: a cancelled selection must not pass its action to the next capture
                 self?.dismissOverlay()
             }
             overlay.activate(mode: mode)
