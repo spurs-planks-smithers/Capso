@@ -5,8 +5,7 @@ import Foundation
 public enum ManifestWriter {
     static let missing = "n/a"
     static let missingInstruction = "n/a (no instruction: ask)"
-    /// Screen text only needs to be long enough to search the code for.
-    static let maxScreenTextLength = 200
+    static let maxScreenTextLength = ScreenText.maxFieldLength
 
     public static func render(_ session: FeedbackSession, folderPath: String, timeZone: TimeZone) -> String {
         var lines: [String] = [
@@ -131,28 +130,10 @@ public enum ManifestWriter {
         return parts.isEmpty ? missing : parts.joined(separator: ", ")
     }
 
-    /// Text read from the screen can come from any web page or document, so
-    /// the agent must not mistake it for part of the bundle. This removes
-    /// invisible format characters (zero-width, bidirectional, and tag
-    /// characters), removes bundle-tag lookalikes until none can be rebuilt,
-    /// and caps the length in Unicode scalars.
+    /// The store already cleans screen text. Cleaning again here keeps the
+    /// manifest safe for a `feedback.json` written by an older build.
     static func screenText(_ text: String) -> String {
-        let visible = singleLine(text).unicodeScalars.filter { $0.properties.generalCategory != .format }
-        var text = String(String.UnicodeScalarView(visible))
-        var previous: String
-        repeat {
-            previous = text
-            text = text.replacingOccurrences(
-                of: #"</?\s*feedback_bundle[^>]*>"#,
-                with: "",
-                options: [.regularExpression, .caseInsensitive]
-            )
-        } while text != previous
-
-        if text.unicodeScalars.count > maxScreenTextLength {
-            text = String(String.UnicodeScalarView(text.unicodeScalars.prefix(maxScreenTextLength))) + "..."
-        }
-        return text
+        ScreenText.clean(text, singleLine: true, maxScalars: maxScreenTextLength)
     }
 
     private static func coordinates(_ box: FeedbackBox) -> String {

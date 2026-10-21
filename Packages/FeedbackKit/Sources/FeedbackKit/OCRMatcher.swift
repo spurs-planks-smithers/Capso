@@ -26,6 +26,14 @@ public enum OCRMatcher {
         }
     }
 
+    /// Drops every OCR line that a Redact (`.pixelate`) mark touches, so
+    /// redacted text never reaches the bundle files.
+    public static func removingRedacted(_ lines: [FeedbackTextLine], marks: [FeedbackMark]) -> [FeedbackTextLine] {
+        let redactions = marks.filter { $0.kind == .pixelate }.map(\.box)
+        guard !redactions.isEmpty else { return lines }
+        return lines.filter { line in !redactions.contains { $0.intersects(line.box) } }
+    }
+
     private static func text(for mark: FeedbackMark, lines: [FeedbackTextLine], maxDistance: Double) -> String? {
         switch mark.kind {
         case .text:

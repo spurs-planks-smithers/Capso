@@ -72,8 +72,10 @@ public actor FeedbackSessionStore {
     public func start(name: String) throws -> FeedbackSession {
         guard activeSession == nil else { throw StoreError.sessionAlreadyActive }
 
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        let displayName = trimmed.isEmpty ? FeedbackNaming.defaultSlug : trimmed
+        // A Shortcuts input can carry any text, so the name gets the same
+        // cleaning as screen text and stays on one line.
+        let displayName = ScreenText.field(name, maxScalars: ScreenText.maxNameLength)?
+            .trimmingCharacters(in: .whitespaces) ?? FeedbackNaming.defaultSlug
         let slug = FeedbackNaming.slug(from: displayName)
         let startedAt = now()
         let base = FeedbackNaming.folderName(startedAt: startedAt, slug: slug, timeZone: timeZone)
@@ -91,6 +93,16 @@ public actor FeedbackSessionStore {
         return session
     }
 
+    /// The active session, or a new one when none is active. One actor call,
+    /// so two quick requests cannot both try to start a session.
+    @discardableResult
+    public func startIfNeeded(name: String) throws -> FeedbackSession {
+        if let activeSession {
+            return activeSession
+        }
+        return try start(name: name)
+    }
+
     @discardableResult
     public func addCapture(_ input: FeedbackCaptureInput) throws -> FeedbackCapture {
         guard var session = activeSession else { throw StoreError.noActiveSession }
@@ -102,10 +114,15 @@ public actor FeedbackSessionStore {
             cleanImageFile: FeedbackNaming.cleanImageFileName(index: index),
             size: input.size,
             capturedAt: now(),
-            sourceApp: input.sourceApp,
-            windowTitle: input.windowTitle,
-            ocrText: input.ocrText,
-            marks: input.marks
+            // Screen text is cleaned once here, so every bundle file gets clean text.
+            sourceApp: ScreenText.field(input.sourceApp),
+            windowTitle: ScreenText.field(input.windowTitle),
+            ocrText: ScreenText.field(input.ocrText, singleLine: false, maxScalars: ScreenText.maxBlockLength),
+            marks: input.marks.map { mark in
+                var mark = mark
+                mark.ocrText = ScreenText.field(mark.ocrText)
+                return mark
+            }
         )
 
         let folder = folderURL(for: session)

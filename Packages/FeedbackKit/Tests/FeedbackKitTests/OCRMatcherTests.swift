@@ -48,6 +48,14 @@ struct OCRMatcherTests {
         #expect(match(badge) == nil)
     }
 
+    @Test("Drops OCR lines that a redaction touches")
+    func dropsRedactedLines() {
+        let redaction = FeedbackMark(kind: .pixelate, box: FeedbackBox(x1: 470, y1: 220, x2: 560, y2: 250))
+        let visible = OCRMatcher.removingRedacted(lines, marks: [redaction])
+        #expect(!visible.map(\.text).contains("Starter $19/mo"))
+        #expect(visible.count == lines.count - 1)
+    }
+
     @Test("Sets no OCR text on a text mark")
     func textMarkHasNoOCR() {
         let text = FeedbackMark(kind: .text, box: FeedbackBox(x1: 860, y1: 580, x2: 1500, y2: 700), textOnImage: "too much padding")
