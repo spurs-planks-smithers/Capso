@@ -74,8 +74,8 @@ xcodebuild -project Capso.xcodeproj -scheme Capso -configuration Debug CODE_SIGN
 
 ## Hand a bundle to an agent
 
-A bundle is a folder `~/Feedback/<date>-<time>-<slug>/`. It holds `manifest.md`, `prompt.md`, `feedback.json`, and two PNG files per capture (`001.png` annotated, `001-clean.png` without marks). Copy Prompt in the feedback status menu puts `prompt.md` on the clipboard.
+A bundle is a folder `~/Feedback/<date>-<time>-<slug>/`. It holds `manifest.md`, `prompt.md`, `feedback.json`, and two PNG files per capture, named by capture time and window title (`0627-claude.png` annotated, `0627-claude-clean.png` without marks). Copy Prompt in the feedback status menu puts `prompt.md` on the clipboard.
 
 - Claude Code: start it in the target repository with `claude --add-dir ~/Feedback`, then paste the prompt.
-- Codex: run `codex --image <bundle>/001.png,<bundle>/002.png "<prompt>"` in the target repository. `manifest.md` holds this command ready to copy.
+- Codex: run the `codex --image ...` command from the top of `manifest.md` in the target repository. It lists every annotated PNG by absolute path.
 - If `codex` is not on `PATH`, the ChatGPT app bundles it at `/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex`.

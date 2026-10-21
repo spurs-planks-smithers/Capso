@@ -39,7 +39,8 @@ public struct FeedbackSession: Codable, Equatable, Sendable {
 
 /// One saved capture. All coordinates are pixels of `imageFile`.
 public struct FeedbackCapture: Codable, Equatable, Sendable {
-    /// 1-based position in the session. Capture 2 is `002.png`.
+    /// 1-based position in the session. It is the item prefix K in the
+    /// manifest; file names use the capture time and window title instead.
     public var index: Int
     public var imageFile: String
     public var cleanImageFile: String
