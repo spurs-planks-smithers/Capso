@@ -4,12 +4,19 @@ import SwiftUI
 
 /// Fork: a one-line note field shown after each saved feedback capture.
 /// Return saves the note. Esc skips it.
+///
+/// The panel makes Capso the active app so the field has keyboard focus.
+/// Dictation tools such as Wispr Flow type into the active app's focused
+/// field. When the panel closes, the app that was active before gets focus back.
 @MainActor
 final class FeedbackNotePanel {
     private var panel: NSPanel?
+    private var previousApp: NSRunningApplication?
 
     func show(captureIndex: Int, badges: [Int], onSave: @escaping (String) -> Void) {
         close()
+        let frontmost = NSWorkspace.shared.frontmostApplication
+        previousApp = frontmost?.processIdentifier == ProcessInfo.processInfo.processIdentifier ? nil : frontmost
 
         let hint = badges.isEmpty
             ? "Return saves. Esc skips."
@@ -23,6 +30,9 @@ final class FeedbackNotePanel {
         panel.title = "Feedback note for capture \(captureIndex)"
         panel.level = .floating
         panel.isReleasedWhenClosed = false
+        // A panel hides when its app is not active. Capso is a menu bar app
+        // and is usually not active, so the panel must stay visible.
+        panel.hidesOnDeactivate = false
         panel.contentView = NSHostingView(rootView: FeedbackNoteView(
             hint: hint,
             onSubmit: { [weak self] text in
@@ -35,13 +45,17 @@ final class FeedbackNotePanel {
         ))
         panel.center()
         self.panel = panel
-        NSApp.activate()
+        // Same call upstream uses for its menu bar windows (PreferencesWindow).
+        NSApp.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
     }
 
     func close() {
-        panel?.close()
-        panel = nil
+        guard let panel else { return }
+        panel.close()
+        self.panel = nil
+        previousApp?.activate()
+        previousApp = nil
     }
 }
 

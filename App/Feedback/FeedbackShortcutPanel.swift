@@ -16,13 +16,14 @@ final class FeedbackShortcutPanel {
         )
         panel.title = "Feedback Shortcut"
         panel.isReleasedWhenClosed = false
+        panel.hidesOnDeactivate = false
         panel.contentView = NSHostingView(rootView: FeedbackShortcutView())
         panel.center()
         return panel
     }()
 
     func show() {
-        NSApp.activate()
+        NSApp.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
     }
 }
