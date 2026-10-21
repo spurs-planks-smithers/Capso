@@ -35,6 +35,8 @@ final class FeedbackController {
     private let notePanel = FeedbackNotePanel()
     private var shortcutPanel: FeedbackShortcutPanel?
     private var toast: ToastWindow?
+    /// End Session while it waits for saves and ends the session.
+    private var ending: Task<FeedbackSession, Error>?
 
     /// `~/Library/Application Support/CapsoFeedback`: the standard place for an
     /// app's data. It stays out of the home folder, and macOS privacy controls
@@ -111,15 +113,26 @@ final class FeedbackController {
 
     /// Waits for saves in progress first. OCR can take 30 s, and the note
     /// panel can finish before the save does, so ending at once would start a
-    /// new session for that capture.
+    /// new session for that capture. A capture saved during the wait waits
+    /// for `ending` and then goes into a new session.
     @discardableResult
     func endSession() async throws -> FeedbackSession {
         defer { Task { await refresh() } }
         notePanel.close()
-        for task in saveTasks.values {
-            await task.value
+        let saves = Array(saveTasks.values)
+        let ending = Task {
+            for task in saves {
+                await task.value
+            }
+            return try await self.store.end()
         }
-        return try await store.end()
+        self.ending = ending
+        defer {
+            if self.ending == ending {
+                self.ending = nil
+            }
+        }
+        return try await ending.value
     }
 
     func openFolder() {
@@ -324,31 +337,23 @@ final class FeedbackController {
             capturedAt: result.timestamp,
             timeZone: store.timeZone
         )
-        let screen = NSScreen.screens.first { $0.displayID == result.displayID }
-        notePanel.show(
-            title: name,
-            badges: Set(marks.compactMap(\.badge)).sorted(),
-            previews: circlePreviews(rendered: rendered, objects: sameGeometry ? objects : [], result: result),
-            overview: rendered,
-            onAnswer: { step, text in
-                pending.answers.append((step, text))
-                if let index = pending.captureIndex {
-                    pending.writes.append(Task { await self.saveAnswer(step, text, capture: index) })
-                }
-            },
-            onFinish: {
-                Task { await self.copyCapturePrompt(pending: pending, screen: screen) }
-            }
-        )
+        // Read now, not inside the task: End Session waits for the saves that
+        // exist when it starts, so a save that started before it must not
+        // wait for it in turn.
+        let endingAtSave = ending
 
         // Stores the capture without screen text, so the copied prompt never
-        // waits for OCR.
+        // waits for OCR. It is set before the note panel opens, so the
+        // panel's callbacks always find it.
         pending.stored = Task { () -> Int? in
             do {
                 guard let annotatedPNG = FeedbackImageExport.png(rendered, size: target),
                       let cleanPNG = FeedbackImageExport.png(clean, size: target) else {
                     throw CocoaError(.fileWriteUnknown)
                 }
+                // A capture saved while End Session runs waits for it and then
+                // goes into a new session, so its answers have a session to go to.
+                _ = try? await endingAtSave?.value
                 // A session can end while the editor is open. Start a new one
                 // rather than lose the capture.
                 try await store.startIfNeeded(name: FeedbackNaming.defaultSlug)
@@ -376,6 +381,23 @@ final class FeedbackController {
                 return nil
             }
         }
+
+        let screen = NSScreen.screens.first { $0.displayID == result.displayID }
+        notePanel.show(
+            title: name,
+            badges: Set(marks.compactMap(\.badge)).sorted(),
+            previews: circlePreviews(rendered: rendered, objects: sameGeometry ? objects : [], result: result),
+            overview: rendered,
+            onAnswer: { step, text in
+                pending.answers.append((step, text))
+                if let index = pending.captureIndex {
+                    pending.writes.append(Task { await self.saveAnswer(step, text, capture: index) })
+                }
+            },
+            onFinish: {
+                Task { await self.copyCapturePrompt(pending: pending, screen: screen) }
+            }
+        )
 
         // End Session waits for this task, so it never ends a session before
         // the screen text is in.
@@ -413,11 +435,13 @@ final class FeedbackController {
         for write in pending.writes {
             await write.value
         }
-        guard let capture = await store.activeSession?.captures.first(where: { $0.index == index }),
-              let folder = await store.activeFolderURL else {
+        // One read of the session, so the capture and its folder always match.
+        guard let session = await store.activeSession,
+              let capture = session.captures.first(where: { $0.index == index }) else {
             NSSound.beep()
             return
         }
+        let folder = store.rootURL.appendingPathComponent(session.folderName, isDirectory: true)
         let prompt = PromptBuilder.renderCapture(capture, folderPath: folder.path)
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(prompt, forType: .string)

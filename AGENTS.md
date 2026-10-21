@@ -66,7 +66,7 @@ xcodebuild -project Capso.xcodeproj -scheme Capso -configuration Debug CODE_SIGN
 - Esc on an editor with no marks yet goes back to area selection. With marks, Esc follows upstream's step-back rule (`AnnotationEscapePolicy`) and never closes the editor.
 - The note panel opens at Command+S. It asks one question per circle ("Circle 1 (1 of 3): what should change?"), then an optional general note. Return saves the answer and moves on. Esc skips one step. Typing and dictation (Wispr Flow, fn key) both work: the panel takes keyboard focus without activating Capso.
 - Under each question, a preview shows the annotated capture zoomed on that circle, with about 150 points of context and any box or arrow it marks. The general-note step shows the whole capture.
-- After the last note step, the capture's prompt is on the clipboard, and a toast says "Prompt copied. Paste it into your agent." The capture is stored before OCR runs, so the copy never waits for OCR.
+- After the last note step, the capture's prompt is on the clipboard, and a toast says "Prompt copied. Paste it into your agent." The capture is stored before OCR runs, so the copy never waits for OCR. A panel closed early (close button, End Session, or a new capture) copies nothing: use Copy Prompt.
 - A capture is named "Capture: <title of the window under the selection>, <date time zone>". Files are `<HHmm>-<title slug>.png` and `-clean.png`. Agents still refer to items as K.N (the manifest gives each capture's item prefix).
 - The feedback menu bar item shows the slug and capture count. Its menu has Copy Prompt, Open Folder, End Session, and Feedback Shortcut.
 - A first drag after the hotkey can lag while the Claude desktop app is the frontmost app. Capso is idle during that lag (sampled 2026-10-21). With Safari, Preview, or Finder in front there is no lag.
@@ -79,7 +79,7 @@ A bundle is a folder `~/Library/Application Support/CapsoFeedback/<date>-<time>-
 
 Two prompts point into a bundle:
 
-- The capture prompt (`PromptBuilder.renderCapture`) covers one capture. Capso copies it after the last note step. Paste it into any agent: Claude Code in the desktop app or the CLI, Codex, or another tool. It names the annotated PNG and `manifest.md` by absolute path and lists the reviewer's answers as items. Screen text stays in `manifest.md`.
+- The capture prompt (`PromptBuilder.renderCapture`) covers one capture. Capso copies it after the last note step. Paste it into any agent: Claude Code in the desktop app or the CLI, Codex, or another tool. It names the annotated PNG and `manifest.md` by absolute path, in backticks, and lists the reviewer's answers as items. OCR text and window titles stay in `manifest.md`. The file names hold a slug of the window title, so the prompt marks them as screen text.
 - `prompt.md` covers the whole session. Copy Prompt in the feedback status menu puts it on the clipboard.
 
 Agent access:
