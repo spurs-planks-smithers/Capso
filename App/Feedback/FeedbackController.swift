@@ -9,9 +9,9 @@ import os
 import SharedKit
 
 /// Fork: timing and state of the feedback path, in the macOS system log.
-/// Read with: log show --last 10m --predicate 'subsystem == "com.drewschulz.capso.feedback"'
+/// Read with: log show --last 10m --predicate 'subsystem == "com.drewschulz.nextshot"'
 enum FeedbackLog {
-    static let logger = Logger(subsystem: "com.drewschulz.capso.feedback", category: "Feedback")
+    static let logger = Logger(subsystem: "com.drewschulz.nextshot", category: "Feedback")
 }
 
 /// Fork: owns feedback sessions. Each saved capture goes into the active
@@ -28,25 +28,53 @@ final class FeedbackController {
     private var settings: AppSettings?
     private var inlineEditor: InlineAnnotationEditorWindow?
     private var fullEditor: AnnotationEditorWindow?
-    private var escapeMonitor: Any?
+    private var keyMonitor: Any?
     /// Saves in progress, so `endSession()` can wait for them.
     private var saveTasks: [UUID: Task<Void, Never>] = [:]
     private let statusItem = FeedbackStatusItem()
     private let notePanel = FeedbackNotePanel()
     private var shortcutPanel: FeedbackShortcutPanel?
     private var toast: ToastWindow?
+    private let help = FeedbackHelpOverlay()
+    private var selectionPhase = SelectionPhase.none
+    /// The screen the help box shows on: the pointer's screen at the hotkey,
+    /// then the capture's screen.
+    private var helpScreen: NSScreen?
     /// End Session while it waits for saves and ends the session.
     private var ending: Task<FeedbackSession, Error>?
 
-    /// `~/Library/Application Support/CapsoFeedback`: the standard place for an
+    /// `~/Library/Application Support/Nextshot`: the standard place for an
     /// app's data. It stays out of the home folder, and macOS privacy controls
     /// do not guard it, so any agent the user starts can read the bundles.
     nonisolated static let defaultRootURL = FileManager.default
         .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        .appendingPathComponent("Nextshot", isDirectory: true)
+
+    /// The bundle folder before the Nextshot rename (2026-10-21).
+    nonisolated static let legacyRootURL = defaultRootURL.deletingLastPathComponent()
         .appendingPathComponent("CapsoFeedback", isDirectory: true)
 
     init(rootURL: URL = FeedbackController.defaultRootURL) {
+        if rootURL == Self.defaultRootURL {
+            Self.moveLegacyFolder(to: rootURL)
+        }
         store = FeedbackSessionStore(rootURL: rootURL)
+    }
+
+    /// Moves the bundles from the folder used before the rename, once. The
+    /// active session moves with them. A failed move leaves the old folder
+    /// as it was.
+    private static func moveLegacyFolder(to rootURL: URL) {
+        let fileManager = FileManager.default
+        guard fileManager.fileExists(atPath: legacyRootURL.path),
+              !fileManager.fileExists(atPath: rootURL.path) else { return }
+        do {
+            try fileManager.moveItem(at: legacyRootURL, to: rootURL)
+            FeedbackLog.logger.notice("bundle folder moved to Nextshot")
+        } catch {
+            let nsError = error as NSError
+            FeedbackLog.logger.error("bundle folder move failed: \(nsError.domain, privacy: .public) \(nsError.code)")
+        }
     }
 
     func start(captureCoordinator: CaptureCoordinator, settings: AppSettings) {
@@ -81,6 +109,29 @@ final class FeedbackController {
         statusItem.onShowShortcut = { [weak self] in
             self?.showShortcutPanel()
         }
+        notePanel.onClosed = { [weak self] in
+            self?.updateHelp()
+        }
+        // The help box shows again once the hotkey's capture has frozen the
+        // screen, so the frozen image never holds it.
+        NotificationCenter.default.addObserver(forName: .capsoCaptureDidFreezeDesktop, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, self.selectionPhase == .starting else { return }
+                self.selectionPhase = .selecting
+                self.updateHelp()
+            }
+        }
+        // Posted when the selection ends, before a selected area opens the
+        // editor. The task runs after the editor is open.
+        NotificationCenter.default.addObserver(forName: .capsoCaptureDidEnd, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, self.selectionPhase != .none else { return }
+                Task { @MainActor in
+                    self.selectionPhase = .none
+                    self.updateHelp()
+                }
+            }
+        }
         // A session left active before a relaunch shows its status item again.
         Task { await refresh() }
     }
@@ -99,6 +150,9 @@ final class FeedbackController {
     /// no empty session behind.
     func capture() {
         FeedbackLog.logger.notice("area capture requested")
+        help.hide()
+        selectionPhase = .starting
+        helpScreen = NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) } ?? NSScreen.main
         captureCoordinator?.captureAreaForFeedback()
     }
 
@@ -157,6 +211,45 @@ final class FeedbackController {
         session = await store.activeSession
         folderURL = await store.activeFolderURL
         statusItem.update(session: session)
+        updateHelp()
+    }
+
+    // MARK: - Help box
+
+    private enum SelectionPhase {
+        /// No feedback selection.
+        case none
+        /// The hotkey was pressed. The screen is not frozen yet.
+        case starting
+        /// The selection overlay is up on the frozen screen.
+        case selecting
+    }
+
+    /// Shows the keys for the current stage. The box stays until the session
+    /// ends. With no session, it shows only while a capture is in progress.
+    private func updateHelp() {
+        let stage: FeedbackHelpStage?
+        switch selectionPhase {
+        case .starting:
+            stage = nil
+        case .selecting:
+            stage = .selecting
+        case .none:
+            if inlineEditor != nil || fullEditor != nil {
+                stage = .marking
+            } else if notePanel.isOpen {
+                stage = .notes
+            } else if session != nil {
+                stage = .between
+            } else {
+                stage = nil
+            }
+        }
+        if let stage {
+            help.show(stage, document: inlineEditor?.document, on: helpScreen)
+        } else {
+            help.hide()
+        }
     }
 
     // MARK: - Editor
@@ -220,57 +313,105 @@ final class FeedbackController {
             },
             onClose: { [weak self] in
                 self?.inlineEditor = nil
-                self?.removeEscapeMonitor()
+                self?.removeKeyMonitor()
+                self?.updateHelp()
             }
         )
         inlineEditor?.show()
-        installEscapeMonitor(image: result.image, screen: screen)
+        installKeyMonitor(image: result.image, screen: screen)
+        helpScreen = screen
+        updateHelp()
         return true
     }
 
-    /// Upstream's `AnnotationEscapePolicy` never closes the editor on Esc.
-    /// Here, Esc on an editor with no marks yet copies the screenshot to the
-    /// clipboard and closes the editor, ready to paste into an email (Drew,
-    /// 2026-10-21; it replaces the earlier "back to area selection" rule).
-    /// With marks present, upstream's step-back behavior stays, so Esc never
-    /// throws away work.
-    private func installEscapeMonitor(image: CGImage, screen: NSScreen) {
-        removeEscapeMonitor()
-        escapeMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            // Caps Lock, keypad, and fn flags do not change what Esc means.
-            let isPlainEscape = event.keyCode == 53
-                && event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-                    .subtracting([.capsLock, .numericPad, .function]).isEmpty
-            guard isPlainEscape else { return event }
-            let handled = MainActor.assumeIsolated { () -> Bool in
+    /// Keys the inline editor gets here on top of upstream's:
+    ///
+    /// - Upstream's `AnnotationEscapePolicy` never closes the editor on Esc.
+    ///   Here, Esc on an editor with no marks yet copies the screenshot to the
+    ///   clipboard and closes the editor, ready to paste into an email (Drew,
+    ///   2026-10-21; it replaces the earlier "back to area selection" rule).
+    ///   With marks present, upstream's step-back behavior stays, so Esc never
+    ///   throws away work.
+    /// - Left and Right arrows undo and redo marks (Drew, 2026-10-21). They
+    ///   become Command+Z and Shift+Command+Z, so they take the editor's own
+    ///   undo path.
+    ///
+    /// Text being typed keeps upstream's keys: Esc commits it, and arrows
+    /// move the cursor.
+    private func installKeyMonitor(image: CGImage, screen: NSScreen) {
+        removeKeyMonitor()
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            // Caps Lock, keypad, and fn flags do not change what a key means.
+            // Arrow keys always carry the keypad and fn flags.
+            let isPlain = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+                .subtracting([.capsLock, .numericPad, .function]).isEmpty
+            guard isPlain, [53, 123, 124].contains(event.keyCode) else { return event }
+            let keyCode = event.keyCode
+            let action = MainActor.assumeIsolated { () -> EditorKeyAction in
                 // A text mark joins `document.objects` only when its editing
-                // ends, so text being typed must keep upstream's Esc (commit).
+                // ends, so the first responder tells whether text is being typed.
                 guard let editor = self.inlineEditor, editor.isKeyWindow,
-                      editor.document.objects.isEmpty, !(editor.firstResponder is NSText) else {
-                    return false
+                      !(editor.firstResponder is NSText) else {
+                    return .pass
                 }
-                // The image itself, in the user's clipboard format, so it
-                // pastes into an email body.
-                let copied = ImageUtilities.copyToPasteboard(image, format: self.settings?.screenshotClipboardFormat ?? .png)
-                FeedbackLog.logger.notice("Esc on an empty editor: screenshot copied \(copied)")
-                // A failed copy keeps the editor open, so the capture is not lost.
-                guard copied else {
-                    NSSound.beep()
-                    return true
+                switch keyCode {
+                case 123:
+                    return .undo
+                case 124:
+                    return .redo
+                default:
+                    guard editor.document.objects.isEmpty else { return .pass }
+                    self.copyScreenshotAndClose(editor, image: image, screen: screen)
+                    return .handled
                 }
-                editor.close()
-                self.showToast("Screenshot copied", screen: screen)
-                return true
             }
-            return handled ? nil : event
+            switch action {
+            case .pass: return event
+            case .handled: return nil
+            case .undo: return Self.undoKeyEvent(replacing: event, redo: false)
+            case .redo: return Self.undoKeyEvent(replacing: event, redo: true)
+            }
         }
     }
 
-    private func removeEscapeMonitor() {
-        if let escapeMonitor {
-            NSEvent.removeMonitor(escapeMonitor)
+    private enum EditorKeyAction: Sendable {
+        case pass, handled, undo, redo
+    }
+
+    /// The image itself, in the user's clipboard format, so it pastes into an
+    /// email body. A failed copy keeps the editor open, so the capture is not lost.
+    private func copyScreenshotAndClose(_ editor: InlineAnnotationEditorWindow, image: CGImage, screen: NSScreen) {
+        let copied = ImageUtilities.copyToPasteboard(image, format: settings?.screenshotClipboardFormat ?? .png)
+        FeedbackLog.logger.notice("Esc on an empty editor: screenshot copied \(copied)")
+        guard copied else {
+            NSSound.beep()
+            return
         }
-        escapeMonitor = nil
+        editor.close()
+        showToast("Screenshot copied", screen: screen)
+    }
+
+    /// Command+Z, or Shift+Command+Z for redo, in place of an arrow key.
+    private nonisolated static func undoKeyEvent(replacing event: NSEvent, redo: Bool) -> NSEvent? {
+        NSEvent.keyEvent(
+            with: .keyDown,
+            location: event.locationInWindow,
+            modifierFlags: redo ? [.command, .shift] : [.command],
+            timestamp: event.timestamp,
+            windowNumber: event.windowNumber,
+            context: nil,
+            characters: redo ? "Z" : "z",
+            charactersIgnoringModifiers: redo ? "Z" : "z",
+            isARepeat: event.isARepeat,
+            keyCode: 6
+        ) ?? event
+    }
+
+    private func removeKeyMonitor() {
+        if let keyMonitor {
+            NSEvent.removeMonitor(keyMonitor)
+        }
+        keyMonitor = nil
     }
 
     private func saveFromInlineEditor(_ rendered: CGImage, result: CaptureResult) {
@@ -295,6 +436,7 @@ final class FeedbackController {
                 guard let self, let editor = self.fullEditor else { return false }
                 self.save(rendered: rendered, objects: editor.document.objects, result: result)
                 self.fullEditor = nil
+                self.updateHelp()
                 return true
             },
             onCopy: { rendered in
@@ -303,9 +445,11 @@ final class FeedbackController {
             onPin: { _, _ in },
             onClose: { [weak self] in
                 self?.fullEditor = nil
+                self?.updateHelp()
             }
         )
         fullEditor?.show()
+        updateHelp()
     }
 
     // MARK: - Save pipeline
@@ -414,6 +558,7 @@ final class FeedbackController {
                 Task { await self.copyCapturePrompt(pending: pending, screen: screen) }
             }
         )
+        updateHelp()
 
         // End Session waits for this task, so it never ends a session before
         // the screen text is in.

@@ -1,6 +1,6 @@
 #!/bin/bash
-# Fork: build Capso with Apple Development signing under a distinct bundle ID
-# and app name, then install it to ~/Applications.
+# Fork: build Nextshot (this fork of Capso) with Apple Development signing
+# under its own bundle ID and app name, then install it to ~/Applications.
 #
 # scripts/local-project.yml sets the bundle ID, app name, and signing style on
 # the Capso target only. Command-line PRODUCT_NAME would rename every package
@@ -24,8 +24,8 @@ fi
 source "$env_file"
 : "${DEVELOPMENT_TEAM:?Set DEVELOPMENT_TEAM in $env_file}"
 
-bundle_id="com.drewschulz.capso.feedback"
-product_name="CapsoFeedback"
+bundle_id="com.drewschulz.nextshot"
+product_name="Nextshot"
 derived="$repo/build/local"
 
 cd "$repo"

@@ -157,9 +157,9 @@ final class MenuBarController: NSObject {
         menu.addItem(.separator())
 
         menu.addItem(menuItem(String(localized: "Preferences..."), action: #selector(openPreferences), key: ",", modifiers: [.command]))
-        menu.addItem(menuItem(String(localized: "About Capso"), action: #selector(openAbout)))
+        menu.addItem(menuItem(ForkBranding.renamed(String(localized: "About Capso")), action: #selector(openAbout))) // Fork: product name
         menu.addItem(.separator())
-        menu.addItem(menuItem(String(localized: "Quit Capso"), action: #selector(quitApp), key: "q", modifiers: [.command]))
+        menu.addItem(menuItem(ForkBranding.renamed(String(localized: "Quit Capso")), action: #selector(quitApp), key: "q", modifiers: [.command])) // Fork: product name
 
         return menu
     }

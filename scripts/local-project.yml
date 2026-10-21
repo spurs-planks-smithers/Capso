@@ -13,7 +13,7 @@ targets:
   Capso:
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.drewschulz.capso.feedback
-        PRODUCT_NAME: CapsoFeedback
+        PRODUCT_BUNDLE_IDENTIFIER: com.drewschulz.nextshot
+        PRODUCT_NAME: Nextshot
         CODE_SIGN_STYLE: Automatic
         CODE_SIGN_IDENTITY: Apple Development

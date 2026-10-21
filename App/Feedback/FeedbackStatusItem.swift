@@ -3,7 +3,8 @@ import AppKit
 import FeedbackKit
 
 /// Fork: a second menu bar item, shown only while a feedback session is active.
-/// Its title is the session slug and the capture count.
+/// Its title is the short product name and the capture count, for example
+/// "Nshot (2)". The menu's first line names the session.
 @MainActor
 final class FeedbackStatusItem: NSObject {
     var onCopyPrompt: (() -> Void)?
@@ -13,6 +14,7 @@ final class FeedbackStatusItem: NSObject {
     var onShowShortcut: (() -> Void)?
 
     private var item: NSStatusItem?
+    private var sessionLine: NSMenuItem?
 
     func update(session: FeedbackSession?) {
         guard let session else {
@@ -24,15 +26,22 @@ final class FeedbackStatusItem: NSObject {
         }
         let item = self.item ?? makeItem()
         self.item = item
-        item.button?.title = " \(session.slug) (\(session.captures.count))"
+        item.button?.title = " \(ForkBranding.shortName) (\(session.captures.count))"
+        sessionLine?.title = "Session: \(session.slug)"
     }
 
     private func makeItem() -> NSStatusItem {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        item.button?.image = NSImage(systemSymbolName: "text.bubble", accessibilityDescription: "Feedback session")
+        item.button?.image = NSImage(systemSymbolName: "text.bubble", accessibilityDescription: "\(ForkBranding.name) feedback session")
         item.button?.imagePosition = .imageLeading
 
         let menu = NSMenu()
+        // No action, so the menu shows it gray and it cannot be chosen. A new
+        // line for each item: a menu item can be in only one menu.
+        let sessionLine = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        self.sessionLine = sessionLine
+        menu.addItem(sessionLine)
+        menu.addItem(.separator())
         menu.addItem(menuItem("Copy Last Capture", action: #selector(copyLastCapture)))
         menu.addItem(menuItem("Copy Session Prompt", action: #selector(copyPrompt)))
         menu.addItem(menuItem("Open Folder", action: #selector(openFolder)))

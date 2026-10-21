@@ -27,6 +27,9 @@ Compile risk: `PostCaptureAction.feedback` is a new enum case. An upstream chang
 | `App/Tests/UpdateManagerTests.swift` | Rec 1 follow-on: `ShippedUpdateDefaultsTests` asserted automatic checks are on. It now asserts they are off, as `testAutomaticChecksAreOffInTheFork`. | 40-42 (changed, 1 comment line added) | none |
 | `App/Sources/Preferences/Tabs/OCRSettingsView.swift` | Security rec 2 (approved 2026-10-20): the provider picker lists only `.apple`. Provider code stays until a later removal branch. | 51 (changed) | [#348](https://github.com/lzhgus/Capso/pull/348) |
 | `App/Sources/Preferences/PreferencesView.swift` | Security rec 3 (approved 2026-10-20): Cloud Share is left out of the settings tab list. "Capture Area and Share" can still open its content (`CaptureCoordinator.swift:401`). | 95 (changed) | [#348](https://github.com/lzhgus/Capso/pull/348) |
+| `App/Resources/Info.plist` | Nextshot rename (Drew, 2026-10-21): `CFBundleName` and `CFBundleDisplayName` read `$(PRODUCT_NAME)`. Upstream's `PRODUCT_NAME` is Capso, so upstream builds keep their name. | 6, 8 (changed) | none |
+| `App/Resources/InfoPlist.xcstrings` | Nextshot rename: the `CFBundleName` and `CFBundleDisplayName` entries are removed. Every locale held "Capso", which would override `Info.plist`. On a conflict, delete the two entries again. | 4-111 of the upstream file (removed) | none |
+| `App/Sources/MenuBar/MenuBarController.swift` | Nextshot rename: "About Capso" and "Quit Capso" pass through `ForkBranding.renamed`, so each locale keeps its translation. | 160, 162 (changed) | [#349](https://github.com/lzhgus/Capso/pull/349) |
 
 ### Why the coordinator hook is smaller than the plan's estimate
 
@@ -42,7 +45,7 @@ The plan estimated about 35 lines in `CaptureCoordinator.swift`, with the coordi
 | `docs/decisions/2026-10-20-feedback-bundle-format.md` | Why the bundle has its format |
 | `docs/SECURITY_BASELINE.md` | Network code, entitlements, dependencies, and recommendations |
 | `Packages/FeedbackKit/` | Session model, store, image sizing, naming, screen-text cleaning, window picker, preview crop, note parser, OCR matcher, manifest and prompt writers, tests |
-| `App/Feedback/` | Feedback controller (editor, Esc rule, save pipeline), mark mapper, window-title lookup, PNG export, note panel with circle previews, status item, shortcut panel, App Intents |
+| `App/Feedback/` | Feedback controller (editor, Esc and arrow keys, save pipeline), mark mapper, window-title lookup, PNG export, note panel with circle previews and arrow-key steps, help box, status item, shortcut panel, App Intents, `ForkBranding` (product name) |
 | `scripts/build-local.sh`, `scripts/local-project.yml` | Signed local build. Force-added: upstream ignores `scripts/`. |
 | `scripts/local-signing.env` | Untracked. Holds `DEVELOPMENT_TEAM`. Listed in `.git/info/exclude`. |
 

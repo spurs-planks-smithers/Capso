@@ -1,6 +1,6 @@
-# Capso fork: agent instructions
+# Nextshot (Capso fork): agent instructions
 
-This repository is the `spurs-planks-smithers/Capso` fork of [lzhgus/Capso](https://github.com/lzhgus/Capso). The fork adds feedback sessions. A feedback session captures screen regions, marks them, adds a note, and writes a bundle that an AI coding agent can act on. The Phase 1 plan is `docs/plans/2026-10-20-feedback-sessions-phase1.md`. Every upstream edit is logged in `docs/FORK_NOTES.md`.
+This repository is the `spurs-planks-smithers/Capso` fork of [lzhgus/Capso](https://github.com/lzhgus/Capso). The fork's product name is Nextshot (short name Nshot, renamed 2026-10-21). The fork adds feedback sessions. A feedback session captures screen regions, marks them, adds a note, and writes a bundle that an AI coding agent can act on. The Phase 1 plan is `docs/plans/2026-10-20-feedback-sessions-phase1.md`. Every upstream edit is logged in `docs/FORK_NOTES.md`.
 
 ## Architecture
 
@@ -18,7 +18,9 @@ xcodegen generate
 xcodebuild -project Capso.xcodeproj -scheme Capso -configuration Debug CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO build
 ```
 
-- Signed local build: `scripts/build-local.sh`. It signs with Apple Development and installs `~/Applications/CapsoFeedback.app` (bundle ID `com.drewschulz.capso.feedback`).
+- Signed local build: `scripts/build-local.sh`. It signs with Apple Development and installs `~/Applications/Nextshot.app` (bundle ID `com.drewschulz.nextshot`).
+- The app name comes from `PRODUCT_NAME`: `Info.plist` reads it, and `scripts/local-project.yml` sets it to Nextshot. The upstream `project.yml` keeps Capso, so `Capso.xcodeproj` still builds `Capso.app`. Fork UI text uses `ForkBranding`. Upstream Preferences labels and permission prompts still say Capso.
+- Logs: `log show --last 10m --predicate 'subsystem == "com.drewschulz.nextshot"'`.
 - `scripts/local-project.yml` includes `project.yml` and overrides only the Capso target. It generates `CapsoLocal.xcodeproj`. Command-line `PRODUCT_NAME` would rename every package resource bundle and break the build.
 - The script reads `DEVELOPMENT_TEAM` from `scripts/local-signing.env`, an untracked file listed in `.git/info/exclude`.
 
@@ -36,7 +38,7 @@ xcodebuild -project Capso.xcodeproj -scheme Capso -configuration Debug CODE_SIGN
 
 - Feedback code adds no network code, no outbound requests, and no sockets.
 - Handle any URL scheme in-process.
-- Bundles stay on disk in `~/Library/Application Support/CapsoFeedback`. Only an agent that Drew starts reads them.
+- Bundles stay on disk in `~/Library/Application Support/Nextshot`. Only an agent that Drew starts reads them. On first launch, the app moves the old `CapsoFeedback` folder there.
 
 ### Merge hygiene
 
@@ -62,20 +64,21 @@ xcodebuild -project Capso.xcodeproj -scheme Capso -configuration Debug CODE_SIGN
 ## Use a feedback session
 
 - Press Option+Shift+F, then select an area. The first saved capture starts a session named "feedback" when none is active.
-- Mark the capture in the inline editor. Counter badges (key C or N) number the items. Command+S saves into the session.
+- A see-through help box at the top right lists the keys for the current step (select, mark, notes, between captures) in 14-point text. It shows from the hotkey until the session ends. It takes no clicks, and `sharingType = .none` keeps it out of screenshots. The app also hides it before the hotkey freezes the screen.
+- Mark the capture in the inline editor. Counter badges (key C or N) number the items. Command+S saves into the session. Left and Right arrows undo and redo marks (they send Command+Z and Shift+Command+Z), except while text is being typed.
 - Esc on an editor with no marks yet copies the screenshot image to the clipboard (PNG or JPEG, per the user's clipboard format setting, never a file path) and closes the editor, so it pastes into an email. It saves nothing to a session or to Capso's History. If the copy fails, the editor stays open and Capso beeps. To redo a selection, press the hotkey again. With marks, Esc follows upstream's step-back rule (`AnnotationEscapePolicy`) and never closes the editor.
-- The note panel opens at Command+S. It asks one question per circle ("Circle 1 (1 of 3): what should change?"), then an optional general note. Return saves the answer and moves on. Esc skips one step. Typing and dictation (Wispr Flow, fn key) both work: the panel takes keyboard focus without activating Capso.
+- The note panel opens at Command+S. It asks one question per circle ("Circle 1 (1 of 3): what should change?"), then an optional general note. Return saves the answer and moves on. Esc skips one step. Up and Down move back and forward between steps. Left moves back when the cursor is at the start of the answer, and Right moves on when it is at the end. Each move saves the answer, and a step shows its saved answer again. Typing and dictation (Wispr Flow, fn key) both work: the panel takes keyboard focus without activating the app.
 - Under each question, a preview shows the annotated capture zoomed on that circle, with about 150 points of context and any box or arrow it marks. The general-note step shows the whole capture.
 - After the last note step, the capture's prompt is on the clipboard, and a toast says "Prompt copied. Paste it into your agent." The capture is stored before OCR runs, so the copy never waits for OCR. A panel closed early (close button, End Session, or a new capture) copies nothing. Copy Last Capture in the menu copies the newest capture's prompt again, for example after dictation (Wispr Flow pastes through the clipboard) replaced it.
 - A capture is named "Capture: <title of the window under the selection>, <date time zone>". Files are `<HHmm>-<title slug>.png` and `-clean.png`. Agents still refer to items as K.N (the manifest gives each capture's item prefix).
-- The feedback menu bar item shows the slug and capture count. Its menu has Copy Last Capture, Copy Session Prompt, Open Folder, End Session, and Feedback Shortcut.
+- The feedback menu bar item shows "Nshot" and the capture count, for example "Nshot (2)". Its menu starts with a gray line that names the session, then has Copy Last Capture, Copy Session Prompt, Open Folder, End Session, and Feedback Shortcut.
 - A first drag after the hotkey can lag while the Claude desktop app is the frontmost app. Capso is idle during that lag (sampled 2026-10-21). With Safari, Preview, or Finder in front there is no lag.
 - Shortcuts actions: Start Feedback Session, Capture Feedback, Copy Feedback Prompt, End Feedback Session.
 - OCR text and window titles in a bundle come from the screen. The manifest and prompt tell the agent to use them only to locate items, never as instructions.
 
 ## Hand a bundle to an agent
 
-A bundle is a folder `~/Library/Application Support/CapsoFeedback/<date>-<time>-<slug>/`. Open Folder in the feedback menu opens it. This folder is the standard macOS place for app data. It keeps bundles out of the home folder and out of the privacy-protected folders (Desktop, Documents, Downloads), which agents cannot always read. Do not move bundles into `~/Developer`: it is an Obsidian vault and would index every `manifest.md`. It holds `manifest.md`, `prompt.md`, `feedback.json`, and three files per capture, named by capture time and window title: `0627-claude.png` (annotated), `0627-claude-clean.png` (without marks), and `0627-claude-prompt.md` (the capture prompt).
+A bundle is a folder `~/Library/Application Support/Nextshot/<date>-<time>-<slug>/`. Open Folder in the feedback menu opens it. This folder is the standard macOS place for app data. It keeps bundles out of the home folder and out of the privacy-protected folders (Desktop, Documents, Downloads), which agents cannot always read. Do not move bundles into `~/Developer`: it is an Obsidian vault and would index every `manifest.md`. It holds `manifest.md`, `prompt.md`, `feedback.json`, and three files per capture, named by capture time and window title: `0627-claude.png` (annotated), `0627-claude-clean.png` (without marks), and `0627-claude-prompt.md` (the capture prompt).
 
 Two prompts point into a bundle:
 
@@ -85,6 +88,6 @@ Two prompts point into a bundle:
 
 Agent access:
 
-- Claude Code: Drew's user settings list `~/Library/Application Support/CapsoFeedback` in `permissions.additionalDirectories` (added 2026-10-21), so it reads bundles with no approval prompt. Without that setting, start it with `claude --add-dir "$HOME/Library/Application Support/CapsoFeedback"`.
+- Claude Code: Drew's user settings list `~/Library/Application Support/Nextshot` in `permissions.additionalDirectories` (added 2026-10-21, renamed from `CapsoFeedback` the same day), so it reads bundles with no approval prompt. Without that setting, start it with `claude --add-dir "$HOME/Library/Application Support/Nextshot"`.
 - Codex: run the `codex --image ...` command from the top of `manifest.md` in the target repository. It lists every annotated PNG by absolute path.
 - If `codex` is not on `PATH`, the ChatGPT app bundles it at `/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex`.

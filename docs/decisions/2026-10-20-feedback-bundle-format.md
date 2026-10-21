@@ -45,6 +45,10 @@ Each feedback session writes one folder under `~/Feedback/`:
 | The work method says: make no edit before the plan table is in the reply. | In the paste test, an agent edited without the table under the softer wording. |
 | Esc on an editor with no marks copies the screenshot and closes the editor. The hotkey no longer starts a session: the first saved capture does. | Drew wants to paste a plain screenshot into an email after Esc. This replaces the earlier 2026-10-21 rule that Esc goes back to area selection. A copy-only screenshot must not leave an empty session. |
 | Bundles move from `~/Feedback` to `~/Library/Application Support/CapsoFeedback`. | Drew did not want a folder at the top of his home folder. Application Support is the standard macOS place for app data and is not privacy-protected, so every agent tool can read it. Documents, Desktop, and Downloads are protected, and `~/Developer` is an Obsidian vault. |
+| The app is Nextshot (short name Nshot), bundle ID `com.drewschulz.nextshot`. Bundles move to `~/Library/Application Support/Nextshot`; the app moves the old folder on first launch. Upstream Preferences labels and permission prompts keep "Capso". | Drew chose the product name. A full rename of upstream strings would conflict on every upstream merge. A new bundle ID means Screen Recording is granted again. |
+| The menu bar item reads "Nshot (2)". The session name moves to a gray first line in its menu. | Drew asked for the short product name in the menu bar. |
+| Left and Right arrows undo and redo marks in the inline editor. In the note panel, Up and Down move between steps; Left and Right move only from the start or end of the answer. | Drew wants to step back and forward. The text cursor still works inside an answer. |
+| A see-through help box at the top right lists the current step's keys, in 14-point text, from the hotkey until the session ends. It is kept out of screenshots. | Drew wants the keys in view while he works. |
 
 ## Evidence
 
