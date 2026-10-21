@@ -66,7 +66,14 @@ final class FeedbackController {
             self?.openFolder()
         }
         statusItem.onEndSession = { [weak self] in
-            Task { try? await self?.endSession() }
+            FeedbackLog.logger.notice("menu: End Session")
+            Task {
+                do {
+                    try await self?.endSession()
+                } catch {
+                    self?.report(error, context: "Feedback session did not end")
+                }
+            }
         }
         statusItem.onShowShortcut = { [weak self] in
             self?.showShortcutPanel()
@@ -120,11 +127,14 @@ final class FeedbackController {
         defer { Task { await refresh() } }
         notePanel.close()
         let saves = Array(saveTasks.values)
+        FeedbackLog.logger.notice("end session: waiting for \(saves.count) saves")
         let ending = Task {
             for task in saves {
                 await task.value
             }
-            return try await self.store.end()
+            let session = try await self.store.end()
+            FeedbackLog.logger.notice("end session: ended, \(session.captures.count) captures")
+            return session
         }
         self.ending = ending
         defer {
