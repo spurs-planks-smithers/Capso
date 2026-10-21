@@ -38,6 +38,9 @@ Each feedback session writes one folder under `~/Feedback/`:
 | The note panel asks one question per circle, then an optional general note, and saves each answer as that circle's instruction. | Drew expected one input per circle. It suits dictation, because he does not have to say "1:". The `N:` note syntax stays in `NoteParser` but the panel no longer needs it. |
 | Each circle question shows a zoomed preview of the annotated capture around that circle. | Drew forgot which circle meant what by the time the questions came. |
 | Window titles count as screen text: cleaned, capped, and quoted, and reading rule 8 lists them. | Any web page sets its own title, so it must not read as bundle structure or instructions. |
+| After the last note step, the capture's own prompt goes on the clipboard. It names the annotated PNG and `manifest.md` by absolute path and lists the answers as items. Copy Prompt in the menu still copies the whole session. | Drew: one paste should hand a capture to any agent tool. He chose "this capture only" over the whole session. |
+| The capture prompt holds only the reviewer's answers. OCR text and window titles stay in `manifest.md`. | A pasted prompt is the user's own message, so screen text in it would read as the user's instruction. |
+| The capture is stored before OCR runs. OCR adds the screen text afterward (`setScreenText`). | Cold OCR took 30 s (measured 2026-10-20). The clipboard must hold the prompt when the last note step ends. |
 
 ## Evidence
 

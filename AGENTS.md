@@ -66,6 +66,7 @@ xcodebuild -project Capso.xcodeproj -scheme Capso -configuration Debug CODE_SIGN
 - Esc on an editor with no marks yet goes back to area selection. With marks, Esc follows upstream's step-back rule (`AnnotationEscapePolicy`) and never closes the editor.
 - The note panel opens at Command+S. It asks one question per circle ("Circle 1 (1 of 3): what should change?"), then an optional general note. Return saves the answer and moves on. Esc skips one step. Typing and dictation (Wispr Flow, fn key) both work: the panel takes keyboard focus without activating Capso.
 - Under each question, a preview shows the annotated capture zoomed on that circle, with about 150 points of context and any box or arrow it marks. The general-note step shows the whole capture.
+- After the last note step, the capture's prompt is on the clipboard, and a toast says "Prompt copied. Paste it into your agent." The capture is stored before OCR runs, so the copy never waits for OCR.
 - A capture is named "Capture: <title of the window under the selection>, <date time zone>". Files are `<HHmm>-<title slug>.png` and `-clean.png`. Agents still refer to items as K.N (the manifest gives each capture's item prefix).
 - The feedback menu bar item shows the slug and capture count. Its menu has Copy Prompt, Open Folder, End Session, and Feedback Shortcut.
 - A first drag after the hotkey can lag while the Claude desktop app is the frontmost app. Capso is idle during that lag (sampled 2026-10-21). With Safari, Preview, or Finder in front there is no lag.
@@ -74,8 +75,15 @@ xcodebuild -project Capso.xcodeproj -scheme Capso -configuration Debug CODE_SIGN
 
 ## Hand a bundle to an agent
 
-A bundle is a folder `~/Feedback/<date>-<time>-<slug>/`. It holds `manifest.md`, `prompt.md`, `feedback.json`, and two PNG files per capture, named by capture time and window title (`0627-claude.png` annotated, `0627-claude-clean.png` without marks). Copy Prompt in the feedback status menu puts `prompt.md` on the clipboard.
+A bundle is a folder `~/Feedback/<date>-<time>-<slug>/`. It holds `manifest.md`, `prompt.md`, `feedback.json`, and two PNG files per capture, named by capture time and window title (`0627-claude.png` annotated, `0627-claude-clean.png` without marks).
 
-- Claude Code: start it in the target repository with `claude --add-dir ~/Feedback`, then paste the prompt.
+Two prompts point into a bundle:
+
+- The capture prompt (`PromptBuilder.renderCapture`) covers one capture. Capso copies it after the last note step. Paste it into any agent: Claude Code in the desktop app or the CLI, Codex, or another tool. It names the annotated PNG and `manifest.md` by absolute path and lists the reviewer's answers as items. Screen text stays in `manifest.md`.
+- `prompt.md` covers the whole session. Copy Prompt in the feedback status menu puts it on the clipboard.
+
+Agent access:
+
+- Claude Code: Drew's user settings list `~/Feedback` in `permissions.additionalDirectories` (added 2026-10-21), so it reads bundles with no approval prompt. Without that setting, start it with `claude --add-dir ~/Feedback`.
 - Codex: run the `codex --image ...` command from the top of `manifest.md` in the target repository. It lists every annotated PNG by absolute path.
 - If `codex` is not on `PATH`, the ChatGPT app bundles it at `/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex`.
