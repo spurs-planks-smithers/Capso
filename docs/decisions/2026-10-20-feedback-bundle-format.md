@@ -15,7 +15,7 @@ Each feedback session writes one folder under `~/Feedback/`:
 ```
 ~/Feedback/2026-10-20-1912-pricing-page/
   manifest.md      entry point: how to read the bundle, then one section per capture
-  prompt.md        the prompt that Copy Prompt puts on the clipboard
+  prompt.md        the prompt that Copy Session Prompt (first called Copy Prompt) puts on the clipboard
   feedback.json    machine-readable, schemaVersion 1, source of truth
   001.png          annotated, long edge <= 2000 px, <= 4784 visual tokens
   001-clean.png    same size, no marks

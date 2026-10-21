@@ -252,13 +252,14 @@ final class FeedbackController {
                 // The image itself, in the user's clipboard format, so it
                 // pastes into an email body.
                 let copied = ImageUtilities.copyToPasteboard(image, format: self.settings?.screenshotClipboardFormat ?? .png)
-                FeedbackLog.logger.notice("Esc on an empty editor: screenshot copied \(copied), editor closed")
-                editor.close()
-                if copied {
-                    self.showToast("Screenshot copied", screen: screen)
-                } else {
+                FeedbackLog.logger.notice("Esc on an empty editor: screenshot copied \(copied)")
+                // A failed copy keeps the editor open, so the capture is not lost.
+                guard copied else {
                     NSSound.beep()
+                    return true
                 }
+                editor.close()
+                self.showToast("Screenshot copied", screen: screen)
                 return true
             }
             return handled ? nil : event
@@ -390,6 +391,9 @@ final class FeedbackController {
                 return capture.index
             } catch {
                 report(error, context: "Feedback capture was not saved")
+                // The session may have started before the failure, so the
+                // menu must show it.
+                await refresh()
                 return nil
             }
         }

@@ -247,9 +247,11 @@ public actor FeedbackSessionStore {
         try Data(prompt.utf8).write(to: folder.appendingPathComponent(Self.promptFileName), options: .atomic)
         // Each capture's own prompt, so it can be pasted again after the
         // clipboard changes (dictation tools paste through the clipboard).
+        // A copy for convenience: a failed write here must not fail the save,
+        // because feedback.json above already holds the change.
         for capture in session.captures {
             let capturePrompt = PromptBuilder.renderCapture(capture, folderPath: folder.path)
-            try Data(capturePrompt.utf8).write(to: folder.appendingPathComponent(capture.promptFile), options: .atomic)
+            try? Data(capturePrompt.utf8).write(to: folder.appendingPathComponent(capture.promptFile), options: .atomic)
         }
     }
 

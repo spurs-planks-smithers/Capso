@@ -25,7 +25,7 @@ struct StartFeedbackSessionIntent: AppIntent {
 
 struct CaptureFeedbackIntent: AppIntent {
     static let title: LocalizedStringResource = "Capture Feedback"
-    static let description = IntentDescription("Captures an area into the active feedback session. Starts a session when none is active.")
+    static let description = IntentDescription("Captures an area into the active feedback session. Saving the first capture starts a session when none is active.")
     // `openAppWhenRun` is deprecated only from macOS 26. The app targets macOS 15.
     static let openAppWhenRun = true
 

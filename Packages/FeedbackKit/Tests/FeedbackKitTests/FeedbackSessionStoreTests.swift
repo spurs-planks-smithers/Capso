@@ -337,6 +337,21 @@ struct FeedbackSessionStoreTests {
         #expect(file.contains("- 1.1: fix price\n"))
     }
 
+    @Test("Keeps the capture when its prompt file cannot be written")
+    func promptFileIsBestEffort() async throws {
+        defer { try? fileManager.removeItem(at: root) }
+        let store = makeStore()
+        let session = try await store.start(name: "feedback")
+        // A folder where the prompt file should go makes that one write fail.
+        let blocker = root.appendingPathComponent("\(session.folderName)/2224-pricing-acme-prompt.md", isDirectory: true)
+        try fileManager.createDirectory(at: blocker, withIntermediateDirectories: true)
+
+        let capture = try await store.addCapture(input())
+        #expect(capture.index == 1)
+        #expect(await store.activeSession?.captures.count == 1)
+        #expect(try text("\(session.folderName)/feedback.json").contains("2224-pricing-acme.png"))
+    }
+
     @Test("Throws when the screen text does not match the marks")
     func screenTextCountMismatch() async throws {
         defer { try? fileManager.removeItem(at: root) }
