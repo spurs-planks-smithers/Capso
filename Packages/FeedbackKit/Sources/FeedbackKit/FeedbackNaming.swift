@@ -53,13 +53,22 @@ public enum FeedbackNaming {
     }
 
     /// The name a person sees: "Capture: <window title>, 2026-10-20 22:24 PDT".
-    /// The app name stands in for a missing window title.
-    public static func captureName(windowTitle: String?, sourceApp: String?, capturedAt: Date, timeZone: TimeZone) -> String {
+    /// The app name stands in for a missing window title. With `quoted`, the
+    /// title sits in double quotes (its own quotes become single quotes), so
+    /// a page title cannot pass for bundle structure in `manifest.md`.
+    public static func captureName(
+        windowTitle: String?,
+        sourceApp: String?,
+        capturedAt: Date,
+        timeZone: TimeZone,
+        quoted: Bool = false
+    ) -> String {
         let time = format(capturedAt, "yyyy-MM-dd HH:mm zzz", timeZone: timeZone)
         guard let label = label(windowTitle: windowTitle, sourceApp: sourceApp) else {
             return "Capture: \(time)"
         }
-        return "Capture: \(label), \(time)"
+        let shown = quoted ? "\"\(label.replacingOccurrences(of: "\"", with: "'"))\"" : label
+        return "Capture: \(shown), \(time)"
     }
 
     /// The file name without extension: "2224-pricing-acme". The session
