@@ -29,6 +29,8 @@ final class FeedbackController {
     private var inlineEditor: InlineAnnotationEditorWindow?
     private var fullEditor: AnnotationEditorWindow?
     private var escapeMonitor: Any?
+    /// Saves in progress, so `endSession()` can wait for them.
+    private var saveTasks: [UUID: Task<Void, Never>] = [:]
     private let statusItem = FeedbackStatusItem()
     private let notePanel = FeedbackNotePanel()
     private var shortcutPanel: FeedbackShortcutPanel?
@@ -99,10 +101,16 @@ final class FeedbackController {
         return prompt
     }
 
+    /// Waits for saves in progress first. OCR can take 30 s, and the note
+    /// panel can finish before the save does, so ending at once would start a
+    /// new session for that capture.
     @discardableResult
     func endSession() async throws -> FeedbackSession {
         defer { Task { await refresh() } }
         notePanel.close()
+        for task in saveTasks.values {
+            await task.value
+        }
         return try await store.end()
     }
 
@@ -128,14 +136,17 @@ final class FeedbackController {
     private func openEditor(for captured: CaptureResult) {
         // Area captures carry no window title. Read the window under the
         // selection now, before the editor covers the screen.
-        let underneath = FeedbackWindowTitle.window(for: captured)
+        // The app name and window title must name the same window. The
+        // frontmost app (captured.appName) can differ from the window under
+        // the selection, for example on a second display.
+        let underneath = captured.windowName == nil ? FeedbackWindowTitle.window(for: captured) : nil
         let result = CaptureResult(
             image: captured.image,
             mode: captured.mode,
             captureRect: captured.captureRect,
             windowName: captured.windowName ?? underneath?.title,
-            appName: captured.appName ?? underneath?.ownerName,
-            appBundleIdentifier: captured.appBundleIdentifier,
+            appName: underneath?.ownerName ?? captured.appName,
+            appBundleIdentifier: underneath == nil ? captured.appBundleIdentifier : nil,
             timestamp: captured.timestamp,
             displayID: captured.displayID
         )
@@ -197,11 +208,16 @@ final class FeedbackController {
     private func installEscapeMonitor() {
         removeEscapeMonitor()
         escapeMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            // Caps Lock, keypad, and fn flags do not change what Esc means.
             let isPlainEscape = event.keyCode == 53
-                && event.modifierFlags.intersection(.deviceIndependentFlagsMask).isEmpty
+                && event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+                    .subtracting([.capsLock, .numericPad, .function]).isEmpty
             guard isPlainEscape else { return event }
             let handled = MainActor.assumeIsolated { () -> Bool in
-                guard let editor = self.inlineEditor, editor.isKeyWindow, editor.document.objects.isEmpty else {
+                // A text mark joins `document.objects` only when its editing
+                // ends, so text being typed must keep upstream's Esc (commit).
+                guard let editor = self.inlineEditor, editor.isKeyWindow,
+                      editor.document.objects.isEmpty, !(editor.firstResponder is NSText) else {
                     return false
                 }
                 FeedbackLog.logger.notice("Esc on an empty editor: back to area selection")
@@ -264,7 +280,7 @@ final class FeedbackController {
     /// the clean image, sizes both PNG files, and adds the capture. OCR can take
     /// 30 s when the Neural Engine is cold (measured 2026-10-20), so the note
     /// must not wait for it. A note typed before the capture is stored is held
-    /// in `PendingNote` and saved right after.
+    /// in `PendingAnswers` and saved right after.
     private func save(rendered: CGImage, objects: [any AnnotationObject], result: CaptureResult) {
         FeedbackLog.logger.notice("save started, \(objects.count) marks")
         let source = PixelSize(width: rendered.width, height: rendered.height)
@@ -310,7 +326,9 @@ final class FeedbackController {
             }
         }
 
-        Task {
+        let saveID = UUID()
+        saveTasks[saveID] = Task {
+            defer { self.saveTasks[saveID] = nil }
             do {
                 let ocrStart = Date()
                 let regions = (try? await TextRecognizer.recognize(image: clean)) ?? []
@@ -394,7 +412,10 @@ final class FeedbackController {
     }
 
     private func report(_ error: Error, context: String) {
-        FeedbackLog.logger.error("\(context, privacy: .public): \(error.localizedDescription, privacy: .public)")
+        // Error descriptions can contain file names, which hold window-title
+        // text, so only the domain and code are public.
+        let nsError = error as NSError
+        FeedbackLog.logger.error("\(context, privacy: .public): \(nsError.domain, privacy: .public) \(nsError.code) \(nsError.localizedDescription, privacy: .private)")
         DiagnosticLogger.append(error: error, context: context, category: "Feedback")
         NSSound.beep()
     }
