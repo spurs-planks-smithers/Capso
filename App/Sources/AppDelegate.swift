@@ -85,6 +85,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onShowPreferences: { [weak self] in self?.showPreferences() }
         )
         registerGlobalShortcuts()
+        FeedbackController.shared.start(captureCoordinator: captureCoordinator!, settings: settings) // Fork: App/Feedback
         performPendingAutomationURLAction()
         performPendingImageFileOpen()
         historyCoordinator?.runCleanup()

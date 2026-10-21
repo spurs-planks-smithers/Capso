@@ -6,9 +6,24 @@ This file logs every edit to an upstream file: the file, the reason, the lines, 
 
 ## Upstream file edits
 
+Line numbers are in the fork's version of each file. Every fork line in Swift carries a `Fork:` comment.
+
 | File | Reason | Lines | Upstream PRs at risk |
 |---|---|---|---|
-| n/a | No upstream file is edited yet | n/a | n/a |
+| `App/Sources/Capture/CaptureCoordinator.swift` | `feedbackSink` property that `FeedbackController` sets | 57-59 (added) | none |
+| `App/Sources/Capture/CaptureCoordinator.swift` | `PostCaptureAction.feedback` case | 86 (added) | none |
+| `App/Sources/Capture/CaptureCoordinator.swift` | `.feedback` in `playsShutterSound` and `savesOriginalCaptureToHistory` (both false, as for the editors) | 90, 99 (changed) | none |
+| `App/Sources/Capture/CaptureCoordinator.swift` | `.feedback` skips auto-Beautify, as the editors do | 172 (changed) | none |
+| `App/Sources/Capture/CaptureCoordinator.swift` | `captureAreaForFeedback()` starts an area capture with `.feedback` | 421-425 (added) | none |
+| `App/Sources/Capture/CaptureCoordinator.swift` | `handleCaptureResult` arm: `.feedback` calls `feedbackSink` | 1643-1644 (added) | none |
+| `App/Sources/AppDelegate.swift` | One call to `FeedbackController.shared.start(captureCoordinator:settings:)` after `registerGlobalShortcuts()` | 88 (added) | [#349](https://github.com/lzhgus/Capso/pull/349), [#291](https://github.com/lzhgus/Capso/pull/291) |
+| `project.yml` | `FeedbackKit` local package | 50-51 (added) | [#349](https://github.com/lzhgus/Capso/pull/349), [#348](https://github.com/lzhgus/Capso/pull/348) |
+| `project.yml` | `App/Feedback` source path for the Capso target | 71 (added) | [#349](https://github.com/lzhgus/Capso/pull/349), [#348](https://github.com/lzhgus/Capso/pull/348) |
+| `project.yml` | `FeedbackKit` dependency for the Capso target | 98 (added) | [#349](https://github.com/lzhgus/Capso/pull/349), [#348](https://github.com/lzhgus/Capso/pull/348) |
+
+### Why the coordinator hook is smaller than the plan's estimate
+
+The plan estimated about 35 lines in `CaptureCoordinator.swift`, with the coordinator opening the editor and passing the rendered image, the clean image, and the document objects to the sink. The fork passes only the `CaptureResult` instead. `FeedbackController` opens the inline editor itself in a fork file and reads `document.objects` in its own save closure. The inline editor renders with no crop and no canvas growth, so `CaptureResult.image` is the clean image at the same size. The result is 14 added lines and 3 changed lines in the upstream file.
 
 ## Fork-only files
 
@@ -18,6 +33,9 @@ This file logs every edit to an upstream file: the file, the reason, the lines, 
 | `docs/plans/2026-10-20-feedback-sessions-phase1.md` | Phase 1 plan |
 | `docs/FORK_NOTES.md` | This log |
 | `docs/decisions/2026-10-20-feedback-bundle-format.md` | Why the bundle has its format |
+| `docs/SECURITY_BASELINE.md` | Network code, entitlements, dependencies, and recommendations |
+| `Packages/FeedbackKit/` | Session model, store, image sizing, note parser, OCR matcher, manifest and prompt writers, tests |
+| `App/Feedback/` | Feedback controller, mark mapper, PNG export, note panel, status item, shortcut panel, App Intents |
 
 ## Open upstream PRs that touch hook files
 
