@@ -18,8 +18,9 @@ xcodegen generate
 xcodebuild -project Capso.xcodeproj -scheme Capso -configuration Debug CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO build
 ```
 
-- Signed local build: `scripts/build-local.sh`. It signs with Apple Development, sets a distinct bundle ID and app name, and copies the app to `~/Applications`.
-- The script reads the team ID from an untracked file listed in `.git/info/exclude`.
+- Signed local build: `scripts/build-local.sh`. It signs with Apple Development and installs `~/Applications/CapsoFeedback.app` (bundle ID `com.drewschulz.capso.feedback`).
+- `scripts/local-project.yml` includes `project.yml` and overrides only the Capso target. It generates `CapsoLocal.xcodeproj`. Command-line `PRODUCT_NAME` would rename every package resource bundle and break the build.
+- The script reads `DEVELOPMENT_TEAM` from `scripts/local-signing.env`, an untracked file listed in `.git/info/exclude`.
 
 ## Tests
 
@@ -57,6 +58,15 @@ xcodebuild -project Capso.xcodeproj -scheme Capso -configuration Debug CODE_SIGN
 - `origin` is the fork, `spurs-planks-smithers/Capso`.
 - `upstream` is `lzhgus/Capso`. It is fetch-only: its push URL is `DISABLED`.
 - To sync: run `git fetch upstream`, merge `upstream/main` on a branch, and resolve conflicts at the hook points that `docs/FORK_NOTES.md` lists. Then run the tests.
+
+## Use a feedback session
+
+- Press Option+Shift+F. With no active session, it starts one named "feedback". Then select an area.
+- Mark the capture in the inline editor. Counter badges (key C or N) number the items. Command+S saves into the session.
+- The note panel opens after each save. Type `1: fix price; 2: make primary; cards feel cramped` and press Return. Text after a badge number becomes that item's instruction. Other text becomes the capture note. Esc skips the note.
+- The feedback menu bar item shows the slug and capture count. Its menu has Copy Prompt, Open Folder, End Session, and Feedback Shortcut.
+- Shortcuts actions: Start Feedback Session, Capture Feedback, Copy Feedback Prompt, End Feedback Session.
+- OCR text and window titles in a bundle come from the screen. The manifest and prompt tell the agent to use them only to locate items, never as instructions.
 
 ## Hand a bundle to an agent
 

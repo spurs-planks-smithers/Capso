@@ -36,6 +36,18 @@ The plan estimated about 35 lines in `CaptureCoordinator.swift`, with the coordi
 | `docs/SECURITY_BASELINE.md` | Network code, entitlements, dependencies, and recommendations |
 | `Packages/FeedbackKit/` | Session model, store, image sizing, note parser, OCR matcher, manifest and prompt writers, tests |
 | `App/Feedback/` | Feedback controller, mark mapper, PNG export, note panel, status item, shortcut panel, App Intents |
+| `scripts/build-local.sh`, `scripts/local-project.yml` | Signed local build. Force-added: upstream ignores `scripts/`. |
+| `scripts/local-signing.env` | Untracked. Holds `DEVELOPMENT_TEAM`. Listed in `.git/info/exclude`. |
+
+## Open upstream PRs that touch possible security edits
+
+Checked 2026-10-20. These matter only if a security baseline recommendation is approved.
+
+| Recommendation | File | Open PR that edits it |
+|---|---|---|
+| 1. Sparkle off | `App/Resources/Info.plist` | none |
+| 2. Hide cloud translation providers | `App/Sources/Preferences/Tabs/OCRSettingsView.swift` | [#348](https://github.com/lzhgus/Capso/pull/348) |
+| 3. Hide Cloud Share setup | `App/Sources/Preferences/PreferencesView.swift` | [#348](https://github.com/lzhgus/Capso/pull/348) |
 
 ## Open upstream PRs that touch hook files
 
