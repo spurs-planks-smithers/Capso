@@ -48,6 +48,10 @@ extension FeedbackBox {
         (x1...x2).contains(point.x) && (y1...y2).contains(point.y)
     }
 
+    func union(_ other: FeedbackBox) -> FeedbackBox {
+        FeedbackBox(x1: min(x1, other.x1), y1: min(y1, other.y1), x2: max(x2, other.x2), y2: max(y2, other.y2))
+    }
+
     func intersects(_ other: FeedbackBox) -> Bool {
         x1 <= other.x2 && other.x1 <= x2 && y1 <= other.y2 && other.y1 <= y2
     }
