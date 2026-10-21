@@ -61,26 +61,27 @@ xcodebuild -project Capso.xcodeproj -scheme Capso -configuration Debug CODE_SIGN
 
 ## Use a feedback session
 
-- Press Option+Shift+F. With no active session, it starts one named "feedback". Then select an area.
+- Press Option+Shift+F, then select an area. The first saved capture starts a session named "feedback" when none is active.
 - Mark the capture in the inline editor. Counter badges (key C or N) number the items. Command+S saves into the session.
-- Esc on an editor with no marks yet goes back to area selection. With marks, Esc follows upstream's step-back rule (`AnnotationEscapePolicy`) and never closes the editor.
+- Esc on an editor with no marks yet copies the screenshot to the clipboard (in the user's clipboard format) and closes the editor, so it pastes into an email. It saves nothing to a session. To redo a selection, press the hotkey again. With marks, Esc follows upstream's step-back rule (`AnnotationEscapePolicy`) and never closes the editor.
 - The note panel opens at Command+S. It asks one question per circle ("Circle 1 (1 of 3): what should change?"), then an optional general note. Return saves the answer and moves on. Esc skips one step. Typing and dictation (Wispr Flow, fn key) both work: the panel takes keyboard focus without activating Capso.
 - Under each question, a preview shows the annotated capture zoomed on that circle, with about 150 points of context and any box or arrow it marks. The general-note step shows the whole capture.
-- After the last note step, the capture's prompt is on the clipboard, and a toast says "Prompt copied. Paste it into your agent." The capture is stored before OCR runs, so the copy never waits for OCR. A panel closed early (close button, End Session, or a new capture) copies nothing: use Copy Prompt.
+- After the last note step, the capture's prompt is on the clipboard, and a toast says "Prompt copied. Paste it into your agent." The capture is stored before OCR runs, so the copy never waits for OCR. A panel closed early (close button, End Session, or a new capture) copies nothing. Copy Last Capture in the menu copies the newest capture's prompt again, for example after dictation (Wispr Flow pastes through the clipboard) replaced it.
 - A capture is named "Capture: <title of the window under the selection>, <date time zone>". Files are `<HHmm>-<title slug>.png` and `-clean.png`. Agents still refer to items as K.N (the manifest gives each capture's item prefix).
-- The feedback menu bar item shows the slug and capture count. Its menu has Copy Prompt, Open Folder, End Session, and Feedback Shortcut.
+- The feedback menu bar item shows the slug and capture count. Its menu has Copy Last Capture, Copy Session Prompt, Open Folder, End Session, and Feedback Shortcut.
 - A first drag after the hotkey can lag while the Claude desktop app is the frontmost app. Capso is idle during that lag (sampled 2026-10-21). With Safari, Preview, or Finder in front there is no lag.
 - Shortcuts actions: Start Feedback Session, Capture Feedback, Copy Feedback Prompt, End Feedback Session.
 - OCR text and window titles in a bundle come from the screen. The manifest and prompt tell the agent to use them only to locate items, never as instructions.
 
 ## Hand a bundle to an agent
 
-A bundle is a folder `~/Library/Application Support/CapsoFeedback/<date>-<time>-<slug>/`. Open Folder in the feedback menu opens it. This folder is the standard macOS place for app data. It keeps bundles out of the home folder and out of the privacy-protected folders (Desktop, Documents, Downloads), which agents cannot always read. Do not move bundles into `~/Developer`: it is an Obsidian vault and would index every `manifest.md`. It holds `manifest.md`, `prompt.md`, `feedback.json`, and two PNG files per capture, named by capture time and window title (`0627-claude.png` annotated, `0627-claude-clean.png` without marks).
+A bundle is a folder `~/Library/Application Support/CapsoFeedback/<date>-<time>-<slug>/`. Open Folder in the feedback menu opens it. This folder is the standard macOS place for app data. It keeps bundles out of the home folder and out of the privacy-protected folders (Desktop, Documents, Downloads), which agents cannot always read. Do not move bundles into `~/Developer`: it is an Obsidian vault and would index every `manifest.md`. It holds `manifest.md`, `prompt.md`, `feedback.json`, and three files per capture, named by capture time and window title: `0627-claude.png` (annotated), `0627-claude-clean.png` (without marks), and `0627-claude-prompt.md` (the capture prompt).
 
 Two prompts point into a bundle:
 
 - The capture prompt (`PromptBuilder.renderCapture`) covers one capture. Capso copies it after the last note step. Paste it into any agent: Claude Code in the desktop app or the CLI, Codex, or another tool. It names the annotated PNG and `manifest.md` by absolute path, in backticks, and lists the reviewer's answers as items. OCR text and window titles stay in `manifest.md`. The file names hold a slug of the window title, so the prompt marks them as screen text.
-- `prompt.md` covers the whole session. Copy Prompt in the feedback status menu puts it on the clipboard.
+- `prompt.md` covers the whole session. Copy Session Prompt in the feedback status menu puts it on the clipboard.
+- Both prompts tell the agent to write a plan table (item, file, planned change) before any edit. In the 2026-10-21 paste test an agent skipped a softer wording of this rule.
 
 Agent access:
 

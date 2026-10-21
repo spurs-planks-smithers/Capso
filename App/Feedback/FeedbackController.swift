@@ -62,6 +62,9 @@ final class FeedbackController {
         statusItem.onCopyPrompt = { [weak self] in
             Task { await self?.copyPrompt() }
         }
+        statusItem.onCopyLastCapture = { [weak self] in
+            Task { await self?.copyLastCapturePrompt() }
+        }
         statusItem.onOpenFolder = { [weak self] in
             self?.openFolder()
         }
@@ -91,18 +94,12 @@ final class FeedbackController {
         return session
     }
 
-    /// Starts a session named "feedback" when none is active, then an area capture.
+    /// Starts an area capture. The first saved capture starts a session named
+    /// "feedback" when none is active, so a screenshot copied with Esc leaves
+    /// no empty session behind.
     func capture() {
-        Task {
-            do {
-                try await store.startIfNeeded(name: FeedbackNaming.defaultSlug)
-                await refresh()
-                FeedbackLog.logger.notice("session ready, area capture requested")
-                captureCoordinator?.captureAreaForFeedback()
-            } catch {
-                report(error, context: "Feedback capture did not start")
-            }
-        }
+        FeedbackLog.logger.notice("area capture requested")
+        captureCoordinator?.captureAreaForFeedback()
     }
 
     /// Puts the active session's prompt on the clipboard and returns it.
@@ -227,16 +224,17 @@ final class FeedbackController {
             }
         )
         inlineEditor?.show()
-        installEscapeMonitor()
+        installEscapeMonitor(image: result.image, screen: screen)
         return true
     }
 
     /// Upstream's `AnnotationEscapePolicy` never closes the editor on Esc.
-    /// In a feedback session, Esc on an editor with no marks yet goes back to
-    /// area selection, so a wrong selection is one key press to redo. With
-    /// marks present, upstream's step-back behavior stays, so Esc never
+    /// Here, Esc on an editor with no marks yet copies the screenshot to the
+    /// clipboard and closes the editor, ready to paste into an email (Drew,
+    /// 2026-10-21; it replaces the earlier "back to area selection" rule).
+    /// With marks present, upstream's step-back behavior stays, so Esc never
     /// throws away work.
-    private func installEscapeMonitor() {
+    private func installEscapeMonitor(image: CGImage, screen: NSScreen) {
         removeEscapeMonitor()
         escapeMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             // Caps Lock, keypad, and fn flags do not change what Esc means.
@@ -251,11 +249,15 @@ final class FeedbackController {
                       editor.document.objects.isEmpty, !(editor.firstResponder is NSText) else {
                     return false
                 }
-                FeedbackLog.logger.notice("Esc on an empty editor: back to area selection")
+                // The image itself, in the user's clipboard format, so it
+                // pastes into an email body.
+                let copied = ImageUtilities.copyToPasteboard(image, format: self.settings?.screenshotClipboardFormat ?? .png)
+                FeedbackLog.logger.notice("Esc on an empty editor: screenshot copied \(copied), editor closed")
                 editor.close()
-                // Let the editor's windows leave the screen before the new selection freezes it.
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    self.captureCoordinator?.captureAreaForFeedback()
+                if copied {
+                    self.showToast("Screenshot copied", screen: screen)
+                } else {
+                    NSSound.beep()
                 }
                 return true
             }
@@ -451,13 +453,31 @@ final class FeedbackController {
             NSSound.beep()
             return
         }
+        putOnClipboard(capture, in: session, screen: screen)
+    }
+
+    /// Copy Last Capture in the menu: the newest capture's prompt again, for
+    /// when something else (such as a dictation tool) replaced the clipboard.
+    func copyLastCapturePrompt() async {
+        guard let session = await store.activeSession, let capture = session.captures.last else {
+            NSSound.beep()
+            return
+        }
+        putOnClipboard(capture, in: session, screen: nil)
+    }
+
+    private func putOnClipboard(_ capture: FeedbackCapture, in session: FeedbackSession, screen: NSScreen?) {
         let folder = store.rootURL.appendingPathComponent(session.folderName, isDirectory: true)
         let prompt = PromptBuilder.renderCapture(capture, folderPath: folder.path)
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(prompt, forType: .string)
-        FeedbackLog.logger.notice("capture \(index) prompt copied, \(prompt.count) characters")
+        FeedbackLog.logger.notice("capture \(capture.index) prompt copied, \(prompt.count) characters")
+        showToast("Prompt copied. Paste it into your agent.", screen: screen)
+    }
+
+    private func showToast(_ message: String, screen: NSScreen?) {
         toast?.orderOut(nil)
-        toast = ToastWindow(message: "Prompt copied. Paste it into your agent.", screen: screen)
+        toast = ToastWindow(message: message, screen: screen)
         toast?.show(autoDismissAfter: 2.5)
     }
 

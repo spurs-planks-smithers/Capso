@@ -7,6 +7,7 @@ import FeedbackKit
 @MainActor
 final class FeedbackStatusItem: NSObject {
     var onCopyPrompt: (() -> Void)?
+    var onCopyLastCapture: (() -> Void)?
     var onOpenFolder: (() -> Void)?
     var onEndSession: (() -> Void)?
     var onShowShortcut: (() -> Void)?
@@ -32,7 +33,8 @@ final class FeedbackStatusItem: NSObject {
         item.button?.imagePosition = .imageLeading
 
         let menu = NSMenu()
-        menu.addItem(menuItem("Copy Prompt", action: #selector(copyPrompt)))
+        menu.addItem(menuItem("Copy Last Capture", action: #selector(copyLastCapture)))
+        menu.addItem(menuItem("Copy Session Prompt", action: #selector(copyPrompt)))
         menu.addItem(menuItem("Open Folder", action: #selector(openFolder)))
         menu.addItem(menuItem("End Session", action: #selector(endSession)))
         menu.addItem(.separator())
@@ -48,6 +50,7 @@ final class FeedbackStatusItem: NSObject {
     }
 
     @objc private func copyPrompt() { onCopyPrompt?() }
+    @objc private func copyLastCapture() { onCopyLastCapture?() }
     @objc private func openFolder() { onOpenFolder?() }
     @objc private func endSession() { onEndSession?() }
     @objc private func showShortcut() { onShowShortcut?() }
