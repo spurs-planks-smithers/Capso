@@ -2,8 +2,15 @@
 import AppKit
 import SwiftUI
 
-/// Fork: a one-line note field shown after each saved feedback capture.
-/// Return saves the note. Esc skips it.
+/// One answer in the note panel: a circle's instruction, or the general note.
+enum FeedbackNoteStep: Equatable {
+    case circle(Int)
+    case note
+}
+
+/// Fork: asks for one instruction per circle, then a general note, after
+/// each saved feedback capture. Return saves the answer and moves on. Esc
+/// skips the current step. The panel closes after the last step.
 ///
 /// The panel takes keyboard focus without making Capso the active app, the
 /// same setup as `InlineAnnotationEditorWindow`. macOS 27 refuses to activate
@@ -14,40 +21,36 @@ import SwiftUI
 final class FeedbackNotePanel {
     private var panel: NSPanel?
 
-    func show(captureIndex: Int, badges: [Int], onSave: @escaping (String) -> Void) {
+    func show(title: String, badges: [Int], onAnswer: @escaping (FeedbackNoteStep, String) -> Void) {
         close()
 
-        let hint = badges.isEmpty
-            ? "Return saves. Esc skips."
-            : "Return saves. Esc skips. Badges: \(badges.map(String.init).joined(separator: ", ")). Start with a badge number for its instruction, for example 1: fix price"
+        let steps = badges.map(FeedbackNoteStep.circle) + [.note]
         let panel = KeyNotePanel(
-            contentRect: NSRect(x: 0, y: 0, width: 480, height: 90),
+            contentRect: NSRect(x: 0, y: 0, width: 520, height: 110),
             styleMask: [.titled, .closable, .fullSizeContentView, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
-        panel.title = "Feedback note for capture \(captureIndex)"
+        panel.title = title
         panel.level = .floating
         panel.isReleasedWhenClosed = false
         // A panel hides when its app is not active. Capso is a menu bar app
         // and is usually not active, so the panel must stay visible.
         panel.hidesOnDeactivate = false
         panel.contentView = NSHostingView(rootView: FeedbackNoteView(
-            hint: hint,
-            onSubmit: { [weak self] text in
-                FeedbackLog.logger.notice("note submitted, \(text.count) characters")
-                onSave(text)
-                self?.close()
+            steps: steps,
+            onAnswer: { step, text in
+                FeedbackLog.logger.notice("note answer for \(String(describing: step), privacy: .public): \(text.count) characters")
+                onAnswer(step, text)
             },
-            onCancel: { [weak self] in
-                FeedbackLog.logger.notice("note skipped with Esc")
+            onFinish: { [weak self] in
                 self?.close()
             }
         ))
         panel.center()
         self.panel = panel
         panel.makeKeyAndOrderFront(nil)
-        FeedbackLog.logger.notice("note panel shown: visible=\(panel.isVisible) key=\(panel.isKeyWindow) appActive=\(NSApp.isActive)")
+        FeedbackLog.logger.notice("note panel shown with \(steps.count) steps: visible=\(panel.isVisible) key=\(panel.isKeyWindow) appActive=\(NSApp.isActive)")
     }
 
     func close() {
@@ -63,30 +66,61 @@ private final class KeyNotePanel: NSPanel {
 }
 
 private struct FeedbackNoteView: View {
-    let hint: String
-    let onSubmit: (String) -> Void
-    let onCancel: () -> Void
+    let steps: [FeedbackNoteStep]
+    let onAnswer: (FeedbackNoteStep, String) -> Void
+    let onFinish: () -> Void
 
+    @State private var position = 0
     @State private var text = ""
     @FocusState private var isFocused: Bool
 
+    private var circleCount: Int {
+        steps.filter { $0 != .note }.count
+    }
+
+    private var question: String {
+        switch steps[position] {
+        case .circle(let number):
+            "Circle \(number) (\(position + 1) of \(circleCount)): what should change?"
+        case .note:
+            circleCount == 0
+                ? "What should change in this capture?"
+                : "Anything else about this capture? (optional)"
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            TextField(text: $text, prompt: Text(verbatim: "1: fix price; cards feel cramped")) {
-                Text(verbatim: "Note")
+            Text(verbatim: question)
+                .font(.headline)
+            TextField(text: $text, prompt: Text(verbatim: "Type or dictate, then press Return")) {
+                Text(verbatim: "Answer")
             }
             .textFieldStyle(.roundedBorder)
             .focused($isFocused)
-            .onSubmit { onSubmit(text) }
-            .onExitCommand { onCancel() }
+            .onSubmit { advance(saving: true) }
+            .onExitCommand { advance(saving: false) }
 
-            Text(verbatim: hint)
+            Text(verbatim: "Return saves and goes on. Esc skips this one.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(12)
-        .frame(width: 480)
+        .frame(width: 520)
         .onAppear { isFocused = true }
+    }
+
+    private func advance(saving: Bool) {
+        let answer = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if saving, !answer.isEmpty {
+            onAnswer(steps[position], answer)
+        }
+        text = ""
+        if position + 1 < steps.count {
+            position += 1
+            isFocused = true
+        } else {
+            onFinish()
+        }
     }
 }

@@ -124,8 +124,21 @@ final class FeedbackController {
 
     // MARK: - Editor
 
-    private func openEditor(for result: CaptureResult) {
-        FeedbackLog.logger.notice("capture received \(result.image.width)x\(result.image.height), opening editor")
+    private func openEditor(for captured: CaptureResult) {
+        // Area captures carry no window title. Read the window under the
+        // selection now, before the editor covers the screen.
+        let underneath = FeedbackWindowTitle.window(for: captured)
+        let result = CaptureResult(
+            image: captured.image,
+            mode: captured.mode,
+            captureRect: captured.captureRect,
+            windowName: captured.windowName ?? underneath?.title,
+            appName: captured.appName ?? underneath?.ownerName,
+            appBundleIdentifier: captured.appBundleIdentifier,
+            timestamp: captured.timestamp,
+            displayID: captured.displayID
+        )
+        FeedbackLog.logger.notice("capture received \(result.image.width)x\(result.image.height), window title found: \(result.windowName != nil), opening editor")
         if result.mode == .area,
            let screen = NSScreen.screens.first(where: { $0.displayID == result.displayID }),
            openInlineEditor(for: result, screen: screen) {
@@ -241,12 +254,17 @@ final class FeedbackController {
         }
 
         // `self` is the app-lifetime singleton, so strong captures are safe.
-        let pending = PendingNote()
-        let expectedIndex = (session?.captures.map(\.index).max() ?? 0) + 1
-        notePanel.show(captureIndex: expectedIndex, badges: Set(marks.compactMap(\.badge)).sorted()) { text in
-            pending.text = text
+        let pending = PendingAnswers()
+        let name = FeedbackNaming.captureName(
+            windowTitle: result.windowName,
+            sourceApp: result.appName,
+            capturedAt: result.timestamp,
+            timeZone: store.timeZone
+        )
+        notePanel.show(title: name, badges: Set(marks.compactMap(\.badge)).sorted()) { step, text in
+            pending.answers.append((step, text))
             if let index = pending.captureIndex {
-                Task { await self.saveNote(text, capture: index) }
+                Task { await self.saveAnswer(step, text, capture: index) }
             }
         }
 
@@ -273,38 +291,45 @@ final class FeedbackController {
                     annotatedPNG: annotatedPNG,
                     cleanPNG: cleanPNG,
                     size: target,
+                    capturedAt: result.timestamp,
                     sourceApp: result.appName,
                     windowTitle: result.windowName,
                     ocrText: ocrText.isEmpty ? nil : ocrText,
                     marks: OCRMatcher.assignText(to: marks, lines: lines)
                 ))
-                FeedbackLog.logger.notice("capture \(capture.index) stored")
+                FeedbackLog.logger.notice("capture \(capture.index) stored as \(capture.imageFile, privacy: .public)")
                 pending.captureIndex = capture.index
-                if let text = pending.text {
-                    await saveNote(text, capture: capture.index)
-                } else {
-                    await refresh()
+                // Answers given before the capture was stored. Later answers
+                // are saved as they arrive.
+                for (step, text) in pending.answers {
+                    await saveAnswer(step, text, capture: capture.index)
                 }
+                await refresh()
             } catch {
                 report(error, context: "Feedback capture was not saved")
             }
         }
     }
 
-    private func saveNote(_ text: String, capture index: Int) async {
+    private func saveAnswer(_ step: FeedbackNoteStep, _ text: String, capture index: Int) async {
         do {
-            try await store.updateNote(capture: index, text: text)
+            switch step {
+            case .circle(let badge):
+                try await store.setInstruction(capture: index, badge: badge, text: text)
+            case .note:
+                try await store.setNote(capture: index, text: text)
+            }
         } catch {
-            report(error, context: "Feedback note was not saved")
+            report(error, context: "Feedback answer was not saved")
         }
         await refresh()
     }
 
-    /// Holds a note typed before its capture is stored, or the capture's index
-    /// once it is stored. Whichever arrives second saves the note.
+    /// Holds answers given before the capture is stored, and the capture's
+    /// index once it is stored.
     @MainActor
-    private final class PendingNote {
-        var text: String?
+    private final class PendingAnswers {
+        var answers: [(FeedbackNoteStep, String)] = []
         var captureIndex: Int?
     }
 
