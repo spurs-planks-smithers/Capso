@@ -115,16 +115,20 @@ public actor FeedbackSessionStore {
         let index = (session.captures.map(\.index).max() ?? 0) + 1
         let capturedAt = input.capturedAt ?? now()
         let folder = folderURL(for: session)
-        // Files are named by time and window title. A second capture of the
-        // same window in the same minute gets a numeric suffix.
+        // Files are named by time and window title. A stem is taken when either
+        // of its two files would match any existing file, so a window titled
+        // "Foo Clean" and a window titled "Foo" never overwrite each other.
+        let usedNames = Set(session.captures.flatMap { [$0.imageFile, $0.cleanImageFile] })
         let stem = FeedbackNaming.uniqueName(FeedbackNaming.captureFileStem(
             windowTitle: input.windowTitle,
             sourceApp: input.sourceApp,
             capturedAt: capturedAt,
             timeZone: timeZone
         )) { candidate in
-            session.captures.contains { $0.imageFile == "\(candidate).png" }
-                || FileManager.default.fileExists(atPath: folder.appendingPathComponent("\(candidate).png").path)
+            ["\(candidate).png", "\(candidate)-clean.png"].contains { name in
+                usedNames.contains(name)
+                    || FileManager.default.fileExists(atPath: folder.appendingPathComponent(name).path)
+            }
         }
         let capture = FeedbackCapture(
             index: index,

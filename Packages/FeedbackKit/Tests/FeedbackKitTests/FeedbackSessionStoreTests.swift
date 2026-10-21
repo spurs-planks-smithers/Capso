@@ -86,6 +86,24 @@ struct FeedbackSessionStoreTests {
         #expect(fileManager.fileExists(atPath: folder.appendingPathComponent("2224-pricing-acme-2-clean.png").path))
     }
 
+    @Test("Never lets a clean copy overwrite another capture's file")
+    func cleanCopyCollision() async throws {
+        defer { try? fileManager.removeItem(at: root) }
+        let store = makeStore()
+        try await store.start(name: "feedback")
+        var first = input()
+        first.windowTitle = "Foo Clean"
+        var second = input()
+        second.windowTitle = "Foo"
+        let a = try await store.addCapture(first)
+        let b = try await store.addCapture(second)
+
+        #expect(a.imageFile == "2224-foo-clean.png")
+        let names = [a.imageFile, a.cleanImageFile, b.imageFile, b.cleanImageFile]
+        #expect(Set(names).count == 4)
+        #expect(b.imageFile == "2224-foo-2.png")
+    }
+
     @Test("Uses the capture time from the input")
     func usesCaptureTime() async throws {
         defer { try? fileManager.removeItem(at: root) }

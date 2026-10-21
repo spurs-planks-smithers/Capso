@@ -38,6 +38,16 @@ enum ScreenText {
         return text
     }
 
+    /// Wraps screen text in double quotes. Straight and lookalike double quotes
+    /// inside it become single quotes, so the text cannot close the quote.
+    static func quoted(_ text: String) -> String {
+        var inner = text
+        for mark in ["\"", "\u{201C}", "\u{201D}", "\u{FF02}"] {
+            inner = inner.replacingOccurrences(of: mark, with: "'")
+        }
+        return "\"\(inner)\""
+    }
+
     /// `clean` for an optional field. Text that is empty after cleaning becomes nil.
     static func field(_ text: String?, singleLine: Bool = true, maxScalars: Int = maxFieldLength) -> String? {
         guard let text else { return nil }

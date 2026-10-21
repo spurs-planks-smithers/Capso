@@ -67,7 +67,7 @@ public enum FeedbackNaming {
         guard let label = label(windowTitle: windowTitle, sourceApp: sourceApp) else {
             return "Capture: \(time)"
         }
-        let shown = quoted ? "\"\(label.replacingOccurrences(of: "\"", with: "'"))\"" : label
+        let shown = quoted ? ScreenText.quoted(label) : label
         return "Capture: \(shown), \(time)"
     }
 
