@@ -19,9 +19,21 @@ enum FeedbackNoteStep: Equatable {
 /// dictation (Wispr Flow) while the reviewed app stays active.
 @MainActor
 final class FeedbackNotePanel {
+    /// Width over height of the preview under the answer field.
+    static let previewAspectRatio = 1.6
+    static let previewWidth: CGFloat = 496
+
     private var panel: NSPanel?
 
-    func show(title: String, badges: [Int], onAnswer: @escaping (FeedbackNoteStep, String) -> Void) {
+    /// `previews` holds one crop per circle number. `overview` is the whole
+    /// annotated capture, shown with the general note.
+    func show(
+        title: String,
+        badges: [Int],
+        previews: [Int: CGImage],
+        overview: CGImage?,
+        onAnswer: @escaping (FeedbackNoteStep, String) -> Void
+    ) {
         close()
 
         let steps = badges.map(FeedbackNoteStep.circle) + [.note]
@@ -37,8 +49,10 @@ final class FeedbackNotePanel {
         // A panel hides when its app is not active. Capso is a menu bar app
         // and is usually not active, so the panel must stay visible.
         panel.hidesOnDeactivate = false
-        panel.contentView = NSHostingView(rootView: FeedbackNoteView(
+        let hostingView = NSHostingView(rootView: FeedbackNoteView(
             steps: steps,
+            previews: previews,
+            overview: overview,
             onAnswer: { step, text in
                 FeedbackLog.logger.notice("note answer for \(String(describing: step), privacy: .public): \(text.count) characters")
                 onAnswer(step, text)
@@ -47,6 +61,8 @@ final class FeedbackNotePanel {
                 self?.close()
             }
         ))
+        panel.contentView = hostingView
+        panel.setContentSize(hostingView.fittingSize)
         panel.center()
         self.panel = panel
         panel.makeKeyAndOrderFront(nil)
@@ -67,8 +83,17 @@ private final class KeyNotePanel: NSPanel {
 
 private struct FeedbackNoteView: View {
     let steps: [FeedbackNoteStep]
+    let previews: [Int: CGImage]
+    let overview: CGImage?
     let onAnswer: (FeedbackNoteStep, String) -> Void
     let onFinish: () -> Void
+
+    private var previewImage: CGImage? {
+        switch steps[position] {
+        case .circle(let number): previews[number]
+        case .note: overview
+        }
+    }
 
     @State private var position = 0
     @State private var text = ""
@@ -104,6 +129,25 @@ private struct FeedbackNoteView: View {
             Text(verbatim: "Return saves and goes on. Esc skips this one.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+
+            // The circle in the middle with what surrounds it, so the
+            // question is easy to match to the mark.
+            ZStack {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color(nsColor: .underPageBackgroundColor))
+                if let previewImage {
+                    Image(decorative: previewImage, scale: 1)
+                        .resizable()
+                        .interpolation(.high)
+                        .scaledToFit()
+                }
+            }
+            .frame(
+                width: FeedbackNotePanel.previewWidth,
+                height: FeedbackNotePanel.previewWidth / FeedbackNotePanel.previewAspectRatio
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.secondary.opacity(0.3)))
         }
         .padding(12)
         .frame(width: 520)

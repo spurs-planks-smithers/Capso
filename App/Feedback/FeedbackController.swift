@@ -298,7 +298,12 @@ final class FeedbackController {
             capturedAt: result.timestamp,
             timeZone: store.timeZone
         )
-        notePanel.show(title: name, badges: Set(marks.compactMap(\.badge)).sorted()) { step, text in
+        notePanel.show(
+            title: name,
+            badges: Set(marks.compactMap(\.badge)).sorted(),
+            previews: circlePreviews(rendered: rendered, objects: sameGeometry ? objects : [], result: result),
+            overview: rendered
+        ) { step, text in
             pending.answers.append((step, text))
             if let index = pending.captureIndex {
                 Task { await self.saveAnswer(step, text, capture: index) }
@@ -346,6 +351,23 @@ final class FeedbackController {
             } catch {
                 report(error, context: "Feedback capture was not saved")
             }
+        }
+    }
+
+    /// One crop of the annotated capture per circle, in the capture's own
+    /// pixels, with about 150 points of context around each circle.
+    private func circlePreviews(rendered: CGImage, objects: [any AnnotationObject], result: CaptureResult) -> [Int: CGImage] {
+        let size = PixelSize(width: rendered.width, height: rendered.height)
+        let marks = FeedbackMarkMapper.marks(from: objects, source: size, target: size)
+        let pixelsPerPoint = max(Double(result.image.width) / max(Double(result.captureRect.width), 1), 1)
+        let crops = PreviewCrop.cropsByBadge(
+            marks: marks,
+            imageSize: size,
+            margin: Int(150 * pixelsPerPoint),
+            aspectRatio: FeedbackNotePanel.previewAspectRatio
+        )
+        return crops.compactMapValues { box in
+            rendered.cropping(to: CGRect(x: box.x1, y: box.y1, width: box.x2 - box.x1, height: box.y2 - box.y1))
         }
     }
 
