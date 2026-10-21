@@ -15,7 +15,7 @@ enum FeedbackLog {
 }
 
 /// Fork: owns feedback sessions. Each saved capture goes into the active
-/// session's folder under `~/Feedback`. This code makes no network calls.
+/// session's folder under `defaultRootURL`. This code makes no network calls.
 @MainActor
 final class FeedbackController {
     static let shared = FeedbackController()
@@ -36,7 +36,14 @@ final class FeedbackController {
     private var shortcutPanel: FeedbackShortcutPanel?
     private var toast: ToastWindow?
 
-    init(rootURL: URL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Feedback", isDirectory: true)) {
+    /// `~/Library/Application Support/CapsoFeedback`: the standard place for an
+    /// app's data. It stays out of the home folder, and macOS privacy controls
+    /// do not guard it, so any agent the user starts can read the bundles.
+    nonisolated static let defaultRootURL = FileManager.default
+        .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        .appendingPathComponent("CapsoFeedback", isDirectory: true)
+
+    init(rootURL: URL = FeedbackController.defaultRootURL) {
         store = FeedbackSessionStore(rootURL: rootURL)
     }
 

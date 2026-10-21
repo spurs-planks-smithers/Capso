@@ -41,6 +41,7 @@ Each feedback session writes one folder under `~/Feedback/`:
 | After the last note step, the capture's own prompt goes on the clipboard. It names the annotated PNG and `manifest.md` by absolute path and lists the answers as items. Copy Prompt in the menu still copies the whole session. | Drew: one paste should hand a capture to any agent tool. He chose "this capture only" over the whole session. |
 | The capture prompt holds only the reviewer's answers. OCR text and window titles stay in `manifest.md`. | A pasted prompt is the user's own message, so screen text in it would read as the user's instruction. |
 | The capture is stored before OCR runs. OCR adds the screen text afterward (`setScreenText`). | Cold OCR took 30 s (measured 2026-10-20). The clipboard must hold the prompt when the last note step ends. |
+| Bundles move from `~/Feedback` to `~/Library/Application Support/CapsoFeedback`. | Drew did not want a folder at the top of his home folder. Application Support is the standard macOS place for app data and is not privacy-protected, so every agent tool can read it. Documents, Desktop, and Downloads are protected, and `~/Developer` is an Obsidian vault. |
 
 ## Evidence
 

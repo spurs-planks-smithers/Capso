@@ -1,7 +1,7 @@
 // Packages/FeedbackKit/Sources/FeedbackKit/FeedbackNaming.swift
 import Foundation
 
-/// File and folder names inside `~/Feedback`.
+/// File and folder names inside the store's root folder.
 public enum FeedbackNaming {
     public static let defaultSlug = "feedback"
     public static let maxSlugLength = 40

@@ -36,7 +36,7 @@ xcodebuild -project Capso.xcodeproj -scheme Capso -configuration Debug CODE_SIGN
 
 - Feedback code adds no network code, no outbound requests, and no sockets.
 - Handle any URL scheme in-process.
-- Bundles stay on disk in `~/Feedback`. Only an agent that Drew starts reads them.
+- Bundles stay on disk in `~/Library/Application Support/CapsoFeedback`. Only an agent that Drew starts reads them.
 
 ### Merge hygiene
 
@@ -75,7 +75,7 @@ xcodebuild -project Capso.xcodeproj -scheme Capso -configuration Debug CODE_SIGN
 
 ## Hand a bundle to an agent
 
-A bundle is a folder `~/Feedback/<date>-<time>-<slug>/`. It holds `manifest.md`, `prompt.md`, `feedback.json`, and two PNG files per capture, named by capture time and window title (`0627-claude.png` annotated, `0627-claude-clean.png` without marks).
+A bundle is a folder `~/Library/Application Support/CapsoFeedback/<date>-<time>-<slug>/`. Open Folder in the feedback menu opens it. This folder is the standard macOS place for app data. It keeps bundles out of the home folder and out of the privacy-protected folders (Desktop, Documents, Downloads), which agents cannot always read. Do not move bundles into `~/Developer`: it is an Obsidian vault and would index every `manifest.md`. It holds `manifest.md`, `prompt.md`, `feedback.json`, and two PNG files per capture, named by capture time and window title (`0627-claude.png` annotated, `0627-claude-clean.png` without marks).
 
 Two prompts point into a bundle:
 
@@ -84,6 +84,6 @@ Two prompts point into a bundle:
 
 Agent access:
 
-- Claude Code: Drew's user settings list `~/Feedback` in `permissions.additionalDirectories` (added 2026-10-21), so it reads bundles with no approval prompt. Without that setting, start it with `claude --add-dir ~/Feedback`.
+- Claude Code: Drew's user settings list `~/Library/Application Support/CapsoFeedback` in `permissions.additionalDirectories` (added 2026-10-21), so it reads bundles with no approval prompt. Without that setting, start it with `claude --add-dir "$HOME/Library/Application Support/CapsoFeedback"`.
 - Codex: run the `codex --image ...` command from the top of `manifest.md` in the target repository. It lists every annotated PNG by absolute path.
 - If `codex` is not on `PATH`, the ChatGPT app bundles it at `/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex`.

@@ -1,7 +1,7 @@
 // Packages/FeedbackKit/Sources/FeedbackKit/FeedbackModel.swift
 import Foundation
 
-/// A feedback session: one folder under `~/Feedback` with numbered captures.
+/// A feedback session: one folder under the store's root with numbered captures.
 /// `feedback.json` stores this value and is the bundle's source of truth.
 public struct FeedbackSession: Codable, Equatable, Sendable {
     public static let currentSchemaVersion = 1

@@ -53,7 +53,7 @@ The feedback work adds no dependency.
 ## Feedback bundle data
 
 - Bundles hold screenshots of work documents.
-- They stay on disk in `~/Feedback`. Only an agent that Drew starts reads them.
+- They stay on disk in `~/Library/Application Support/CapsoFeedback`. Only an agent that Drew starts reads them.
 - FeedbackKit and `App/Feedback/` make no network call.
 
 ## Recommendations (none applied until Drew approves)

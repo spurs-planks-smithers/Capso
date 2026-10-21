@@ -7,7 +7,7 @@ import FeedbackKit
 
 struct StartFeedbackSessionIntent: AppIntent {
     static let title: LocalizedStringResource = "Start Feedback Session"
-    static let description = IntentDescription("Starts a Capso feedback session. Captures go into a new folder under ~/Feedback.")
+    static let description = IntentDescription("Starts a Capso feedback session. Captures go into a new folder under ~/Library/Application Support/CapsoFeedback.")
 
     @Parameter(title: "Name")
     var name: String?
@@ -51,7 +51,7 @@ struct CopyFeedbackPromptIntent: AppIntent {
 
 struct EndFeedbackSessionIntent: AppIntent {
     static let title: LocalizedStringResource = "End Feedback Session"
-    static let description = IntentDescription("Ends the active feedback session. The folder stays in ~/Feedback.")
+    static let description = IntentDescription("Ends the active feedback session. The folder stays in ~/Library/Application Support/CapsoFeedback.")
 
     @MainActor
     func perform() async throws -> some IntentResult & ReturnsValue<String> {
