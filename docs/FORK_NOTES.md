@@ -24,6 +24,7 @@ Compile risk: `PostCaptureAction.feedback` is a new enum case. An upstream chang
 | `project.yml` | `App/Feedback` source path for the Capso target | 71 (added) | [#349](https://github.com/lzhgus/Capso/pull/349), [#348](https://github.com/lzhgus/Capso/pull/348) |
 | `project.yml` | `FeedbackKit` dependency for the Capso target | 98 (added) | [#349](https://github.com/lzhgus/Capso/pull/349), [#348](https://github.com/lzhgus/Capso/pull/348) |
 | `App/Resources/Info.plist` | Security rec 1 (approved 2026-10-20): `SUFeedURL` removed, `SUEnableAutomaticChecks` set to false | 63-64 (removed), 66 (changed) | none |
+| `App/Tests/UpdateManagerTests.swift` | Rec 1 follow-on: `ShippedUpdateDefaultsTests` asserted automatic checks are on. It now asserts they are off, as `testAutomaticChecksAreOffInTheFork`. | 40-42 (changed, 1 comment line added) | none |
 | `App/Sources/Preferences/Tabs/OCRSettingsView.swift` | Security rec 2 (approved 2026-10-20): the provider picker lists only `.apple`. Provider code stays until a later removal branch. | 51 (changed) | [#348](https://github.com/lzhgus/Capso/pull/348) |
 | `App/Sources/Preferences/PreferencesView.swift` | Security rec 3 (approved 2026-10-20): Cloud Share is left out of the settings tab list. "Capture Area and Share" can still open its content (`CaptureCoordinator.swift:401`). | 95 (changed) | [#348](https://github.com/lzhgus/Capso/pull/348) |
 
