@@ -297,7 +297,8 @@ final class FeedbackController {
                     ocrText: ocrText.isEmpty ? nil : ocrText,
                     marks: OCRMatcher.assignText(to: marks, lines: lines)
                 ))
-                FeedbackLog.logger.notice("capture \(capture.index) stored as \(capture.imageFile, privacy: .public)")
+                // File names hold window-title text, so the log keeps only the number.
+                FeedbackLog.logger.notice("capture \(capture.index) stored")
                 pending.captureIndex = capture.index
                 // Answers given before the capture was stored. Later answers
                 // are saved as they arrive.
