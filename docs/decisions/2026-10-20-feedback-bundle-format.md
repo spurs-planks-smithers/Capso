@@ -29,6 +29,16 @@ Each feedback session writes one folder under `~/Feedback/`:
 - A missing value shows as `n/a`, never as a blank cell.
 - `prompt.md` holds a goal, an authority rule (the written instruction wins), a work method (a located-items table before any edit, change only the listed items), a verify step (re-check every item), and a one-line-per-item report.
 
+## Revision 2026-10-21 (Drew's in-app testing)
+
+| Change | Why |
+|---|---|
+| A capture is named "Capture: <window title>, <date time zone>". The manifest heading quotes the title. Files are `<HHmm>-<title slug>.png`. | Drew: "capture 4" says nothing. He asked for the window title, date, and time with time zone, and no index number. |
+| The manifest gives each capture an item prefix line ("Item prefix: 4 (badge N is item 4.N)"). | Agents still need short, unique item IDs. The prefix replaces the number that used to be in the heading. |
+| The note panel asks one question per circle, then an optional general note, and saves each answer as that circle's instruction. | Drew expected one input per circle. It suits dictation, because he does not have to say "1:". The `N:` note syntax stays in `NoteParser` but the panel no longer needs it. |
+| Each circle question shows a zoomed preview of the annotated capture around that circle. | Drew forgot which circle meant what by the time the questions came. |
+| Window titles count as screen text: cleaned, capped, and quoted, and reading rule 8 lists them. | Any web page sets its own title, so it must not read as bundle structure or instructions. |
+
 ## Evidence
 
 | Finding | Source | Design rule |

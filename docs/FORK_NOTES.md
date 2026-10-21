@@ -41,8 +41,8 @@ The plan estimated about 35 lines in `CaptureCoordinator.swift`, with the coordi
 | `docs/FORK_NOTES.md` | This log |
 | `docs/decisions/2026-10-20-feedback-bundle-format.md` | Why the bundle has its format |
 | `docs/SECURITY_BASELINE.md` | Network code, entitlements, dependencies, and recommendations |
-| `Packages/FeedbackKit/` | Session model, store, image sizing, note parser, OCR matcher, manifest and prompt writers, tests |
-| `App/Feedback/` | Feedback controller, mark mapper, PNG export, note panel, status item, shortcut panel, App Intents |
+| `Packages/FeedbackKit/` | Session model, store, image sizing, naming, screen-text cleaning, window picker, preview crop, note parser, OCR matcher, manifest and prompt writers, tests |
+| `App/Feedback/` | Feedback controller (editor, Esc rule, save pipeline), mark mapper, window-title lookup, PNG export, note panel with circle previews, status item, shortcut panel, App Intents |
 | `scripts/build-local.sh`, `scripts/local-project.yml` | Signed local build. Force-added: upstream ignores `scripts/`. |
 | `scripts/local-signing.env` | Untracked. Holds `DEVELOPMENT_TEAM`. Listed in `.git/info/exclude`. |
 

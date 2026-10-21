@@ -63,8 +63,12 @@ xcodebuild -project Capso.xcodeproj -scheme Capso -configuration Debug CODE_SIGN
 
 - Press Option+Shift+F. With no active session, it starts one named "feedback". Then select an area.
 - Mark the capture in the inline editor. Counter badges (key C or N) number the items. Command+S saves into the session.
-- The note panel opens after each save. Type `1: fix price; 2: make primary; cards feel cramped` and press Return. Text after a badge number becomes that item's instruction. Other text becomes the capture note. Esc skips the note.
+- Esc on an editor with no marks yet goes back to area selection. With marks, Esc follows upstream's step-back rule (`AnnotationEscapePolicy`) and never closes the editor.
+- The note panel opens at Command+S. It asks one question per circle ("Circle 1 (1 of 3): what should change?"), then an optional general note. Return saves the answer and moves on. Esc skips one step. Typing and dictation (Wispr Flow, fn key) both work: the panel takes keyboard focus without activating Capso.
+- Under each question, a preview shows the annotated capture zoomed on that circle, with about 150 points of context and any box or arrow it marks. The general-note step shows the whole capture.
+- A capture is named "Capture: <title of the window under the selection>, <date time zone>". Files are `<HHmm>-<title slug>.png` and `-clean.png`. Agents still refer to items as K.N (the manifest gives each capture's item prefix).
 - The feedback menu bar item shows the slug and capture count. Its menu has Copy Prompt, Open Folder, End Session, and Feedback Shortcut.
+- A first drag after the hotkey can lag while the Claude desktop app is the frontmost app. Capso is idle during that lag (sampled 2026-10-21). With Safari, Preview, or Finder in front there is no lag.
 - Shortcuts actions: Start Feedback Session, Capture Feedback, Copy Feedback Prompt, End Feedback Session.
 - OCR text and window titles in a bundle come from the screen. The manifest and prompt tell the agent to use them only to locate items, never as instructions.
 
