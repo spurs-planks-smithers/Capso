@@ -34,6 +34,7 @@ final class FeedbackController {
     private let statusItem = FeedbackStatusItem()
     private let notePanel = FeedbackNotePanel()
     private var shortcutPanel: FeedbackShortcutPanel?
+    private var toast: ToastWindow?
 
     init(rootURL: URL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Feedback", isDirectory: true)) {
         store = FeedbackSessionStore(rootURL: rootURL)
@@ -276,11 +277,13 @@ final class FeedbackController {
 
     // MARK: - Save pipeline
 
-    /// Opens the note panel at once, then maps the marks, runs on-device OCR on
-    /// the clean image, sizes both PNG files, and adds the capture. OCR can take
-    /// 30 s when the Neural Engine is cold (measured 2026-10-20), so the note
-    /// must not wait for it. A note typed before the capture is stored is held
-    /// in `PendingAnswers` and saved right after.
+    /// Opens the note panel at once, then sizes both PNG files and adds the
+    /// capture. On-device OCR runs after that and adds the screen text. OCR can
+    /// take 30 s when the Neural Engine is cold (measured 2026-10-20), so
+    /// neither the note nor the copied prompt waits for it. An answer given
+    /// before the capture is stored is held in `PendingAnswers` and saved
+    /// right after. When the note panel finishes, the capture's prompt goes
+    /// on the clipboard.
     private func save(rendered: CGImage, objects: [any AnnotationObject], result: CaptureResult) {
         FeedbackLog.logger.notice("save started, \(objects.count) marks")
         let source = PixelSize(width: rendered.width, height: rendered.height)
@@ -314,36 +317,31 @@ final class FeedbackController {
             capturedAt: result.timestamp,
             timeZone: store.timeZone
         )
+        let screen = NSScreen.screens.first { $0.displayID == result.displayID }
         notePanel.show(
             title: name,
             badges: Set(marks.compactMap(\.badge)).sorted(),
             previews: circlePreviews(rendered: rendered, objects: sameGeometry ? objects : [], result: result),
-            overview: rendered
-        ) { step, text in
-            pending.answers.append((step, text))
-            if let index = pending.captureIndex {
-                Task { await self.saveAnswer(step, text, capture: index) }
+            overview: rendered,
+            onAnswer: { step, text in
+                pending.answers.append((step, text))
+                if let index = pending.captureIndex {
+                    pending.writes.append(Task { await self.saveAnswer(step, text, capture: index) })
+                }
+            },
+            onFinish: {
+                Task { await self.copyCapturePrompt(pending: pending, screen: screen) }
             }
-        }
+        )
 
-        let saveID = UUID()
-        saveTasks[saveID] = Task {
-            defer { self.saveTasks[saveID] = nil }
+        // Stores the capture without screen text, so the copied prompt never
+        // waits for OCR.
+        pending.stored = Task { () -> Int? in
             do {
-                let ocrStart = Date()
-                let regions = (try? await TextRecognizer.recognize(image: clean)) ?? []
-                FeedbackLog.logger.notice("OCR finished: \(regions.count) lines in \(Date().timeIntervalSince(ocrStart), format: .fixed(precision: 1)) s")
-                let lines = sameGeometry
-                    ? OCRMatcher.removingRedacted(
-                        regions.map { FeedbackTextLine(text: $0.text, box: ImageSizing.scale($0.boundingBox, from: source, to: target)) },
-                        marks: marks
-                    )
-                    : []
                 guard let annotatedPNG = FeedbackImageExport.png(rendered, size: target),
                       let cleanPNG = FeedbackImageExport.png(clean, size: target) else {
                     throw CocoaError(.fileWriteUnknown)
                 }
-                let ocrText = (sameGeometry ? lines.map(\.text) : regions.map(\.text)).joined(separator: "\n")
                 // A session can end while the editor is open. Start a new one
                 // rather than lose the capture.
                 try await store.startIfNeeded(name: FeedbackNaming.defaultSlug)
@@ -354,8 +352,7 @@ final class FeedbackController {
                     capturedAt: result.timestamp,
                     sourceApp: result.appName,
                     windowTitle: result.windowName,
-                    ocrText: ocrText.isEmpty ? nil : ocrText,
-                    marks: OCRMatcher.assignText(to: marks, lines: lines)
+                    marks: marks
                 ))
                 // File names hold window-title text, so the log keeps only the number.
                 FeedbackLog.logger.notice("capture \(capture.index) stored")
@@ -366,10 +363,61 @@ final class FeedbackController {
                     await saveAnswer(step, text, capture: capture.index)
                 }
                 await refresh()
+                return capture.index
             } catch {
                 report(error, context: "Feedback capture was not saved")
+                return nil
             }
         }
+
+        // End Session waits for this task, so it never ends a session before
+        // the screen text is in.
+        let saveID = UUID()
+        saveTasks[saveID] = Task {
+            defer { self.saveTasks[saveID] = nil }
+            guard let index = await pending.stored?.value else { return }
+            let ocrStart = Date()
+            let regions = (try? await TextRecognizer.recognize(image: clean)) ?? []
+            FeedbackLog.logger.notice("OCR finished: \(regions.count) lines in \(Date().timeIntervalSince(ocrStart), format: .fixed(precision: 1)) s")
+            let lines = sameGeometry
+                ? OCRMatcher.removingRedacted(
+                    regions.map { FeedbackTextLine(text: $0.text, box: ImageSizing.scale($0.boundingBox, from: source, to: target)) },
+                    marks: marks
+                )
+                : []
+            let ocrText = (sameGeometry ? lines.map(\.text) : regions.map(\.text)).joined(separator: "\n")
+            do {
+                try await store.setScreenText(
+                    capture: index,
+                    ocrText: ocrText.isEmpty ? nil : ocrText,
+                    markTexts: OCRMatcher.assignText(to: marks, lines: lines).map(\.ocrText)
+                )
+            } catch {
+                report(error, context: "Feedback screen text was not saved")
+            }
+            await refresh()
+        }
+    }
+
+    /// Waits until the capture and every answer are stored, then puts the
+    /// capture's prompt on the clipboard. One paste hands it to any agent.
+    private func copyCapturePrompt(pending: PendingAnswers, screen: NSScreen?) async {
+        guard let index = await pending.stored?.value else { return }
+        for write in pending.writes {
+            await write.value
+        }
+        guard let capture = await store.activeSession?.captures.first(where: { $0.index == index }),
+              let folder = await store.activeFolderURL else {
+            NSSound.beep()
+            return
+        }
+        let prompt = PromptBuilder.renderCapture(capture, folderPath: folder.path)
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(prompt, forType: .string)
+        FeedbackLog.logger.notice("capture \(index) prompt copied, \(prompt.count) characters")
+        toast?.orderOut(nil)
+        toast = ToastWindow(message: "Prompt copied. Paste it into your agent.", screen: screen)
+        toast?.show(autoDismissAfter: 2.5)
     }
 
     /// One crop of the annotated capture per circle, in the capture's own
@@ -403,12 +451,16 @@ final class FeedbackController {
         await refresh()
     }
 
-    /// Holds answers given before the capture is stored, and the capture's
-    /// index once it is stored.
+    /// Holds answers given before the capture is stored, the capture's index
+    /// once it is stored, and the saves the copied prompt must wait for.
     @MainActor
     private final class PendingAnswers {
         var answers: [(FeedbackNoteStep, String)] = []
         var captureIndex: Int?
+        /// Stores the capture. Its value is the capture index, or nil when the save failed.
+        var stored: Task<Int?, Never>?
+        /// Answers saved after the capture was stored.
+        var writes: [Task<Void, Never>] = []
     }
 
     private func report(_ error: Error, context: String) {

@@ -10,7 +10,8 @@ enum FeedbackNoteStep: Equatable {
 
 /// Fork: asks for one instruction per circle, then a general note, after
 /// each saved feedback capture. Return saves the answer and moves on. Esc
-/// skips the current step. The panel closes after the last step.
+/// skips the current step. After the last step the panel closes and calls
+/// `onFinish`. A panel closed early (close button, End Session) does not.
 ///
 /// The panel takes keyboard focus without making Capso the active app, the
 /// same setup as `InlineAnnotationEditorWindow`. macOS 27 refuses to activate
@@ -32,7 +33,8 @@ final class FeedbackNotePanel {
         badges: [Int],
         previews: [Int: CGImage],
         overview: CGImage?,
-        onAnswer: @escaping (FeedbackNoteStep, String) -> Void
+        onAnswer: @escaping (FeedbackNoteStep, String) -> Void,
+        onFinish: @escaping () -> Void
     ) {
         close()
 
@@ -58,7 +60,9 @@ final class FeedbackNotePanel {
                 onAnswer(step, text)
             },
             onFinish: { [weak self] in
+                FeedbackLog.logger.notice("note panel finished")
                 self?.close()
+                onFinish()
             }
         ))
         panel.contentView = hostingView
