@@ -21,6 +21,7 @@ struct FeedbackSessionStoreTests {
             annotatedPNG: Data("annotated".utf8),
             cleanPNG: Data("clean".utf8),
             size: PixelSize(width: 800, height: 600),
+            capturedAt: FeedbackFixtures.date(20, 22, 24),
             sourceApp: "Safari",
             windowTitle: "Pricing | Acme",
             ocrText: "Starter $19/mo",
@@ -65,8 +66,8 @@ struct FeedbackSessionStoreTests {
         #expect(session.folderName == "2026-10-20-1912-feedback-2")
     }
 
-    @Test("Numbers captures and writes both PNG files")
-    func numbersCaptures() async throws {
+    @Test("Names capture files by time and window title, and writes both PNG files")
+    func namesCaptureFiles() async throws {
         defer { try? fileManager.removeItem(at: root) }
         let store = makeStore()
         let session = try await store.start(name: "feedback")
@@ -75,11 +76,73 @@ struct FeedbackSessionStoreTests {
 
         #expect(first.index == 1)
         #expect(second.index == 2)
-        #expect(second.imageFile == "002.png")
+        #expect(first.imageFile == "2224-pricing-acme.png")
+        #expect(first.cleanImageFile == "2224-pricing-acme-clean.png")
+        #expect(second.imageFile == "2224-pricing-acme-2.png")
+        #expect(second.cleanImageFile == "2224-pricing-acme-2-clean.png")
         let folder = root.appendingPathComponent(session.folderName)
-        #expect(try Data(contentsOf: folder.appendingPathComponent("001.png")) == Data("annotated".utf8))
-        #expect(try Data(contentsOf: folder.appendingPathComponent("001-clean.png")) == Data("clean".utf8))
-        #expect(fileManager.fileExists(atPath: folder.appendingPathComponent("002-clean.png").path))
+        #expect(try Data(contentsOf: folder.appendingPathComponent("2224-pricing-acme.png")) == Data("annotated".utf8))
+        #expect(try Data(contentsOf: folder.appendingPathComponent("2224-pricing-acme-clean.png")) == Data("clean".utf8))
+        #expect(fileManager.fileExists(atPath: folder.appendingPathComponent("2224-pricing-acme-2-clean.png").path))
+    }
+
+    @Test("Uses the capture time from the input")
+    func usesCaptureTime() async throws {
+        defer { try? fileManager.removeItem(at: root) }
+        let store = makeStore()
+        try await store.start(name: "feedback")
+        let capture = try await store.addCapture(input())
+        #expect(capture.capturedAt == FeedbackFixtures.date(20, 22, 24))
+    }
+
+    @Test("Sets one circle's instruction without changing the others")
+    func setsOneInstruction() async throws {
+        defer { try? fileManager.removeItem(at: root) }
+        let store = makeStore()
+        let session = try await store.start(name: "feedback")
+        try await store.addCapture(input())
+        try await store.setInstruction(capture: 1, badge: 2, text: "make it bold")
+        try await store.setInstruction(capture: 1, badge: 1, text: "fix price; keep the font")
+
+        let capture = try #require(await store.activeSession?.captures.first)
+        #expect(capture.marks.map(\.instruction) == ["fix price; keep the font", "make it bold"])
+        #expect(try text("\(session.folderName)/manifest.md").contains("| 1.2 | badge (212, 22) | n/a | make it bold |"))
+    }
+
+    @Test("Clears a circle's instruction when the text is blank")
+    func clearsInstruction() async throws {
+        defer { try? fileManager.removeItem(at: root) }
+        let store = makeStore()
+        try await store.start(name: "feedback")
+        try await store.addCapture(input())
+        try await store.setInstruction(capture: 1, badge: 1, text: "fix price")
+        try await store.setInstruction(capture: 1, badge: 1, text: "  ")
+        #expect(await store.activeSession?.captures.first?.marks.first?.instruction == nil)
+    }
+
+    @Test("Throws for a circle that does not exist")
+    func unknownBadge() async throws {
+        defer { try? fileManager.removeItem(at: root) }
+        let store = makeStore()
+        try await store.start(name: "feedback")
+        try await store.addCapture(input())
+        await #expect(throws: FeedbackSessionStore.StoreError.badgeNotFound(7)) {
+            try await store.setInstruction(capture: 1, badge: 7, text: "x")
+        }
+    }
+
+    @Test("Sets the general note without changing instructions")
+    func setsNoteOnly() async throws {
+        defer { try? fileManager.removeItem(at: root) }
+        let store = makeStore()
+        try await store.start(name: "feedback")
+        try await store.addCapture(input())
+        try await store.setInstruction(capture: 1, badge: 1, text: "fix price")
+        try await store.setNote(capture: 1, text: "2: this stays text. Cards feel cramped.")
+
+        let capture = try #require(await store.activeSession?.captures.first)
+        #expect(capture.note == "2: this stays text. Cards feel cramped.")
+        #expect(capture.marks.map(\.instruction) == ["fix price", nil])
     }
 
     @Test("Throws when no session is active")

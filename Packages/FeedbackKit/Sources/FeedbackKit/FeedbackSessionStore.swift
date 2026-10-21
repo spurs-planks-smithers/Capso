@@ -7,6 +7,8 @@ public struct FeedbackCaptureInput: Sendable {
     public var annotatedPNG: Data
     public var cleanPNG: Data
     public var size: PixelSize
+    /// When the screen was captured. Nil means the time `addCapture` runs.
+    public var capturedAt: Date?
     public var sourceApp: String?
     public var windowTitle: String?
     public var ocrText: String?
@@ -16,6 +18,7 @@ public struct FeedbackCaptureInput: Sendable {
         annotatedPNG: Data,
         cleanPNG: Data,
         size: PixelSize,
+        capturedAt: Date? = nil,
         sourceApp: String? = nil,
         windowTitle: String? = nil,
         ocrText: String? = nil,
@@ -24,6 +27,7 @@ public struct FeedbackCaptureInput: Sendable {
         self.annotatedPNG = annotatedPNG
         self.cleanPNG = cleanPNG
         self.size = size
+        self.capturedAt = capturedAt
         self.sourceApp = sourceApp
         self.windowTitle = windowTitle
         self.ocrText = ocrText
@@ -41,6 +45,7 @@ public actor FeedbackSessionStore {
         case sessionAlreadyActive
         case noActiveSession
         case captureNotFound(Int)
+        case badgeNotFound(Int)
     }
 
     private struct ActiveMarker: Codable {
@@ -80,7 +85,7 @@ public actor FeedbackSessionStore {
         let startedAt = now()
         let base = FeedbackNaming.folderName(startedAt: startedAt, slug: slug, timeZone: timeZone)
         let rootURL = rootURL
-        let folderName = FeedbackNaming.uniqueFolderName(base) {
+        let folderName = FeedbackNaming.uniqueName(base) {
             FileManager.default.fileExists(atPath: rootURL.appendingPathComponent($0).path)
         }
 
@@ -108,12 +113,25 @@ public actor FeedbackSessionStore {
         guard var session = activeSession else { throw StoreError.noActiveSession }
 
         let index = (session.captures.map(\.index).max() ?? 0) + 1
+        let capturedAt = input.capturedAt ?? now()
+        let folder = folderURL(for: session)
+        // Files are named by time and window title. A second capture of the
+        // same window in the same minute gets a numeric suffix.
+        let stem = FeedbackNaming.uniqueName(FeedbackNaming.captureFileStem(
+            windowTitle: input.windowTitle,
+            sourceApp: input.sourceApp,
+            capturedAt: capturedAt,
+            timeZone: timeZone
+        )) { candidate in
+            session.captures.contains { $0.imageFile == "\(candidate).png" }
+                || FileManager.default.fileExists(atPath: folder.appendingPathComponent("\(candidate).png").path)
+        }
         let capture = FeedbackCapture(
             index: index,
-            imageFile: FeedbackNaming.imageFileName(index: index),
-            cleanImageFile: FeedbackNaming.cleanImageFileName(index: index),
+            imageFile: "\(stem).png",
+            cleanImageFile: "\(stem)-clean.png",
             size: input.size,
-            capturedAt: now(),
+            capturedAt: capturedAt,
             // Screen text is cleaned once here, so every bundle file gets clean text.
             sourceApp: ScreenText.field(input.sourceApp),
             windowTitle: ScreenText.field(input.windowTitle),
@@ -125,7 +143,6 @@ public actor FeedbackSessionStore {
             }
         )
 
-        let folder = folderURL(for: session)
         try input.annotatedPNG.write(to: folder.appendingPathComponent(capture.imageFile), options: .atomic)
         try input.cleanPNG.write(to: folder.appendingPathComponent(capture.cleanImageFile), options: .atomic)
         session.captures.append(capture)
@@ -149,6 +166,38 @@ public actor FeedbackSessionStore {
             capture.marks[markIndex].instruction = capture.marks[markIndex].badge.flatMap { parsed.instructions[$0] }
         }
         session.captures[position] = capture
+        try write(session)
+        activeSession = session
+    }
+
+    /// Sets one circle's instruction as written. Blank text clears it. Other
+    /// circles keep their instructions.
+    public func setInstruction(capture index: Int, badge: Int, text: String) throws {
+        try updateCapture(index) { capture in
+            let targets = capture.marks.indices.filter { capture.marks[$0].kind == .counter && capture.marks[$0].badge == badge }
+            guard !targets.isEmpty else { throw StoreError.badgeNotFound(badge) }
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            for target in targets {
+                capture.marks[target].instruction = trimmed.isEmpty ? nil : trimmed
+            }
+        }
+    }
+
+    /// Sets the capture's general note as written. Blank text clears it.
+    /// Circle instructions stay as they are.
+    public func setNote(capture index: Int, text: String) throws {
+        try updateCapture(index) { capture in
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            capture.note = trimmed.isEmpty ? nil : trimmed
+        }
+    }
+
+    private func updateCapture(_ index: Int, _ change: (inout FeedbackCapture) throws -> Void) throws {
+        guard var session = activeSession else { throw StoreError.noActiveSession }
+        guard let position = session.captures.firstIndex(where: { $0.index == index }) else {
+            throw StoreError.captureNotFound(index)
+        }
+        try change(&session.captures[position])
         try write(session)
         activeSession = session
     }

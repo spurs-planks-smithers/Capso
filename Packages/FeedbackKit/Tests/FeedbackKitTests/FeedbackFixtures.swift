@@ -36,8 +36,8 @@ enum FeedbackFixtures {
     static func pricingCapture(index: Int = 2) -> FeedbackCapture {
         FeedbackCapture(
             index: index,
-            imageFile: FeedbackNaming.imageFileName(index: index),
-            cleanImageFile: FeedbackNaming.cleanImageFileName(index: index),
+            imageFile: "19\(12 + index)-pricing-acme.png",
+            cleanImageFile: "19\(12 + index)-pricing-acme-clean.png",
             size: PixelSize(width: 1840, height: 1012),
             capturedAt: date(20, 19, 14),
             sourceApp: "Safari",

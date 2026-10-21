@@ -19,7 +19,7 @@ public enum ManifestWriter {
             "## How to read this bundle",
             "",
             "1. For each capture, open the annotated PNG first, then read its section below.",
-            "2. Badge N in capture K is item K.N. The image and this file use the same ID.",
+            "2. Each capture section gives its item prefix. Badge N in a capture with item prefix K is item K.N.",
             "3. Coordinates are pixels in that PNG, origin top-left. A box is x1 y1 x2 y2.",
             "4. The written instruction wins. The image shows where the item is and how it looks now.",
             "5. An item marked \"\(missingInstruction)\" has no instruction. Ask before you change it.",
@@ -59,12 +59,18 @@ public enum ManifestWriter {
 
     static func section(_ capture: FeedbackCapture, timeZone: TimeZone) -> [String] {
         let (items, otherMarks) = FeedbackItems.split(capture)
+        let name = FeedbackNaming.captureName(
+            windowTitle: capture.windowTitle,
+            sourceApp: capture.sourceApp,
+            capturedAt: capture.capturedAt,
+            timeZone: timeZone
+        )
         var lines = [
-            "## Capture \(capture.index): \(capture.imageFile)",
+            "## \(name)",
             "",
             "Image: \(capture.imageFile) (annotated), \(capture.cleanImageFile) (no marks), \(capture.size.width)x\(capture.size.height) px",
+            "Item prefix: \(capture.index) (badge N is item \(capture.index).N)",
             "Source: \(source(capture))",
-            "Captured: \(timestamp(capture.capturedAt, timeZone: timeZone))",
             "Note: \(capture.note.map(singleLine) ?? missing)",
             "",
         ]

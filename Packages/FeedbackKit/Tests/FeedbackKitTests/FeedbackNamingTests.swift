@@ -38,15 +38,32 @@ struct FeedbackNamingTests {
     @Test("Adds a numeric suffix when the folder name is taken")
     func collisionSuffix() {
         let taken: Set<String> = ["2026-10-20-1912-feedback", "2026-10-20-1912-feedback-2"]
-        let name = FeedbackNaming.uniqueFolderName("2026-10-20-1912-feedback") { taken.contains($0) }
+        let name = FeedbackNaming.uniqueName("2026-10-20-1912-feedback") { taken.contains($0) }
         #expect(name == "2026-10-20-1912-feedback-3")
-        #expect(FeedbackNaming.uniqueFolderName("free") { _ in false } == "free")
+        #expect(FeedbackNaming.uniqueName("free") { _ in false } == "free")
     }
 
-    @Test("Numbers capture files with three digits")
-    func captureFileNames() {
-        #expect(FeedbackNaming.imageFileName(index: 1) == "001.png")
-        #expect(FeedbackNaming.cleanImageFileName(index: 1) == "001-clean.png")
-        #expect(FeedbackNaming.imageFileName(index: 12) == "012.png")
+    @Test("Names a capture by window title and local time with time zone")
+    func captureName() {
+        let time = FeedbackFixtures.date(20, 22, 24)
+        let name = FeedbackNaming.captureName(windowTitle: "Pricing | Acme", sourceApp: "Safari", capturedAt: time, timeZone: FeedbackFixtures.timeZone)
+        #expect(name == "Capture: Pricing | Acme, 2026-10-20 22:24 PDT")
+    }
+
+    @Test("Names a capture by app, then by time alone, when there is no window title")
+    func captureNameFallbacks() {
+        let time = FeedbackFixtures.date(20, 22, 24)
+        let zone = FeedbackFixtures.timeZone
+        #expect(FeedbackNaming.captureName(windowTitle: nil, sourceApp: "Safari", capturedAt: time, timeZone: zone) == "Capture: Safari, 2026-10-20 22:24 PDT")
+        #expect(FeedbackNaming.captureName(windowTitle: nil, sourceApp: nil, capturedAt: time, timeZone: zone) == "Capture: 2026-10-20 22:24 PDT")
+    }
+
+    @Test("Builds capture file names from the time and the title")
+    func captureFileStem() {
+        let time = FeedbackFixtures.date(20, 22, 24)
+        let zone = FeedbackFixtures.timeZone
+        #expect(FeedbackNaming.captureFileStem(windowTitle: "Pricing | Acme", sourceApp: "Safari", capturedAt: time, timeZone: zone) == "2224-pricing-acme")
+        #expect(FeedbackNaming.captureFileStem(windowTitle: nil, sourceApp: "Safari", capturedAt: time, timeZone: zone) == "2224-safari")
+        #expect(FeedbackNaming.captureFileStem(windowTitle: nil, sourceApp: nil, capturedAt: time, timeZone: zone) == "2224-capture")
     }
 }

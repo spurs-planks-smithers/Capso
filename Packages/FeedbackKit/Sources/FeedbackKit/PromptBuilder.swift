@@ -22,7 +22,7 @@ public enum PromptBuilder {
             "1. Open \(folderPath)/manifest.md.",
             "2. For each capture, open its annotated PNG first, then read its section in manifest.md.",
             "3. Open the -clean.png copy only when a mark hides content.",
-            "4. Badge N in image K is item K.N.",
+            "4. Badge N in a capture with item prefix K is item K.N. Each capture section in manifest.md gives its prefix.",
             "5. Coordinates are pixels in that PNG, origin top-left. A box is x1 y1 x2 y2.",
             "",
             "Authority:",

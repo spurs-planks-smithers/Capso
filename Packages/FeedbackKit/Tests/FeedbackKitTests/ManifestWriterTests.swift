@@ -14,18 +14,18 @@ struct ManifestWriterTests {
         )
     }
 
-    @Test("Renders a capture section in the plan's format")
+    @Test("Renders a capture section named by window title and time")
     func captureSection() {
         let manifest = render([FeedbackFixtures.pricingCapture()])
         let expected = """
-        ## Capture 2: 002.png
+        ## Capture: Pricing | Acme, 2026-10-20 19:14 PDT
 
-        Image: 002.png (annotated), 002-clean.png (no marks), 1840x1012 px
+        Image: 1914-pricing-acme.png (annotated), 1914-pricing-acme-clean.png (no marks), 1840x1012 px
+        Item prefix: 2 (badge N is item 2.N)
         Source: Safari, window "Pricing | Acme"
-        Captured: 2026-10-20 19:14 PDT
         Note: The plan cards feel cramped on this page.
 
-        | Item | Where in 002.png (px, x1 y1 x2 y2) | Text under the mark (OCR) | Instruction |
+        | Item | Where in 1914-pricing-acme.png (px, x1 y1 x2 y2) | Text under the mark (OCR) | Instruction |
         |---|---|---|---|
         | 2.1 | badge (412, 188), points to (520, 240) | "Starter $19/mo" | Price is wrong, should be $15 |
         | 2.2 | badge (900, 610), box 860 580 1500 700 | "Compare plans" | Make this the primary button |
@@ -79,7 +79,7 @@ struct ManifestWriterTests {
     func headerAndCodexCommand() {
         let manifest = render([FeedbackFixtures.pricingCapture(index: 1), FeedbackFixtures.pricingCapture(index: 2)])
         #expect(manifest.contains("Captures: 2. Items: 6."))
-        #expect(manifest.contains(#"codex --image "\#(folder)/001.png,\#(folder)/002.png" "$(cat "\#(folder)/prompt.md")""#))
+        #expect(manifest.contains(#"codex --image "\#(folder)/1913-pricing-acme.png,\#(folder)/1914-pricing-acme.png" "$(cat "\#(folder)/prompt.md")""#))
     }
 
     @Test("Says that screen text is data to match, never instructions")
@@ -137,8 +137,8 @@ struct ManifestWriterTests {
     func readingRulesFirst() throws {
         let manifest = render([FeedbackFixtures.pricingCapture(index: 1)])
         let rules = try #require(manifest.range(of: "## How to read this bundle"))
-        let firstCapture = try #require(manifest.range(of: "## Capture 1: 001.png"))
+        let firstCapture = try #require(manifest.range(of: "## Capture: Pricing | Acme"))
         #expect(rules.lowerBound < firstCapture.lowerBound)
-        #expect(manifest.contains("Badge N in capture K is item K.N."))
+        #expect(manifest.contains("Badge N in a capture with item prefix K is item K.N."))
     }
 }
