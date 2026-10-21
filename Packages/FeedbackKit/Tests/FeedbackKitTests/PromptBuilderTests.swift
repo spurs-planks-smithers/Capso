@@ -26,7 +26,7 @@ struct PromptBuilderTests {
 
     @Test("Points to the manifest by absolute path and explains item IDs")
     func readingRules() {
-        #expect(prompt.contains("Open \(folder)/manifest.md."))
+        #expect(prompt.contains("Open `\(folder)/manifest.md`."))
         #expect(prompt.contains("Badge N in a capture with item prefix K is item K.N."))
         #expect(prompt.contains("origin top-left"))
     }
