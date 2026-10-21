@@ -111,6 +111,28 @@ struct ManifestWriterTests {
         #expect(!manifest.contains(String(repeating: "a", count: 201)))
     }
 
+    @Test("Removes a bundle tag rebuilt from nested pieces")
+    func nestedTagPieces() {
+        #expect(!ManifestWriter.screenText("x <feedback<feedback_bundle>_bundle> y").lowercased().contains("feedback_bundle"))
+        #expect(!ManifestWriter.screenText("</feedback_</feedback_bundle>bundle>").lowercased().contains("feedback_bundle"))
+    }
+
+    @Test("Removes invisible format characters from screen text")
+    func invisibleCharacters() {
+        // Zero-width space, two Unicode tag characters, and a right-to-left override.
+        let title = "Shop\u{200B}\u{E0049}\u{E0047}\u{202E}now"
+        #expect(ManifestWriter.screenText(title) == "Shopnow")
+    }
+
+    @Test("Caps screen text by Unicode scalars")
+    func capsByScalars() {
+        // One character that holds 301 scalars: "e" plus 300 combining accents.
+        let text = "e" + String(repeating: "\u{0301}", count: 300)
+        let capped = ManifestWriter.screenText(text)
+        #expect(capped.unicodeScalars.count <= ManifestWriter.maxScreenTextLength + 3)
+        #expect(capped.hasSuffix("..."))
+    }
+
     @Test("Puts the reading rules before the first capture")
     func readingRulesFirst() throws {
         let manifest = render([FeedbackFixtures.pricingCapture(index: 1)])

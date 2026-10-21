@@ -133,15 +133,24 @@ public enum ManifestWriter {
 
     /// Text read from the screen can come from any web page or document, so
     /// the agent must not mistake it for part of the bundle. This removes
-    /// bundle-tag lookalikes and caps the length.
+    /// invisible format characters (zero-width, bidirectional, and tag
+    /// characters), removes bundle-tag lookalikes until none can be rebuilt,
+    /// and caps the length in Unicode scalars.
     static func screenText(_ text: String) -> String {
-        var text = singleLine(text).replacingOccurrences(
-            of: #"</?\s*feedback_bundle[^>]*>"#,
-            with: "",
-            options: [.regularExpression, .caseInsensitive]
-        )
-        if text.count > maxScreenTextLength {
-            text = String(text.prefix(maxScreenTextLength)) + "..."
+        let visible = singleLine(text).unicodeScalars.filter { $0.properties.generalCategory != .format }
+        var text = String(String.UnicodeScalarView(visible))
+        var previous: String
+        repeat {
+            previous = text
+            text = text.replacingOccurrences(
+                of: #"</?\s*feedback_bundle[^>]*>"#,
+                with: "",
+                options: [.regularExpression, .caseInsensitive]
+            )
+        } while text != previous
+
+        if text.unicodeScalars.count > maxScreenTextLength {
+            text = String(String.UnicodeScalarView(text.unicodeScalars.prefix(maxScreenTextLength))) + "..."
         }
         return text
     }
