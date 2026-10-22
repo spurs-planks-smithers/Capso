@@ -52,6 +52,7 @@ The plan estimated about 35 lines in `CaptureCoordinator.swift`, with the coordi
 | `docs/agents/bundle-guide.md` | How an AI agent reads a feedback bundle |
 | `.github/README.md`, `.github/assets/nextshot-icon.png` | The fork's README. GitHub shows `.github/README.md` before the root `README.md`, so upstream's README stays unedited. |
 | `scripts/build-local.sh`, `scripts/local-project.yml` | Signed local build. `local-project.yml` also sets Nextshot's app icon. Force-added: upstream ignores `scripts/`. |
+| `scripts/nextshot-version.sh` | Nextshot's version (HEAD commit date) and build number (commit count). Both build scripts source it. Force-added. |
 | `scripts/release-notarized.sh` | Developer ID build, notarized and stapled, as a DMG and a zip for another Mac. It ships Capso's `LICENSE` as `Resources/LICENSE.txt` in the app and as `LICENSE.txt` beside it in the DMG and zip. Adapted from upstream's `.github/workflows/build-release.yml`. Force-added. |
 | `scripts/local-signing.env` | Untracked. Holds `DEVELOPMENT_TEAM`. Listed in `.git/info/exclude`. |
 

@@ -38,6 +38,20 @@ Click **Nshot** in the menu bar to:
 
 Camera and microphone access are needed only for video recording. Nextshot asks the first time you use them.
 
+## Update
+
+Nextshot does not update itself. When you get a new DMG:
+
+1. Quit Nextshot. Finder cannot replace an app that is running.
+2. Open the new DMG and drag **Nextshot** to **Applications**. Choose **Replace**.
+3. Open Nextshot again.
+
+Your sessions, settings, and permissions stay.
+
+To see which build you have, open **Preferences**, then **General**. The version under **About** is the build date and a build number, for example **2026.10.22 (489)**. A newer date or a higher number is a newer build. The DMG's file name starts with the same date.
+
+The **Check for Updates** button in Preferences does not apply to Nextshot. It finds nothing.
+
 ## Your feedback stays on your Mac
 
 - Each session is a folder in `~/Library/Application Support/Nextshot`.

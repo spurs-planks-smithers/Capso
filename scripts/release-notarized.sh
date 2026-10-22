@@ -55,6 +55,8 @@ commit="$(git -C "$repo" rev-parse --short HEAD)"
 if [[ -n "$(git -C "$repo" status --porcelain)" ]]; then
   commit="$commit-dirty"
 fi
+# shellcheck source=scripts/nextshot-version.sh
+source "$repo/scripts/nextshot-version.sh"
 
 rm -rf "$work"
 mkdir -p "$work/export" "$repo/build/releases"
@@ -71,6 +73,8 @@ xcodebuild archive \
   CODE_SIGN_STYLE=Manual \
   CODE_SIGN_IDENTITY="$sign_id" \
   DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
+  MARKETING_VERSION="$nextshot_version" \
+  CURRENT_PROJECT_VERSION="$nextshot_build" \
   ENABLE_HARDENED_RUNTIME=YES \
   ARCHS="arm64 x86_64" \
   ONLY_ACTIVE_ARCH=NO \
