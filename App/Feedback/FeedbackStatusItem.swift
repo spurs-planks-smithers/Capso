@@ -106,9 +106,24 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         stateProvider?() ?? .empty
     }
 
+    /// The Nextshot mark (square and chevron) as a template image, 14 points
+    /// tall like other menu bar icons. scripts/brand/make_nextshot_icon.py
+    /// draws it. Falls back to a system symbol if the asset is missing.
+    private static func markImage() -> NSImage? {
+        let description = "\(ForkBranding.name) feedback session"
+        guard let mark = NSImage(named: "NextshotMark")?.copy() as? NSImage else {
+            return NSImage(systemSymbolName: "text.bubble", accessibilityDescription: description)
+        }
+        let height: CGFloat = 14
+        mark.size = NSSize(width: (mark.size.width / mark.size.height * height).rounded(), height: height)
+        mark.isTemplate = true
+        mark.accessibilityDescription = description
+        return mark
+    }
+
     private func makeItem() -> NSStatusItem {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        item.button?.image = NSImage(systemSymbolName: "text.bubble", accessibilityDescription: "\(ForkBranding.name) feedback session")
+        item.button?.image = Self.markImage()
 
         let menu = NSMenu()
         // Items are enabled by hand: a line with no action stays gray, and a
