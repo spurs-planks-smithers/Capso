@@ -119,7 +119,10 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
 
     private func makeItem() -> NSStatusItem {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        item.button?.image = NSImage(systemSymbolName: "text.bubble", accessibilityDescription: "\(ForkBranding.name) feedback session")
+        item.button?.image = ForkBranding.menuBarMark(
+            description: "\(ForkBranding.name) feedback session",
+            fallbackSymbol: "text.bubble"
+        )
 
         let menu = NSMenu()
         // Items are enabled by hand: a line with no action stays gray, and a

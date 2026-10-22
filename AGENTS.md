@@ -22,6 +22,7 @@ xcodebuild -project Capso.xcodeproj -scheme Capso -configuration Debug CODE_SIGN
 - The app name comes from `PRODUCT_NAME`: `Info.plist` reads it, and `scripts/local-project.yml` sets it to Nextshot. The upstream `project.yml` keeps Capso, so `Capso.xcodeproj` still builds `Capso.app`. Fork UI text uses `ForkBranding`. Upstream Preferences labels and permission prompts still say Capso.
 - Logs: `/usr/bin/log show --last 10m --predicate 'subsystem == "com.drewschulz.nextshot"'` (in zsh, plain `log` is a builtin).
 - Notarized release for another Mac: `scripts/release-notarized.sh`. It signs with the Developer ID Application certificate, notarizes through the keychain profile `apple-notary`, staples, and writes `build/releases/Nextshot-<version>-<commit>.dmg` and `.zip`. Both ship Capso's license: `Contents/Resources/LICENSE.txt` inside the app and `LICENSE.txt` beside it. The Business Source License requires it on every modified copy. It needs `create-dmg` (Homebrew). Commit first, or the file name ends in `-dirty`.
+- Nextshot's version comes from git: the HEAD commit date (2026.10.22) and the commit count as the build number. `scripts/nextshot-version.sh` computes both, and both build scripts pass them to xcodebuild. Updates are manual: people install each new DMG over the old app. Sparkle stays off (backlog issue #4).
 - `scripts/local-project.yml` includes `project.yml` and overrides only the Capso target. It generates `CapsoLocal.xcodeproj`. Command-line `PRODUCT_NAME` would rename every package resource bundle and break the build.
 - The script reads `DEVELOPMENT_TEAM` from `scripts/local-signing.env`, an untracked file listed in `.git/info/exclude`.
 
@@ -100,3 +101,11 @@ Agent access:
 - Claude Code: Drew's user settings list `~/Library/Application Support/Nextshot` in `permissions.additionalDirectories` (added 2026-10-21, renamed from `CapsoFeedback` the same day), so it reads bundles with no approval prompt. Without that setting, start it with `claude --add-dir "$HOME/Library/Application Support/Nextshot"`.
 - Codex: run the `codex --image ...` command from the top of `manifest.md` in the target repository. It lists every annotated PNG by absolute path.
 - If `codex` is not on `PATH`, the ChatGPT app bundles it at `/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex`.
+- The agent-facing guide to a bundle is `docs/agents/bundle-guide.md`. Keep it in step with the "How to read this bundle" rules that `manifest.md` prints.
+
+## Brand and README
+
+- The fork's README is `.github/README.md`, written for people who install Nextshot. GitHub shows it before the root `README.md`. Never edit the root `README.md`: it is upstream's.
+- Nextshot's app icon is `Branding/Nextshot.icon` (Icon Composer). The menu bar mark is `NextshotMark` in `App/Feedback/FeedbackAssets.xcassets`. Both menu bar items load it through `ForkBranding.menuBarMark`. The spec is `docs/brand/nextshot-mark.md`.
+- Change the mark only through `scripts/brand/make_nextshot_icon.py`, then check every appearance with `ictool`. The spec gives the commands.
+- Never ship Capso's name or logo as Nextshot's. Capso's license gives no right to its trademark or logo.

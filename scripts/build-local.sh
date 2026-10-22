@@ -27,12 +27,16 @@ source "$env_file"
 bundle_id="com.drewschulz.nextshot"
 product_name="Nextshot"
 derived="$repo/build/local"
+# shellcheck source=scripts/nextshot-version.sh
+source "$repo/scripts/nextshot-version.sh"
 
 cd "$repo"
 xcodegen generate --spec scripts/local-project.yml --project "$repo" --project-root "$repo"
 xcodebuild -project "$repo/CapsoLocal.xcodeproj" -scheme Capso -configuration "$config" \
   -derivedDataPath "$derived/DerivedData" \
   DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
+  MARKETING_VERSION="$nextshot_version" \
+  CURRENT_PROJECT_VERSION="$nextshot_build" \
   build
 
 app="$derived/DerivedData/Build/Products/$config/$product_name.app"

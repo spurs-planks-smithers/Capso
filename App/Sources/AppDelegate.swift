@@ -36,6 +36,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
             return
         }
+        SingleInstanceGuard.quitIfAnotherCopyRuns() // Fork: App/Feedback
 
         Self.shared = self
         NSAppleEventManager.shared().setEventHandler(

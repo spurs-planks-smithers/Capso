@@ -19,7 +19,8 @@ Compile risk: `PostCaptureAction.feedback` is a new enum case. An upstream chang
 | `App/Sources/Capture/CaptureCoordinator.swift` | `captureAreaForFeedback()` starts an area capture with `.feedback` | 421-425 (added) | none |
 | `App/Sources/Capture/CaptureCoordinator.swift` | `showFrozenOverlay` cancel handler resets `pendingAction`, so Esc on a feedback selection cannot send the next fullscreen or window capture to the session (Drew approved this hook point on 2026-10-20). It also fixes upstream's same leak for `.annotate` and `.clipboard`. | 987 (added) | none |
 | `App/Sources/Capture/CaptureCoordinator.swift` | `handleCaptureResult` arm: `.feedback` calls `feedbackSink` | 1644-1645 (added) | none |
-| `App/Sources/AppDelegate.swift` | One call to `FeedbackController.shared.start(captureCoordinator:settings:)` after `registerGlobalShortcuts()` | 88 (added) | [#349](https://github.com/lzhgus/Capso/pull/349), [#291](https://github.com/lzhgus/Capso/pull/291) |
+| `App/Sources/AppDelegate.swift` | One call to `FeedbackController.shared.start(captureCoordinator:settings:)` after `registerGlobalShortcuts()` | 89 (added) | [#349](https://github.com/lzhgus/Capso/pull/349), [#291](https://github.com/lzhgus/Capso/pull/291) |
+| `App/Sources/AppDelegate.swift` | One call to `SingleInstanceGuard.quitIfAnotherCopyRuns()` right after the unit-test early return. A relaunch on 2026-10-22 started two copies, and both registered the hotkeys and menu bar items. | 39 (added) | [#349](https://github.com/lzhgus/Capso/pull/349), [#291](https://github.com/lzhgus/Capso/pull/291) |
 | `project.yml` | `FeedbackKit` local package | 50-51 (added) | [#349](https://github.com/lzhgus/Capso/pull/349), [#348](https://github.com/lzhgus/Capso/pull/348) |
 | `project.yml` | `App/Feedback` source path for the Capso target | 71 (added) | [#349](https://github.com/lzhgus/Capso/pull/349), [#348](https://github.com/lzhgus/Capso/pull/348) |
 | `project.yml` | `FeedbackKit` dependency for the Capso target | 98 (added) | [#349](https://github.com/lzhgus/Capso/pull/349), [#348](https://github.com/lzhgus/Capso/pull/348) |
@@ -30,6 +31,7 @@ Compile risk: `PostCaptureAction.feedback` is a new enum case. An upstream chang
 | `App/Resources/Info.plist` | Nextshot rename (Drew, 2026-10-21): `CFBundleName` and `CFBundleDisplayName` read `$(PRODUCT_NAME)`. Upstream's `PRODUCT_NAME` is Capso, so upstream builds keep their name. | 6, 8 (changed) | none |
 | `App/Resources/InfoPlist.xcstrings` | Nextshot rename: the `CFBundleName` and `CFBundleDisplayName` entries are removed. Every locale held "Capso", which would override `Info.plist`. On a conflict, delete the two entries again. | 4-111 of the upstream file (removed) | none |
 | `App/Sources/MenuBar/MenuBarController.swift` | Nextshot rename: "About Capso" and "Quit Capso" pass through `ForkBranding.renamed`, so each locale keeps its translation. | 160, 162 (changed) | [#349](https://github.com/lzhgus/Capso/pull/349) |
+| `App/Sources/MenuBar/MenuBarController.swift` | Nextshot mark (Drew, 2026-10-22): the main menu bar item shows `ForkBranding.menuBarMark` instead of Capso's `MenuBarIcon` logo. Capso's license gives no right to its logo. The helper sizes the image, so upstream's two sizing lines are gone. | 65-66 (a `Fork:` comment and one line replace upstream's 65-67) | [#349](https://github.com/lzhgus/Capso/pull/349) |
 
 ### Why the coordinator hook is smaller than the plan's estimate
 
@@ -45,8 +47,14 @@ The plan estimated about 35 lines in `CaptureCoordinator.swift`, with the coordi
 | `docs/decisions/2026-10-20-feedback-bundle-format.md` | Why the bundle has its format |
 | `docs/SECURITY_BASELINE.md` | Network code, entitlements, dependencies, and recommendations |
 | `Packages/FeedbackKit/` | Session model, store, image sizing, naming, screen-text cleaning, window picker, preview crop, note parser, OCR matcher, manifest and prompt writers, tests |
-| `App/Feedback/` | Feedback controller (editor, Esc and arrow keys, save pipeline), mark mapper, window-title lookup, PNG export, note panel with circle previews and arrow-key steps, help box, status item, shortcut panel, App Intents, `ForkBranding` (product name) |
-| `scripts/build-local.sh`, `scripts/local-project.yml` | Signed local build. Force-added: upstream ignores `scripts/`. |
+| `App/Feedback/` | Feedback controller (editor, Esc and arrow keys, save pipeline), mark mapper, window-title lookup, PNG export, note panel with circle previews and arrow-key steps, help box, status item, shortcut panel, App Intents, `ForkBranding` (product name and `menuBarMark`), `FeedbackAssets.xcassets` (the `NextshotMark` menu bar image), `SingleInstanceGuard` (one running copy) |
+| `Branding/Nextshot.icon` | Nextshot's app icon (Icon Composer). Only `scripts/local-project.yml` adds it, so `Capso.app` keeps Capso's icon. |
+| `scripts/brand/make_nextshot_icon.py` | Writes the app icon and the menu bar image from the spec values. Force-added. |
+| `docs/brand/`, `docs/decisions/2026-10-22-nextshot-icon.md` | The mark's spec and previews, and why it exists |
+| `docs/agents/bundle-guide.md` | How an AI agent reads a feedback bundle |
+| `.github/README.md`, `.github/assets/nextshot-icon.png` | The fork's README. GitHub shows `.github/README.md` before the root `README.md`, so upstream's README stays unedited. |
+| `scripts/build-local.sh`, `scripts/local-project.yml` | Signed local build. `local-project.yml` also sets Nextshot's app icon. Force-added: upstream ignores `scripts/`. |
+| `scripts/nextshot-version.sh` | Nextshot's version (HEAD commit date) and build number (commit count). Both build scripts source it. Force-added. |
 | `scripts/release-notarized.sh` | Developer ID build, notarized and stapled, as a DMG and a zip for another Mac. It ships Capso's `LICENSE` as `Resources/LICENSE.txt` in the app and as `LICENSE.txt` beside it in the DMG and zip. Adapted from upstream's `.github/workflows/build-release.yml`. Force-added. |
 | `scripts/local-signing.env` | Untracked. Holds `DEVELOPMENT_TEAM`. Listed in `.git/info/exclude`. |
 
