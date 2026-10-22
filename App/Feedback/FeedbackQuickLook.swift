@@ -10,9 +10,8 @@ import QuickLookUI
 final class FeedbackQuickLook: NSObject, @preconcurrency QLPreviewPanelDataSource {
     private var url: URL?
 
-    /// Opens the Quick Look panel on `url`. If the panel does not show, for
-    /// example while the menu holds the event loop, the file opens in its
-    /// default app instead.
+    /// Opens the Quick Look panel on `url`. The status menu is closed by now.
+    /// If the panel does not show, the file opens in its default app instead.
     func show(_ url: URL) {
         self.url = url
         guard let panel = QLPreviewPanel.shared() else {

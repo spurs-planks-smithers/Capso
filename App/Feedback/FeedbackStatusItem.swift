@@ -247,7 +247,7 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
                 thumbnail: FeedbackThumbnails.image(for: folderURL.appendingPathComponent(capture.imageFile)),
                 checked: state.basket.contains(key),
                 onToggle: { [weak self] key in self?.onToggleCapture?(key) },
-                onQuickLook: { [weak self] key in self?.onQuickLook?(key) }
+                onQuickLook: { [weak self] key in self?.closeMenuThenQuickLook(key) }
             )
             let rowItem = NSMenuItem(title: title, action: nil, keyEquivalent: "")
             rowItem.view = rowView
@@ -259,6 +259,17 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         // Only one session can be active, so Resume waits until it ends.
         if state.active == nil {
             menu.addItem(menuItem("Resume Session", action: #selector(resumeSession(_:)), session: session))
+        }
+    }
+
+    /// Option-click on a capture row. The menu closes first, so the Quick Look
+    /// panel does not open behind it and Space and Esc reach the panel, not the
+    /// menu. The panel opens once the run loop is back in its default mode,
+    /// which happens after menu tracking has ended.
+    private func closeMenuThenQuickLook(_ key: FeedbackBasketKey) {
+        topMenu?.cancelTracking()
+        RunLoop.main.perform(inModes: [.default]) { [weak self] in
+            MainActor.assumeIsolated { self?.onQuickLook?(key) }
         }
     }
 
