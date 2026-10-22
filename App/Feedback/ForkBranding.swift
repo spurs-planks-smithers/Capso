@@ -14,6 +14,15 @@ enum ForkBranding {
         upstreamText.replacingOccurrences(of: "Capso", with: name)
     }
 
+    /// The running build, for example "Nextshot 2026.10.22 (497)". The build
+    /// scripts set both numbers from git (`scripts/nextshot-version.sh`).
+    static var versionLine: String {
+        let info = Bundle.main.infoDictionary
+        let version = info?["CFBundleShortVersionString"] as? String ?? "n/a"
+        let build = info?["CFBundleVersion"] as? String ?? "n/a"
+        return "\(name) \(version) (\(build))"
+    }
+
     /// The Nextshot mark (square and chevron) as a template image, 14 points
     /// tall like other menu bar icons. Both menu bar items use it, so no
     /// Capso logo shows. scripts/brand/make_nextshot_icon.py draws it. Falls

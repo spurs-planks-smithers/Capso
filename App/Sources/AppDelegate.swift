@@ -37,6 +37,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         SingleInstanceGuard.quitIfAnotherCopyRuns() // Fork: App/Feedback
+        ForkDefaults.register() // Fork: App/Feedback
 
         Self.shared = self
         NSAppleEventManager.shared().setEventHandler(

@@ -22,7 +22,14 @@ enum FeedbackHelpStage {
 /// before the feedback hotkey freezes the screen.
 @MainActor
 final class FeedbackHelpOverlay {
-    static let width: CGFloat = 320
+    /// Text size in points: 22, up from 14 (Drew, 2026-10-22).
+    static let textSize: CGFloat = 22
+    /// Box width, padding, and spacing grow with the text, so no line wraps.
+    static let scale = textSize / 14
+    static let width: CGFloat = (320 * scale).rounded()
+    /// The box and its text draw at half opacity, so the screen shows
+    /// through (Drew, 2026-10-22).
+    static let opacity: CGFloat = 0.5
     /// Space between the box and the screen's top and right edges.
     static let margin: CGFloat = 12
 
@@ -72,6 +79,7 @@ final class FeedbackHelpOverlay {
         panel.isReleasedWhenClosed = false
         panel.isOpaque = false
         panel.backgroundColor = .clear
+        panel.alphaValue = Self.opacity
         panel.hasShadow = false
         panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
         // Light text on a dark glass reads over any screen content.
@@ -84,7 +92,7 @@ final class FeedbackHelpOverlay {
         glass.blendingMode = .behindWindow
         glass.state = .active
         glass.wantsLayer = true
-        glass.layer?.cornerRadius = 10
+        glass.layer?.cornerRadius = (10 * Self.scale).rounded()
         glass.layer?.masksToBounds = true
         glass.layer?.borderWidth = 0.5
         glass.layer?.borderColor = NSColor.white.withAlphaComponent(0.2).cgColor
@@ -163,22 +171,24 @@ struct FeedbackHelpView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        let size = FeedbackHelpOverlay.textSize
+        let scale = FeedbackHelpOverlay.scale
+        VStack(alignment: .leading, spacing: 8 * scale) {
             Text(verbatim: "\(ForkBranding.name): \(title)")
-                .font(.system(size: 14, weight: .bold))
-            Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 5) {
+                .font(.system(size: size, weight: .bold))
+            Grid(alignment: .leading, horizontalSpacing: 14 * scale, verticalSpacing: 5 * scale) {
                 ForEach(lines) { line in
                     GridRow {
                         Text(verbatim: line.key)
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.system(size: size, weight: .semibold))
                         Text(verbatim: line.action)
-                            .font(.system(size: 14))
+                            .font(.system(size: size))
                             .foregroundStyle(.secondary)
                     }
                 }
             }
         }
-        .padding(14)
+        .padding(14 * scale)
         .frame(width: FeedbackHelpOverlay.width, alignment: .leading)
     }
 }

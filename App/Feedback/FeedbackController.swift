@@ -121,6 +121,9 @@ final class FeedbackController {
         statusItem.onShowShortcut = { [weak self] in
             self?.showShortcutPanel()
         }
+        statusItem.onShowSettings = {
+            AppDelegate.shared?.showPreferences()
+        }
         connectHistoryMenu()
         notePanel.onClosed = { [weak self] in
             self?.updateHelp()
