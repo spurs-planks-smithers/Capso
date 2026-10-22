@@ -94,7 +94,8 @@ From top to bottom:
 - The basket lines appear as soon as the first box is checked, while the menu is open. (my call)
 - The basket lines sit below the Recent rows, so checking a box never moves the rows above it. (Drew, hand test 2026-10-22)
 - "Copy N Selected" copies one combined prompt (see Combined prompt). The toast says "N captures copied" on the first line and "Paste them into your agent." on the second.
-- With exactly one capture in the basket, the copy uses today's capture prompt (`PromptBuilder.renderCapture`) with the redo line added. That keeps the capture's own K.N item numbers. (my call)
+- Before any copy from Recent, the app rewrites a bundle's `manifest.md` and `prompt.md` when they are missing or name an old folder. (follow-up, 2026-10-22)
+- With exactly one capture left after missing ones are dropped, the copy uses today's capture prompt (`PromptBuilder.renderCapture`) with the redo line added. That keeps the capture's own K.N item numbers. (my call)
 
 ### Quick Look (board 3)
 
