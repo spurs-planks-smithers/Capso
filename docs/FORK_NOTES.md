@@ -30,6 +30,7 @@ Compile risk: `PostCaptureAction.feedback` is a new enum case. An upstream chang
 | `App/Resources/Info.plist` | Nextshot rename (Drew, 2026-10-21): `CFBundleName` and `CFBundleDisplayName` read `$(PRODUCT_NAME)`. Upstream's `PRODUCT_NAME` is Capso, so upstream builds keep their name. | 6, 8 (changed) | none |
 | `App/Resources/InfoPlist.xcstrings` | Nextshot rename: the `CFBundleName` and `CFBundleDisplayName` entries are removed. Every locale held "Capso", which would override `Info.plist`. On a conflict, delete the two entries again. | 4-111 of the upstream file (removed) | none |
 | `App/Sources/MenuBar/MenuBarController.swift` | Nextshot rename: "About Capso" and "Quit Capso" pass through `ForkBranding.renamed`, so each locale keeps its translation. | 160, 162 (changed) | [#349](https://github.com/lzhgus/Capso/pull/349) |
+| `App/Sources/MenuBar/MenuBarController.swift` | Nextshot mark (Drew, 2026-10-22): the main menu bar item shows `ForkBranding.menuBarMark` instead of Capso's `MenuBarIcon` logo. Capso's license gives no right to its logo. The helper sizes the image, so upstream's two sizing lines are gone. | 65-66 (a `Fork:` comment and one line replace upstream's 65-67) | [#349](https://github.com/lzhgus/Capso/pull/349) |
 
 ### Why the coordinator hook is smaller than the plan's estimate
 
@@ -45,7 +46,7 @@ The plan estimated about 35 lines in `CaptureCoordinator.swift`, with the coordi
 | `docs/decisions/2026-10-20-feedback-bundle-format.md` | Why the bundle has its format |
 | `docs/SECURITY_BASELINE.md` | Network code, entitlements, dependencies, and recommendations |
 | `Packages/FeedbackKit/` | Session model, store, image sizing, naming, screen-text cleaning, window picker, preview crop, note parser, OCR matcher, manifest and prompt writers, tests |
-| `App/Feedback/` | Feedback controller (editor, Esc and arrow keys, save pipeline), mark mapper, window-title lookup, PNG export, note panel with circle previews and arrow-key steps, help box, status item, shortcut panel, App Intents, `ForkBranding` (product name), `FeedbackAssets.xcassets` (the `NextshotMark` menu bar image) |
+| `App/Feedback/` | Feedback controller (editor, Esc and arrow keys, save pipeline), mark mapper, window-title lookup, PNG export, note panel with circle previews and arrow-key steps, help box, status item, shortcut panel, App Intents, `ForkBranding` (product name and `menuBarMark`), `FeedbackAssets.xcassets` (the `NextshotMark` menu bar image) |
 | `Branding/Nextshot.icon` | Nextshot's app icon (Icon Composer). Only `scripts/local-project.yml` adds it, so `Capso.app` keeps Capso's icon. |
 | `scripts/brand/make_nextshot_icon.py` | Writes the app icon and the menu bar image from the spec values. Force-added. |
 | `docs/brand/`, `docs/decisions/2026-10-22-nextshot-icon.md` | The mark's spec and previews, and why it exists |

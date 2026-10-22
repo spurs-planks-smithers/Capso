@@ -106,6 +106,6 @@ Agent access:
 ## Brand and README
 
 - The fork's README is `.github/README.md`, written for people who install Nextshot. GitHub shows it before the root `README.md`. Never edit the root `README.md`: it is upstream's.
-- Nextshot's app icon is `Branding/Nextshot.icon` (Icon Composer). The menu bar mark is `NextshotMark` in `App/Feedback/FeedbackAssets.xcassets`. The spec is `docs/brand/nextshot-mark.md`.
+- Nextshot's app icon is `Branding/Nextshot.icon` (Icon Composer). The menu bar mark is `NextshotMark` in `App/Feedback/FeedbackAssets.xcassets`. Both menu bar items load it through `ForkBranding.menuBarMark`. The spec is `docs/brand/nextshot-mark.md`.
 - Change the mark only through `scripts/brand/make_nextshot_icon.py`, then check every appearance with `ictool`. The spec gives the commands.
 - Never ship Capso's name or logo as Nextshot's. Capso's license gives no right to its trademark or logo.

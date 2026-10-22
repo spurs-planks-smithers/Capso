@@ -27,3 +27,5 @@ Nextshot uses its own app icon and menu bar mark: a teal rounded square with a m
 ## Scope
 
 Only the Nextshot build uses the new icon. `scripts/local-project.yml` adds it, so upstream's `project.yml` and `Capso.app` keep Capso's icon. The menu bar mark is fork code in `App/Feedback/`, so both builds show it.
+
+The live check after the first install found Capso's logo on the main capture menu in the menu bar. Drew chose the Nextshot mark for both menu bar items (2026-10-22). A one-line hook edit in `MenuBarController.swift` does it, logged in `docs/FORK_NOTES.md`.

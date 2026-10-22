@@ -35,7 +35,7 @@ macOS makes the dark, clear, and tinted appearances from these layers. Do not su
 ## Sizes
 
 - **App icon:** one vector `.icon` file covers every size. The gap stays visible down to 32 pixels. At 16 pixels it blurs, which is normal for Mac icons at that size.
-- **Menu bar:** the mark alone, as a template image, 14 points tall (19 by 14). macOS colors it black or white. The square uses 50% alpha, so it shows as gray.
+- **Menu bar:** the mark alone, as a template image, 14 points tall (19 by 14). macOS colors it black or white. The square uses 50% alpha, so it shows as gray. Both menu bar items use it (the capture menu and the Nshot feedback menu), through `ForkBranding.menuBarMark`, so no Capso logo shows.
 
 ![Menu bar mark](nextshot-menu-bar.png)
 
