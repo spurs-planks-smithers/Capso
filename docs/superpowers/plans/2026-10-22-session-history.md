@@ -358,7 +358,7 @@ Make the status item the menu's `NSMenuDelegate`. In `menuNeedsUpdate(_:)`, read
 
 - [ ] **Step 2: Update the basket lines live**
 
-`basketDidChange()` inserts `Copy N Selected` and `Clear Selection` plus a separator at the top when the count goes from 0 to 1. It removes them when the count goes to 0, and it retitles them otherwise. It also refreshes each session row's subtitle.
+`basketDidChange()` inserts `Copy N Selected` and `Clear Selection` plus a separator below the Recent rows when the count goes from 0 to 1. It removes them when the count goes to 0, and it retitles them otherwise. It also refreshes each session row's subtitle.
 
 - [ ] **Step 3: Build the app**
 
@@ -418,7 +418,7 @@ Expected: all suites pass; `** BUILD SUCCEEDED **`.
 Run: `scripts/build-local.sh`, then open `~/Applications/Nextshot.app`. Computer use cannot see Nextshot menus, so Drew runs this checklist by hand while you watch `/usr/bin/log show --last 5m --predicate 'subsystem == "com.drewschulz.nextshot"'`:
 1. With no session, the Nshot icon shows with no text.
 2. Recent lists 5 sessions with day, time, apps, and counts.
-3. Check two captures from two sessions. "Copy 2 Selected" appears at the top while the menu stays open.
+3. Check two captures from two sessions. "Copy 2 Selected" appears below the Recent rows while the menu stays open.
 4. Copy, then run `pbpaste | head -5`. Expected: the `<feedback_selection` tag, the Goal line, and the redo line.
 5. Option-click a capture. Quick Look shows the annotated PNG.
 6. Resume Session on one session. The icon shows "Nshot (N)", and the next capture adds to it.

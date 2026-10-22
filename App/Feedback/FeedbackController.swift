@@ -46,11 +46,13 @@ final class FeedbackController {
     private var basket = FeedbackBasket()
     private let quickLook = FeedbackQuickLook()
     /// The Recent list as read from disk. The menu asks for it on every open
-    /// and every checkbox click, and each read decodes every `feedback.json`
-    /// in the root, so a read stays valid for `recentCacheLifetime`. A session
-    /// that ends or resumes drops it.
-    private var recentCache: (sessions: [FeedbackSession], readAt: ContinuousClock.Instant)?
-    private static let recentCacheLifetime = Duration.seconds(2)
+    /// and every submenu open. The cache decodes a `feedback.json` only when
+    /// its modification date or size changed, so an ended or resumed session
+    /// shows at once and an unchanged one costs a file attribute read.
+    private var sessionCache = FeedbackSessionCache()
+    /// The unreadable folders named in the last log line, so an unchanged list
+    /// logs once, not on every menu open.
+    private var loggedUnreadable: [String] = []
     private static let promptCopiedToast = "Prompt copied. Paste it into your agent."
 
     /// `~/Library/Application Support/Nextshot`: the standard place for an
@@ -197,8 +199,6 @@ final class FeedbackController {
             }
             let session = try await self.store.end()
             FeedbackLog.logger.notice("end session: ended, \(session.captures.count) captures")
-            // The ended session belongs in Recent now.
-            self.recentCache = nil
             return session
         }
         self.ending = ending
@@ -251,7 +251,7 @@ final class FeedbackController {
         statusItem.onToggleCapture = { [weak self] key in
             guard let self else { return }
             self.basket.toggle(key)
-            self.statusItem.basketDidChange()
+            self.statusItem.basketDidChange(self.basket)
         }
         statusItem.onClearSelection = { [weak self] in
             self?.basket.removeAll()
@@ -274,19 +274,19 @@ final class FeedbackController {
         }
     }
 
-    /// The last ended sessions. Reads the disk at most once per
-    /// `recentCacheLifetime`, and logs unreadable folders once per read.
+    /// The last ended sessions. The cache reads only the folders whose
+    /// `feedback.json` changed. Unreadable folders are logged when the list
+    /// differs from the last one logged.
     private func recentSessions() -> [FeedbackSession] {
-        let now = ContinuousClock.now
-        if let cache = recentCache, cache.readAt.duration(to: now) < Self.recentCacheLifetime {
-            return cache.sessions
+        let listing = sessionCache.recent(in: store.rootURL)
+        let unreadable = listing.unreadable.sorted()
+        if unreadable != loggedUnreadable {
+            loggedUnreadable = unreadable
+            if !unreadable.isEmpty {
+                // Folder names hold the session name, so only the count is public.
+                FeedbackLog.logger.error("recent sessions: \(unreadable.count, privacy: .public) unreadable: \(unreadable.joined(separator: ", "), privacy: .private)")
+            }
         }
-        let listing = FeedbackLibrary.recent(in: store.rootURL)
-        if !listing.unreadable.isEmpty {
-            // Folder names hold the session name, so only the count is public.
-            FeedbackLog.logger.error("recent sessions: \(listing.unreadable.count, privacy: .public) unreadable: \(listing.unreadable.joined(separator: ", "), privacy: .private)")
-        }
-        recentCache = (listing.sessions, now)
         return listing.sessions
     }
 
@@ -296,31 +296,59 @@ final class FeedbackController {
         NSWorkspace.shared.open(store.rootURL)
     }
 
+    /// Rewrites `manifest.md` and `prompt.md` of each listed folder when they
+    /// name an old path, as bundles from before the 2026-10-21 rename do, so a
+    /// copied prompt never sends an agent to a folder that is gone. A failed
+    /// repair is logged and the copy goes on, because the prompt itself is
+    /// built from `feedback.json`.
+    private func repairBundles(inFolders folderNames: [String]) async {
+        for folderName in Set(folderNames).sorted() {
+            guard FeedbackLibrary.bundleFilesNeedRepair(folderName: folderName, in: store.rootURL) else { continue }
+            do {
+                try await store.repairBundleFiles(folderName: folderName)
+                // Folder names hold the session name, so they stay private.
+                FeedbackLog.logger.notice("bundle repaired: \(folderName, privacy: .private)")
+            } catch {
+                let nsError = error as NSError
+                FeedbackLog.logger.error("bundle repair failed: \(nsError.domain, privacy: .public) \(nsError.code) \(folderName, privacy: .private)")
+            }
+        }
+    }
+
     /// Copy N Selected: one capture copies its own prompt, two or more copy
     /// one combined prompt. Both carry the redo line. The basket clears
-    /// either way.
+    /// either way. It clears before the repair, so a second click while the
+    /// repair runs finds an empty basket and copies nothing.
     private func copySelected() {
-        let resolved = FeedbackLibrary.entries(for: basket, in: store.rootURL)
+        let selection = basket
         basket.removeAll()
-        switch resolved.entries.count {
-        case 0:
-            NSSound.beep()
-        case 1:
-            let entry = resolved.entries[0]
-            let prompt = PromptBuilder.renderCapture(entry.capture, folderPath: entry.folderPath, redo: true)
-            copyToClipboard(prompt, toast: Self.promptCopiedToast, screen: nil)
-        case let count:
-            let prompt = PromptBuilder.renderSelection(resolved.entries)
-            copyToClipboard(prompt, toast: "\(count) captures copied\nPaste them into your agent.", screen: nil)
+        Task { @MainActor in
+            // Repair first, so the sessions read next are the repaired ones.
+            await self.repairBundles(inFolders: selection.keys.map(\.folderName))
+            let resolved = FeedbackLibrary.entries(for: selection, in: self.store.rootURL)
+            switch resolved.entries.count {
+            case 0:
+                NSSound.beep()
+            case 1:
+                let entry = resolved.entries[0]
+                let prompt = PromptBuilder.renderCapture(entry.capture, folderPath: entry.folderPath, redo: true)
+                self.copyToClipboard(prompt, toast: Self.promptCopiedToast, screen: nil)
+            case let count:
+                let prompt = PromptBuilder.renderSelection(resolved.entries)
+                self.copyToClipboard(prompt, toast: "\(count) captures copied\nPaste them into your agent.", screen: nil)
+            }
+            FeedbackLog.logger.notice("selection copied: \(resolved.entries.count) captures, \(resolved.missing.count) missing")
         }
-        FeedbackLog.logger.notice("selection copied: \(resolved.entries.count) captures, \(resolved.missing.count) missing")
     }
 
     private func copyRecentSessionPrompt(_ session: FeedbackSession) {
-        let folder = store.rootURL.appendingPathComponent(session.folderName, isDirectory: true)
-        let prompt = PromptBuilder.render(session, folderPath: folder.path, redo: true)
-        copyToClipboard(prompt, toast: Self.promptCopiedToast, screen: nil)
-        FeedbackLog.logger.notice("recent session prompt copied, \(prompt.count) characters")
+        Task { @MainActor in
+            await self.repairBundles(inFolders: [session.folderName])
+            let folder = self.store.rootURL.appendingPathComponent(session.folderName, isDirectory: true)
+            let prompt = PromptBuilder.render(session, folderPath: folder.path, redo: true)
+            self.copyToClipboard(prompt, toast: Self.promptCopiedToast, screen: nil)
+            FeedbackLog.logger.notice("recent session prompt copied, \(prompt.count) characters")
+        }
     }
 
     /// Opens Quick Look on the capture's annotated PNG.
@@ -344,8 +372,6 @@ final class FeedbackController {
     private func resumeSession(_ listed: FeedbackSession) async {
         do {
             let session = try await store.resume(folderName: listed.folderName)
-            // The resumed session leaves Recent.
-            recentCache = nil
             FeedbackLog.logger.notice("session resumed, \(session.captures.count) captures")
             await refresh()
         } catch {

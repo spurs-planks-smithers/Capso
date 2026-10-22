@@ -21,37 +21,10 @@ public enum FeedbackLibrary {
     /// most `limit`. The active session has no end time, so it is left out.
     /// A folder with no `feedback.json` is not a session and is ignored. A
     /// folder whose `feedback.json` fails to decode is named in `unreadable`.
+    /// A caller that lists often should keep a `FeedbackSessionCache` instead.
     public static func recent(in rootURL: URL, limit: Int = 5) -> Listing {
-        let fileManager = FileManager.default
-        let entries = (try? fileManager.contentsOfDirectory(
-            at: rootURL,
-            includingPropertiesForKeys: [.isDirectoryKey],
-            options: []
-        )) ?? []
-
-        var sessions: [FeedbackSession] = []
-        var unreadable: [String] = []
-        for entry in entries {
-            guard (try? entry.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true else { continue }
-            let file = entry.appendingPathComponent(FeedbackSessionStore.sessionFileName)
-            guard fileManager.fileExists(atPath: file.path) else { continue }
-            guard let session = load(file) else {
-                unreadable.append(entry.lastPathComponent)
-                continue
-            }
-            if session.endedAt != nil, !session.captures.isEmpty {
-                sessions.append(session)
-            }
-        }
-
-        // Every kept session has an end time. The folder name breaks a tie, so
-        // the order never depends on directory order.
-        sessions.sort { lhs, rhs in
-            let lhsEnd = lhs.endedAt ?? .distantPast
-            let rhsEnd = rhs.endedAt ?? .distantPast
-            return lhsEnd != rhsEnd ? lhsEnd > rhsEnd : lhs.folderName > rhs.folderName
-        }
-        return Listing(sessions: Array(sessions.prefix(max(limit, 0))), unreadable: unreadable.sorted())
+        var cache = FeedbackSessionCache()
+        return cache.recent(in: rootURL, limit: limit)
     }
 
     /// One session by its folder name, or nil when the folder or its
@@ -64,7 +37,20 @@ public enum FeedbackLibrary {
             .appendingPathComponent(FeedbackSessionStore.sessionFileName))
     }
 
-    private static func load(_ file: URL) -> FeedbackSession? {
+    /// True when the session's `manifest.md` or `prompt.md` is missing or does
+    /// not name the folder's current path, for example after the bundles moved
+    /// from the old `CapsoFeedback` folder. False when the session itself
+    /// does not load, because there is then nothing to rewrite them from.
+    public static func bundleFilesNeedRepair(folderName: String, in rootURL: URL) -> Bool {
+        guard session(named: folderName, in: rootURL) != nil else { return false }
+        let folder = rootURL.appendingPathComponent(folderName, isDirectory: true)
+        return [FeedbackSessionStore.manifestFileName, FeedbackSessionStore.promptFileName].contains { name in
+            guard let text = try? String(contentsOf: folder.appendingPathComponent(name), encoding: .utf8) else { return true }
+            return !text.contains(folder.path)
+        }
+    }
+
+    static func load(_ file: URL) -> FeedbackSession? {
         guard let data = try? Data(contentsOf: file) else { return nil }
         return try? FeedbackSessionStore.decoder().decode(FeedbackSession.self, from: data)
     }

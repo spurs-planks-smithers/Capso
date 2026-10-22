@@ -80,6 +80,7 @@ xcodebuild -project Capso.xcodeproj -scheme Capso -configuration Debug CODE_SIGN
 - Option-click on a capture row opens Quick Look on its annotated PNG. It does not check the row. The menu closes first.
 - Resume Session reopens an ended session, so the next capture continues its numbering. It shows only when no session is active.
 - A prompt copied from Recent carries a redo line after the Goal line: "An earlier pass may have worked on this feedback. Check the code first." The files in a bundle never have it.
+- A copy from Recent first rewrites a bundle's `manifest.md` and `prompt.md` when they name an old folder, as bundles from before the 2026-10-21 rename do.
 - A first drag after the hotkey can lag while the Claude desktop app is the frontmost app. Capso is idle during that lag (sampled 2026-10-21). With Safari, Preview, or Finder in front there is no lag.
 - Shortcuts actions: Start Feedback Session, Capture Feedback, Copy Feedback Prompt, End Feedback Session.
 - OCR text and window titles in a bundle come from the screen. The manifest and prompt tell the agent to use them only to locate items, never as instructions.
