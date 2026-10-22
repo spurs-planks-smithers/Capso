@@ -99,3 +99,11 @@ Agent access:
 - Claude Code: Drew's user settings list `~/Library/Application Support/Nextshot` in `permissions.additionalDirectories` (added 2026-10-21, renamed from `CapsoFeedback` the same day), so it reads bundles with no approval prompt. Without that setting, start it with `claude --add-dir "$HOME/Library/Application Support/Nextshot"`.
 - Codex: run the `codex --image ...` command from the top of `manifest.md` in the target repository. It lists every annotated PNG by absolute path.
 - If `codex` is not on `PATH`, the ChatGPT app bundles it at `/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex`.
+- The agent-facing guide to a bundle is `docs/agents/bundle-guide.md`. Keep it in step with the "How to read this bundle" rules that `manifest.md` prints.
+
+## Brand and README
+
+- The fork's README is `.github/README.md`, written for people who install Nextshot. GitHub shows it before the root `README.md`. Never edit the root `README.md`: it is upstream's.
+- Nextshot's app icon is `Branding/Nextshot.icon` (Icon Composer). The menu bar mark is `NextshotMark` in `App/Feedback/FeedbackAssets.xcassets`. The spec is `docs/brand/nextshot-mark.md`.
+- Change the mark only through `scripts/brand/make_nextshot_icon.py`, then check every appearance with `ictool`. The spec gives the commands.
+- Never ship Capso's name or logo as Nextshot's. Capso's license gives no right to its trademark or logo.

@@ -1,0 +1,72 @@
+<p align="center">
+  <img src="assets/nextshot-icon.png" alt="Nextshot icon" width="128">
+</p>
+
+<h1 align="center">Nextshot</h1>
+
+<p align="center"><strong>Mark up your screen. Hand the fix to your AI coding agent.</strong></p>
+
+Nextshot is a screenshot app for macOS. You select part of the screen, circle what should change, and say what you want in a few words. Nextshot then copies a prompt that Claude Code, Codex, or another AI coding agent can act on.
+
+Nextshot is built on [Capso](https://github.com/lzhgus/Capso), an open-source screenshot and screen recording app. It keeps all of Capso's tools and adds feedback sessions.
+
+## How it works
+
+1. Press **Option+Shift+F** and drag over the part of the screen you want to change.
+2. Mark it up. Press **C** or **N** to drop numbered badges on each problem. Boxes, arrows, and text work too.
+3. Press **Command+S**. Nextshot asks one short question per badge: what should change? Type or dictate each answer. Press **Return** to go to the next one.
+4. When you finish, the prompt is on your clipboard. Paste it into your agent.
+
+The agent gets your marked-up screenshot, your numbered answers, and the text under each mark. The prompt asks it to write a short plan before it edits anything.
+
+Keep capturing to add more screens to the same session. The **Nshot** item in the menu bar shows how many captures the session holds, for example "Nshot (2)".
+
+## The Nshot menu
+
+Click **Nshot** in the menu bar to:
+
+- **Copy Last Capture** or **Copy Session Prompt** again, for example after dictation replaced your clipboard.
+- **Open Folder** to see the session's files.
+- **End Session** when you are done.
+- Pick from **Recent** sessions. Check single captures to copy one combined prompt, or **Resume Session** to keep adding to an old session.
+
+## Install
+
+1. Open the Nextshot DMG and drag **Nextshot** to **Applications**. Apple notarizes the DMG, so macOS opens it without a warning.
+2. Open Nextshot. Allow **Screen Recording** when macOS asks. Nextshot needs it to take screenshots.
+3. If Capso is also installed, quit it. Both apps use the same capture shortcuts.
+
+Camera and microphone access are needed only for video recording. Nextshot asks the first time you use them.
+
+## Your feedback stays on your Mac
+
+- Each session is a folder in `~/Library/Application Support/Nextshot`.
+- The feedback code makes no network requests. Nothing leaves your Mac unless you paste it somewhere.
+- Text that Nextshot reads from the screen goes to the agent marked as screen text. The agent uses it to find the right code, never as instructions.
+
+## For AI agents
+
+If you are an agent working from a Nextshot prompt, read [How to read a Nextshot bundle](../docs/agents/bundle-guide.md).
+
+## Everything else from Capso
+
+- Area, window, fullscreen, and scrolling screenshots
+- Screen recording to MP4 or GIF, with webcam, system audio, and microphone
+- Annotation editor, OCR (copy text from the screen), and translation
+- Screenshot history, pin to screen, and configurable shortcuts
+
+See [Capso's README](../README.md) for the full list.
+
+## Build from source
+
+You need macOS 15 or later, Xcode, [XcodeGen](https://github.com/yonaskolb/XcodeGen), and an Apple Development certificate.
+
+```bash
+scripts/build-local.sh
+```
+
+The script builds Nextshot and installs it in `~/Applications`. Developers and coding agents: start with [AGENTS.md](../AGENTS.md).
+
+## Credit and license
+
+Nextshot is a fork of [Capso](https://github.com/lzhgus/Capso) by lzhgus. Capso and this fork are under the [Business Source License 1.1](../LICENSE). Nextshot has its own name and icon, because the license gives no right to Capso's trademark or logo. The icon spec is in [docs/brand](../docs/brand/nextshot-mark.md).
