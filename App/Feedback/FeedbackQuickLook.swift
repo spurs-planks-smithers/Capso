@@ -21,7 +21,7 @@ final class FeedbackQuickLook: NSObject, @preconcurrency QLPreviewPanelDataSourc
         panel.dataSource = self
         panel.reloadData()
         // This is a menu bar app, so it is not active when the panel opens.
-        NSApp.activate()
+        NSApp.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
         if !panel.isVisible {
             NSWorkspace.shared.open(url)

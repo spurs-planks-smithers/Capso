@@ -116,6 +116,11 @@ struct SelectionPromptTests {
         #expect(prompt.contains("Items (badge N in this image is item 1.N here; its manifest calls it 2.N):"))
     }
 
+    @Test("Tells the agent to use this prompt's item ids, not the manifest's")
+    func itemIdStep() {
+        #expect(prompt.contains("4. Use this prompt's item ids (K.N) in your plan table and your report. Never use the ids from a manifest.\n"))
+    }
+
     @Test("Breaks a capture-time tie by folder path, then capture index")
     func tieBreak() {
         let at = FeedbackFixtures.date(21, 16, 0)

@@ -1,6 +1,6 @@
 # Session history in the Nshot menu: design
 
-Date: 2026-10-22. Status: draft, waiting for Drew's approval.
+Date: 2026-10-22. Status: approved by Drew on 2026-10-22. Built on branch feature/session-history.
 
 Mockup: the Design canvas [Nextshot Session History](https://claude.ai/artifact/65mcuXsWie4Xb9ocooiEmj). It has four boards: the idle menu (clickable), the menu during a session, Quick Look of an old capture, and the combined prompt.
 

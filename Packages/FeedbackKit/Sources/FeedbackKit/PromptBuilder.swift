@@ -132,6 +132,7 @@ public enum PromptBuilder {
             "1. Go through the captures below in order. For each one, open its annotated PNG first, with your file-reading tool, then its section in the manifest.",
             "2. Badge N in capture K is item K.N in this prompt. The manifest of its session calls it by the capture's own item prefix. Each capture below gives both.",
             "3. Coordinates in a manifest are pixels in that PNG, origin top-left. A box is x1 y1 x2 y2.",
+            "4. Use this prompt's item ids (K.N) in your plan table and your report. Never use the ids from a manifest.",
             "",
         ]
 
