@@ -5,7 +5,8 @@
 # with hardened runtime and a secure timestamp. Sends the app to Apple's
 # notary service through the keychain profile that
 # `xcrun notarytool store-credentials` made, and staples the ticket. Then it
-# packs the app as a disk image (also notarized) and a zip. The stapled
+# packs the app with Capso's LICENSE as a disk image (also notarized) and a
+# zip. The license is also inside the app (Resources/LICENSE.txt). The stapled
 # ticket lets Gatekeeper accept the app with no network. Needs create-dmg
 # (brew install create-dmg).
 #
@@ -97,7 +98,11 @@ if [[ -d "$sparkle" ]]; then
   codesign --force --sign "$sign_id" --options runtime --timestamp "$sparkle"
 fi
 
-# 3. Re-sign the app last, with its entitlements, then check it.
+# 3. Capso's Business Source License must be shown on each modified copy,
+# so it goes inside the app before the app's own signature seals it.
+cp "$repo/LICENSE" "$app/Contents/Resources/LICENSE.txt"
+
+# Re-sign the app last, with its entitlements, then check it.
 codesign --force --sign "$sign_id" --options runtime --timestamp \
   --entitlements "$repo/App/Entitlements/Capso.entitlements" "$app"
 codesign --verify --deep --strict --verbose=2 "$app"
@@ -142,26 +147,34 @@ staple "$app"
 spctl --assess --type execute --verbose=2 "$app"
 
 version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist")"
-stem="$repo/build/releases/$product_name-$version-$commit"
+name="$product_name-$version-$commit"
+stem="$repo/build/releases/$name"
 
-# 5. A zip of the stapled app, as a fallback.
+# The stapled app with the license next to it, for the DMG and the zip.
+stage="$work/$name"
+mkdir -p "$stage"
+ditto "$app" "$stage/$product_name.app"
+cp "$repo/LICENSE" "$stage/LICENSE.txt"
+
+# 5. A zip of that folder, as a fallback.
 rm -f "$stem.zip"
-ditto -c -k --keepParent "$app" "$stem.zip"
+ditto -c -k --keepParent "$stage" "$stem.zip"
 
 # 6. A disk image with a link to Applications, signed, notarized, and
-# stapled too, so Gatekeeper accepts the image itself. The export folder
-# holds only the app, and create-dmg copies that folder's contents.
+# stapled too, so Gatekeeper accepts the image itself. create-dmg copies the
+# folder's contents: the app and the license.
 rm -f "$stem.dmg"
 create-dmg \
   --volname "$product_name" \
   --window-pos 200 120 \
-  --window-size 660 400 \
+  --window-size 660 460 \
   --icon-size 128 \
-  --icon "$product_name.app" 180 180 \
-  --app-drop-link 480 180 \
+  --icon "$product_name.app" 180 170 \
+  --app-drop-link 480 170 \
+  --icon LICENSE.txt 330 330 \
   --hide-extension "$product_name.app" \
   "$stem.dmg" \
-  "$work/export"
+  "$stage"
 codesign --force --sign "$sign_id" --timestamp "$stem.dmg"
 notarize "$stem.dmg"
 staple "$stem.dmg"
