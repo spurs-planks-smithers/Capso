@@ -47,6 +47,7 @@ public actor FeedbackSessionStore {
         case captureNotFound(Int)
         case badgeNotFound(Int)
         case markCountMismatch
+        case sessionNotFound(String)
     }
 
     private struct ActiveMarker: Codable {
@@ -93,10 +94,45 @@ public actor FeedbackSessionStore {
         let session = FeedbackSession(name: displayName, slug: slug, folderName: folderName, startedAt: startedAt)
         try FileManager.default.createDirectory(at: folderURL(for: session), withIntermediateDirectories: true)
         try write(session)
-        try Self.encoder().encode(ActiveMarker(folderName: folderName))
-            .write(to: rootURL.appendingPathComponent(Self.activeMarkerName), options: .atomic)
+        try writeActiveMarker(folderName: folderName)
         activeSession = session
         return session
+    }
+
+    /// Reopens an ended session, so new captures continue its numbering. The
+    /// bundle files are rewritten, so the paths in them name the current folder.
+    @discardableResult
+    public func resume(folderName: String) throws -> FeedbackSession {
+        guard activeSession == nil else { throw StoreError.sessionAlreadyActive }
+        guard var session = FeedbackLibrary.session(named: folderName, in: rootURL) else {
+            throw StoreError.sessionNotFound(folderName)
+        }
+
+        // The folder that was read is the one to write back to, even if the
+        // folder name saved inside feedback.json is out of date.
+        session.folderName = folderName
+        session.endedAt = nil
+        try write(session)
+        try writeActiveMarker(folderName: folderName)
+        activeSession = session
+        return session
+    }
+
+    /// Rewrites the bundle files of a session on disk, so the paths in them
+    /// name the current folder. It changes no session field except
+    /// `folderName`, which becomes the directory name. The active session is
+    /// written from memory, so a repair never reverts a newer change. It never
+    /// changes `activeSession` or `.active.json`.
+    public func repairBundleFiles(folderName: String) throws {
+        guard var session = FeedbackLibrary.session(named: folderName, in: rootURL) else {
+            throw StoreError.sessionNotFound(folderName)
+        }
+        if let activeSession, activeSession.folderName == folderName {
+            try write(activeSession)
+            return
+        }
+        session.folderName = folderName
+        try write(session)
     }
 
     /// The active session, or a new one when none is active. One actor call,
@@ -238,6 +274,11 @@ public actor FeedbackSessionStore {
         rootURL.appendingPathComponent(session.folderName, isDirectory: true)
     }
 
+    private func writeActiveMarker(folderName: String) throws {
+        try Self.encoder().encode(ActiveMarker(folderName: folderName))
+            .write(to: rootURL.appendingPathComponent(Self.activeMarkerName), options: .atomic)
+    }
+
     private func write(_ session: FeedbackSession) throws {
         let folder = folderURL(for: session)
         let manifest = ManifestWriter.render(session, folderPath: folder.path, timeZone: timeZone)
@@ -258,8 +299,7 @@ public actor FeedbackSessionStore {
     /// The session named by `.active.json`, or nil when there is none or it
     /// cannot be read. A bad marker must not block the app from starting.
     private static func loadActiveSession(rootURL: URL) -> FeedbackSession? {
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
+        let decoder = Self.decoder()
         guard
             let markerData = try? Data(contentsOf: rootURL.appendingPathComponent(activeMarkerName)),
             let marker = try? decoder.decode(ActiveMarker.self, from: markerData),
@@ -270,6 +310,13 @@ public actor FeedbackSessionStore {
             session.endedAt == nil
         else { return nil }
         return session
+    }
+
+    /// Reads `feedback.json` and `.active.json`. `FeedbackLibrary` uses it too.
+    static func decoder() -> JSONDecoder {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return decoder
     }
 
     private static func encoder() -> JSONEncoder {

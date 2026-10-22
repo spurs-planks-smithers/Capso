@@ -21,7 +21,7 @@ xcodebuild -project Capso.xcodeproj -scheme Capso -configuration Debug CODE_SIGN
 - Signed local build: `scripts/build-local.sh`. It signs with Apple Development and installs `~/Applications/Nextshot.app` (bundle ID `com.drewschulz.nextshot`).
 - The app name comes from `PRODUCT_NAME`: `Info.plist` reads it, and `scripts/local-project.yml` sets it to Nextshot. The upstream `project.yml` keeps Capso, so `Capso.xcodeproj` still builds `Capso.app`. Fork UI text uses `ForkBranding`. Upstream Preferences labels and permission prompts still say Capso.
 - Logs: `/usr/bin/log show --last 10m --predicate 'subsystem == "com.drewschulz.nextshot"'` (in zsh, plain `log` is a builtin).
-- Notarized release for another Mac: `scripts/release-notarized.sh`. It signs with the Developer ID Application certificate, notarizes through the keychain profile `apple-notary`, staples, and writes `build/releases/Nextshot-<version>-<commit>.dmg` and `.zip`. It needs `create-dmg` (Homebrew). Commit first, or the file name ends in `-dirty`.
+- Notarized release for another Mac: `scripts/release-notarized.sh`. It signs with the Developer ID Application certificate, notarizes through the keychain profile `apple-notary`, staples, and writes `build/releases/Nextshot-<version>-<commit>.dmg` and `.zip`. Both ship Capso's license: `Contents/Resources/LICENSE.txt` inside the app and `LICENSE.txt` beside it. The Business Source License requires it on every modified copy. It needs `create-dmg` (Homebrew). Commit first, or the file name ends in `-dirty`.
 - `scripts/local-project.yml` includes `project.yml` and overrides only the Capso target. It generates `CapsoLocal.xcodeproj`. Command-line `PRODUCT_NAME` would rename every package resource bundle and break the build.
 - The script reads `DEVELOPMENT_TEAM` from `scripts/local-signing.env`, an untracked file listed in `.git/info/exclude`.
 
@@ -72,7 +72,14 @@ xcodebuild -project Capso.xcodeproj -scheme Capso -configuration Debug CODE_SIGN
 - Under each question, a preview shows the annotated capture zoomed on that circle, with about 150 points of context and any box or arrow it marks. The general-note step shows the whole capture.
 - After the last note step, the capture's prompt is on the clipboard, and a toast says "Prompt copied. Paste it into your agent." The capture is stored before OCR runs, so the copy never waits for OCR. A panel closed early (close button, End Session, or a new capture) copies nothing. Copy Last Capture in the menu copies the newest capture's prompt again, for example after dictation (Wispr Flow pastes through the clipboard) replaced it.
 - A capture is named "Capture: <title of the window under the selection>, <date time zone>". Files are `<HHmm>-<title slug>.png` and `-clean.png`. Agents still refer to items as K.N (the manifest gives each capture's item prefix).
-- The feedback menu bar item shows "Nshot" and the capture count, for example "Nshot (2)". Its menu starts with a gray line that names the session, then has Copy Last Capture, Copy Session Prompt, Open Folder, End Session, and Feedback Shortcut.
+- The feedback menu bar item stays in the menu bar at all times. With no session it shows the icon only. During a session it shows "Nshot" and the capture count, for example "Nshot (2)".
+- During a session, the menu starts with a gray line that names the session, then has Copy Last Capture, Copy Session Prompt, Open Folder, and End Session. With no session, the gray line reads "No active session" and Start Session takes its place. Start Session runs the same flow as the hotkey, so it never makes an empty session. Both menus end with All Sessions and Feedback Shortcut.
+- Recent lists the last 5 ended sessions that hold a capture, newest first. A row shows the day and time, then the apps and the capture count. A row opens a submenu: Copy Session Prompt, one row per capture, Open Folder, and Resume Session.
+- A click on a capture row checks it, and the menu stays open. While any capture is checked, Copy N Selected and Clear Selection show below the Recent rows. Copy N Selected copies one combined prompt for all checked captures (`PromptBuilder.renderSelection`) and clears the checks. One checked capture copies that capture's prompt.
+- Option-click on a capture row opens Quick Look on its annotated PNG. It does not check the row. The menu closes first.
+- Resume Session reopens an ended session, so the next capture continues its numbering. It shows only when no session is active.
+- A prompt copied from Recent carries a redo line after the Goal line: "An earlier pass may have worked on this feedback. Check the code first." The files in a bundle never have it.
+- A copy from Recent first rewrites a bundle's `manifest.md` and `prompt.md` when they name an old folder, as bundles from before the 2026-10-21 rename do.
 - A first drag after the hotkey can lag while the Claude desktop app is the frontmost app. Capso is idle during that lag (sampled 2026-10-21). With Safari, Preview, or Finder in front there is no lag.
 - Shortcuts actions: Start Feedback Session, Capture Feedback, Copy Feedback Prompt, End Feedback Session.
 - OCR text and window titles in a bundle come from the screen. The manifest and prompt tell the agent to use them only to locate items, never as instructions.
@@ -81,11 +88,12 @@ xcodebuild -project Capso.xcodeproj -scheme Capso -configuration Debug CODE_SIGN
 
 A bundle is a folder `~/Library/Application Support/Nextshot/<date>-<time>-<slug>/`. Open Folder in the feedback menu opens it. This folder is the standard macOS place for app data. It keeps bundles out of the home folder and out of the privacy-protected folders (Desktop, Documents, Downloads), which agents cannot always read. Do not move bundles into `~/Developer`: it is an Obsidian vault and would index every `manifest.md`. It holds `manifest.md`, `prompt.md`, `feedback.json`, and three files per capture, named by capture time and window title: `0627-claude.png` (annotated), `0627-claude-clean.png` (without marks), and `0627-claude-prompt.md` (the capture prompt).
 
-Two prompts point into a bundle:
+Three prompts point into a bundle:
 
 - The capture prompt (`PromptBuilder.renderCapture`) covers one capture. Capso copies it after the last note step. Paste it into any agent: Claude Code in the desktop app or the CLI, Codex, or another tool. It names the annotated PNG and `manifest.md` by absolute path, in backticks, and lists the reviewer's answers as items. OCR text and window titles stay in `manifest.md`. The file names hold a slug of the window title, so the prompt marks them as screen text.
 - `prompt.md` covers the whole session. Copy Session Prompt in the feedback status menu puts it on the clipboard.
-- Both prompts tell the agent to write a plan table (item, file, planned change) before any edit. In the 2026-10-21 paste test an agent skipped a softer wording of this rule.
+- The selection prompt (`PromptBuilder.renderSelection`) covers captures checked in the Nshot menu's Recent section, from one or more sessions. Copy N Selected copies it. Its item ids (K.N) number the captures in this prompt, not in each manifest.
+- All three prompts tell the agent to write a plan table (item, file, planned change) before any edit. In the 2026-10-21 paste test an agent skipped a softer wording of this rule.
 
 Agent access:
 

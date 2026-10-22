@@ -1,0 +1,102 @@
+// Packages/FeedbackKit/Sources/FeedbackKit/FeedbackSessionCache.swift
+import Foundation
+
+/// Lists recent sessions like `FeedbackLibrary.recent(in:)`, and keeps each
+/// decoded `feedback.json` between calls. A file is decoded again only when
+/// its modification date or size differs from the last read, so a menu that
+/// lists sessions on every open does not decode them all each time.
+///
+/// A change that keeps both the size and the modification date goes unseen.
+/// The store always writes a whole new file, so its changes move the date.
+public struct FeedbackSessionCache: Sendable {
+    private struct Stamp: Equatable, Sendable {
+        var modified: Date
+        var size: Int64
+    }
+
+    private struct Entry: Sendable {
+        var stamp: Stamp
+        /// Nil when the file failed to decode.
+        var session: FeedbackSession?
+    }
+
+    private var rootURL: URL?
+    /// Keyed by folder name.
+    private var entries: [String: Entry] = [:]
+
+    public init() {}
+
+    /// The same rules as `FeedbackLibrary.recent(in:limit:)`: ended sessions
+    /// that hold at least one capture, newest end first, at most `limit`. The
+    /// active session has no end time, so it is left out. A folder with no
+    /// `feedback.json` is not a session and is ignored. A folder whose
+    /// `feedback.json` fails to decode is named in `unreadable`.
+    public mutating func recent(in rootURL: URL, limit: Int = 5) -> FeedbackLibrary.Listing {
+        // Folder names repeat across roots, so entries never carry over.
+        if self.rootURL != rootURL {
+            self.rootURL = rootURL
+            entries = [:]
+        }
+
+        let fileManager = FileManager.default
+        let folders = (try? fileManager.contentsOfDirectory(
+            at: rootURL,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: []
+        )) ?? []
+
+        var kept: [String: Entry] = [:]
+        var sessions: [FeedbackSession] = []
+        var unreadable: [String] = []
+        for folder in folders {
+            guard (try? folder.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true else { continue }
+            let file = folder.appendingPathComponent(FeedbackSessionStore.sessionFileName)
+            guard fileManager.fileExists(atPath: file.path) else { continue }
+
+            // The stamp is read before the file, so a write between the two
+            // reads leaves an old stamp and the next call decodes again.
+            let name = folder.lastPathComponent
+            let stamp = Self.stamp(of: file)
+            let session: FeedbackSession?
+            if let stamp, let cached = entries[name], cached.stamp == stamp {
+                session = cached.session
+                kept[name] = cached
+            } else {
+                session = FeedbackLibrary.load(file)
+                if let stamp {
+                    kept[name] = Entry(stamp: stamp, session: session)
+                }
+            }
+
+            guard let session else {
+                unreadable.append(name)
+                continue
+            }
+            if session.endedAt != nil, !session.captures.isEmpty {
+                sessions.append(session)
+            }
+        }
+        // Entries of folders that are gone are not carried forward.
+        entries = kept
+
+        // Every kept session has an end time. The folder name breaks a tie, so
+        // the order never depends on directory order.
+        sessions.sort { lhs, rhs in
+            let lhsEnd = lhs.endedAt ?? .distantPast
+            let rhsEnd = rhs.endedAt ?? .distantPast
+            return lhsEnd != rhsEnd ? lhsEnd > rhsEnd : lhs.folderName > rhs.folderName
+        }
+        return FeedbackLibrary.Listing(sessions: Array(sessions.prefix(max(limit, 0))), unreadable: unreadable.sorted())
+    }
+
+    /// Nil when the file's date or size cannot be read. The file is then
+    /// decoded on every call.
+    private static func stamp(of file: URL) -> Stamp? {
+        guard
+            let attributes = try? FileManager.default.attributesOfItem(atPath: file.path),
+            let modified = attributes[.modificationDate] as? Date,
+            let size = (attributes[.size] as? NSNumber)?.int64Value
+        else { return nil }
+        return Stamp(modified: modified, size: size)
+    }
+}
