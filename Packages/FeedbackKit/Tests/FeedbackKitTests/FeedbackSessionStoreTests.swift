@@ -471,4 +471,103 @@ struct FeedbackSessionStoreTests {
         #expect(try text(".active.json").contains(ended.folderName))
         #expect(try text("\(ended.folderName)/feedback.json").contains(#""folderName" : "\#(ended.folderName)""#))
     }
+
+    @Test("Repair rewrites manifest and prompt with the current folder path")
+    func repairRewritesBundleFiles() async throws {
+        defer { try? fileManager.removeItem(at: root) }
+        let store = makeStore()
+        try await store.start(name: "feedback")
+        try await store.addCapture(input())
+        let ended = try await store.end()
+        try Data("Folder: /old/CapsoFeedback/x\n".utf8).write(to: root.appendingPathComponent("\(ended.folderName)/manifest.md"))
+        try Data(#"<feedback_bundle path="/old/CapsoFeedback/x">"#.utf8).write(to: root.appendingPathComponent("\(ended.folderName)/prompt.md"))
+        #expect(FeedbackLibrary.bundleFilesNeedRepair(folderName: ended.folderName, in: root))
+
+        try await store.repairBundleFiles(folderName: ended.folderName)
+
+        #expect(try text("\(ended.folderName)/manifest.md").contains("Folder: \(root.appendingPathComponent(ended.folderName).path)"))
+        #expect(try !text("\(ended.folderName)/prompt.md").contains("CapsoFeedback"))
+        #expect(!FeedbackLibrary.bundleFilesNeedRepair(folderName: ended.folderName, in: root))
+        // The session keeps its end time and captures, and no session becomes active.
+        #expect(FeedbackLibrary.session(named: ended.folderName, in: root) == ended)
+        #expect(await store.activeSession == nil)
+        #expect(!fileManager.fileExists(atPath: root.appendingPathComponent(".active.json").path))
+    }
+
+    @Test("Repair writes the folder it read when feedback.json names another")
+    func repairUsesTheFolderItRead() async throws {
+        defer { try? fileManager.removeItem(at: root) }
+        let store = makeStore()
+        try await store.start(name: "feedback")
+        let ended = try await store.end()
+        let file = root.appendingPathComponent("\(ended.folderName)/feedback.json")
+        let renamed = try String(contentsOf: file, encoding: .utf8)
+            .replacingOccurrences(of: "\"folderName\" : \"\(ended.folderName)\"", with: #""folderName" : "old-name""#)
+        #expect(renamed.contains(#""folderName" : "old-name""#))
+        try Data(renamed.utf8).write(to: file)
+
+        try await store.repairBundleFiles(folderName: ended.folderName)
+
+        #expect(try text("\(ended.folderName)/feedback.json").contains(#""folderName" : "\#(ended.folderName)""#))
+        #expect(try text("\(ended.folderName)/manifest.md").contains(root.appendingPathComponent(ended.folderName).path))
+    }
+
+    @Test("Repair on the active session writes the in-memory session")
+    func repairWritesActiveSession() async throws {
+        defer { try? fileManager.removeItem(at: root) }
+        let store = makeStore()
+        let session = try await store.start(name: "feedback")
+        try await store.addCapture(input())
+        let olderCopy = try Data(contentsOf: root.appendingPathComponent("\(session.folderName)/feedback.json"))
+        try await store.setNote(capture: 1, text: "Keep this note")
+        try olderCopy.write(to: root.appendingPathComponent("\(session.folderName)/feedback.json"))
+        #expect(try !text("\(session.folderName)/feedback.json").contains("Keep this note"))
+
+        try await store.repairBundleFiles(folderName: session.folderName)
+
+        #expect(try text("\(session.folderName)/feedback.json").contains("Keep this note"))
+        #expect(await store.activeSession?.captures.first?.note == "Keep this note")
+    }
+
+    @Test("Repair refuses a missing folder or a path name")
+    func repairRefusesBadNames() async throws {
+        defer { try? fileManager.removeItem(at: root) }
+        let store = makeStore()
+        try await store.start(name: "feedback")
+        let ended = try await store.end()
+        let outside = "../\(root.lastPathComponent)/\(ended.folderName)"
+
+        await #expect(throws: FeedbackSessionStore.StoreError.sessionNotFound("2026-01-01-0000-missing")) {
+            try await store.repairBundleFiles(folderName: "2026-01-01-0000-missing")
+        }
+        await #expect(throws: FeedbackSessionStore.StoreError.sessionNotFound(outside)) {
+            try await store.repairBundleFiles(folderName: outside)
+        }
+        await #expect(throws: FeedbackSessionStore.StoreError.sessionNotFound("../x")) {
+            try await store.repairBundleFiles(folderName: "../x")
+        }
+    }
+
+    @Test("A missing folder needs no repair")
+    func missingFolderNeedsNoRepair() {
+        defer { try? fileManager.removeItem(at: root) }
+        #expect(!FeedbackLibrary.bundleFilesNeedRepair(folderName: "2026-01-01-0000-missing", in: root))
+        #expect(!FeedbackLibrary.bundleFilesNeedRepair(folderName: "../x", in: root))
+    }
+
+    @Test("A missing manifest or prompt needs repair")
+    func missingBundleFileNeedsRepair() async throws {
+        defer { try? fileManager.removeItem(at: root) }
+        let store = makeStore()
+        try await store.start(name: "feedback")
+        let ended = try await store.end()
+        #expect(!FeedbackLibrary.bundleFilesNeedRepair(folderName: ended.folderName, in: root))
+
+        try fileManager.removeItem(at: root.appendingPathComponent("\(ended.folderName)/prompt.md"))
+        #expect(FeedbackLibrary.bundleFilesNeedRepair(folderName: ended.folderName, in: root))
+
+        try await store.repairBundleFiles(folderName: ended.folderName)
+        try fileManager.removeItem(at: root.appendingPathComponent("\(ended.folderName)/manifest.md"))
+        #expect(FeedbackLibrary.bundleFilesNeedRepair(folderName: ended.folderName, in: root))
+    }
 }

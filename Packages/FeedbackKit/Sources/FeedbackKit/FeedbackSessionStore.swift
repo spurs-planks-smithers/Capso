@@ -118,6 +118,23 @@ public actor FeedbackSessionStore {
         return session
     }
 
+    /// Rewrites the bundle files of a session on disk, so the paths in them
+    /// name the current folder. It changes no session field except
+    /// `folderName`, which becomes the directory name. The active session is
+    /// written from memory, so a repair never reverts a newer change. It never
+    /// changes `activeSession` or `.active.json`.
+    public func repairBundleFiles(folderName: String) throws {
+        guard var session = FeedbackLibrary.session(named: folderName, in: rootURL) else {
+            throw StoreError.sessionNotFound(folderName)
+        }
+        if let activeSession, activeSession.folderName == folderName {
+            try write(activeSession)
+            return
+        }
+        session.folderName = folderName
+        try write(session)
+    }
+
     /// The active session, or a new one when none is active. One actor call,
     /// so two quick requests cannot both try to start a session.
     @discardableResult
