@@ -24,61 +24,61 @@ struct AutomationURLsSheetView: View {
             id: "screenshots",
             title: "Screenshots",
             items: [
-                AutomationCommandItem(id: "all-in-one", name: "All-in-One", urlString: "capso://grab/all-in-one"),
-                AutomationCommandItem(id: "area", name: "Capture Area", urlString: "capso://grab/area"),
-                AutomationCommandItem(id: "fullscreen", name: "Capture Fullscreen", urlString: "capso://grab/fullscreen"),
-                AutomationCommandItem(id: "window", name: "Capture Window", urlString: "capso://grab/window"),
-                AutomationCommandItem(id: "scrolling", name: "Scrolling Capture", urlString: "capso://grab/scrolling"),
-                AutomationCommandItem(id: "self-timer", name: "Self-Timer", urlString: "capso://grab/self-timer"),
-                AutomationCommandItem(id: "last-area", name: "Capture Previous Area", urlString: "capso://grab/last-area"),
-                AutomationCommandItem(id: "clipboard", name: "Capture Area to Clipboard", urlString: "capso://grab/clipboard"),
-                AutomationCommandItem(id: "share", name: "Capture and Share to Cloud", urlString: "capso://grab/share"),
-                AutomationCommandItem(id: "annotate", name: "Capture Area & Annotate", urlString: "capso://grab/annotate"),
-                AutomationCommandItem(id: "area-and-pin", name: "Capture Area & Pin", urlString: "capso://grab/area-and-pin")
+                AutomationCommandItem(id: "all-in-one", name: "All-in-One", urlString: "nextshot://grab/all-in-one"),
+                AutomationCommandItem(id: "area", name: "Capture Area", urlString: "nextshot://grab/area"),
+                AutomationCommandItem(id: "fullscreen", name: "Capture Fullscreen", urlString: "nextshot://grab/fullscreen"),
+                AutomationCommandItem(id: "window", name: "Capture Window", urlString: "nextshot://grab/window"),
+                AutomationCommandItem(id: "scrolling", name: "Scrolling Capture", urlString: "nextshot://grab/scrolling"),
+                AutomationCommandItem(id: "self-timer", name: "Self-Timer", urlString: "nextshot://grab/self-timer"),
+                AutomationCommandItem(id: "last-area", name: "Capture Previous Area", urlString: "nextshot://grab/last-area"),
+                AutomationCommandItem(id: "clipboard", name: "Capture Area to Clipboard", urlString: "nextshot://grab/clipboard"),
+                AutomationCommandItem(id: "share", name: "Capture and Share to Cloud", urlString: "nextshot://grab/share"),
+                AutomationCommandItem(id: "annotate", name: "Capture Area & Annotate", urlString: "nextshot://grab/annotate"),
+                AutomationCommandItem(id: "area-and-pin", name: "Capture Area & Pin", urlString: "nextshot://grab/area-and-pin")
             ]
         ),
         AutomationCommandSection(
             id: "clipboard",
             title: "Clipboard",
             items: [
-                AutomationCommandItem(id: "pin", name: "Pin from Clipboard", urlString: "capso://grab/pin"),
-                AutomationCommandItem(id: "edit-clipboard", name: "Edit Clipboard Image", urlString: "capso://grab/edit-clipboard"),
-                AutomationCommandItem(id: "open-image", name: "Open Image File", urlString: "capso://grab/open-image")
+                AutomationCommandItem(id: "pin", name: "Pin from Clipboard", urlString: "nextshot://grab/pin"),
+                AutomationCommandItem(id: "edit-clipboard", name: "Edit Clipboard Image", urlString: "nextshot://grab/edit-clipboard"),
+                AutomationCommandItem(id: "open-image", name: "Open Image File", urlString: "nextshot://grab/open-image")
             ]
         ),
         AutomationCommandSection(
             id: "ocr-translation",
             title: "Text & Translation",
             items: [
-                AutomationCommandItem(id: "ocr", name: "Capture Text (OCR)", urlString: "capso://grab/ocr"),
-                AutomationCommandItem(id: "translate", name: "Capture & Translate", urlString: "capso://grab/translate"),
-                AutomationCommandItem(id: "translate-selection", name: "Translate Selected Text", urlString: "capso://grab/translate-selection"),
-                AutomationCommandItem(id: "translate-text", name: "Translate Typed Text", urlString: "capso://grab/translate-text")
+                AutomationCommandItem(id: "ocr", name: "Capture Text (OCR)", urlString: "nextshot://grab/ocr"),
+                AutomationCommandItem(id: "translate", name: "Capture & Translate", urlString: "nextshot://grab/translate"),
+                AutomationCommandItem(id: "translate-selection", name: "Translate Selected Text", urlString: "nextshot://grab/translate-selection"),
+                AutomationCommandItem(id: "translate-text", name: "Translate Typed Text", urlString: "nextshot://grab/translate-text")
             ]
         ),
         AutomationCommandSection(
             id: "recording",
             title: "Recording",
             items: [
-                AutomationCommandItem(id: "record", name: "Record Area", urlString: "capso://grab/record"),
-                AutomationCommandItem(id: "record-fullscreen", name: "Record Full Screen", urlString: "capso://grab/record-fullscreen")
+                AutomationCommandItem(id: "record", name: "Record Area", urlString: "nextshot://grab/record"),
+                AutomationCommandItem(id: "record-fullscreen", name: "Record Full Screen", urlString: "nextshot://grab/record-fullscreen")
             ]
         ),
         AutomationCommandSection(
             id: "desktop",
             title: "Desktop",
             items: [
-                AutomationCommandItem(id: "hide-desktop-icons", name: "Hide Desktop Icons", urlString: "capso://grab/hide-desktop-icons"),
-                AutomationCommandItem(id: "show-desktop-icons", name: "Show Desktop Icons", urlString: "capso://grab/show-desktop-icons"),
-                AutomationCommandItem(id: "toggle-desktop-icons", name: "Toggle Desktop Icons", urlString: "capso://grab/toggle-desktop-icons")
+                AutomationCommandItem(id: "hide-desktop-icons", name: "Hide Desktop Icons", urlString: "nextshot://grab/hide-desktop-icons"),
+                AutomationCommandItem(id: "show-desktop-icons", name: "Show Desktop Icons", urlString: "nextshot://grab/show-desktop-icons"),
+                AutomationCommandItem(id: "toggle-desktop-icons", name: "Toggle Desktop Icons", urlString: "nextshot://grab/toggle-desktop-icons")
             ]
         ),
         AutomationCommandSection(
             id: "app-history",
             title: "History & Settings",
             items: [
-                AutomationCommandItem(id: "history", name: "Screenshot History", urlString: "capso://grab/history"),
-                AutomationCommandItem(id: "preferences", name: "Preferences", urlString: "capso://grab/preferences")
+                AutomationCommandItem(id: "history", name: "Screenshot History", urlString: "nextshot://grab/history"),
+                AutomationCommandItem(id: "preferences", name: "Preferences", urlString: "nextshot://grab/preferences")
             ]
         )
     ]
