@@ -71,8 +71,8 @@ From top to bottom:
 ### Menu during a session (board 2)
 
 - Today's lines stay first and do not change: the gray session line, Copy Last Capture, Copy Session Prompt, Open Folder, and End Session.
-- The basket lines go below the Recent rows when the basket is not empty. (my call)
 - Then come the Recent section and the bottom lines, the same as in the idle menu.
+- The basket lines go below the Recent rows when the basket is not empty. (my call)
 - The active session does not show in Recent.
 
 ### Session submenu

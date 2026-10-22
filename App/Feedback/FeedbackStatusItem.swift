@@ -68,6 +68,16 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     private var basketSeparator: NSMenuItem?
     private var allSessionsItem: NSMenuItem?
 
+    /// Made once and added again on each rebuild. `setShortcut(for:)` adds a
+    /// notification observer that nothing removes, so a new item on every menu
+    /// open would leave one more observer and one more item behind.
+    private lazy var startSessionItem: NSMenuItem = {
+        let item = menuItem("Start Session", action: #selector(startSession))
+        // The same call the main menu uses, so a changed shortcut shows here.
+        item.setShortcut(for: .feedbackCapture)
+        return item
+    }()
+
     /// Never removes the item. The title shows only during a session.
     func update(session: FeedbackSession?) {
         let item = self.item ?? makeItem()
@@ -82,11 +92,12 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     }
 
     /// The basket changed while the menu may be open. Adds, retitles, or
-    /// removes the basket lines and refreshes the "N selected" subtitles.
-    func basketDidChange() {
+    /// removes the basket lines and refreshes the "N selected" subtitles. It
+    /// uses the basket it is given and never asks the state provider, so a
+    /// checkbox click reads nothing from disk.
+    func basketDidChange(_ basket: FeedbackBasket) {
         guard let menu = topMenu else { return }
-        let state = currentState()
-        let count = state.basket.count
+        let count = basket.count
         if count == 0 {
             removeBasketItems(from: menu)
         } else if let copySelectedItem {
@@ -97,7 +108,7 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         for row in sessionRows {
             row.item.subtitle = FeedbackLibrary.subtitle(
                 for: row.session,
-                selectedCount: state.basket.count(inFolder: row.session.folderName)
+                selectedCount: basket.count(inFolder: row.session.folderName)
             )
         }
     }
@@ -150,10 +161,9 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
             menu.addItem(menuItem("End Session", action: #selector(endSession)))
         } else {
             menu.addItem(grayLine("No active session"))
-            let start = menuItem("Start Session", action: #selector(startSession))
-            // The same call the main menu uses, so a changed shortcut shows here.
-            start.setShortcut(for: .feedbackCapture)
-            menu.addItem(start)
+            // An item can sit in one menu only, so take it out of the old one.
+            startSessionItem.menu?.removeItem(startSessionItem)
+            menu.addItem(startSessionItem)
         }
         menu.addItem(.separator())
 

@@ -17,7 +17,9 @@ enum FeedbackThumbnails {
 
     /// Returns nil when the file is missing or is not an image.
     static func image(for url: URL) -> NSImage? {
-        guard let modified = try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate else {
+        // Read the date from the file system. `URL.resourceValues` can return
+        // a value cached on the URL, which would keep an old thumbnail.
+        guard let modified = (try? FileManager.default.attributesOfItem(atPath: url.path))?[.modificationDate] as? Date else {
             return nil
         }
         let cacheKey = "\(url.path)|\(modified.timeIntervalSinceReferenceDate)" as NSString
