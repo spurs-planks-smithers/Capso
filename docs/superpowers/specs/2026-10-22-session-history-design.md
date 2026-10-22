@@ -59,19 +59,19 @@ Drew chose these points in the 2026-10-22 brainstorm. Lines marked "(my call)" a
 
 From top to bottom:
 
-1. The basket lines, only when the basket holds captures: "Copy N Selected", "Clear Selection", then a separator. (my call: at the top, in both menu states)
-2. A gray line: "No active session".
-3. "Start Session", with the feedback shortcut shown on the right. It runs the same flow as the hotkey: it starts a selection, and the first saved capture starts the session. So it never makes an empty session. (my call)
-4. A separator, then the section header "Recent".
-5. One row for each of the last 5 ended sessions, newest first. Each row opens a submenu.
+1. A gray line: "No active session".
+2. "Start Session", with the feedback shortcut shown on the right. It runs the same flow as the hotkey: it starts a selection, and the first saved capture starts the session. So it never makes an empty session. (my call)
+3. A separator, then the section header "Recent".
+4. One row for each of the last 5 ended sessions, newest first. Each row opens a submenu.
    - Title: the relative day and the start time, such as "Today, 6:27 AM", "Yesterday, 3:41 PM", or "Oct 20, 9:59 PM".
    - Subtitle: the source apps in capture order with no repeats, the capture count, and "N selected" when the basket holds captures from this session.
+5. The basket lines, only when the basket holds captures: a separator, "Copy N Selected", then "Clear Selection". (my call: below the Recent rows, in both menu states)
 6. A separator, then "All Sessions..." (opens the bundle root folder in Finder) and "Feedback Shortcut...".
 
 ### Menu during a session (board 2)
 
 - Today's lines stay first and do not change: the gray session line, Copy Last Capture, Copy Session Prompt, Open Folder, and End Session.
-- The basket lines go above them when the basket is not empty. (my call)
+- The basket lines go below the Recent rows when the basket is not empty. (my call)
 - Then come the Recent section and the bottom lines, the same as in the idle menu.
 - The active session does not show in Recent.
 
@@ -92,6 +92,7 @@ From top to bottom:
 - The basket lives in memory. It clears after a copy, and it does not survive an app relaunch. (my call)
 - A basket entry is a session folder name plus a capture index. An entry stays in the basket when its session leaves the Recent list (a newer session, or Resume). At copy time, an entry whose folder or capture no longer exists is dropped, and the toast counts only the captures it copied. (my call)
 - The basket lines appear as soon as the first box is checked, while the menu is open. (my call)
+- The basket lines sit below the Recent rows, so checking a box never moves the rows above it. (Drew, hand test 2026-10-22)
 - "Copy N Selected" copies one combined prompt (see Combined prompt). The toast says "N captures copied" on the first line and "Paste them into your agent." on the second.
 - With exactly one capture in the basket, the copy uses today's capture prompt (`PromptBuilder.renderCapture`) with the redo line added. That keeps the capture's own K.N item numbers. (my call)
 
@@ -166,7 +167,7 @@ App/Feedback:
 
 ## My calls for Drew to check
 
-1. The basket lines sit at the top of the menu in both states.
+1. The basket lines sit below the Recent rows in both states.
 2. The basket clears after a copy and does not survive a relaunch.
 3. With one capture in the basket, the copy uses today's capture prompt plus the redo line.
 4. A combined prompt numbers captures in capture-time order, not in the order they were checked.

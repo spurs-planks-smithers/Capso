@@ -6,8 +6,10 @@ import Foundation
 /// it, so the agent must not mistake it for part of the bundle.
 ///
 /// It removes invisible format characters (zero-width, bidirectional, and
-/// Unicode tag characters), removes bundle-tag lookalikes until none can be
-/// rebuilt, and caps the length in Unicode scalars.
+/// Unicode tag characters), removes wrapper-tag lookalikes (any opening or
+/// closing tag whose name starts with `feedback_`, such as bundle, capture,
+/// and selection) until none can be rebuilt, and caps the length in Unicode
+/// scalars.
 enum ScreenText {
     /// A field only needs to be long enough to search the code for.
     static let maxFieldLength = 200
@@ -26,7 +28,7 @@ enum ScreenText {
         repeat {
             previous = text
             text = text.replacingOccurrences(
-                of: #"</?\s*feedback_(?:bundle|capture)[^>]*>"#,
+                of: #"</?\s*feedback_[a-z_]*[^>]*>"#,
                 with: "",
                 options: [.regularExpression, .caseInsensitive]
             )

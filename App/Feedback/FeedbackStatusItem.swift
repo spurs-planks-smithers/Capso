@@ -29,8 +29,10 @@ struct FeedbackMenuState {
 ///
 /// The menu is rebuilt each time it opens. It lists the active session's
 /// actions, the last ended sessions under "Recent", and a basket of checked
-/// captures. Each session row opens a submenu. A submenu fills when it opens,
-/// so thumbnails decode only for the session being looked at.
+/// captures. The basket lines sit below the Recent rows, so checking a box
+/// never moves a row above it and an open submenu stays lined up with its
+/// parent row. Each session row opens a submenu. A submenu fills when it
+/// opens, so thumbnails decode only for the session being looked at.
 @MainActor
 final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     var stateProvider: (() -> FeedbackMenuState)?
@@ -64,6 +66,7 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     private var copySelectedItem: NSMenuItem?
     private var clearSelectionItem: NSMenuItem?
     private var basketSeparator: NSMenuItem?
+    private var allSessionsItem: NSMenuItem?
 
     /// Never removes the item. The title shows only during a session.
     func update(session: FeedbackSession?) {
@@ -136,10 +139,7 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         copySelectedItem = nil
         clearSelectionItem = nil
         basketSeparator = nil
-
-        if state.basket.count > 0 {
-            insertBasketItems(into: menu, count: state.basket.count)
-        }
+        allSessionsItem = nil
 
         if let active = state.active {
             menu.addItem(grayLine("Session: \(active.slug)"))
@@ -171,8 +171,15 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
             menu.addItem(.separator())
         }
 
-        menu.addItem(menuItem("All Sessions...", action: #selector(openAllSessions)))
+        let allSessions = menuItem("All Sessions...", action: #selector(openAllSessions))
+        allSessionsItem = allSessions
+        menu.addItem(allSessions)
         menu.addItem(menuItem("Feedback Shortcut...", action: #selector(showShortcut)))
+
+        // Last, so the lines go in below the Recent rows.
+        if state.basket.count > 0 {
+            insertBasketItems(into: menu, count: state.basket.count)
+        }
     }
 
     private func makeSessionRow(_ session: FeedbackSession, now: Date, basket: FeedbackBasket) -> SessionRow {
@@ -199,14 +206,22 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         "Copy \(count) Selected"
     }
 
-    /// The basket lines sit at the top, above everything else.
+    /// The basket lines sit below the Recent rows: a separator, Copy N
+    /// Selected, and Clear Selection, in front of the separator that comes
+    /// before "All Sessions...". Nothing above that point moves, so a session
+    /// submenu that is open stays lined up with its parent row. With no Recent
+    /// rows (a basket entry can outlive the Recent list), the lines sit in
+    /// front of that same separator, under the session actions.
     private func insertBasketItems(into menu: NSMenu, count: Int) {
+        guard let allSessionsItem, allSessionsItem.menu === menu else { return }
+        let anchor = menu.index(of: allSessionsItem) - 1
+        guard anchor >= 0 else { return }
         let copy = menuItem(Self.copySelectedTitle(count), action: #selector(copySelected))
         let clear = menuItem("Clear Selection", action: #selector(clearSelection))
         let separator = NSMenuItem.separator()
-        menu.insertItem(copy, at: 0)
-        menu.insertItem(clear, at: 1)
-        menu.insertItem(separator, at: 2)
+        menu.insertItem(separator, at: anchor)
+        menu.insertItem(copy, at: anchor + 1)
+        menu.insertItem(clear, at: anchor + 2)
         copySelectedItem = copy
         clearSelectionItem = clear
         basketSeparator = separator

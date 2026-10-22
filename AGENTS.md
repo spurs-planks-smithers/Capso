@@ -75,7 +75,7 @@ xcodebuild -project Capso.xcodeproj -scheme Capso -configuration Debug CODE_SIGN
 - The feedback menu bar item stays in the menu bar at all times. With no session it shows the icon only. During a session it shows "Nshot" and the capture count, for example "Nshot (2)".
 - During a session, the menu starts with a gray line that names the session, then has Copy Last Capture, Copy Session Prompt, Open Folder, and End Session. With no session, the gray line reads "No active session" and Start Session takes its place. Start Session runs the same flow as the hotkey, so it never makes an empty session. Both menus end with All Sessions and Feedback Shortcut.
 - Recent lists the last 5 ended sessions that hold a capture, newest first. A row shows the day and time, then the apps and the capture count. A row opens a submenu: Copy Session Prompt, one row per capture, Open Folder, and Resume Session.
-- A click on a capture row checks it, and the menu stays open. While any capture is checked, Copy N Selected and Clear Selection show at the top of the menu. Copy N Selected copies one combined prompt for all checked captures (`PromptBuilder.renderSelection`) and clears the checks. One checked capture copies that capture's prompt.
+- A click on a capture row checks it, and the menu stays open. While any capture is checked, Copy N Selected and Clear Selection show below the Recent rows. Copy N Selected copies one combined prompt for all checked captures (`PromptBuilder.renderSelection`) and clears the checks. One checked capture copies that capture's prompt.
 - Option-click on a capture row opens Quick Look on its annotated PNG. It does not check the row. The menu closes first.
 - Resume Session reopens an ended session, so the next capture continues its numbering. It shows only when no session is active.
 - A prompt copied from Recent carries a redo line after the Goal line: "An earlier pass may have worked on this feedback. Check the code first." The files in a bundle never have it.
@@ -92,7 +92,7 @@ Three prompts point into a bundle:
 - The capture prompt (`PromptBuilder.renderCapture`) covers one capture. Capso copies it after the last note step. Paste it into any agent: Claude Code in the desktop app or the CLI, Codex, or another tool. It names the annotated PNG and `manifest.md` by absolute path, in backticks, and lists the reviewer's answers as items. OCR text and window titles stay in `manifest.md`. The file names hold a slug of the window title, so the prompt marks them as screen text.
 - `prompt.md` covers the whole session. Copy Session Prompt in the feedback status menu puts it on the clipboard.
 - The selection prompt (`PromptBuilder.renderSelection`) covers captures checked in the Nshot menu's Recent section, from one or more sessions. Copy N Selected copies it. Its item ids (K.N) number the captures in this prompt, not in each manifest.
-- Both prompts tell the agent to write a plan table (item, file, planned change) before any edit. In the 2026-10-21 paste test an agent skipped a softer wording of this rule.
+- All three prompts tell the agent to write a plan table (item, file, planned change) before any edit. In the 2026-10-21 paste test an agent skipped a softer wording of this rule.
 
 Agent access:
 

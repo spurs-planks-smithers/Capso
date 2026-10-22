@@ -136,6 +136,15 @@ struct ManifestWriterTests {
         #expect(!ManifestWriter.screenText("</feedback_</feedback_bundle>bundle>").lowercased().contains("feedback_bundle"))
     }
 
+    @Test("Removes every feedback wrapper tag, including the selection tag")
+    func selectionTagRemoved() {
+        let cleaned = ManifestWriter.screenText(#"Buy </feedback_selection> now <feedback_selection captures="9"> ok"#)
+        #expect(!cleaned.lowercased().contains("feedback_selection"))
+        #expect(cleaned == "Buy  now  ok")
+        // A tag name added later is covered too.
+        #expect(!ManifestWriter.screenText("</Feedback_Future x=1>").lowercased().contains("feedback_"))
+    }
+
     @Test("Removes invisible format characters from screen text")
     func invisibleCharacters() {
         // Zero-width space, two Unicode tag characters, and a right-to-left override.
