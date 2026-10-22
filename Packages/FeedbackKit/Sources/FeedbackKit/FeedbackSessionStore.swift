@@ -47,6 +47,7 @@ public actor FeedbackSessionStore {
         case captureNotFound(Int)
         case badgeNotFound(Int)
         case markCountMismatch
+        case sessionNotFound(String)
     }
 
     private struct ActiveMarker: Codable {
@@ -93,8 +94,26 @@ public actor FeedbackSessionStore {
         let session = FeedbackSession(name: displayName, slug: slug, folderName: folderName, startedAt: startedAt)
         try FileManager.default.createDirectory(at: folderURL(for: session), withIntermediateDirectories: true)
         try write(session)
-        try Self.encoder().encode(ActiveMarker(folderName: folderName))
-            .write(to: rootURL.appendingPathComponent(Self.activeMarkerName), options: .atomic)
+        try writeActiveMarker(folderName: folderName)
+        activeSession = session
+        return session
+    }
+
+    /// Reopens an ended session, so new captures continue its numbering. The
+    /// bundle files are rewritten, so the paths in them name the current folder.
+    @discardableResult
+    public func resume(folderName: String) throws -> FeedbackSession {
+        guard activeSession == nil else { throw StoreError.sessionAlreadyActive }
+        guard var session = FeedbackLibrary.session(named: folderName, in: rootURL) else {
+            throw StoreError.sessionNotFound(folderName)
+        }
+
+        // The folder that was read is the one to write back to, even if the
+        // folder name saved inside feedback.json is out of date.
+        session.folderName = folderName
+        session.endedAt = nil
+        try write(session)
+        try writeActiveMarker(folderName: folderName)
         activeSession = session
         return session
     }
@@ -236,6 +255,11 @@ public actor FeedbackSessionStore {
 
     private func folderURL(for session: FeedbackSession) -> URL {
         rootURL.appendingPathComponent(session.folderName, isDirectory: true)
+    }
+
+    private func writeActiveMarker(folderName: String) throws {
+        try Self.encoder().encode(ActiveMarker(folderName: folderName))
+            .write(to: rootURL.appendingPathComponent(Self.activeMarkerName), options: .atomic)
     }
 
     private func write(_ session: FeedbackSession) throws {
