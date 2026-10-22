@@ -42,6 +42,16 @@ final class FeedbackController {
     private var helpScreen: NSScreen?
     /// End Session while it waits for saves and ends the session.
     private var ending: Task<FeedbackSession, Error>?
+    /// The captures checked in the Recent menu.
+    private var basket = FeedbackBasket()
+    private let quickLook = FeedbackQuickLook()
+    /// The Recent list as read from disk. The menu asks for it on every open
+    /// and every checkbox click, and each read decodes every `feedback.json`
+    /// in the root, so a read stays valid for `recentCacheLifetime`. A session
+    /// that ends or resumes drops it.
+    private var recentCache: (sessions: [FeedbackSession], readAt: ContinuousClock.Instant)?
+    private static let recentCacheLifetime = Duration.seconds(2)
+    private static let promptCopiedToast = "Prompt copied. Paste it into your agent."
 
     /// `~/Library/Application Support/Nextshot`: the standard place for an
     /// app's data. It stays out of the home folder, and macOS privacy controls
@@ -109,6 +119,7 @@ final class FeedbackController {
         statusItem.onShowShortcut = { [weak self] in
             self?.showShortcutPanel()
         }
+        connectHistoryMenu()
         notePanel.onClosed = { [weak self] in
             self?.updateHelp()
         }
@@ -132,7 +143,8 @@ final class FeedbackController {
                 }
             }
         }
-        // A session left active before a relaunch shows its status item again.
+        // The status item shows at launch, with or without a session. A
+        // session left active before a relaunch shows its count.
         Task { await refresh() }
     }
 
@@ -185,6 +197,8 @@ final class FeedbackController {
             }
             let session = try await self.store.end()
             FeedbackLog.logger.notice("end session: ended, \(session.captures.count) captures")
+            // The ended session belongs in Recent now.
+            self.recentCache = nil
             return session
         }
         self.ending = ending
@@ -212,6 +226,131 @@ final class FeedbackController {
         folderURL = await store.activeFolderURL
         statusItem.update(session: session)
         updateHelp()
+    }
+
+    // MARK: - Session history (Recent menu)
+
+    /// Gives the status item its data and its actions for the Recent list,
+    /// the basket of checked captures, and Resume Session.
+    private func connectHistoryMenu() {
+        statusItem.stateProvider = { [weak self] in
+            guard let self else { return .empty }
+            return FeedbackMenuState(
+                active: self.session,
+                recent: self.recentSessions(),
+                basket: self.basket,
+                rootURL: self.store.rootURL
+            )
+        }
+        statusItem.onStartSession = { [weak self] in
+            self?.capture()
+        }
+        statusItem.onOpenAllSessions = { [weak self] in
+            self?.openAllSessions()
+        }
+        statusItem.onToggleCapture = { [weak self] key in
+            guard let self else { return }
+            self.basket.toggle(key)
+            self.statusItem.basketDidChange()
+        }
+        statusItem.onClearSelection = { [weak self] in
+            self?.basket.removeAll()
+        }
+        statusItem.onCopySelected = { [weak self] in
+            self?.copySelected()
+        }
+        statusItem.onQuickLook = { [weak self] key in
+            self?.showQuickLook(for: key)
+        }
+        statusItem.onCopyRecentSession = { [weak self] session in
+            self?.copyRecentSessionPrompt(session)
+        }
+        statusItem.onOpenRecentFolder = { [weak self] session in
+            guard let self else { return }
+            NSWorkspace.shared.open(self.store.rootURL.appendingPathComponent(session.folderName, isDirectory: true))
+        }
+        statusItem.onResumeSession = { [weak self] session in
+            Task { await self?.resumeSession(session) }
+        }
+    }
+
+    /// The last ended sessions. Reads the disk at most once per
+    /// `recentCacheLifetime`, and logs unreadable folders once per read.
+    private func recentSessions() -> [FeedbackSession] {
+        let now = ContinuousClock.now
+        if let cache = recentCache, cache.readAt.duration(to: now) < Self.recentCacheLifetime {
+            return cache.sessions
+        }
+        let listing = FeedbackLibrary.recent(in: store.rootURL)
+        if !listing.unreadable.isEmpty {
+            // Folder names hold the session name, so only the count is public.
+            FeedbackLog.logger.error("recent sessions: \(listing.unreadable.count, privacy: .public) unreadable: \(listing.unreadable.joined(separator: ", "), privacy: .private)")
+        }
+        recentCache = (listing.sessions, now)
+        return listing.sessions
+    }
+
+    private func openAllSessions() {
+        // The folder does not exist before the first session.
+        try? FileManager.default.createDirectory(at: store.rootURL, withIntermediateDirectories: true)
+        NSWorkspace.shared.open(store.rootURL)
+    }
+
+    /// Copy N Selected: one capture copies its own prompt, two or more copy
+    /// one combined prompt. Both carry the redo line. The basket clears
+    /// either way.
+    private func copySelected() {
+        let resolved = FeedbackLibrary.entries(for: basket, in: store.rootURL)
+        basket.removeAll()
+        switch resolved.entries.count {
+        case 0:
+            NSSound.beep()
+        case 1:
+            let entry = resolved.entries[0]
+            let prompt = PromptBuilder.renderCapture(entry.capture, folderPath: entry.folderPath, redo: true)
+            copyToClipboard(prompt, toast: Self.promptCopiedToast, screen: nil)
+        case let count:
+            let prompt = PromptBuilder.renderSelection(resolved.entries)
+            copyToClipboard(prompt, toast: "\(count) captures copied\nPaste them into your agent.", screen: nil)
+        }
+        FeedbackLog.logger.notice("selection copied: \(resolved.entries.count) captures, \(resolved.missing.count) missing")
+    }
+
+    private func copyRecentSessionPrompt(_ session: FeedbackSession) {
+        let folder = store.rootURL.appendingPathComponent(session.folderName, isDirectory: true)
+        let prompt = PromptBuilder.render(session, folderPath: folder.path, redo: true)
+        copyToClipboard(prompt, toast: Self.promptCopiedToast, screen: nil)
+        FeedbackLog.logger.notice("recent session prompt copied, \(prompt.count) characters")
+    }
+
+    /// Opens Quick Look on the capture's annotated PNG.
+    private func showQuickLook(for key: FeedbackBasketKey) {
+        guard let session = FeedbackLibrary.session(named: key.folderName, in: store.rootURL),
+              let capture = session.captures.first(where: { $0.index == key.captureIndex }) else {
+            NSSound.beep()
+            return
+        }
+        let url = store.rootURL
+            .appendingPathComponent(key.folderName, isDirectory: true)
+            .appendingPathComponent(capture.imageFile)
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            NSSound.beep()
+            return
+        }
+        quickLook.show(url)
+    }
+
+    /// Reopens an ended session, so the next capture goes into it.
+    private func resumeSession(_ listed: FeedbackSession) async {
+        do {
+            let session = try await store.resume(folderName: listed.folderName)
+            // The resumed session leaves Recent.
+            recentCache = nil
+            FeedbackLog.logger.notice("session resumed, \(session.captures.count) captures")
+            await refresh()
+        } catch {
+            report(error, context: "Feedback session did not resume")
+        }
     }
 
     // MARK: - Help box
@@ -618,10 +757,14 @@ final class FeedbackController {
     private func putOnClipboard(_ capture: FeedbackCapture, in session: FeedbackSession, screen: NSScreen?) {
         let folder = store.rootURL.appendingPathComponent(session.folderName, isDirectory: true)
         let prompt = PromptBuilder.renderCapture(capture, folderPath: folder.path)
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(prompt, forType: .string)
+        copyToClipboard(prompt, toast: Self.promptCopiedToast, screen: screen)
         FeedbackLog.logger.notice("capture \(capture.index) prompt copied, \(prompt.count) characters")
-        showToast("Prompt copied. Paste it into your agent.", screen: screen)
+    }
+
+    private func copyToClipboard(_ text: String, toast message: String, screen: NSScreen?) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+        showToast(message, screen: screen)
     }
 
     private func showToast(_ message: String, screen: NSScreen?) {
