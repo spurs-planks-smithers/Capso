@@ -258,8 +258,7 @@ public actor FeedbackSessionStore {
     /// The session named by `.active.json`, or nil when there is none or it
     /// cannot be read. A bad marker must not block the app from starting.
     private static func loadActiveSession(rootURL: URL) -> FeedbackSession? {
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
+        let decoder = Self.decoder()
         guard
             let markerData = try? Data(contentsOf: rootURL.appendingPathComponent(activeMarkerName)),
             let marker = try? decoder.decode(ActiveMarker.self, from: markerData),
@@ -270,6 +269,13 @@ public actor FeedbackSessionStore {
             session.endedAt == nil
         else { return nil }
         return session
+    }
+
+    /// Reads `feedback.json` and `.active.json`. `FeedbackLibrary` uses it too.
+    static func decoder() -> JSONDecoder {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return decoder
     }
 
     private static func encoder() -> JSONEncoder {
