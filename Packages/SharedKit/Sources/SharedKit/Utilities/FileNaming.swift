@@ -53,8 +53,9 @@ public enum FileFormat: String, Sendable {
 }
 
 public enum FileNaming {
-    public static let defaultScreenshotTemplate = "Capso Screenshot{source} {timestamp}"
-    public static let defaultRecordingTemplate = "Capso Recording {timestamp}"
+    // Fork: Nextshot names its files (Drew, 2026-10-22).
+    public static let defaultScreenshotTemplate = "Nextshot Screenshot{source} {timestamp}"
+    public static let defaultRecordingTemplate = "Nextshot Recording {timestamp}"
 
     private static let maxBaseNameUTF8Length = 200
     private static let randomAlphabet = Array("0123456789abcdefghijklmnopqrstuvwxyz")
@@ -248,9 +249,9 @@ public enum FileNaming {
     private static func fallbackBaseName(for type: CaptureType) -> String {
         switch type {
         case .screenshot:
-            "Capso Screenshot"
+            "Nextshot Screenshot"
         case .recording:
-            "Capso Recording"
+            "Nextshot Recording"
         }
     }
 }

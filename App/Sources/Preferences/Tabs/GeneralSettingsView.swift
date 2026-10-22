@@ -130,17 +130,17 @@ struct GeneralSettingsView: View {
                     }
                     SettingRow(label: "Report a Bug", sublabel: "Found something broken?", showDivider: true) {
                         ExternalLinkButton(title: "Report", icon: "ladybug") {
-                            openURL("https://github.com/lzhgus/Capso/issues/new?template=bug_report.yml&labels=bug")
+                            openURL("https://github.com/spurs-planks-smithers/Capso/issues/new?template=bug_report.yml&labels=bug") // Fork: Nextshot's issues
                         }
                     }
                     SettingRow(label: "Request a Feature", sublabel: "Have an idea?", showDivider: true) {
                         ExternalLinkButton(title: "Request", icon: "lightbulb") {
-                            openURL("https://github.com/lzhgus/Capso/issues/new?template=feature_request.yml&labels=enhancement")
+                            openURL("https://github.com/spurs-planks-smithers/Capso/issues/new?template=feature_request.yml&labels=enhancement") // Fork: Nextshot's issues
                         }
                     }
                     SettingRow(label: "Source Code", sublabel: "View on GitHub", showDivider: true) {
                         ExternalLinkButton(title: "Open", icon: "chevron.left.forwardslash.chevron.right") {
-                            openURL("https://github.com/lzhgus/Capso")
+                            openURL("https://github.com/spurs-planks-smithers/Capso") // Fork: Nextshot's source
                         }
                     }
                     SettingRow(label: "Follow on X", sublabel: "Updates from @lzhgus", showDivider: true) {

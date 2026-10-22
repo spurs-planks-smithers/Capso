@@ -29,7 +29,7 @@ public enum AutomationURLAction: Equatable, Sendable {
 
     public init?(url: URL) {
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-              components.scheme?.caseInsensitiveCompare("capso") == .orderedSame,
+              ["capso", "nextshot"].contains(components.scheme?.lowercased() ?? ""), // Fork: nextshot:// too
               components.host?.caseInsensitiveCompare("grab") == .orderedSame,
               components.user == nil,
               components.password == nil,

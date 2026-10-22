@@ -25,10 +25,14 @@ Keep capturing to add more screens to the same session. The **Nshot** item in th
 
 Click **Nshot** in the menu bar to:
 
+- See which build you run. The top row shows it, for example **Nextshot 2026.10.22 (497)**.
 - **Copy Last Capture** or **Copy Session Prompt** again, for example after dictation replaced your clipboard.
 - **Open Folder** to see the session's files.
 - **End Session** when you are done.
 - Pick from **Recent** sessions. Check single captures to copy one combined prompt, or **Resume Session** to keep adding to an old session.
+- Open **Settings...**, or **Quit Nextshot**.
+
+Nextshot shows one item in the menu bar. The menu for other captures (window, fullscreen, recording, history) is hidden. To show it, turn on **Show menu bar icon** in **Settings**, **General**. The capture shortcuts work either way.
 
 ## Install
 
@@ -48,7 +52,7 @@ Nextshot does not update itself. When you get a new DMG:
 
 Your sessions, settings, and permissions stay.
 
-To see which build you have, open **Preferences**, then **General**. The version under **About** is the build date and a build number, for example **2026.10.22 (489)**. A newer date or a higher number is a newer build. The DMG's file name starts with the same date.
+To see which build you have, open the **Nshot** menu. The top row shows the build date and a build number, for example **Nextshot 2026.10.22 (497)**. A newer date or a higher number is a newer build. The DMG's file name starts with the same date.
 
 The **Check for Updates** button in Preferences does not apply to Nextshot. It finds nothing.
 

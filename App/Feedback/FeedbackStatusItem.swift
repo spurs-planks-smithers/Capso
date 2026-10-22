@@ -42,6 +42,7 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     var onOpenFolder: (() -> Void)?
     var onEndSession: (() -> Void)?
     var onShowShortcut: (() -> Void)?
+    var onShowSettings: (() -> Void)?
 
     var onStartSession: (() -> Void)?
     var onOpenAllSessions: (() -> Void)?
@@ -155,6 +156,10 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         basketSeparator = nil
         allSessionsItem = nil
 
+        // The running build comes first, so anyone can tell builds apart.
+        menu.addItem(grayLine(ForkBranding.versionLine))
+        menu.addItem(.separator())
+
         if let active = state.active {
             menu.addItem(grayLine("Session: \(active.slug)"))
             menu.addItem(.separator())
@@ -188,6 +193,11 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         allSessionsItem = allSessions
         menu.addItem(allSessions)
         menu.addItem(menuItem("Feedback Shortcut...", action: #selector(showShortcut)))
+        // The capture menu's icon is hidden by default (`ForkDefaults`), so
+        // this menu carries Settings and Quit.
+        menu.addItem(.separator())
+        menu.addItem(menuItem("Settings...", action: #selector(showSettings)))
+        menu.addItem(menuItem("Quit \(ForkBranding.name)", action: #selector(quit)))
 
         // Last, so the lines go in below the Recent rows.
         if state.basket.count > 0 {
@@ -322,6 +332,8 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     @objc private func openFolder() { onOpenFolder?() }
     @objc private func endSession() { onEndSession?() }
     @objc private func showShortcut() { onShowShortcut?() }
+    @objc private func showSettings() { onShowSettings?() }
+    @objc private func quit() { NSApp.terminate(nil) }
     @objc private func startSession() { onStartSession?() }
     @objc private func openAllSessions() { onOpenAllSessions?() }
     @objc private func copySelected() { onCopySelected?() }
