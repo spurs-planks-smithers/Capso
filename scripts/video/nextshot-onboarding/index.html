@@ -1,0 +1,709 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Nextshot onboarding</title>
+<style>
+  @font-face { font-family: 'Caveat'; src: url(assets/fonts/Caveat-latin.woff2) format('woff2'); font-weight: 400 700; }
+  @font-face { font-family: 'Inter'; src: url(assets/fonts/Inter-latin.woff2) format('woff2'); font-weight: 100 900; }
+  :root {
+    --graphite: #23282C; --teal: #3CCDBE; --mint: #8FF3E4; --ink: #2B2B2B;
+    --paper: #FBFAF6; --badge: #FF543E; --lemon: #F5C518; --muted: #5C6670;
+  }
+  html, body { margin: 0; background: #000; }
+  #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: var(--paper);
+          font-family: 'Inter', -apple-system, sans-serif; color: var(--graphite); }
+  .layer { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+  .actor { position: absolute; overflow: visible; }
+  .actor > svg { position: absolute; left: 0; top: 0; overflow: visible; }
+  .hand { position: absolute; font-family: 'Caveat', cursive; color: var(--ink); white-space: nowrap; line-height: 1; }
+  .sym { font-family: -apple-system, 'Apple Symbols', 'Inter', sans-serif; }
+
+  /* sleek world */
+  #sleek { background: var(--graphite); }
+  #menubar { position: absolute; left: 0; top: 0; width: 1920px; height: 44px; background: #15191C;
+             display: flex; justify-content: flex-end; align-items: center; gap: 30px; padding-right: 28px;
+             box-sizing: border-box; color: #F2F4F5; font-size: 20px; font-weight: 500; z-index: 20; }
+  .mbitem { display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px; border-radius: 6px; }
+  .mbitem svg { width: 27px; height: 20px; }
+  #nshotItem.open { background: rgba(255,255,255,0.18); }
+
+  .card { position: absolute; background: #FFFDF5; border-radius: 16px; overflow: hidden; color: #1E2328; }
+  .card .abs { position: absolute; white-space: nowrap; }
+  .badge { position: absolute; width: 50px; height: 50px; border-radius: 50%; background: var(--badge);
+           color: #fff; font-weight: 700; font-size: 26px; display: flex; align-items: center; justify-content: center;
+           box-shadow: 0 0 0 3px #fff, 0 3px 8px rgba(0,0,0,0.25); }
+  .anchor { position: relative; display: inline-block; }
+  .buy { background: var(--lemon); border-radius: 6px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+
+  #sel { position: absolute; border: 2px solid #fff; box-shadow: 0 0 0 3000px rgba(0,0,0,0.5); }
+  .keys { position: absolute; left: 0; width: 1920px; display: flex; justify-content: center; gap: 18px; }
+  .key { min-width: 64px; height: 70px; padding: 0 22px; box-sizing: border-box; border-radius: 14px; background: #F7F8F9;
+         border: 2px solid #D5D9DC; border-bottom: 7px solid #B9C0C5; display: flex; align-items: center; justify-content: center;
+         gap: 10px; font-size: 30px; font-weight: 600; color: var(--graphite); }
+
+  .panel { position: absolute; background: #2A2F33; border: 1px solid rgba(255,255,255,0.12); border-radius: 16px;
+           box-shadow: 0 24px 60px rgba(0,0,0,0.45); color: #F2F4F5; box-sizing: border-box; }
+  .field { position: relative; height: 50px; border-radius: 9px; background: #1D2124; border: 1.5px solid #59636A;
+           display: flex; align-items: center; padding: 0 16px; font-size: 22px; box-sizing: border-box; }
+  .placeholder { color: #7E8A92; position: absolute; left: 16px; }
+  .typed { color: #fff; position: relative; }
+
+  #menu { position: absolute; z-index: 25; top: 46px; left: 1500px; width: 380px; padding: 6px; background: #2C3135;
+          border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+          box-sizing: border-box; font-size: 20px; color: #F2F4F5; }
+  #menu .row { height: 38px; display: flex; align-items: center; padding: 0 14px; border-radius: 7px; }
+  #menu .gray { color: #8D979E; }
+  #menu .sep { height: 1px; background: rgba(255,255,255,0.12); margin: 5px 10px; }
+
+  #tray { position: absolute; left: 70px; top: 96px; width: 340px; height: 790px; background: #2B3135; border-radius: 18px;
+          border: 1px solid rgba(255,255,255,0.08); }
+  .slotlabel { position: absolute; left: 30px; font-size: 22px; color: #F2F4F5; font-weight: 600; white-space: nowrap; }
+  .slotlabel span { color: #9AA6AD; font-weight: 500; font-size: 18px; margin-left: 8px; }
+
+  .chip { padding: 8px 18px; border-radius: 999px; font-size: 18px; font-weight: 600; background: #2F363B; color: #C9D1D6; }
+  #captions .cap { position: absolute; left: 0; width: 1920px; top: 968px; display: flex; justify-content: center; }
+  #captions .cap span { background: rgba(35,40,44,0.9); color: #fff; font-size: 40px; font-weight: 600; padding: 12px 30px;
+                        border-radius: 18px; white-space: nowrap; letter-spacing: -0.2px; }
+</style>
+</head>
+<body>
+<div id="root" data-composition-id="root" data-start="0" data-auto-duration data-duration="36.223" data-width="1920" data-height="1080">
+  <audio id="soundtrack" class="clip" src="audio/final.wav" data-start="0" data-auto-duration data-duration="36.223" data-volume="1"></audio>
+
+  <div id="sketch" class="layer"></div>
+
+  <div id="sleek" class="layer">
+    <div id="wordmark" style="position:absolute;left:0;top:630px;width:1920px;text-align:center;color:#fff;font-size:96px;font-weight:800;letter-spacing:-1px;">Nextshot</div>
+
+    <div id="menubar">
+      <div class="mbitem" id="nshotItem"><span id="nshotCount"></span></div>
+      <div class="mbitem">Thu Oct 22&nbsp;&nbsp;4:12 PM</div>
+    </div>
+
+    <!-- The session tray sits before the cards, so the captures that land in it paint on top. -->
+    <div id="tray">
+      <div style="position:absolute;left:30px;top:26px;font-size:20px;color:#8D979E;font-weight:500;">Session: feedback</div>
+      <div class="slotlabel" id="slot1" style="top:268px;">1 Lemonaid page<span>3 items</span></div>
+      <div class="slotlabel" id="slot2" style="top:510px;">2 Checkout<span>2 items</span></div>
+      <div class="slotlabel" id="slot3" style="top:752px;">3 Flavors<span>1 item, note</span></div>
+    </div>
+    <div id="lens" style="position:absolute;left:1418px;top:66px;z-index:21;">
+      <svg width="40" height="16" style="position:absolute;left:140px;top:-14px;"><path d="M0 16 L20 0 L40 16 Z" fill="#3CCDBE"/></svg>
+      <div style="display:flex;align-items:center;gap:16px;padding:16px 30px;background:#15191C;border:3px solid #3CCDBE;border-radius:18px;color:#fff;font-size:48px;font-weight:600;">
+        <span id="lensMark" style="display:flex;width:62px;height:46px;"></span>Nshot (3)
+      </div>
+    </div>
+
+    <!-- capture 1: the agent's lemonade stand page -->
+    <div class="card" id="card1" style="left:150px;top:150px;width:960px;height:620px;">
+      <div class="abs" style="right:70px;top:36px;font-size:20px;color:#6B7580;font-weight:500;letter-spacing:0.2px;">Menu&nbsp;&nbsp;&nbsp;&nbsp;Flavors&nbsp;&nbsp;&nbsp;&nbsp;Order</div>
+      <div class="abs" style="left:70px;top:120px;font-size:100px;font-weight:800;letter-spacing:-3px;line-height:1;">
+        <span class="anchor">Lemonaid<div class="badge" data-b="1" style="right:-40px;top:-12px;">1</div></span>
+      </div>
+      <div class="abs" style="left:74px;top:248px;font-size:30px;color:#5C6670;">Fresh squeezed every day.</div>
+      <div class="abs" style="left:70px;top:330px;font-size:66px;font-weight:700;letter-spacing:-1.5px;line-height:1;">
+        <span class="anchor">$9 a cup<div class="badge" data-b="2" style="right:-46px;top:-14px;">2</div></span>
+      </div>
+      <div class="abs" style="left:74px;top:450px;">
+        <span class="anchor"><div class="buy" style="width:66px;height:30px;font-size:16px;">Buy</div><div class="badge" data-b="3" style="right:-44px;top:-26px;">3</div></span>
+      </div>
+      <div class="abs" style="left:74px;top:560px;font-size:20px;color:#8A939B;">Open 9 to 5. Cash only.</div>
+      <svg class="abs" style="left:610px;top:120px;" width="300" height="440" viewBox="0 0 300 440">
+        <path d="M40 90 L260 90 L232 420 L68 420 Z" fill="#EAF6F8" stroke="#C9DDE1" stroke-width="5"/>
+        <path d="M52 170 L248 170 L232 420 L68 420 Z" fill="#FBE38A"/>
+        <rect x="150" y="10" width="14" height="230" rx="7" fill="#3CCDBE" transform="rotate(12 157 125)"/>
+        <circle cx="250" cy="96" r="44" fill="#F5C518"/><circle cx="250" cy="96" r="32" fill="#FBE38A"/>
+        <path d="M250 64 L250 128 M218 96 L282 96 M227 73 L273 119 M273 73 L227 119" stroke="#F5C518" stroke-width="4"/>
+      </svg>
+    </div>
+
+    <!-- capture 2: checkout -->
+    <div class="card" id="card2" style="left:450px;top:230px;width:650px;height:430px;">
+      <div class="abs" style="left:40px;top:34px;font-size:42px;font-weight:700;letter-spacing:-1px;">Checkout</div>
+      <div class="abs" style="left:40px;top:112px;font-size:24px;">2 cups of Lemonaid</div>
+      <div class="abs" style="right:40px;top:112px;font-size:24px;">$18.00</div>
+      <div class="abs" style="left:40px;top:170px;font-size:22px;color:#5C6670;">Pay with
+        <span class="anchor" style="margin-left:10px;background:#EEF0F2;color:#1E2328;padding:4px 12px;border-radius:8px;">Cash only<div class="badge" data-b="1" style="right:-40px;top:-22px;">1</div></span>
+      </div>
+      <div class="abs buy" style="left:40px;top:236px;width:200px;height:50px;font-size:20px;">Place order</div>
+      <div class="abs" style="left:40px;top:316px;width:570px;height:1px;background:#E1E4E7;"></div>
+      <div class="abs" style="left:40px;top:344px;font-size:30px;font-weight:700;">Total</div>
+      <div class="abs" style="right:40px;top:344px;font-size:30px;font-weight:700;">$18.00</div>
+      <svg class="abs marks" style="left:0;top:0;" width="650" height="430">
+        <rect id="box2" x="24" y="330" width="602" height="66" rx="6" fill="none" stroke="#FF543E" stroke-width="5"/>
+      </svg>
+      <div class="badge" data-b="2" style="left:600px;top:306px;">2</div>
+    </div>
+
+    <!-- capture 3: flavors -->
+    <div class="card" id="card3" style="left:1170px;top:230px;width:650px;height:430px;">
+      <div class="abs" style="left:40px;top:34px;font-size:42px;font-weight:700;letter-spacing:-1px;">Flavors</div>
+      <div class="abs" style="left:40px;top:120px;width:170px;height:200px;border-radius:14px;background:#FBE38A;"></div>
+      <div class="abs" style="left:40px;top:332px;width:170px;text-align:center;font-size:22px;">Classic</div>
+      <div class="abs" style="left:240px;top:120px;width:170px;height:200px;border-radius:14px;background:#BFEBD9;"></div>
+      <div class="abs" style="left:240px;top:332px;width:170px;text-align:center;font-size:22px;">Mint</div>
+      <div class="abs" style="left:440px;top:120px;width:166px;height:196px;border-radius:14px;border:3px dashed #B7BEC4;"></div>
+      <div class="abs" style="left:440px;top:204px;width:172px;text-align:center;font-size:20px;color:#9AA2A9;">Coming soon</div>
+      <svg class="abs marks" style="left:0;top:0;" width="650" height="430">
+        <path id="arrow3" d="M600 412 Q566 384 542 334" fill="none" stroke="#FF543E" stroke-width="6" stroke-linecap="round"/>
+        <path id="arrowhead3" d="M527 348 L540 326 L558 342" fill="none" stroke="#FF543E" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="badge" data-b="1" style="left:575px;top:96px;">1</div>
+    </div>
+
+    <!-- capture 1 editor -->
+    <div id="sel" style="left:130px;top:130px;width:0;height:0;"></div>
+    <svg id="crosshair" style="position:absolute;left:0;top:0;" width="44" height="44" viewBox="-22 -22 44 44">
+      <path d="M-20 0 H-5 M5 0 H20 M0 -20 V-5 M0 5 V20" stroke="#fff" stroke-width="3"/>
+      <path d="M-20 0 H-5 M5 0 H20 M0 -20 V-5 M0 5 V20" stroke="#000" stroke-width="1"/>
+    </svg>
+    <div id="flash1" style="position:absolute;left:130px;top:130px;width:1000px;height:660px;background:#fff;"></div>
+
+    <div class="keys" id="keysF" style="top:842px;">
+      <div class="key"><span class="sym">⌥</span>Option</div>
+      <div class="key"><span class="sym">⇧</span>Shift</div>
+      <div class="key">F</div>
+    </div>
+    <div class="keys" id="keysC" style="top:842px;"><div class="key">C</div></div>
+    <div class="keys" id="keysS" style="top:842px;"><div class="key"><span class="sym">⌘</span>S</div></div>
+
+    <div class="panel" id="notePanel" style="left:1170px;top:200px;width:660px;padding:24px;">
+      <div id="question" style="font-size:28px;font-weight:600;margin-bottom:12px;">Circle 1 (1 of 3): what should change?</div>
+      <div class="field" style="font-size:24px;">
+        <span class="placeholder" id="ph1">Type or dictate, then press Return</span>
+        <span class="typed" id="answer"></span>
+        <svg id="mic" style="position:absolute;right:14px;top:11px;" width="22" height="26" viewBox="0 0 22 26">
+          <rect x="6" y="1" width="10" height="15" rx="5" fill="#3CCDBE"/>
+          <path d="M2 11 Q2 20 11 20 Q20 20 20 11 M11 20 V25" fill="none" stroke="#3CCDBE" stroke-width="2.4" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div style="font-size:15px;color:#9AA6AD;margin-top:10px;">Return saves and goes on. Esc skips this one. Arrow keys go back and forward.</div>
+      <div id="preview" style="position:relative;margin-top:14px;width:610px;height:300px;border-radius:7px;overflow:hidden;background:#ECEEF0;border:1px solid rgba(255,255,255,0.2);"></div>
+    </div>
+
+    <!-- session -->
+    <div id="flash2" style="position:absolute;left:450px;top:230px;width:650px;height:430px;background:#fff;border-radius:16px;"></div>
+    <div id="flash3" style="position:absolute;left:1170px;top:230px;width:650px;height:430px;background:#fff;border-radius:16px;"></div>
+    <div class="panel" id="notePanel3" style="left:1170px;top:684px;width:650px;padding:18px 22px;">
+      <div style="font-size:21px;font-weight:600;margin-bottom:10px;">Anything else about this capture? (optional)</div>
+      <div class="field" style="height:44px;font-size:20px;"><span class="typed">Keep the fonts.</span></div>
+    </div>
+
+    <!-- hand-off -->
+    <div id="menu">
+      <div class="row gray">Nextshot 2026.10.22 (501)</div>
+      <div class="sep"></div>
+      <div class="row gray">Session: feedback</div>
+      <div class="sep"></div>
+      <div class="row">Copy Last Capture</div>
+      <div class="row" id="copyRow">Copy Session Prompt</div>
+      <div class="row">Open Folder</div>
+      <div class="row">End Session</div>
+      <div class="sep"></div>
+      <div class="row">All Sessions</div>
+      <div class="row">Feedback Shortcut</div>
+      <div class="row">Settings</div>
+      <div class="row">Quit Nextshot</div>
+    </div>
+    <!-- A narrator note in the sketch hand, so it never reads as app UI. -->
+    <div id="callout" style="position:absolute;left:0;top:400px;width:1920px;display:flex;justify-content:center;">
+      <div style="position:relative;font-family:Caveat,cursive;font-weight:700;font-size:88px;color:var(--mint);white-space:nowrap;">
+        3 captures. 6 items. One prompt.
+        <svg style="position:absolute;left:0;top:96px;" width="1000" height="26"><path d="M6 16 Q500 2 994 18" fill="none" stroke="#3CCDBE" stroke-width="8" stroke-linecap="round"/></svg>
+      </div>
+    </div>
+
+    <div class="panel" id="agent" style="left:300px;top:110px;width:1320px;height:760px;background:#1B1F22;">
+      <div style="position:absolute;left:32px;top:22px;font-size:26px;font-weight:700;">Your agent</div>
+      <div style="position:absolute;right:28px;top:16px;display:flex;gap:12px;">
+        <div class="chip" id="chip1">Claude Code</div><div class="chip" id="chip2">Codex</div><div class="chip" id="chip3">Any agent</div>
+      </div>
+      <div id="bubble" style="position:absolute;left:32px;top:84px;width:1256px;height:640px;background:#2A3034;border-radius:16px;padding:26px 30px;box-sizing:border-box;">
+        <div class="pl" style="font-family:Menlo,monospace;font-size:24px;color:var(--mint);">&lt;feedback_bundle captures="3" items="6"&gt;</div>
+        <div class="pl" style="font-size:21px;color:#C9D1D6;margin-top:10px;">Goal: Apply the review feedback in this bundle to the code in the current repository.</div>
+        <div class="pl" id="thumbs" style="display:flex;gap:24px;margin-top:22px;"></div>
+        <div style="display:flex;gap:30px;margin-top:22px;font-size:24px;line-height:1.7;">
+          <div class="pl" style="width:380px;"><b>1 Lemonaid page</b><br><span class="id">1.1</span> Spell it Lemonade.<br><span class="id">1.2</span> Make it $3.<br><span class="id">1.3</span> Make Buy bigger.</div>
+          <div class="pl" style="width:380px;"><b>2 Checkout</b><br><span class="id">2.1</span> Take cards too.<br><span class="id">2.2</span> Move the total up.</div>
+          <div class="pl" style="width:380px;"><b>3 Flavors</b><br><span class="id">3.1</span> Add pink lemonade.<br><span class="id">Note</span> Keep the fonts.</div>
+        </div>
+        <div class="pl" style="position:absolute;left:30px;bottom:24px;font-size:24px;color:var(--teal);font-weight:600;">Work method: plan table first, then edits.</div>
+      </div>
+    </div>
+
+    <svg id="cursor" style="position:absolute;left:0;top:0;z-index:30;" width="36" height="52" viewBox="0 0 24 34">
+      <path d="M2 2 L2 26 L8 20 L12.5 30 L16.5 28 L12 18.5 L20 18.5 Z" fill="#000" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/>
+    </svg>
+  </div>
+
+  <img id="logo" src="assets/img/nextshot-icon-512.png" style="position:absolute;left:830px;top:330px;width:260px;height:260px;">
+  <div id="flash" class="layer" style="background:#fff;"></div>
+  <div id="captions" class="layer"></div>
+</div>
+
+<script src="timing.js"></script>
+<script src="assets/vendor/gsap.min.js"></script>
+<script src="assets/vendor/TextPlugin.min.js"></script>
+<script src="assets/vendor/rough.js"></script>
+<script>
+(function () {
+  gsap.registerPlugin(TextPlugin);
+  const T = window.TIMING;
+  const cue = (id) => T.cues[id];
+  const scene = (id) => T.scenes.find((s) => s.id === id);
+  const line = (id) => T.lines[id];
+  const $ = (q) => document.querySelector(q);
+  const $$ = (q, el) => Array.from((el || document).querySelectorAll(q));
+
+  const INK = '#2B2B2B', LEMON = '#F5C518', TEAL = '#3CCDBE', BADGE = '#FF543E';
+  const tl = gsap.timeline({ paused: true, defaults: { ease: 'power2.out', immediateRender: false } });
+  const hide = (els) => gsap.set(els, { autoAlpha: 0 });
+  const show = (el, t, d = 0.25) => tl.fromTo(el, { autoAlpha: 0 }, { autoAlpha: 1, duration: d }, t);
+  const fade = (el, t, d = 0.25) => tl.fromTo(el, { autoAlpha: 1 }, { autoAlpha: 0, duration: d }, t);
+  const pop = (el, t, d = 0.35) => tl.fromTo(el, { scale: 0, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: d, ease: 'back.out(2.2)' }, t);
+
+  // ---------- sketch helpers ----------
+  const sketch = $('#sketch');
+  function actor(x, y, w, h) {
+    const el = document.createElement('div');
+    el.className = 'actor';
+    Object.assign(el.style, { left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px' });
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', w); svg.setAttribute('height', h);
+    el.appendChild(svg);
+    sketch.appendChild(el);
+    return { el, svg, rc: rough.svg(svg) };
+  }
+  const BASE = { roughness: 1.3, bowing: 1.1, stroke: INK, strokeWidth: 3.4 };
+  let seed = 3;
+  function draw(a, kind, args, opts) {
+    const node = a.rc[kind](...args, Object.assign({}, BASE, { seed: seed++ }, opts || {}));
+    a.svg.appendChild(node);
+    $$('path', node).forEach((p) => {
+      const L = Math.max(1, p.getTotalLength());
+      p.dataset.len = L;
+      p.style.strokeDasharray = L + ' ' + L;
+      p.style.strokeDashoffset = L;
+    });
+    return node;
+  }
+  function drawOn(nodes, t, dur) {
+    const paths = [].concat(nodes).flatMap((n) => $$('path', n));
+    const total = paths.reduce((s, p) => s + +p.dataset.len, 0);
+    let at = t;
+    paths.forEach((p) => {
+      const d = dur * (+p.dataset.len) / total;
+      tl.fromTo(p, { strokeDashoffset: +p.dataset.len }, { strokeDashoffset: 0, duration: d, ease: 'none' }, at);
+      at += d;
+    });
+  }
+  function hand(a, text, x, y, size, opts) {
+    const el = document.createElement('div');
+    el.className = 'hand';
+    el.textContent = text;
+    Object.assign(el.style, { left: x + 'px', top: y + 'px', fontSize: size + 'px', fontWeight: (opts && opts.weight) || 600,
+                              color: (opts && opts.color) || INK });
+    a.el.appendChild(el);
+    el.style.clipPath = 'inset(-60% 100% -40% -5%)';
+    return el;
+  }
+  // Caveat ascenders rise well above the line box, so the reveal box reaches 60% above it.
+  function write(el, t, d) {
+    tl.fromTo(el, { clipPath: 'inset(-60% 100% -40% -5%)' }, { clipPath: 'inset(-60% -5% -40% -5%)', duration: d, ease: 'none' }, t);
+  }
+  const rr = (x, y, w, h, r) => `M${x + r} ${y} H${x + w - r} Q${x + w} ${y} ${x + w} ${y + r} V${y + h - r} Q${x + w} ${y + h} ${x + w - r} ${y + h} H${x + r} Q${x} ${y + h} ${x} ${y + h - r} V${y + r} Q${x} ${y} ${x + r} ${y} Z`;
+
+  function drawRobot(a, accent) {
+    return [
+      draw(a, 'line', [190, 70, 190, 36]),
+      draw(a, 'circle', [190, 24, 30], { fill: accent, fillStyle: 'hachure', hachureGap: 6, fillWeight: 2.2 }),
+      draw(a, 'path', [rr(100, 70, 180, 140, 30)]),
+      draw(a, 'circle', [150, 135, 40]),
+      draw(a, 'circle', [230, 135, 40]),
+      draw(a, 'circle', [154, 138, 14], { fill: INK, fillStyle: 'solid' }),
+      draw(a, 'circle', [234, 138, 14], { fill: INK, fillStyle: 'solid' }),
+      draw(a, 'path', ['M150 176 Q190 202 230 176']),
+      draw(a, 'path', [rr(120, 228, 140, 152, 22)]),
+      draw(a, 'circle', [190, 292, 28], { fill: accent, fillStyle: 'hachure', hachureGap: 5, fillWeight: 2 }),
+      draw(a, 'linearPath', [[[120, 262], [72, 318], [62, 352]]]),
+      draw(a, 'linearPath', [[[260, 256], [330, 214], [384, 184]]]),
+      draw(a, 'line', [160, 380, 160, 470]),
+      draw(a, 'line', [220, 380, 220, 470]),
+      draw(a, 'line', [138, 472, 172, 472]),
+      draw(a, 'line', [208, 472, 242, 472]),
+    ];
+  }
+  function drawFigure(a) {
+    return [
+      draw(a, 'circle', [130, 110, 100]),
+      draw(a, 'line', [130, 160, 130, 340]),
+      draw(a, 'line', [130, 340, 90, 450]),
+      draw(a, 'line', [130, 340, 170, 450]),
+      draw(a, 'line', [130, 200, 80, 272]),
+      draw(a, 'line', [130, 200, 182, 268]),
+    ];
+  }
+  function drawPage(a, fixed) {
+    const lemonFill = { fill: LEMON, fillStyle: 'hachure', hachureGap: 8, fillWeight: 2.6 };
+    const nodes = {
+      frame: draw(a, 'rectangle', [6, 6, 888, 588], { strokeWidth: 3.8 }),
+      header: draw(a, 'line', [6, 74, 894, 74]),
+      lemon: draw(a, 'ellipse', [110, 172, 124, 88], lemonFill),
+      cup: [
+        draw(a, 'path', ['M600 230 L780 230 L755 520 L625 520 Z']),
+        draw(a, 'path', ['M611 300 L770 300 L755 520 L625 520 Z'], { stroke: 'none', fill: LEMON, fillStyle: 'hachure', hachureGap: 9, fillWeight: 2.2 }),
+        draw(a, 'circle', [772, 234, 74], lemonFill),
+        draw(a, 'line', [700, 130, 728, 300]),
+      ],
+      button: fixed
+        ? draw(a, 'rectangle', [70, 466, 230, 84], { fill: TEAL, fillStyle: 'hachure', hachureGap: 7, fillWeight: 2.4 })
+        : draw(a, 'rectangle', [70, 482, 84, 42]),
+    };
+    nodes.nav = hand(a, 'menu   order', 700, 24, 34, { weight: 500, color: '#666' });
+    nodes.title = hand(a, fixed ? 'Lemonade' : 'Lemonaid', 196, 104, 130, { weight: 700 });
+    nodes.tag = hand(a, 'fresh squeezed, every day', 70, 250, 46, { weight: 500, color: '#555' });
+    nodes.price = hand(a, fixed ? '$3 a cup' : '$9 a cup', 70, 328, 104, { weight: 700 });
+    nodes.buy = fixed ? hand(a, 'Buy', 152, 474, 64, { weight: 700 }) : hand(a, 'Buy', 92, 484, 32, { weight: 600 });
+    return nodes;
+  }
+  function revealPage(p, t, speed) {
+    const s = speed || 1;
+    drawOn(p.frame, t, 0.55 * s);
+    drawOn(p.header, t + 0.35 * s, 0.2 * s);
+    write(p.nav, t + 0.45 * s, 0.25 * s);
+    drawOn(p.lemon, t + 0.5 * s, 0.35 * s);
+    write(p.title, t + 0.7 * s, 0.5 * s);
+    write(p.tag, t + 1.0 * s, 0.35 * s);
+    write(p.price, t + 1.2 * s, 0.4 * s);
+    drawOn(p.button, t + 1.5 * s, 0.25 * s);
+    write(p.buy, t + 1.6 * s, 0.15 * s);
+    drawOn(p.cup, t + 1.4 * s, 0.6 * s);
+  }
+
+  // ---------- scene 1: hook ----------
+  const hook = scene('hook');
+  const robot = actor(90, 250, 420, 560);
+  const robotNodes = drawRobot(robot, '#D9F3EF');
+  const robotLabel = hand(robot, 'your AI agent', 70, 498, 46, { weight: 600 });
+  const page = actor(520, 150, 900, 600);
+  const pageNodes = drawPage(page, false);
+  const you = actor(1520, 270, 260, 560);
+  const youNodes = drawFigure(you);
+  const squint = [draw(you, 'line', [104, 104, 121, 108]), draw(you, 'line', [139, 108, 156, 104]), draw(you, 'line', [110, 140, 150, 140])];
+  const youLabel = hand(you, 'you', 104, 470, 46, { weight: 600 });
+  const question = hand(you, '?', 196, -40, 140, { weight: 700 });
+  question.style.clipPath = 'none';
+  const sweat = [draw(you, 'path', ['M54 70 Q42 92 54 98 Q66 92 54 70 Z'], { fill: '#8CC7E8', fillStyle: 'solid' }),
+                 draw(you, 'path', ['M204 84 Q192 106 204 112 Q216 106 204 84 Z'], { fill: '#8CC7E8', fillStyle: 'solid' })];
+
+  const t0 = cue('stand');
+  revealPage(pageNodes, Math.max(0, t0), 1);
+  drawOn(robotNodes, 0.1, 1.1);
+  write(robotLabel, 1.0, 0.35);
+  drawOn(youNodes, 1.5, 0.6);
+  write(youLabel, 1.9, 0.25);
+  drawOn(squint, cue('squint') - 0.1, 0.2);
+  hide(question);
+  pop(question, cue('squint'));
+  tl.fromTo(you.el, { rotation: 0 }, { rotation: -4, duration: 0.12, yoyo: true, repeat: 3, ease: 'sine.inOut' }, cue('squint'));
+
+  // ---------- scene 2: problem ----------
+  const problem = scene('problem');
+  tl.fromTo(robot.el, { autoAlpha: 1, x: 0 }, { autoAlpha: 0, x: -120, duration: 0.3 }, problem.start);
+  tl.fromTo(question, { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.2 }, problem.start);
+  gsap.set(page.el, { transformOrigin: '0 0' });
+  tl.fromTo(page.el, { x: 0, y: 0, scale: 1 }, { x: -430, y: 20, scale: 0.55, duration: 0.45, ease: 'power3.inOut' }, problem.start);
+  tl.fromTo(you.el, { x: 0 }, { x: -720, duration: 0.45, ease: 'power3.inOut' }, problem.start);
+
+  const thumb = actor(1180, 150, 340, 230);
+  const thumbNodes = [draw(thumb, 'rectangle', [4, 4, 330, 210], { strokeWidth: 3 }),
+                      draw(thumb, 'ellipse', [56, 60, 50, 36], { fill: LEMON, fillStyle: 'hachure', hachureGap: 5 }),
+                      draw(thumb, 'line', [96, 60, 230, 60]), draw(thumb, 'line', [36, 120, 170, 120]), draw(thumb, 'rectangle', [36, 160, 40, 20])];
+  const thumbLabel = hand(thumb, 'Screenshot 2026-10-22 at 4.12.07 PM.png', 0, 224, 30, { weight: 500, color: '#555' });
+  thumbLabel.style.clipPath = 'none';
+  hide([thumb.el]);
+  const tShot = cue('shutter');
+  tl.fromTo('#flash', { autoAlpha: 0.9 }, { autoAlpha: 0, duration: 0.35 }, tShot);
+  tl.fromTo(thumb.el, { autoAlpha: 0, scale: 0.6, rotation: -8 }, { autoAlpha: 1, scale: 1, rotation: -3, duration: 0.3, ease: 'back.out(2)' }, tShot);
+  thumbNodes.forEach((n) => $$('path', n).forEach((p) => { p.style.strokeDashoffset = 0; }));
+
+  function fileIcon(x, y, rot) {
+    const f = actor(x, y, 120, 150);
+    [draw(f, 'path', ['M10 8 L78 8 L110 40 L110 142 L10 142 Z'], { fill: '#FFFFFF', fillStyle: 'solid', strokeWidth: 3 }),
+     draw(f, 'path', ['M78 8 L78 40 L110 40'], { strokeWidth: 3 })]
+      .forEach((n) => $$('path', n).forEach((p) => { p.style.strokeDashoffset = 0; }));
+    const lab = hand(f, 'PNG', 34, 68, 34, { weight: 700 });
+    lab.style.clipPath = 'none';
+    gsap.set(f.el, { rotation: rot, autoAlpha: 0 });
+    return f;
+  }
+  const file1 = fileIcon(1240, 170, -6);
+  tl.fromTo(thumb.el, { autoAlpha: 1, scale: 1 }, { autoAlpha: 0, scale: 0.4, duration: 0.25 }, cue('save'));
+  pop(file1.el, cue('save') + 0.05, 0.3);
+
+  const chat = actor(1120, 560, 720, 300);
+  const chatNodes = [draw(chat, 'rectangle', [4, 4, 712, 292], { strokeWidth: 3.4 }), draw(chat, 'line', [4, 62, 716, 62])];
+  const chatLabel = hand(chat, 'agent chat', 24, 12, 38, { weight: 700 });
+  const typed1 = hand(chat, '', 36, 90, 42, { weight: 600 });
+  const typed2 = hand(chat, '', 36, 146, 42, { weight: 600 });
+  const typed3 = hand(chat, '', 36, 202, 42, { weight: 600 });
+  [typed1, typed2, typed3].forEach((e) => { e.style.clipPath = 'none'; });
+  drawOn(chatNodes, cue('save'), 0.4);
+  write(chatLabel, cue('save') + 0.2, 0.25);
+  tl.fromTo(file1.el, { x: 0, y: 0, scale: 1, rotation: -6 }, { x: 440, y: 560, scale: 0.6, rotation: 8, duration: 0.45, ease: 'power2.inOut' }, cue('drag'));
+  const ty = cue('typing');
+  tl.fromTo(typed1, { text: '' }, { text: 'the yellow button. no, the OTHER one.', duration: 0.75, ease: 'none' }, ty);
+  tl.fromTo(typed2, { text: '' }, { text: 'left of that. smaller. no, the', duration: 0.55, ease: 'none' }, ty + 0.8);
+  tl.fromTo(typed3, { text: '' }, { text: 'one under the lemon...', duration: 0.4, ease: 'none' }, ty + 1.38);
+
+  const tally = actor(700, 110, 380, 150);
+  const strokes = [];
+  [0, 190].forEach((dx) => {
+    [20, 46, 72, 98].forEach((x) => strokes.push(draw(tally, 'line', [dx + x, 18, dx + x + 4, 116], { strokeWidth: 4 })));
+    strokes.push(draw(tally, 'line', [dx + 4, 100, dx + 118, 30], { strokeWidth: 4 }));
+  });
+  const tt = cue('tally');
+  strokes.forEach((s, k) => drawOn(s, tt + k * 0.1, 0.09));
+  const pile = [[1300, 200, 9], [1420, 160, -12], [1560, 210, 6], [1680, 170, -5], [1360, 330, 14], [1520, 340, -9]].map(([x, y, r]) => fileIcon(x, y, r));
+  pile.forEach((f, k) => pop(f.el, tt + k * 0.12, 0.3));
+  hide(sweat);
+  sweat.forEach((s, k) => show(s, tt + 0.3 + k * 0.2, 0.15));
+  sweat.forEach((s) => $$('path', s).forEach((p) => { p.style.strokeDashoffset = 0; }));
+
+  // ---------- scene 3: turn ----------
+  const turn = scene('turn');
+  const logo = $('#logo');
+  hide(logo);
+  tl.fromTo(logo, { autoAlpha: 0, scale: 0, rotation: -25 }, { autoAlpha: 1, scale: 1, rotation: 0, duration: 0.55, ease: 'back.out(1.8)' }, cue('mark'));
+  const sleek = $('#sleek');
+  gsap.set(sleek, { clipPath: 'circle(0px at 960px 460px)' });
+  tl.fromTo(sleek, { clipPath: 'circle(0px at 960px 460px)' }, { clipPath: 'circle(1250px at 960px 460px)', duration: 0.7, ease: 'power2.in' }, cue('wipe'));
+  hide('#wordmark');
+  tl.fromTo('#wordmark', { autoAlpha: 0, y: 30 }, { autoAlpha: 1, y: 0, duration: 0.4 }, cue('wipe') + 0.35);
+
+  // ---------- scene 4: how ----------
+  const how = scene('how');
+  tl.fromTo(logo, { x: 0, y: 0, scale: 1, autoAlpha: 1 }, { x: 685, y: -455, scale: 0.08, autoAlpha: 0, duration: 0.5, ease: 'power3.in' }, how.start);
+  fade('#wordmark', how.start, 0.25);
+  const markSvg = '<svg viewBox="0 0 27 20"><rect x="2" y="2" width="16" height="16" rx="4.4" fill="#fff" fill-opacity="0.5"/><path d="M14.5 4.5 L20 10 L14.5 15.5" fill="none" stroke="#15191C" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><path d="M14.5 4.5 L20 10 L14.5 15.5" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  $('#nshotItem').insertAdjacentHTML('afterbegin', markSvg);
+  $('#lensMark').innerHTML = markSvg.replace('<svg ', '<svg width="62" height="46" ');
+  hide('#menubar');
+  show('#menubar', how.start + 0.35, 0.3);
+
+  const card1 = $('#card1'), card2 = $('#card2'), card3 = $('#card3');
+  // Clones for the note panel preview and the agent's thumbnails, taken while every mark is visible.
+  const clone = (el) => { const c = el.cloneNode(true); c.removeAttribute('id'); $$('[id]', c).forEach((n) => n.removeAttribute('id')); c.style.left = '0px'; c.style.top = '0px'; return c; };
+  const prev = $('#preview');
+  const prevCard = clone(card1);
+  gsap.set(prevCard, { transformOrigin: '0 0' });
+  prev.appendChild(prevCard);
+  const thumbs = $('#thumbs');
+  [[card1, 0.3333], [card2, 0.4923], [card3, 0.4923]].forEach(([c, s]) => {
+    const box = document.createElement('div');
+    Object.assign(box.style, { position: 'relative', width: '320px', height: '208px', borderRadius: '10px', overflow: 'hidden', background: '#FFFDF5' });
+    const k = clone(c);
+    gsap.set(k, { transformOrigin: '0 0', scale: s });
+    box.appendChild(k);
+    thumbs.appendChild(box);
+  });
+
+  hide([card1, card2, card3, '#sel', '#crosshair', '#flash1', '#keysF', '#keysC', '#keysS', '#notePanel', '#tray', '#lens', '#flash2', '#flash3',
+        '#notePanel3', '#menu', '#callout', '#agent', '#cursor', ...$$('#tray .slotlabel')]);
+  gsap.set($$('.badge', card1).concat($$('.badge', card2), $$('.badge', card3)), { scale: 0, autoAlpha: 0 });
+  tl.fromTo(card1, { autoAlpha: 0, y: 80 }, { autoAlpha: 1, y: 0, duration: 0.45, ease: 'power3.out' }, how.start + 0.15);
+
+  const keysF = $$('#keysF .key');
+  show('#keysF', cue('key_opt') - 0.15, 0.15);
+  ['key_opt', 'key_shift', 'key_f'].forEach((c, k) => {
+    tl.fromTo(keysF[k], { y: 0 }, { y: 6, duration: 0.07, yoyo: true, repeat: 1, ease: 'none' }, cue(c));
+  });
+  fade('#keysF', cue('grab_done') - 0.1, 0.2);
+
+  const g0 = cue('grab'), g1 = cue('grab_done');
+  show('#sel', g0, 0.15);
+  show('#crosshair', g0, 0.1);
+  tl.fromTo('#sel', { width: 0, height: 0 }, { width: 1000, height: 660, duration: Math.max(0.4, g1 - g0 - 0.05), ease: 'power1.inOut' }, g0);
+  tl.fromTo('#crosshair', { x: 108, y: 108 }, { x: 1108, y: 768, duration: Math.max(0.4, g1 - g0 - 0.05), ease: 'power1.inOut' }, g0);
+  fade('#crosshair', g1, 0.1);
+  tl.fromTo('#flash1', { autoAlpha: 0.85 }, { autoAlpha: 0, duration: 0.3 }, g1);
+
+  show('#keysC', cue('badge1') - 0.12, 0.12);
+  ['badge1', 'badge2', 'badge3'].forEach((c, k) => pop($$('.badge', card1)[k], cue(c)));
+  fade('#keysC', cue('badge3') + 0.3, 0.15);
+  show('#keysS', cue('panel') - 0.2, 0.12);
+  fade('#keysS', cue('panel') + 0.25, 0.15);
+
+  const p = cue('panel');
+  tl.fromTo('#notePanel', { autoAlpha: 0, x: 120 }, { autoAlpha: 1, x: 0, duration: 0.35, ease: 'power3.out' }, p);
+  gsap.set(prevCard, { scale: 1.15, x: -290, y: -30 });
+  hide('#nshotCount');
+  tl.fromTo('#nshotCount', { text: '' }, { text: 'Nshot (1)', duration: 0.01 }, p);
+  show('#nshotCount', p, 0.15);
+  const a1 = cue('answer1');
+  tl.fromTo('#ph1', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.05 }, a1);
+  tl.fromTo('#answer', { text: '' }, { text: 'Spell it Lemonade.', duration: 0.6, ease: 'none' }, a1);
+  tl.fromTo('#mic', { scale: 1 }, { scale: 1.25, duration: 0.2, yoyo: true, repeat: 3, ease: 'sine.inOut', transformOrigin: '50% 50%' }, a1);
+  const step2 = how.end - 0.75;
+  tl.fromTo('#question', { text: 'Circle 1 (1 of 3): what should change?' }, { text: 'Circle 2 (2 of 3): what should change?', duration: 0.01 }, step2);
+  tl.fromTo('#answer', { text: 'Spell it Lemonade.' }, { text: '', duration: 0.01 }, step2);
+  tl.fromTo(prevCard, { scale: 1.15, x: -290, y: -30 }, { scale: 1.15, x: -20, y: -300, duration: 0.3, ease: 'power2.inOut' }, step2);
+  tl.fromTo('#answer', { text: '' }, { text: 'Make it $3.', duration: 0.4, ease: 'none' }, step2 + 0.15);
+
+  // ---------- scene 5: session ----------
+  const ses = scene('session');
+  fade('#notePanel', ses.start, 0.25);
+  fade('#sel', ses.start, 0.25);
+  show('#tray', ses.start, 0.3);
+  gsap.set([card1, card2, card3], { transformOrigin: '0 0' });
+  tl.fromTo(card1, { x: 0, y: 0, scale: 1 }, { x: -50, y: 20, scale: 0.2708, duration: 0.55, ease: 'power3.inOut' }, ses.start + 0.05);
+  show('#slot1', ses.start + 0.5, 0.2);
+
+  const c2 = cue('cap2'), c3 = cue('cap3');
+  show(card2, c2 - 0.1, 0.2);
+  tl.fromTo('#flash2', { autoAlpha: 0.9 }, { autoAlpha: 0, duration: 0.3 }, c2);
+  show(card3, c3 - 0.1, 0.2);
+  tl.fromTo('#flash3', { autoAlpha: 0.9 }, { autoAlpha: 0, duration: 0.3 }, c3);
+
+  const box2 = $('#box2'), arrow3 = $('#arrow3'), head3 = $('#arrowhead3');
+  [box2, arrow3, head3].forEach((el) => {
+    const L = el.getTotalLength();
+    gsap.set(el, { strokeDasharray: L + ' ' + L, strokeDashoffset: L });
+    el.dataset.len = L;
+  });
+  pop($$('.badge', card2)[0], cue('m_circle'));
+  pop($$('.badge', card3)[0], cue('m_circle') + 0.08);
+  tl.fromTo(box2, { strokeDashoffset: +box2.dataset.len }, { strokeDashoffset: 0, duration: 0.35, ease: 'none' }, cue('m_box'));
+  pop($$('.badge', card2)[1], cue('m_box') + 0.3);
+  tl.fromTo(arrow3, { strokeDashoffset: +arrow3.dataset.len }, { strokeDashoffset: 0, duration: 0.3, ease: 'none' }, cue('m_arrow'));
+  tl.fromTo(head3, { strokeDashoffset: +head3.dataset.len }, { strokeDashoffset: 0, duration: 0.12, ease: 'none' }, cue('m_arrow') + 0.28);
+  tl.fromTo('#notePanel3', { autoAlpha: 0, y: 30 }, { autoAlpha: 1, y: 0, duration: 0.3 }, cue('m_note'));
+
+  const tr = cue('tray');
+  fade('#notePanel3', tr - 0.05, 0.2);
+  tl.fromTo(card2, { x: 0, y: 0, scale: 1 }, { x: -350, y: 180, scale: 0.4167, duration: 0.55, ease: 'power3.inOut' }, tr);
+  tl.fromTo(card3, { x: 0, y: 0, scale: 1 }, { x: -1070, y: 422, scale: 0.4167, duration: 0.55, ease: 'power3.inOut' }, tr + 0.12);
+  show('#slot2', tr + 0.45, 0.2);
+  show('#slot3', tr + 0.57, 0.2);
+  tl.fromTo('#nshotCount', { text: 'Nshot (1)' }, { text: 'Nshot (2)', duration: 0.01 }, tr + 0.5);
+  tl.fromTo('#nshotCount', { text: 'Nshot (2)' }, { text: 'Nshot (3)', duration: 0.01 }, tr + 0.65);
+  tl.fromTo('#nshotItem', { scale: 1 }, { scale: 1.15, duration: 0.12, yoyo: true, repeat: 1 }, tr + 0.65);
+  // The full tray moves to the middle while the voice says "one session holds it all".
+  const mid = tr + 0.8;
+  tl.fromTo('#tray', { x: 0 }, { x: 720, duration: 0.5, ease: 'power3.inOut' }, mid);
+  tl.fromTo(card1, { x: -50 }, { x: 670, duration: 0.5, ease: 'power3.inOut' }, mid);
+  tl.fromTo(card2, { x: -350 }, { x: 370, duration: 0.5, ease: 'power3.inOut' }, mid);
+  tl.fromTo(card3, { x: -1070 }, { x: -350, duration: 0.5, ease: 'power3.inOut' }, mid);
+  pop('#lens', mid + 0.2, 0.4);
+  fade('#lens', cue('menu') - 0.6, 0.2);
+
+  // ---------- scene 6: hand-off ----------
+  const hand6 = scene('handoff');
+  const m0 = cue('menu');
+  show('#cursor', m0 - 0.5, 0.15);
+  tl.fromTo('#cursor', { x: 1200, y: 420 }, { x: 1570, y: 12, duration: 0.45, ease: 'power2.inOut' }, m0 - 0.5);
+  tl.set('#nshotItem', { attr: { class: 'mbitem open' } }, m0);
+  show('#menu', m0, 0.12);
+  const cp = cue('copy'), closeMenu = cue('toast') - 0.3;
+  tl.fromTo('#cursor', { x: 1570, y: 12 }, { x: 1800, y: 196, duration: Math.max(0.3, cp - m0 - 0.2), ease: 'power2.inOut' }, m0 + 0.15);
+  tl.fromTo('#copyRow', { backgroundColor: 'rgba(47,124,246,0)' }, { backgroundColor: 'rgba(47,124,246,1)', duration: 0.05 }, cp);
+  fade('#menu', closeMenu, 0.15);
+  tl.set('#nshotItem', { attr: { class: 'mbitem' } }, closeMenu);
+  fade('#cursor', closeMenu + 0.05, 0.15);
+
+  const toast = cue('toast');
+  pop('#callout', toast, 0.4);
+  tl.fromTo([card1, card2, card3], { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.3 }, toast - 0.05);
+  fade('#tray', toast, 0.3);
+  ['#slot1', '#slot2', '#slot3'].forEach((s) => fade(s, toast, 0.3));
+
+  const pst = cue('paste');
+  tl.fromTo('#callout', { y: 0, scale: 1, autoAlpha: 1 }, { y: 300, scale: 0.5, autoAlpha: 0, duration: 0.4, ease: 'power2.in' }, pst - 0.2);
+  tl.fromTo('#agent', { autoAlpha: 0, y: 120 }, { autoAlpha: 1, y: 0, duration: 0.45, ease: 'power3.out' }, pst);
+  const parts = $$('#bubble .pl');
+  gsap.set(parts, { autoAlpha: 0 });
+  parts.forEach((el, k) => tl.fromTo(el, { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.25 }, pst + 0.3 + k * 0.12));
+  $$('#bubble .id').forEach((el) => Object.assign(el.style, { color: 'var(--mint)', fontWeight: 700, marginRight: '8px' }));
+  [['#chip1', 'card'], ['#chip2', 'chip_codex'], ['#chip3', 'chip_any']].forEach(([chip, c]) => {
+    tl.fromTo(chip, { backgroundColor: '#2F363B', color: '#C9D1D6' }, { backgroundColor: TEAL, color: '#0F2E2A', duration: 0.15 }, cue(c));
+  });
+
+  // ---------- scene 7: close ----------
+  const close = scene('close');
+  const fx = cue('fix');
+  [robot.el, page.el, you.el, thumb.el, file1.el, chat.el, tally.el, ...pile.map((f) => f.el)].forEach((el) => tl.set(el, { autoAlpha: 0 }, fx - 0.01));
+  tl.fromTo(sleek, { clipPath: 'circle(1250px at 960px 460px)' }, { clipPath: 'circle(0px at 960px 460px)', duration: 0.6, ease: 'power2.in' }, fx);
+
+  const page2 = actor(230, 150, 900, 600);
+  const page2Nodes = drawPage(page2, true);
+  gsap.set(page2.el, { transformOrigin: '0 0', scale: 0.62 });
+  const underline = draw(page2, 'path', ['M190 236 Q420 222 650 240'], { stroke: TEAL, strokeWidth: 7 });
+  const robot2 = actor(40, 600, 420, 560);
+  gsap.set(robot2.el, { transformOrigin: '0 0', scale: 0.5 });
+  const robot2Nodes = drawRobot(robot2, '#9FE7DD');
+  const you2 = actor(780, 400, 260, 560);
+  gsap.set(you2.el, { transformOrigin: '0 0', scale: 0.78 });
+  const you2Nodes = drawFigure(you2).concat([
+    draw(you2, 'circle', [112, 104, 12], { fill: INK, fillStyle: 'solid' }),
+    draw(you2, 'circle', [148, 104, 12], { fill: INK, fillStyle: 'solid' }),
+    draw(you2, 'path', ['M104 132 Q130 160 156 132']),
+    draw(you2, 'path', ['M168 222 L222 222 L214 290 L176 290 Z'], { fill: LEMON, fillStyle: 'hachure', hachureGap: 6 }),
+  ]);
+  const stars = actor(150, 110, 1000, 520);
+  const starNodes = [[40, 60], [860, 30], [680, 470], [20, 420], [560, 0]].map(([x, y]) =>
+    draw(stars, 'path', [`M${x} ${y - 22} L${x + 6} ${y - 6} L${x + 22} ${y} L${x + 6} ${y + 6} L${x} ${y + 22} L${x - 6} ${y + 6} L${x - 22} ${y} L${x - 6} ${y - 6} Z`], { stroke: TEAL, strokeWidth: 3 }));
+  hide([page2.el, robot2.el, you2.el, stars.el]);
+  [page2.el, robot2.el, you2.el, stars.el].forEach((el) => tl.set(el, { autoAlpha: 1 }, fx));
+  revealPage(page2Nodes, fx + 0.05, 0.55);
+  drawOn(underline, fx + 0.75, 0.3);
+  drawOn(robot2Nodes, fx + 0.1, 0.7);
+  drawOn(you2Nodes, fx + 0.2, 0.7);
+  drawOn(starNodes, fx + 0.6, 0.5);
+
+  const end = $('#root');
+  const card = document.createElement('div');
+  card.id = 'endcard';
+  card.style.cssText = 'position:absolute;left:1120px;top:190px;width:760px;';
+  card.innerHTML =
+    '<div style="display:flex;align-items:center;gap:26px;"><img src="assets/img/nextshot-icon-512.png" style="width:150px;height:150px;">' +
+    '<div style="font-size:104px;font-weight:800;letter-spacing:-2px;color:var(--graphite);">Nextshot</div></div>' +
+    '<div style="position:relative;margin-top:26px;font-family:Caveat,cursive;font-weight:700;font-size:72px;color:var(--ink);">Mark it up. Hand it off.' +
+    '<svg style="position:absolute;left:0;top:76px;" width="640" height="24"><path id="endline" d="M4 14 Q320 2 636 16" fill="none" stroke="#3CCDBE" stroke-width="8" stroke-linecap="round"/></svg></div>' +
+    '<div style="display:flex;align-items:center;gap:14px;margin-top:58px;">' +
+    '<div class="key" style="height:62px;font-size:26px;"><span class="sym">⌥</span>Option</div><div class="key" style="height:62px;font-size:26px;"><span class="sym">⇧</span>Shift</div><div class="key" style="height:62px;font-size:26px;">F</div>' +
+    '<div style="font-size:26px;color:var(--muted);margin-left:8px;">starts a capture</div></div>' +
+    '<div style="margin-top:46px;font-size:42px;font-weight:700;color:var(--graphite);">Get the DMG in this message.</div>' +
+    '<div style="margin-top:12px;font-size:26px;color:var(--muted);">Feedback stays on your Mac until you paste it.</div>';
+  sketch.appendChild(card);
+  const endRows = Array.from(card.children);
+  gsap.set(endRows, { autoAlpha: 0 });
+  const ec = cue('endcard');
+  pop(endRows[0], cue('fix') + 0.75, 0.45);
+  endRows.slice(1).forEach((el, k) => tl.fromTo(el, { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.35 }, ec + k * 0.22));
+  const endline = card.querySelector('#endline');
+  const EL = endline.getTotalLength();
+  gsap.set(endline, { strokeDasharray: EL + ' ' + EL, strokeDashoffset: EL });
+  tl.fromTo(endline, { strokeDashoffset: EL }, { strokeDashoffset: 0, duration: 0.4, ease: 'none' }, cue('final_chord'));
+
+  // ---------- captions ----------
+  const caps = $('#captions');
+  T.captions.forEach((c) => {
+    const el = document.createElement('div');
+    el.className = 'cap';
+    el.innerHTML = '<span></span>';
+    el.firstChild.textContent = c.text;
+    caps.appendChild(el);
+    gsap.set(el, { autoAlpha: 0 });
+    tl.fromTo(el, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.08 }, c.start);
+    tl.fromTo(el, { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.08 }, c.end - 0.08);
+  });
+
+  gsap.set('#flash', { autoAlpha: 0 });
+  tl.set({}, {}, T.duration);
+  window.__timelines = window.__timelines || {};
+  window.__timelines['root'] = tl;
+})();
+</script>
+</body>
+</html>

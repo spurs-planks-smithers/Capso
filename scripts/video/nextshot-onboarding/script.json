@@ -1,0 +1,121 @@
+{
+  "voice": "Ava (Premium)",
+  "rate": 192,
+  "tempo": 1.08,
+  "fps": 30,
+  "scenes": [
+    {
+      "id": "hook",
+      "lead": 0.5,
+      "tail": 0.2,
+      "lines": [
+        { "id": "a", "text": "Your AI agent just built you a lemonade stand.", "pause": 0.2 },
+        { "id": "b", "text": "Almost.", "pause": 0.3 }
+      ]
+    },
+    {
+      "id": "problem",
+      "lead": 0.1,
+      "tail": 0.2,
+      "lines": [
+        { "id": "c1", "text": "So you screenshot.", "pause": 0.1 },
+        { "id": "c2", "text": "Save.", "pause": 0.1 },
+        { "id": "c3", "text": "Drag.", "pause": 0.2 },
+        { "id": "d", "text": "Type: no, the other button.", "pause": 0.2 },
+        { "id": "e", "text": "Every single time.", "pause": 0.2 }
+      ]
+    },
+    {
+      "id": "turn",
+      "lead": 0.5,
+      "tail": 0.5,
+      "lines": [
+        { "id": "f", "text": "Meet Nextshot.", "pause": 0 }
+      ]
+    },
+    {
+      "id": "how",
+      "lead": 0.1,
+      "tail": 0.5,
+      "lines": [
+        { "id": "g", "text": "Press Option Shift F. Grab the screen.", "pause": 0.25 },
+        { "id": "h", "text": "Circle each problem. Say what should change.", "pause": 0.2 }
+      ]
+    },
+    {
+      "id": "session",
+      "lead": 0.1,
+      "tail": 0.4,
+      "lines": [
+        { "id": "i", "text": "Then grab the next screen, and the next.", "pause": 0.25 },
+        {
+          "id": "j",
+          "text": "Circles, boxes, arrows, notes: one session holds it all.",
+          "captions": ["Circles, boxes, arrows, notes:", "one session holds it all."],
+          "pause": 0.2
+        }
+      ]
+    },
+    {
+      "id": "handoff",
+      "lead": 0.1,
+      "tail": 0.5,
+      "lines": [
+        {
+          "id": "l",
+          "text": "One copy hands your agent every screen and every note.",
+          "captions": ["One copy hands your agent", "every screen and every note."],
+          "pause": 0.25
+        },
+        { "id": "m", "text": "Paste it into Claude, Codex, any agent.", "pause": 0.2 }
+      ]
+    },
+    {
+      "id": "close",
+      "lead": 0.35,
+      "tail": 2.1,
+      "lines": [
+        { "id": "n", "text": "Nextshot.", "pause": 0.25 },
+        { "id": "o", "text": "Mark it up. Hand it off.", "pause": 0 }
+      ]
+    }
+  ],
+  "cues": [
+    { "id": "stand", "line": "a", "offset": -0.5, "sfx": "whoosh" },
+    { "id": "squint", "line": "b", "word": "Almost" },
+    { "id": "shutter", "line": "c1", "word": "screenshot", "sfx": "shutter" },
+    { "id": "save", "line": "c2", "sfx": "click" },
+    { "id": "drag", "line": "c3", "sfx": "whoosh_small" },
+    { "id": "typing", "line": "d", "sfx": "typing", "span": 1.6 },
+    { "id": "tally", "line": "e", "sfx": "ticks", "span": 1.0 },
+    { "id": "mark", "line": "f", "offset": -0.5, "sfx": "whoosh" },
+    { "id": "wipe", "line": "f", "word": "Nextshot", "sfx": "sparkle" },
+    { "id": "key_opt", "line": "g", "word": "Option", "sfx": "key" },
+    { "id": "key_shift", "line": "g", "word": "Shift", "sfx": "key" },
+    { "id": "key_f", "line": "g", "word": "F", "sfx": "key" },
+    { "id": "grab", "line": "g", "word": "Grab" },
+    { "id": "grab_done", "line": "g", "word": "screen", "offset": 0.3, "sfx": "shutter" },
+    { "id": "badge1", "line": "h", "word": "Circle", "sfx": "pop" },
+    { "id": "badge2", "line": "h", "word": "each", "sfx": "pop" },
+    { "id": "badge3", "line": "h", "word": "problem", "sfx": "pop" },
+    { "id": "panel", "line": "h", "word": "Say", "offset": -0.15, "sfx": "whoosh_small" },
+    { "id": "answer1", "line": "h", "word": "what", "sfx": "typing", "span": 0.7 },
+    { "id": "cap2", "line": "i", "word": "next", "sfx": "shutter" },
+    { "id": "cap3", "line": "i", "word": "next", "nth": 2, "sfx": "shutter" },
+    { "id": "m_circle", "line": "j", "word": "Circles", "sfx": "pop" },
+    { "id": "m_box", "line": "j", "word": "boxes", "sfx": "pop" },
+    { "id": "m_arrow", "line": "j", "word": "arrows", "sfx": "whoosh_small" },
+    { "id": "m_note", "line": "j", "word": "notes", "sfx": "pop" },
+    { "id": "tray", "line": "j", "word": "session", "sfx": "tick" },
+    { "id": "menu", "line": "l", "offset": -0.1, "sfx": "click" },
+    { "id": "copy", "line": "l", "word": "hands", "sfx": "click" },
+    { "id": "toast", "line": "l", "word": "every", "sfx": "ding" },
+    { "id": "paste", "line": "m", "word": "Paste", "sfx": "whoosh_small" },
+    { "id": "card", "line": "m", "word": "Claude" },
+    { "id": "chip_codex", "line": "m", "word": "Codex" },
+    { "id": "chip_any", "line": "m", "word": "any" },
+    { "id": "fix", "line": "n", "offset": -0.3, "sfx": "sparkle" },
+    { "id": "endcard", "line": "o" },
+    { "id": "final_chord", "line": "o", "word": "Hand" }
+  ]
+}
