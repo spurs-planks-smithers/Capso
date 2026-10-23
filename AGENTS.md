@@ -109,3 +109,10 @@ Agent access:
 - Nextshot's app icon is `Branding/Nextshot.icon` (Icon Composer). The menu bar mark is `NextshotMark` in `App/Feedback/FeedbackAssets.xcassets`. Both menu bar items load it through `ForkBranding.menuBarMark`. The spec is `docs/brand/nextshot-mark.md`.
 - Change the mark only through `scripts/brand/make_nextshot_icon.py`, then check every appearance with `ictool`. The spec gives the commands.
 - Never ship Capso's name or logo as Nextshot's. Capso's license gives no right to its trademark or logo.
+
+## Website (nextshot.dev)
+
+- nextshot.dev is the download page: the intro video, the notarized DMG, and download counts at `/stats`. It is one Cloudflare Worker (`nextshot-site`) with static assets and a D1 database. The guide is `docs/site.md`.
+- Publish with `site/deploy.sh`. It takes the newest DMG and video in `build/releases`, deploys, and smoke-tests the live site. Run it after each `scripts/release-notarized.sh` and each new video cut.
+- The deploy reads the Cloudflare token from the Keychain item `CLOUDFLARE_API_TOKEN_NEXTSHOT`. `wrangler` stays signed out.
+- The site stays free and keeps the Capso credit and `/LICENSE.txt` (BSL 1.1 allows internal use and non-commercial distribution).
