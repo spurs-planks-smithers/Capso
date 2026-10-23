@@ -115,4 +115,4 @@ Agent access:
 - nextshot.dev is the download page: the intro video, the notarized DMG, and download counts at `/stats`. It is one Cloudflare Worker (`nextshot-site`) with static assets and a D1 database. The guide is `docs/site.md`.
 - Publish with `site/deploy.sh`. It takes the newest DMG and video in `build/releases`, deploys, and smoke-tests the live site. Run it after each `scripts/release-notarized.sh` and each new video cut.
 - The deploy reads the Cloudflare token from the Keychain item `CLOUDFLARE_API_TOKEN_NEXTSHOT`. `wrangler` stays signed out.
-- The site stays free and keeps the Capso credit and `/LICENSE.txt` (BSL 1.1 allows internal use and non-commercial distribution).
+- The site stays free. Its footer reads "Free for personal use and internal use only." It shows no Capso credit or license link (Drew, 2026-10-23). The license notice ships inside the DMG, as BSL 1.1 requires.

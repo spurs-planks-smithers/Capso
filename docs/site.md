@@ -6,12 +6,12 @@ nextshot.dev is the one-page download site for Nextshot. People in internal orga
 
 | Path | What it does |
 |---|---|
-| `/` | The landing page: headline, video, Download button, install steps, Capso credit and license link |
+| `/` | The landing page: headline, video, Download button, install steps, and the footer "Free for personal use and internal use only." |
 | `/download` | Stores one row in D1 (time, version, country, bot flag; no IP address), then redirects to the DMG |
 | `/releases/<dmg>` | The notarized DMG under its versioned name |
-| `/media/<video>.mp4` | The intro video. The Worker answers Range requests with 206, which Safari needs. |
+| `/media/<video>.mp4` | The intro video. The Worker answers Range requests with 206, which Safari needs. It streams only the asked-for bytes and never holds a file in memory. |
 | `/stats` | Download counts by day (last 30 days, UTC) and by version. People and bots show apart. Anyone with the link can open it. |
-| `/LICENSE.txt` | Capso's Business Source License 1.1, copied from the repo `LICENSE` |
+| `/LICENSE.txt` | Capso's Business Source License 1.1, copied from the repo `LICENSE`. The page does not link it. |
 | `www.nextshot.dev/*` | 301 to `https://nextshot.dev/*` |
 
 Every response carries `X-Robots-Tag: noindex, nofollow`, and the page has a matching robots meta tag. There is no `robots.txt` block, because a crawler that cannot fetch a page never sees its noindex tag (Google Search Central, "Block search indexing with noindex"). The page loads no analytics script, sets no cookies, and makes no third-party requests.
@@ -65,4 +65,6 @@ CLOUDFLARE_API_TOKEN="$(security find-generic-password -s CLOUDFLARE_API_TOKEN_N
 
 ## License
 
-Capso's Additional Use Grant allows internal use within an organization and non-commercial distribution. Keep the site free, keep the Capso credit, and keep `/LICENSE.txt`. Never add a price or a sign-up for paid use.
+Capso's Additional Use Grant allows personal use, internal use within an organization, and non-commercial distribution. The page says "Free for personal use and internal use only." Keep the site free. Never add a price or a sign-up for paid use.
+
+The license notice travels with the software: the DMG holds `LICENSE.txt` beside the app and inside it (`Contents/Resources/LICENSE.txt`). On 2026-10-23 Drew removed the page footer's Capso credit and license link. The BSL requires the notice on each copy of the software, not on a download page.
