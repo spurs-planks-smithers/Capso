@@ -4,11 +4,12 @@
 <meta charset="utf-8">
 <title>Nextshot onboarding</title>
 <style>
-  @font-face { font-family: 'Caveat'; src: url(assets/fonts/Caveat-latin.woff2) format('woff2'); font-weight: 400 700; }
+  @font-face { font-family: 'Marker'; src: url(assets/fonts/PermanentMarker-latin.woff2) format('woff2'); font-weight: 400; }
+  @font-face { font-family: 'Hand'; src: url(assets/fonts/PatrickHand-latin.woff2) format('woff2'); font-weight: 400; }
   @font-face { font-family: 'Inter'; src: url(assets/fonts/Inter-latin.woff2) format('woff2'); font-weight: 100 900; }
   :root {
     --graphite: #23282C; --teal: #3CCDBE; --mint: #8FF3E4; --ink: #2B2B2B;
-    --paper: #FBFAF6; --badge: #FF543E; --lemon: #F5C518; --muted: #5C6670;
+    --paper: #FFF3C9; --badge: #FF543E; --lemon: #F5C518; --muted: #5C6670;
   }
   html, body { margin: 0; background: #000; }
   #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: var(--paper);
@@ -16,7 +17,7 @@
   .layer { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
   .actor { position: absolute; overflow: visible; }
   .actor > svg { position: absolute; left: 0; top: 0; overflow: visible; }
-  .hand { position: absolute; font-family: 'Caveat', cursive; color: var(--ink); white-space: nowrap; line-height: 1; }
+  .hand { position: absolute; font-family: 'Hand', sans-serif; font-synthesis: none; color: var(--ink); white-space: nowrap; line-height: 1.1; }
   .sym { font-family: -apple-system, 'Apple Symbols', 'Inter', sans-serif; }
 
   /* sleek world */
@@ -65,11 +66,23 @@
   #captions .cap { position: absolute; left: 0; width: 1920px; top: 968px; display: flex; justify-content: center; }
   #captions .cap span { background: rgba(35,40,44,0.9); color: #fff; font-size: 40px; font-weight: 600; padding: 12px 30px;
                         border-radius: 18px; white-space: nowrap; letter-spacing: -0.2px; }
+  .dot { position: absolute; width: 44px; height: 44px; border-radius: 50%; background: var(--badge);
+         box-shadow: 0 0 0 4px #fff, 0 3px 8px rgba(0,0,0,0.25); }
+  .dot.small { width: 30px; height: 30px; box-shadow: 0 0 0 3px #fff; }
+  .prow { display: flex; align-items: center; gap: 26px; margin-top: 30px; }
+  .picon { width: 92px; height: 92px; flex: none; border-radius: 20px; background: #2A3034; border: 2px solid rgba(60,205,190,0.55);
+           display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 800; color: var(--mint); }
+  .pbadge { width: 60px; height: 60px; border-radius: 50%; background: var(--badge); color: #fff; font-size: 22px; font-weight: 700;
+            display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 3px #fff; }
+  .ptitle { font-size: 36px; font-weight: 700; color: #fff; letter-spacing: -0.5px; }
+  .psub { font-size: 24px; color: #AAB4BA; margin-top: 4px; }
+  .check { position: absolute; width: 50px; height: 50px; border-radius: 50%; background: var(--teal);
+           display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 3px #fff, 0 3px 8px rgba(0,0,0,0.25); }
 </style>
 </head>
 <body>
-<div id="root" data-composition-id="root" data-start="0" data-auto-duration data-duration="36.223" data-width="1920" data-height="1080">
-  <audio id="soundtrack" class="clip" src="audio/final.wav" data-start="0" data-auto-duration data-duration="36.223" data-volume="1"></audio>
+<div id="root" data-composition-id="root" data-start="0" data-auto-duration data-duration="70.352" data-width="1920" data-height="1080">
+  <audio id="soundtrack" class="clip" src="audio/final.wav" data-start="0" data-auto-duration data-duration="70.352" data-volume="1"></audio>
 
   <div id="sketch" class="layer"></div>
 
@@ -206,11 +219,11 @@
       <div class="row">Settings</div>
       <div class="row">Quit Nextshot</div>
     </div>
-    <!-- A narrator note in the sketch hand, so it never reads as app UI. -->
-    <div id="callout" style="position:absolute;left:0;top:400px;width:1920px;display:flex;justify-content:center;">
-      <div style="position:relative;font-family:Caveat,cursive;font-weight:700;font-size:88px;color:var(--mint);white-space:nowrap;">
-        3 captures. 6 items. One prompt.
-        <svg style="position:absolute;left:0;top:96px;" width="1000" height="26"><path d="M6 16 Q500 2 994 18" fill="none" stroke="#3CCDBE" stroke-width="8" stroke-linecap="round"/></svg>
+    <!-- The key line, in brand type: a narrator note, never app UI. -->
+    <div id="callout" style="position:absolute;left:0;top:380px;width:1920px;display:flex;justify-content:center;">
+      <div style="position:relative;font-weight:800;font-size:88px;letter-spacing:-2px;color:#fff;white-space:nowrap;">
+        3 captures. 7 notes. <span style="color:var(--mint);">1 prompt.</span>
+        <svg style="position:absolute;left:0;top:110px;width:100%;height:26px;" viewBox="0 0 1000 26" preserveAspectRatio="none"><path id="calloutLine" d="M6 16 Q500 4 994 16" fill="none" stroke="#3CCDBE" stroke-width="8" stroke-linecap="round" stroke-dasharray="1100" stroke-dashoffset="1100"/></svg>
       </div>
     </div>
 
@@ -232,11 +245,51 @@
       </div>
     </div>
 
+    <div class="panel" id="pkg" style="left:1030px;top:170px;width:830px;padding:34px 38px;background:#1B1F22;">
+      <div style="font-size:24px;font-weight:700;letter-spacing:1.5px;color:var(--mint);text-transform:uppercase;">Built for AI agents</div>
+      <div class="prow"><div class="picon"><span class="pbadge">1</span></div><div><div class="ptitle">Numbered marks</div><div class="psub">Badge 1 in image 1 is item 1.1 in the text</div></div></div>
+      <div class="prow"><div class="picon">Aa</div><div><div class="ptitle">Screen text</div><div class="psub">Read on your Mac, so the agent can find the code</div></div></div>
+      <div class="prow"><div class="picon">PNG</div><div><div class="ptitle">Right-sized images</div><div class="psub">Lossless, sized to the model's limits</div></div></div>
+      <div class="prow"><div class="picon">1 2 3</div><div><div class="ptitle">Plan first</div><div class="psub">The prompt asks for a plan before any edit</div></div></div>
+    </div>
+
+    <!-- The close: the fixed stand as a clean page, checks where the badges were. -->
+    <div class="card" id="closeCard" style="left:110px;top:190px;width:900px;height:600px;box-shadow:0 30px 80px rgba(0,0,0,0.45);overflow:visible;">
+      <div class="abs" style="right:70px;top:36px;font-size:20px;color:#6B7580;font-weight:500;letter-spacing:0.2px;">Menu&nbsp;&nbsp;&nbsp;&nbsp;Flavors&nbsp;&nbsp;&nbsp;&nbsp;Order</div>
+      <div class="abs" style="left:70px;top:110px;font-size:100px;font-weight:800;letter-spacing:-3px;line-height:1;">
+        <span class="anchor">Lemonade<div class="check" style="right:-62px;top:-4px;"><svg width="26" height="26" viewBox="0 0 26 26"><path d="M5 13.5 L10.5 19 L21 7.5" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg></div></span>
+      </div>
+      <div class="abs" style="left:74px;top:238px;font-size:30px;color:#5C6670;">Fresh squeezed every day.</div>
+      <div class="abs" style="left:70px;top:318px;font-size:66px;font-weight:700;letter-spacing:-1.5px;line-height:1;">
+        <span class="anchor">$3 a cup<div class="check" style="right:-64px;top:0px;"><svg width="26" height="26" viewBox="0 0 26 26"><path d="M5 13.5 L10.5 19 L21 7.5" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg></div></span>
+      </div>
+      <div class="abs" style="left:74px;top:432px;">
+        <span class="anchor"><div class="buy" style="width:250px;height:80px;font-size:36px;">Buy</div><div class="check" style="right:-66px;top:14px;"><svg width="26" height="26" viewBox="0 0 26 26"><path d="M5 13.5 L10.5 19 L21 7.5" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg></div></span>
+      </div>
+      <div class="abs" style="left:74px;top:548px;font-size:20px;color:#8A939B;">Open 9 to 5.</div>
+      <svg class="abs" style="left:580px;top:120px;" width="300" height="440" viewBox="0 0 300 440">
+        <path d="M40 90 L260 90 L232 420 L68 420 Z" fill="#EAF6F8" stroke="#C9DDE1" stroke-width="5"/>
+        <path d="M52 170 L248 170 L232 420 L68 420 Z" fill="#FBE38A"/>
+        <rect x="150" y="10" width="14" height="230" rx="7" fill="#3CCDBE" transform="rotate(12 157 125)"/>
+        <circle cx="250" cy="96" r="44" fill="#F5C518"/><circle cx="250" cy="96" r="32" fill="#FBE38A"/>
+        <path d="M250 64 L250 128 M218 96 L282 96 M227 73 L273 119 M273 73 L227 119" stroke="#F5C518" stroke-width="4"/>
+      </svg>
+    </div>
+
+    <div id="endcard" style="position:absolute;left:1070px;top:220px;width:800px;">
+      <div class="er" style="display:flex;align-items:center;gap:26px;"><img src="assets/img/nextshot-icon-512.png" style="width:140px;height:140px;"><div style="font-size:100px;font-weight:800;letter-spacing:-2px;color:#fff;">Nextshot</div></div>
+      <div class="er" style="position:relative;margin-top:34px;font-size:54px;font-weight:700;letter-spacing:-1px;color:#fff;">Mark it up. Hand it off.<svg style="position:absolute;left:0;top:66px;" width="640" height="24"><path id="endline" d="M4 14 Q320 4 636 14" fill="none" stroke="#3CCDBE" stroke-width="8" stroke-linecap="round"/></svg></div>
+      <div class="er" style="display:flex;align-items:center;gap:14px;margin-top:56px;"><div class="key" style="height:62px;font-size:26px;"><span class="sym">⌥</span>Option</div><div class="key" style="height:62px;font-size:26px;"><span class="sym">⇧</span>Shift</div><div class="key" style="height:62px;font-size:26px;">F</div><div style="font-size:26px;color:#AAB4BA;margin-left:8px;">starts a capture</div></div>
+      <div class="er" style="margin-top:44px;font-size:42px;font-weight:700;color:var(--mint);">Get the DMG in this message.</div>
+      <div class="er" style="margin-top:12px;font-size:26px;color:#AAB4BA;">Feedback stays on your Mac until you paste it.</div>
+    </div>
+
     <svg id="cursor" style="position:absolute;left:0;top:0;z-index:30;" width="36" height="52" viewBox="0 0 24 34">
       <path d="M2 2 L2 26 L8 20 L12.5 30 L16.5 28 L12 18.5 L20 18.5 Z" fill="#000" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/>
     </svg>
   </div>
 
+  <div id="wipeRing" style="position:absolute;left:960px;top:460px;width:0;height:0;border-radius:50%;border:16px solid #3CCDBE;box-sizing:border-box;pointer-events:none;"></div>
   <img id="logo" src="assets/img/nextshot-icon-512.png" style="position:absolute;left:830px;top:330px;width:260px;height:260px;">
   <div id="flash" class="layer" style="background:#fff;"></div>
   <div id="captions" class="layer"></div>
@@ -286,7 +339,7 @@
     sketch.appendChild(el);
     return { el, svg, rc: rough.svg(svg) };
   }
-  const BASE = { roughness: 1.3, bowing: 1.1, stroke: INK, strokeWidth: 3.4 };
+  const BASE = { roughness: 1.8, bowing: 1.5, stroke: INK, strokeWidth: 4.4 };
   let seed = 3;
   function draw(a, kind, args, opts) {
     const node = a.rc[kind](...args, Object.assign({}, BASE, { seed: seed++ }, opts || {}));
@@ -313,13 +366,14 @@
     const el = document.createElement('div');
     el.className = 'hand';
     el.textContent = text;
-    Object.assign(el.style, { left: x + 'px', top: y + 'px', fontSize: size + 'px', fontWeight: (opts && opts.weight) || 600,
+    Object.assign(el.style, { left: x + 'px', top: y + 'px', fontSize: size + 'px', fontWeight: 400,
+                              fontFamily: opts && opts.font === 'Marker' ? "'Marker', sans-serif" : "'Hand', sans-serif",
                               color: (opts && opts.color) || INK });
     a.el.appendChild(el);
     el.style.clipPath = 'inset(-60% 100% -40% -5%)';
     return el;
   }
-  // Caveat ascenders rise well above the line box, so the reveal box reaches 60% above it.
+  // The reveal box reaches 60% above the line box, so tall marker letters are never cut.
   function write(el, t, d) {
     tl.fromTo(el, { clipPath: 'inset(-60% 100% -40% -5%)' }, { clipPath: 'inset(-60% -5% -40% -5%)', duration: d, ease: 'none' }, t);
   }
@@ -355,35 +409,32 @@
       draw(a, 'line', [130, 200, 182, 268]),
     ];
   }
-  function drawPage(a, fixed) {
-    const lemonFill = { fill: LEMON, fillStyle: 'hachure', hachureGap: 8, fillWeight: 2.6 };
+  function drawPage(a) {
     const nodes = {
-      frame: draw(a, 'rectangle', [6, 6, 888, 588], { strokeWidth: 3.8 }),
+      frame: draw(a, 'rectangle', [6, 6, 888, 588], { strokeWidth: 4.8, fill: '#FFFFFF', fillStyle: 'solid' }),
       header: draw(a, 'line', [6, 74, 894, 74]),
-      lemon: draw(a, 'ellipse', [110, 172, 124, 88], lemonFill),
       cup: [
         draw(a, 'path', ['M600 230 L780 230 L755 520 L625 520 Z']),
         draw(a, 'path', ['M611 300 L770 300 L755 520 L625 520 Z'], { stroke: 'none', fill: LEMON, fillStyle: 'hachure', hachureGap: 9, fillWeight: 2.2 }),
-        draw(a, 'circle', [772, 234, 74], lemonFill),
+        draw(a, 'circle', [772, 234, 74], { fill: LEMON, fillStyle: 'hachure', hachureGap: 8, fillWeight: 2.6 }),
         draw(a, 'line', [700, 130, 728, 300]),
       ],
-      button: fixed
-        ? draw(a, 'rectangle', [70, 466, 230, 84], { fill: TEAL, fillStyle: 'hachure', hachureGap: 7, fillWeight: 2.4 })
-        : draw(a, 'rectangle', [70, 482, 84, 42]),
+      button: draw(a, 'rectangle', [70, 482, 84, 42], { fill: '#FFD84D', fillStyle: 'solid' }),
     };
-    nodes.nav = hand(a, 'menu   order', 700, 24, 34, { weight: 500, color: '#666' });
-    nodes.title = hand(a, fixed ? 'Lemonade' : 'Lemonaid', 196, 104, 130, { weight: 700 });
-    nodes.tag = hand(a, 'fresh squeezed, every day', 70, 250, 46, { weight: 500, color: '#555' });
-    nodes.price = hand(a, fixed ? '$3 a cup' : '$9 a cup', 70, 328, 104, { weight: 700 });
-    nodes.buy = fixed ? hand(a, 'Buy', 152, 474, 64, { weight: 700 }) : hand(a, 'Buy', 92, 484, 32, { weight: 600 });
+    nodes.nav = hand(a, 'menu   order', 690, 18, 38, { color: '#666' });
+    nodes.title = hand(a, 'Lemonaid', 60, 92, 96, { font: 'Marker' });
+    nodes.tag = hand(a, 'fresh squeezed, every day', 64, 222, 44, { color: '#555' });
+    nodes.price = hand(a, '$9 a cup', 60, 296, 84, { font: 'Marker' });
+    nodes.buy = hand(a, 'Buy', 92, 484, 30);
     return nodes;
   }
   function revealPage(p, t, speed) {
     const s = speed || 1;
+    hide(p.frame.parentNode.parentNode);
+    show(p.frame.parentNode.parentNode, t, 0.08);
     drawOn(p.frame, t, 0.55 * s);
     drawOn(p.header, t + 0.35 * s, 0.2 * s);
     write(p.nav, t + 0.45 * s, 0.25 * s);
-    drawOn(p.lemon, t + 0.5 * s, 0.35 * s);
     write(p.title, t + 0.7 * s, 0.5 * s);
     write(p.tag, t + 1.0 * s, 0.35 * s);
     write(p.price, t + 1.2 * s, 0.4 * s);
@@ -392,110 +443,246 @@
     drawOn(p.cup, t + 1.4 * s, 0.6 * s);
   }
 
-  // ---------- scene 1: hook ----------
+  // ---------- scene 1: hook. Rough sketch: you and AI built it all ----------
   const hook = scene('hook');
-  const robot = actor(90, 250, 420, 560);
-  const robotNodes = drawRobot(robot, '#D9F3EF');
-  const robotLabel = hand(robot, 'your AI agent', 70, 498, 46, { weight: 600 });
-  const page = actor(520, 150, 900, 600);
-  const pageNodes = drawPage(page, false);
-  const you = actor(1520, 270, 260, 560);
+  const labels = actor(0, 0, 1920, 1080); // hand-written labels, in frame coordinates
+  const label = (text, x, y, size, t) => { const el = hand(labels, text, x, y, size || 42); write(el, t, 0.3); return el; };
+  const showFilled = (a, t) => { hide(a.el); show(a.el, t, 0.08); };
+  const drawn = (nodes) => [].concat(nodes).forEach((n) => $$('path', n).forEach((p) => { p.style.strokeDashoffset = 0; }));
+
+  const page = actor(636, 110, 900, 600);
+  gsap.set(page.el, { transformOrigin: '0 0', scale: 0.72 });
+  const pageNodes = drawPage(page);
+  revealPage(pageNodes, cue('stand') + 0.05, 0.75);
+
+  const robot = actor(690, 615, 420, 560);
+  gsap.set(robot.el, { transformOrigin: '0 0', scale: 0.55 });
+  const robotNodes = drawRobot(robot, '#FFE27A');
+  const you = actor(990, 628, 260, 560);
+  gsap.set(you.el, { transformOrigin: '0 0', scale: 0.58 });
   const youNodes = drawFigure(you);
+  const tDuo = cue('duo');
+  // The eyes are solid fills, which a stroke reveal cannot hide, so each figure waits hidden.
+  showFilled(robot, Math.max(1.0, tDuo - 0.3));
+  showFilled(you, Math.max(1.2, tDuo));
+  drawOn(robotNodes, Math.max(1.0, tDuo - 0.3), 0.7);
+  drawOn(youNodes, Math.max(1.2, tDuo), 0.55);
+  label('AI', 790, 880, 46, tDuo + 0.45);
+  label('you', 1032, 900, 46, tDuo + 0.6);
+
+  const tI = cue('items');
+  // The app: its order button runs off the edge of the screen.
+  const app = actor(170, 92, 270, 400);
+  const appNodes = [
+    draw(app, 'path', [rr(20, 10, 210, 370, 30)], { fill: '#FFFFFF', fillStyle: 'solid' }),
+    draw(app, 'line', [95, 34, 155, 34]),
+    draw(app, 'ellipse', [125, 196, 92, 64], { fill: LEMON, fillStyle: 'hachure', hachureGap: 7 }),
+    draw(app, 'rectangle', [118, 292, 140, 50], { fill: '#FFD84D', fillStyle: 'solid' }),
+  ];
+  const appTitle = hand(app, 'Lemonaid', 46, 66, 34, { font: 'Marker' });
+  const appBtn = hand(app, 'ORDER NOW', 128, 300, 30);
+  showFilled(app, tI);
+  drawOn(appNodes, tI, 0.4);
+  write(appTitle, tI + 0.2, 0.2);
+  write(appBtn, tI + 0.3, 0.15);
+  label('app', 268, 500, 42, tI + 0.35);
+
+  // The legal docs: a refund line no lawyer would sign.
+  const legal = actor(1470, 96, 310, 380);
+  const legalNodes = [
+    draw(legal, 'path', ['M10 10 L230 10 L290 70 L290 370 L10 370 Z'], { fill: '#FFFFFF', fillStyle: 'solid' }),
+    draw(legal, 'path', ['M230 10 L230 70 L290 70']),
+    ...[120, 152, 184, 300, 332].map((y) => draw(legal, 'line', [34, y, 262, y], { strokeWidth: 2.6 })),
+  ];
+  const legalTitle = hand(legal, 'Terms', 34, 26, 52, { font: 'Marker' });
+  const legalBad = hand(legal, 'Refunds: never!!', 34, 212, 38);
+  showFilled(legal, tI + 0.2);
+  drawOn(legalNodes, tI + 0.2, 0.4);
+  write(legalTitle, tI + 0.35, 0.2);
+  write(legalBad, tI + 0.45, 0.2);
+  label('legal docs', 1530, 485, 42, tI + 0.55);
+
+  // The email: a typo in the subject line.
+  const mail = actor(150, 585, 510, 300);
+  const mailNodes = [
+    draw(mail, 'rectangle', [8, 8, 484, 280], { fill: '#FFFFFF', fillStyle: 'solid' }),
+    draw(mail, 'line', [8, 62, 492, 62]),
+    ...[178, 212, 246].map((y, k) => draw(mail, 'line', [30, y, 30 + [400, 330, 250][k], y], { strokeWidth: 2.6 })),
+  ];
+  const mailTo = hand(mail, 'To: everyone', 28, 16, 34);
+  const mailSubj = hand(mail, 'Subject: Grand opneing!', 28, 86, 42);
+  showFilled(mail, tI + 0.4);
+  drawOn(mailNodes, tI + 0.4, 0.4);
+  write(mailTo, tI + 0.5, 0.15);
+  write(mailSubj, tI + 0.6, 0.25);
+  label('email', 330, 890, 42, tI + 0.7);
+
+  // The marketing flyer: the lemon is a lime.
+  const flyer = actor(1290, 560, 340, 340);
+  const flyerNodes = [
+    draw(flyer, 'rectangle', [8, 8, 324, 324], { fill: '#FFFFFF', fillStyle: 'solid' }),
+    draw(flyer, 'circle', [170, 206, 150], { fill: '#7BC043', fillStyle: 'hachure', hachureGap: 6, fillWeight: 2.4 }),
+    draw(flyer, 'line', [170, 130, 184, 110]),
+  ];
+  const flyerTitle = hand(flyer, 'LEMONAID', 58, 30, 44, { font: 'Marker' });
+  showFilled(flyer, tI + 0.6);
+  drawOn(flyerNodes, tI + 0.6, 0.4);
+  write(flyerTitle, tI + 0.75, 0.25);
+  label('marketing', 1370, 905, 42, tI + 0.85);
+  label('web page', 870, 560, 42, tI + 0.95);
+
+  // ---------- scene 2: problem. Red dots, then the screenshot loop ----------
+  const prob = scene('problem');
+  const fl = line('flawed');
   const squint = [draw(you, 'line', [104, 104, 121, 108]), draw(you, 'line', [139, 108, 156, 104]), draw(you, 'line', [110, 140, 150, 140])];
-  const youLabel = hand(you, 'you', 104, 470, 46, { weight: 600 });
-  const question = hand(you, '?', 196, -40, 140, { weight: 700 });
-  question.style.clipPath = 'none';
-  const sweat = [draw(you, 'path', ['M54 70 Q42 92 54 98 Q66 92 54 70 Z'], { fill: '#8CC7E8', fillStyle: 'solid' }),
-                 draw(you, 'path', ['M204 84 Q192 106 204 112 Q216 106 204 84 Z'], { fill: '#8CC7E8', fillStyle: 'solid' })];
+  drawOn(squint, fl.start + 0.3, 0.25);
 
-  const t0 = cue('stand');
-  revealPage(pageNodes, Math.max(0, t0), 1);
-  drawOn(robotNodes, 0.1, 1.1);
-  write(robotLabel, 1.0, 0.35);
-  drawOn(youNodes, 1.5, 0.6);
-  write(youLabel, 1.9, 0.25);
-  drawOn(squint, cue('squint') - 0.1, 0.2);
-  hide(question);
-  pop(question, cue('squint'));
-  tl.fromTo(you.el, { rotation: 0 }, { rotation: -4, duration: 0.12, yoyo: true, repeat: 3, ease: 'sine.inOut' }, cue('squint'));
-
-  // ---------- scene 2: problem ----------
-  const problem = scene('problem');
-  tl.fromTo(robot.el, { autoAlpha: 1, x: 0 }, { autoAlpha: 0, x: -120, duration: 0.3 }, problem.start);
-  tl.fromTo(question, { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.2 }, problem.start);
-  gsap.set(page.el, { transformOrigin: '0 0' });
-  tl.fromTo(page.el, { x: 0, y: 0, scale: 1 }, { x: -430, y: 20, scale: 0.55, duration: 0.45, ease: 'power3.inOut' }, problem.start);
-  tl.fromTo(you.el, { x: 0 }, { x: -720, duration: 0.45, ease: 'power3.inOut' }, problem.start);
-
-  const thumb = actor(1180, 150, 340, 230);
-  const thumbNodes = [draw(thumb, 'rectangle', [4, 4, 330, 210], { strokeWidth: 3 }),
-                      draw(thumb, 'ellipse', [56, 60, 50, 36], { fill: LEMON, fillStyle: 'hachure', hachureGap: 5 }),
-                      draw(thumb, 'line', [96, 60, 230, 60]), draw(thumb, 'line', [36, 120, 170, 120]), draw(thumb, 'rectangle', [36, 160, 40, 20])];
-  const thumbLabel = hand(thumb, 'Screenshot 2026-10-22 at 4.12.07 PM.png', 0, 224, 30, { weight: 500, color: '#555' });
-  thumbLabel.style.clipPath = 'none';
-  hide([thumb.el]);
-  const tShot = cue('shutter');
-  tl.fromTo('#flash', { autoAlpha: 0.9 }, { autoAlpha: 0, duration: 0.35 }, tShot);
-  tl.fromTo(thumb.el, { autoAlpha: 0, scale: 0.6, rotation: -8 }, { autoAlpha: 1, scale: 1, rotation: -3, duration: 0.3, ease: 'back.out(2)' }, tShot);
-  thumbNodes.forEach((n) => $$('path', n).forEach((p) => { p.style.strokeDashoffset = 0; }));
-
-  function fileIcon(x, y, rot) {
-    const f = actor(x, y, 120, 150);
-    [draw(f, 'path', ['M10 8 L78 8 L110 40 L110 142 L10 142 Z'], { fill: '#FFFFFF', fillStyle: 'solid', strokeWidth: 3 }),
-     draw(f, 'path', ['M78 8 L78 40 L110 40'], { strokeWidth: 3 })]
-      .forEach((n) => $$('path', n).forEach((p) => { p.style.strokeDashoffset = 0; }));
-    const lab = hand(f, 'PNG', 34, 68, 34, { weight: 700 });
-    lab.style.clipPath = 'none';
-    gsap.set(f.el, { rotation: rot, autoAlpha: 0 });
-    return f;
-  }
-  const file1 = fileIcon(1240, 170, -6);
-  tl.fromTo(thumb.el, { autoAlpha: 1, scale: 1 }, { autoAlpha: 0, scale: 0.4, duration: 0.25 }, cue('save'));
-  pop(file1.el, cue('save') + 0.05, 0.3);
-
-  const chat = actor(1120, 560, 720, 300);
-  const chatNodes = [draw(chat, 'rectangle', [4, 4, 712, 292], { strokeWidth: 3.4 }), draw(chat, 'line', [4, 62, 716, 62])];
-  const chatLabel = hand(chat, 'agent chat', 24, 12, 38, { weight: 700 });
-  const typed1 = hand(chat, '', 36, 90, 42, { weight: 600 });
-  const typed2 = hand(chat, '', 36, 146, 42, { weight: 600 });
-  const typed3 = hand(chat, '', 36, 202, 42, { weight: 600 });
-  [typed1, typed2, typed3].forEach((e) => { e.style.clipPath = 'none'; });
-  drawOn(chatNodes, cue('save'), 0.4);
-  write(chatLabel, cue('save') + 0.2, 0.25);
-  tl.fromTo(file1.el, { x: 0, y: 0, scale: 1, rotation: -6 }, { x: 440, y: 560, scale: 0.6, rotation: 8, duration: 0.45, ease: 'power2.inOut' }, cue('drag'));
-  const ty = cue('typing');
-  tl.fromTo(typed1, { text: '' }, { text: 'the yellow button. no, the OTHER one.', duration: 0.75, ease: 'none' }, ty);
-  tl.fromTo(typed2, { text: '' }, { text: 'left of that. smaller. no, the', duration: 0.55, ease: 'none' }, ty + 0.8);
-  tl.fromTo(typed3, { text: '' }, { text: 'one under the lemon...', duration: 0.4, ease: 'none' }, ty + 1.38);
-
-  const tally = actor(700, 110, 380, 150);
-  const strokes = [];
-  [0, 190].forEach((dx) => {
-    [20, 46, 72, 98].forEach((x) => strokes.push(draw(tally, 'line', [dx + x, 18, dx + x + 4, 116], { strokeWidth: 4 })));
-    strokes.push(draw(tally, 'line', [dx + 4, 100, dx + 118, 30], { strokeWidth: 4 }));
+  // One red dot per mistake, in the badge red. Each pop sound lands on a dot.
+  const DOTS = [[1012, 186], [942, 330], [752, 450], [446, 360], [1762, 330], [604, 690], [1530, 712]];
+  const dotsLayer = document.createElement('div');
+  dotsLayer.className = 'layer';
+  sketch.appendChild(dotsLayer);
+  const dots = DOTS.map(([x, y]) => {
+    const d = document.createElement('div');
+    d.className = 'dot';
+    Object.assign(d.style, { left: (x - 22) + 'px', top: (y - 22) + 'px' });
+    dotsLayer.appendChild(d);
+    return d;
   });
-  const tt = cue('tally');
-  strokes.forEach((s, k) => drawOn(s, tt + k * 0.1, 0.09));
-  const pile = [[1300, 200, 9], [1420, 160, -12], [1560, 210, 6], [1680, 170, -5], [1360, 330, 14], [1520, 340, -9]].map(([x, y, r]) => fileIcon(x, y, r));
-  pile.forEach((f, k) => pop(f.el, tt + k * 0.12, 0.3));
-  hide(sweat);
-  sweat.forEach((s, k) => show(s, tt + 0.3 + k * 0.2, 0.15));
-  sweat.forEach((s) => $$('path', s).forEach((p) => { p.style.strokeDashoffset = 0; }));
+  hide(dots);
+  const tD = cue('dots');
+  dots.forEach((d, k) => pop(d, tD + 2.0 * k / DOTS.length, 0.3));
 
-  // ---------- scene 3: turn ----------
+  const board = [page.el, robot.el, you.el, app.el, legal.el, mail.el, flyer.el, labels.el, dotsLayer];
+  const tShot = cue('shot');
+  tl.fromTo(board, { autoAlpha: 1 }, { autoAlpha: 0.1, duration: 0.3 }, tShot - 0.35);
+
+  // You, up front, doing it the hard way.
+  const me = actor(150, 300, 260, 560);
+  const meNodes = drawFigure(me);
+  drawOn(meNodes, tShot - 0.35, 0.35);
+  const meSweat = [draw(me, 'path', ['M54 70 Q42 92 54 98 Q66 92 54 70 Z'], { fill: '#8CC7E8', fillStyle: 'solid' }),
+                   draw(me, 'path', ['M204 84 Q192 106 204 112 Q216 106 204 84 Z'], { fill: '#8CC7E8', fillStyle: 'solid' })];
+  drawn(meSweat);
+  hide(meSweat);
+
+  const thumb = actor(560, 170, 520, 330);
+  gsap.set(thumb.el, { transformOrigin: '0 0', zIndex: 3 }); // stays above the AI chat it lands in
+  const thumbNodes = [draw(thumb, 'rectangle', [6, 6, 508, 318], { fill: '#FFFFFF', fillStyle: 'solid' }),
+                      draw(thumb, 'line', [6, 50, 514, 50], { strokeWidth: 2.6 }),
+                      draw(thumb, 'rectangle', [40, 262, 50, 24]),
+                      draw(thumb, 'path', ['M360 110 L460 110 L445 290 L375 290 Z'])];
+  drawn(thumbNodes);
+  [hand(thumb, 'Lemonaid', 36, 64, 62, { font: 'Marker' }), hand(thumb, '$9 a cup', 38, 164, 50, { font: 'Marker' })]
+    .forEach((e) => { e.style.clipPath = 'none'; });
+  hide(thumb.el);
+  tl.fromTo('#flash', { autoAlpha: 0.9 }, { autoAlpha: 0, duration: 0.35 }, tShot);
+  tl.fromTo(thumb.el, { autoAlpha: 0, scale: 0.6, rotation: -6 }, { autoAlpha: 1, scale: 1, rotation: -2, duration: 0.3, ease: 'back.out(2)' }, tShot);
+
+  // Crop: brackets snap around the price, and the picture trims to them.
+  const tCrop = cue('crop');
+  const crop = actor(560, 170, 520, 330);
+  gsap.set(crop.el, { transformOrigin: '0 0', zIndex: 3 });
+  const cropNodes = [
+    draw(crop, 'linearPath', [[[18, 196], [18, 146], [68, 146]]], { strokeWidth: 7, roughness: 0.6 }),
+    draw(crop, 'linearPath', [[[236, 146], [286, 146], [286, 196]]], { strokeWidth: 7, roughness: 0.6 }),
+    draw(crop, 'linearPath', [[[286, 222], [286, 272], [236, 272]]], { strokeWidth: 7, roughness: 0.6 }),
+    draw(crop, 'linearPath', [[[68, 272], [18, 272], [18, 222]]], { strokeWidth: 7, roughness: 0.6 })];
+  drawn(cropNodes);
+  hide(crop.el);
+  tl.fromTo(crop.el, { autoAlpha: 0, rotation: -2 }, { autoAlpha: 1, rotation: -2, duration: 0.12 }, tCrop);
+  tl.fromTo(thumb.el, { clipPath: 'inset(0px 0px 0px 0px)' }, { clipPath: 'inset(140px 228px 52px 12px)', duration: 0.2 }, tCrop + 0.1);
+
+  // Paste: the crop drops into an AI chat.
+  const chat = actor(1110, 210, 700, 560);
+  const chatNodes = [draw(chat, 'rectangle', [6, 6, 688, 548], { fill: '#FFFFFF', fillStyle: 'solid' }), draw(chat, 'line', [6, 70, 694, 70])];
+  const chatLabel = hand(chat, 'AI chat', 26, 14, 46);
+  showFilled(chat, tCrop - 0.1);
+  drawOn(chatNodes, tCrop - 0.1, 0.3);
+  write(chatLabel, tCrop + 0.05, 0.2);
+  const tPaste = cue('paste1');
+  tl.fromTo([thumb.el, crop.el], { x: 0, y: 0, scale: 1 }, { x: 584, y: 52, scale: 0.55, duration: 0.4, ease: 'power2.inOut' }, tPaste);
+
+  // Prompt, then the long, messy explanation.
+  const typed = [190, 252, 314, 376].map((y) => { const e = hand(chat, '', 34, y, 38); e.style.clipPath = 'none'; return e; });
+  const tP = cue('prompt');
+  tl.fromTo(typed[0], { text: '' }, { text: 'fix this. the price thing, and', duration: 0.5, ease: 'none' }, tP);
+  const tE = cue('explain');
+  tl.fromTo(typed[1], { text: '' }, { text: 'the button. no, the OTHER one.', duration: 0.7, ease: 'none' }, tE);
+  tl.fromTo(typed[2], { text: '' }, { text: 'left of that. smaller. by the lemon?', duration: 0.75, ease: 'none' }, tE + 0.75);
+  tl.fromTo(typed[3], { text: '' }, { text: 'no wait...', duration: 0.3, ease: 'none' }, tE + 1.6);
+  const qm = hand(labels, '???', 300, 170, 110, { font: 'Marker' });
+  qm.style.clipPath = 'none';
+  gsap.set(qm, { color: BADGE });
+  // qm sits on the dimmed labels layer, so it moves to the sketch layer to stay bright.
+  sketch.appendChild(qm);
+  hide(qm);
+  pop(qm, tE + 0.9, 0.35);
+  meSweat.forEach((s, k) => show(s, tE + 0.5 + k * 0.25, 0.15));
+
+  // Page after page: the work piles up.
+  const tA = cue('again');
+  // The pile and the tally grow through the whole line, so the picture never stalls.
+  const againSpan = Math.max(1.4, line('again').end - tA);
+  const tally = actor(640, 36, 640, 140);
+  const strokes = [];
+  [0, 200, 400].forEach((dx) => {
+    [20, 46, 72, 98].forEach((x) => strokes.push(draw(tally, 'line', [dx + x, 16, dx + x + 4, 112], { strokeWidth: 5 })));
+    strokes.push(draw(tally, 'line', [dx + 4, 98, dx + 118, 28], { strokeWidth: 5 }));
+  });
+  strokes.forEach((s, k) => drawOn(s, tA + againSpan * k / strokes.length, 0.12));
+  const minis = [[600, 560, -6], [700, 610, 4], [800, 570, -3], [560, 660, 7], [900, 640, -8], [760, 700, 5], [640, 740, -4], [860, 720, 6]].map(([x, y, r]) => {
+    const m = actor(x, y, 240, 160);
+    drawn([draw(m, 'rectangle', [6, 6, 228, 148], { fill: '#FFFFFF', fillStyle: 'solid' }),
+           draw(m, 'line', [26, 50, 180, 50], { strokeWidth: 2.4 }), draw(m, 'line', [26, 84, 150, 84], { strokeWidth: 2.4 })]);
+    const d = document.createElement('div');
+    d.className = 'dot small';
+    Object.assign(d.style, { left: '176px', top: '96px' });
+    m.el.appendChild(d);
+    gsap.set(m.el, { rotation: r, autoAlpha: 0 });
+    return m.el;
+  });
+  minis.forEach((m, k) => pop(m, tA + 0.1 + againSpan * k / minis.length, 0.3));
+  tl.fromTo(me.el, { rotation: 0, y: 0 }, { rotation: 7, y: 26, duration: againSpan * 0.8, ease: 'power1.inOut', transformOrigin: '50% 100%' }, tA + 0.2);
+
+  // Why not all at once? The clutter clears, and every red dot gathers in one place.
+  const ask = line('ask');
+  const clutter = [me.el, thumb.el, crop.el, chat.el, tally.el, qm, ...minis];
+  tl.fromTo(clutter, { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.3 }, ask.start - 0.1);
+  tl.fromTo(board, { autoAlpha: 0.1 }, { autoAlpha: 1, duration: 0.35 }, ask.start - 0.05);
+  const tG = cue('gather');
+  const CLUSTER = [[0, 0], [40, 0], [-40, 0], [20, 34], [-20, 34], [20, -34], [-20, -34]];
+  dots.forEach((d, k) => {
+    const [x, y] = DOTS[k];
+    tl.fromTo(d, { x: 0, y: 0 }, { x: 960 + CLUSTER[k][0] - x, y: 460 + CLUSTER[k][1] - y, duration: 0.6, ease: 'power3.inOut' }, tG + k * 0.05);
+  });
+  const boardOnly = board.filter((e) => e !== dotsLayer);
+  tl.fromTo(boardOnly, { autoAlpha: 1 }, { autoAlpha: 0.15, duration: 0.5 }, tG + 0.1);
+
+  // ---------- scene 3: turn. The dots become Nextshot ----------
   const turn = scene('turn');
   const logo = $('#logo');
   hide(logo);
-  tl.fromTo(logo, { autoAlpha: 0, scale: 0, rotation: -25 }, { autoAlpha: 1, scale: 1, rotation: 0, duration: 0.55, ease: 'back.out(1.8)' }, cue('mark'));
+  const tM = cue('mark');
+  tl.fromTo(dots, { scale: 1 }, { scale: 0, duration: 0.25, ease: 'power2.in' }, tM - 0.05);
+  tl.fromTo(logo, { autoAlpha: 0, scale: 0, rotation: -25 }, { autoAlpha: 1, scale: 1, rotation: 0, duration: 0.55, ease: 'back.out(1.8)' }, tM);
+  // A slow push-in holds the eye until the wipe.
+  const LOGO_END = 1.1;
+  tl.fromTo(logo, { scale: 1 }, { scale: LOGO_END, duration: Math.max(0.3, cue('wipe') + 0.6 - (tM + 0.6)), ease: 'sine.inOut' }, tM + 0.6);
+  tl.fromTo(boardOnly, { autoAlpha: 0.15 }, { autoAlpha: 0, duration: 0.3 }, tM);
   const sleek = $('#sleek');
   gsap.set(sleek, { clipPath: 'circle(0px at 960px 460px)' });
   tl.fromTo(sleek, { clipPath: 'circle(0px at 960px 460px)' }, { clipPath: 'circle(1250px at 960px 460px)', duration: 0.7, ease: 'power2.in' }, cue('wipe'));
+  // A teal ring rides the edge of the wipe, so the turn reads as the brand color.
+  hide('#wipeRing');
+  tl.fromTo('#wipeRing', { autoAlpha: 1, width: 0, height: 0, x: 0, y: 0 }, { width: 2532, height: 2532, x: -1266, y: -1266, duration: 0.7, ease: 'power2.in' }, cue('wipe'));
+  tl.fromTo('#wipeRing', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.15 }, cue('wipe') + 0.7);
   hide('#wordmark');
   tl.fromTo('#wordmark', { autoAlpha: 0, y: 30 }, { autoAlpha: 1, y: 0, duration: 0.4 }, cue('wipe') + 0.35);
 
   // ---------- scene 4: how ----------
   const how = scene('how');
-  tl.fromTo(logo, { x: 0, y: 0, scale: 1, autoAlpha: 1 }, { x: 685, y: -455, scale: 0.08, autoAlpha: 0, duration: 0.5, ease: 'power3.in' }, how.start);
+  tl.fromTo(logo, { x: 0, y: 0, scale: LOGO_END, autoAlpha: 1 }, { x: 685, y: -455, scale: 0.08, autoAlpha: 0, duration: 0.5, ease: 'power3.in' }, how.start);
   fade('#wordmark', how.start, 0.25);
   const markSvg = '<svg viewBox="0 0 27 20"><rect x="2" y="2" width="16" height="16" rx="4.4" fill="#fff" fill-opacity="0.5"/><path d="M14.5 4.5 L20 10 L14.5 15.5" fill="none" stroke="#15191C" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><path d="M14.5 4.5 L20 10 L14.5 15.5" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   $('#nshotItem').insertAdjacentHTML('afterbegin', markSvg);
@@ -521,7 +708,7 @@
   });
 
   hide([card1, card2, card3, '#sel', '#crosshair', '#flash1', '#keysF', '#keysC', '#keysS', '#notePanel', '#tray', '#lens', '#flash2', '#flash3',
-        '#notePanel3', '#menu', '#callout', '#agent', '#cursor', ...$$('#tray .slotlabel')]);
+        '#notePanel3', '#menu', '#callout', '#agent', '#cursor', '#pkg', '#closeCard', ...$$('#tray .slotlabel')]);
   gsap.set($$('.badge', card1).concat($$('.badge', card2), $$('.badge', card3)), { scale: 0, autoAlpha: 0 });
   tl.fromTo(card1, { autoAlpha: 0, y: 80 }, { autoAlpha: 1, y: 0, duration: 0.45, ease: 'power3.out' }, how.start + 0.15);
 
@@ -548,7 +735,8 @@
 
   const p = cue('panel');
   tl.fromTo('#notePanel', { autoAlpha: 0, x: 120 }, { autoAlpha: 1, x: 0, duration: 0.35, ease: 'power3.out' }, p);
-  gsap.set(prevCard, { scale: 1.15, x: -290, y: -30 });
+  // The preview shows the whole sign word with its badge (v2 cut it to "onaid").
+  gsap.set(prevCard, { scale: 1, x: -30, y: -90 });
   hide('#nshotCount');
   tl.fromTo('#nshotCount', { text: '' }, { text: 'Nshot (1)', duration: 0.01 }, p);
   show('#nshotCount', p, 0.15);
@@ -559,7 +747,7 @@
   const step2 = how.end - 0.75;
   tl.fromTo('#question', { text: 'Circle 1 (1 of 3): what should change?' }, { text: 'Circle 2 (2 of 3): what should change?', duration: 0.01 }, step2);
   tl.fromTo('#answer', { text: 'Spell it Lemonade.' }, { text: '', duration: 0.01 }, step2);
-  tl.fromTo(prevCard, { scale: 1.15, x: -290, y: -30 }, { scale: 1.15, x: -20, y: -300, duration: 0.3, ease: 'power2.inOut' }, step2);
+  tl.fromTo(prevCard, { scale: 1, x: -30, y: -90 }, { scale: 1, x: -30, y: -270, duration: 0.3, ease: 'power2.inOut' }, step2);
   tl.fromTo('#answer', { text: '' }, { text: 'Make it $3.', duration: 0.4, ease: 'none' }, step2 + 0.15);
 
   // ---------- scene 5: session ----------
@@ -624,7 +812,10 @@
   fade('#cursor', closeMenu + 0.05, 0.15);
 
   const toast = cue('toast');
-  pop('#callout', toast, 0.4);
+  pop('#callout', toast, 0.45);
+  tl.fromTo('#calloutLine', { strokeDashoffset: 1100 }, { strokeDashoffset: 0, duration: 0.5, ease: 'power2.out' }, toast + 0.3);
+  // The key line holds while the voice finishes it, so it grows slowly to keep it alive.
+  tl.fromTo('#callout > div', { scale: 1 }, { scale: 1.06, duration: Math.max(0.5, cue('paste') - 0.2 - (toast + 0.45)), ease: 'sine.inOut' }, toast + 0.45);
   tl.fromTo([card1, card2, card3], { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.3 }, toast - 0.05);
   fade('#tray', toast, 0.3);
   ['#slot1', '#slot2', '#slot3'].forEach((s) => fade(s, toast, 0.3));
@@ -636,63 +827,35 @@
   gsap.set(parts, { autoAlpha: 0 });
   parts.forEach((el, k) => tl.fromTo(el, { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.25 }, pst + 0.3 + k * 0.12));
   $$('#bubble .id').forEach((el) => Object.assign(el.style, { color: 'var(--mint)', fontWeight: 700, marginRight: '8px' }));
-  [['#chip1', 'card'], ['#chip2', 'chip_codex'], ['#chip3', 'chip_any']].forEach(([chip, c]) => {
-    tl.fromTo(chip, { backgroundColor: '#2F363B', color: '#C9D1D6' }, { backgroundColor: TEAL, color: '#0F2E2A', duration: 0.15 }, cue(c));
+  ['#chip1', '#chip2', '#chip3'].forEach((chip, k) => {
+    tl.fromTo(chip, { backgroundColor: '#2F363B', color: '#C9D1D6' }, { backgroundColor: TEAL, color: '#0F2E2A', duration: 0.15 }, cue('chips') + k * 0.15);
   });
 
-  // ---------- scene 7: close ----------
+  // The package, opened: why an agent can act on it.
+  const tK = cue('pkg');
+  gsap.set('#agent', { transformOrigin: '0% 50%' }); // shrink toward the left edge, clear of the package panel
+  tl.fromTo('#agent', { x: 0, scale: 1 }, { x: -270, scale: 0.74, duration: 0.5, ease: 'power3.inOut' }, tK - 0.4);
+  show('#pkg', tK - 0.2, 0.25);
+  const rows = $$('#pkg .prow');
+  gsap.set(rows, { autoAlpha: 0 });
+  rows.forEach((r, k) => tl.fromTo(r, { autoAlpha: 0, x: 40 }, { autoAlpha: 1, x: 0, duration: 0.3, ease: 'power3.out' }, tK + 1.8 * k / rows.length));
+
+  // ---------- scene 7: close. Clean and on brand ----------
   const close = scene('close');
   const fx = cue('fix');
-  [robot.el, page.el, you.el, thumb.el, file1.el, chat.el, tally.el, ...pile.map((f) => f.el)].forEach((el) => tl.set(el, { autoAlpha: 0 }, fx - 0.01));
-  tl.fromTo(sleek, { clipPath: 'circle(1250px at 960px 460px)' }, { clipPath: 'circle(0px at 960px 460px)', duration: 0.6, ease: 'power2.in' }, fx);
+  fade(['#agent', '#pkg'], fx - 0.15, 0.3);
+  fade('#menubar', fx - 0.15, 0.3);
+  tl.fromTo('#closeCard', { autoAlpha: 0, y: 60 }, { autoAlpha: 1, y: 0, duration: 0.5, ease: 'power3.out' }, fx);
+  const checks = $$('#closeCard .check');
+  gsap.set(checks, { scale: 0, autoAlpha: 0 });
+  checks.forEach((c, k) => pop(c, cue('checks') + 0.5 * k / checks.length, 0.35));
 
-  const page2 = actor(230, 150, 900, 600);
-  const page2Nodes = drawPage(page2, true);
-  gsap.set(page2.el, { transformOrigin: '0 0', scale: 0.62 });
-  const underline = draw(page2, 'path', ['M190 236 Q420 222 650 240'], { stroke: TEAL, strokeWidth: 7 });
-  const robot2 = actor(40, 600, 420, 560);
-  gsap.set(robot2.el, { transformOrigin: '0 0', scale: 0.5 });
-  const robot2Nodes = drawRobot(robot2, '#9FE7DD');
-  const you2 = actor(780, 400, 260, 560);
-  gsap.set(you2.el, { transformOrigin: '0 0', scale: 0.78 });
-  const you2Nodes = drawFigure(you2).concat([
-    draw(you2, 'circle', [112, 104, 12], { fill: INK, fillStyle: 'solid' }),
-    draw(you2, 'circle', [148, 104, 12], { fill: INK, fillStyle: 'solid' }),
-    draw(you2, 'path', ['M104 132 Q130 160 156 132']),
-    draw(you2, 'path', ['M168 222 L222 222 L214 290 L176 290 Z'], { fill: LEMON, fillStyle: 'hachure', hachureGap: 6 }),
-  ]);
-  const stars = actor(150, 110, 1000, 520);
-  const starNodes = [[40, 60], [860, 30], [680, 470], [20, 420], [560, 0]].map(([x, y]) =>
-    draw(stars, 'path', [`M${x} ${y - 22} L${x + 6} ${y - 6} L${x + 22} ${y} L${x + 6} ${y + 6} L${x} ${y + 22} L${x - 6} ${y + 6} L${x - 22} ${y} L${x - 6} ${y - 6} Z`], { stroke: TEAL, strokeWidth: 3 }));
-  hide([page2.el, robot2.el, you2.el, stars.el]);
-  [page2.el, robot2.el, you2.el, stars.el].forEach((el) => tl.set(el, { autoAlpha: 1 }, fx));
-  revealPage(page2Nodes, fx + 0.05, 0.55);
-  drawOn(underline, fx + 0.75, 0.3);
-  drawOn(robot2Nodes, fx + 0.1, 0.7);
-  drawOn(you2Nodes, fx + 0.2, 0.7);
-  drawOn(starNodes, fx + 0.6, 0.5);
-
-  const end = $('#root');
-  const card = document.createElement('div');
-  card.id = 'endcard';
-  card.style.cssText = 'position:absolute;left:1120px;top:190px;width:760px;';
-  card.innerHTML =
-    '<div style="display:flex;align-items:center;gap:26px;"><img src="assets/img/nextshot-icon-512.png" style="width:150px;height:150px;">' +
-    '<div style="font-size:104px;font-weight:800;letter-spacing:-2px;color:var(--graphite);">Nextshot</div></div>' +
-    '<div style="position:relative;margin-top:26px;font-family:Caveat,cursive;font-weight:700;font-size:72px;color:var(--ink);">Mark it up. Hand it off.' +
-    '<svg style="position:absolute;left:0;top:76px;" width="640" height="24"><path id="endline" d="M4 14 Q320 2 636 16" fill="none" stroke="#3CCDBE" stroke-width="8" stroke-linecap="round"/></svg></div>' +
-    '<div style="display:flex;align-items:center;gap:14px;margin-top:58px;">' +
-    '<div class="key" style="height:62px;font-size:26px;"><span class="sym">⌥</span>Option</div><div class="key" style="height:62px;font-size:26px;"><span class="sym">⇧</span>Shift</div><div class="key" style="height:62px;font-size:26px;">F</div>' +
-    '<div style="font-size:26px;color:var(--muted);margin-left:8px;">starts a capture</div></div>' +
-    '<div style="margin-top:46px;font-size:42px;font-weight:700;color:var(--graphite);">Get the DMG in this message.</div>' +
-    '<div style="margin-top:12px;font-size:26px;color:var(--muted);">Feedback stays on your Mac until you paste it.</div>';
-  sketch.appendChild(card);
-  const endRows = Array.from(card.children);
+  const endRows = $$('#endcard .er');
   gsap.set(endRows, { autoAlpha: 0 });
+  pop(endRows[0], fx + 0.75, 0.45);
   const ec = cue('endcard');
-  pop(endRows[0], cue('fix') + 0.75, 0.45);
   endRows.slice(1).forEach((el, k) => tl.fromTo(el, { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.35 }, ec + k * 0.22));
-  const endline = card.querySelector('#endline');
+  const endline = $('#endline');
   const EL = endline.getTotalLength();
   gsap.set(endline, { strokeDasharray: EL + ' ' + EL, strokeDashoffset: EL });
   tl.fromTo(endline, { strokeDashoffset: EL }, { strokeDashoffset: 0, duration: 0.4, ease: 'none' }, cue('final_chord'));

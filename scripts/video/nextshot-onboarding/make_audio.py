@@ -2,28 +2,42 @@
 """Build the audio and the timing for the Nextshot onboarding video.
 
 Reads script.json. Writes:
-  audio/vo/<line>.wav  one Ava clip per line (48 kHz mono)
+  audio/vo/<line>.wav  one voice clip per line (48 kHz mono)
   audio/mix.wav        voice, effects, and music before loudness normalization
   audio/final.wav      the mix at -16 LUFS integrated, -1.5 dBTP true peak
   timing.json          scene, line, caption, and cue times in seconds
   timing.js            the same data as window.TIMING for index.html
 
+The voice comes from the OpenAI speech API (script.json "voice"). The key is read
+from the macOS Keychain item named in "voice.keychain", in memory only. Each clip
+is cached in audio/tts-cache/ by model, voice, direction, and text, so a re-run
+buys no audio it already has. `--say` uses the macOS fallback voice instead.
+
 Uses only the Python standard library, the macOS `say` command, and ffmpeg.
 Every random choice uses a fixed seed, so each run writes the same audio.
 """
 
+import hashlib
+import http.client
 import json
 import math
 import random
 import re
 import subprocess
+import sys
+import time
+import urllib.error
+import urllib.request
 import wave
 from array import array
 from pathlib import Path
 
+import check_voice  # Whisper transcription, shared with the voice check
+
 ROOT = Path(__file__).resolve().parent
 AUDIO = ROOT / "audio"
 VO_DIR = AUDIO / "vo"
+TTS_CACHE = AUDIO / "tts-cache"
 SR = 48000
 
 
@@ -50,26 +64,147 @@ def write_wav(path, samples):
         w.writeframes(data.tobytes())
 
 
-def make_vo(text, voice, rate, tempo, out_wav):
-    """Speak one line with `say`, trim the silence at both ends, and speed it up.
+def trim_to(src, out_wav, tempo=1.0, max_gap=None):
+    """Trim the silence at both ends, cap the pauses inside, set the pace, write 48 kHz mono.
 
-    Ava (Premium) barely changes pace with `say -r`, so the pitch-preserving
-    atempo filter sets the final pace.
+    max_gap caps every pause inside the line at about that many seconds. The OpenAI
+    voice leaves pauses up to 0.8 s between sentences, which a 45-second cut cannot hold.
     """
-    aiff = out_wav.with_suffix(".aiff")
-    run(["say", "-v", voice, "-r", str(rate), "-o", str(aiff), text])
-    # Peak detection never trims into a quiet word ending (the default RMS
-    # window cut the tail of "all"). Short fades at both ends prevent clicks.
-    trim = (
-        "silenceremove=start_periods=1:start_threshold=-50dB:start_silence=0.03:detection=peak,"
-        "areverse,"
-        "silenceremove=start_periods=1:start_threshold=-50dB:start_silence=0.06:detection=peak,"
-        "afade=t=in:d=0.025,areverse,afade=t=in:d=0.005,"
-        f"atempo={tempo}"
-    )
-    run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(aiff), "-af", trim,
+    if max_gap:
+        # The OpenAI clips carry soft breath noise in their pauses, so peak detection
+        # calls them sound. Average level (RMS) finds them. Each pause keeps max_gap
+        # seconds, and each end keeps 0.1 s, so a quiet word tail stays whole.
+        trim = (
+            f"silenceremove=stop_periods=-1:stop_duration={max_gap}:stop_threshold=-38dB:"
+            f"stop_silence={max_gap}:detection=rms,"
+            "silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.1:detection=rms,"
+            "areverse,"
+            "silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.15:detection=rms,"
+            "afade=t=in:d=0.05,areverse,afade=t=in:d=0.01,"
+            # 40 ms of true silence at each end, so every clip starts and ends clean.
+            "adelay=delays=40:all=1,apad=pad_dur=0.04"
+        )
+    else:
+        # Peak detection never trims into a quiet word ending (the default RMS
+        # window cut the tail of "all"). Short fades at both ends prevent clicks.
+        trim = (
+            "silenceremove=start_periods=1:start_threshold=-50dB:start_silence=0.03:detection=peak,"
+            "areverse,"
+            "silenceremove=start_periods=1:start_threshold=-50dB:start_silence=0.06:detection=peak,"
+            "afade=t=in:d=0.025,areverse,afade=t=in:d=0.005"
+        )
+    if abs(tempo - 1.0) > 1e-6:
+        trim += f",atempo={tempo}"
+    run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(src), "-af", trim,
          "-ar", str(SR), "-ac", "1", "-c:a", "pcm_s16le", str(out_wav)])
+
+
+def make_vo_say(text, voice, out_wav, tempo=1.08):
+    """The macOS fallback. Ava (Premium) barely changes pace with `say -r`, so atempo sets it."""
+    aiff = out_wav.with_suffix(".aiff")
+    run(["say", "-v", voice, "-o", str(aiff), text])
+    trim_to(aiff, out_wav, tempo)
     aiff.unlink()
+
+
+_KEY = None
+
+
+def openai_key(item):
+    """Read the API key from the Keychain into memory. It is never printed or written."""
+    global _KEY
+    if _KEY is None:
+        got = subprocess.run(["security", "find-generic-password", "-s", item, "-w"],
+                             capture_output=True, text=True)
+        if got.returncode != 0 or not got.stdout.strip():
+            sys.exit(f"make_audio: no Keychain item {item}. Store it with keychain-store.sh {item}.")
+        _KEY = got.stdout.strip()
+    return _KEY
+
+
+def make_vo_openai(text, cfg, direction, out_wav, take=1, max_gap=None):
+    """Speak one line with the OpenAI speech API. Cached by model, voice, direction, text, and take.
+
+    A new take number asks for a fresh reading of the same line.
+    """
+    instructions = cfg["style"] + (" " + direction if direction else "")
+    parts = [cfg["model"], cfg["name"], instructions, text] + ([f"take {take}"] if take != 1 else [])
+    key = hashlib.sha1("\n".join(parts).encode()).hexdigest()[:16]
+    TTS_CACHE.mkdir(parents=True, exist_ok=True)
+    raw = TTS_CACHE / f"{key}.wav"
+    if not raw.exists():
+        body = json.dumps({"model": cfg["model"], "voice": cfg["name"], "input": text,
+                           "instructions": instructions, "response_format": "wav"}).encode()
+        for attempt in range(4):
+            req = urllib.request.Request("https://api.openai.com/v1/audio/speech", data=body, headers={
+                "Authorization": "Bearer " + openai_key(cfg["keychain"]), "Content-Type": "application/json"})
+            try:
+                with urllib.request.urlopen(req, timeout=120) as resp:
+                    data = resp.read()
+                break
+            except (http.client.IncompleteRead, urllib.error.URLError, TimeoutError) as err:
+                if attempt == 3:
+                    raise
+                print(f"  retry {attempt + 1} for {text[:30]!r}: {type(err).__name__}")
+                time.sleep(1.5 * (attempt + 1))
+        # A cut-off stream never reaches the cache: write to a temporary file, then rename.
+        part = raw.with_suffix(".part")
+        part.write_bytes(data)
+        part.rename(raw)
+    # sage breathes audibly between sentences, louder than a silence threshold.
+    # A stretch that stays quiet for 0.3 s or more is a breath or a pause, never a word:
+    # cut it to a short margin. (Whisper word times cut into words, so they are not used.)
+    quiet = quiet_spans(raw, cfg.get("breath_db", -35), 0.35)
+    segs = keep_segments(quiet, wav_seconds(raw))
+    cut = out_wav.with_suffix(".cut.wav")
+    cut_segments(raw, segs, cut)
+    trim_to(cut, out_wav, cfg.get("tempo", 1.0), max_gap or cfg.get("max_gap"))
+    cut.unlink()
+
+
+def wav_seconds(path):
+    with wave.open(str(path), "rb") as w:
+        return w.getnframes() / w.getframerate()
+
+
+def quiet_spans(path, db, min_len):
+    """Stretches at least min_len seconds long whose level stays under db, from ffmpeg silencedetect."""
+    out = subprocess.run(["ffmpeg", "-hide_banner", "-i", str(path), "-af", f"silencedetect=noise={db}dB:d={min_len}",
+                          "-f", "null", "-"], capture_output=True, text=True).stderr
+    starts = [float(x) for x in re.findall(r"silence_start: ([0-9.]+)", out)]
+    ends = [float(x) for x in re.findall(r"silence_end: ([0-9.]+)", out)]
+    total = wav_seconds(path)
+    ends += [total] * (len(starts) - len(ends))  # a quiet stretch that runs to the end
+    return list(zip(starts, ends))
+
+
+def keep_segments(quiet, total, margin=0.15, lead=0.08, tail=0.3):
+    """The parts of a clip to keep: everything except the quiet stretches, which shrink to
+    a margin on each side. A leading or trailing stretch keeps only lead or tail seconds."""
+    start, segs = 0.0, []
+    for a, b in quiet:
+        if a <= 0.01:
+            start = max(0.0, b - lead)
+        elif b >= total - 0.01:
+            segs.append((start, min(total, a + tail)))
+            return segs
+        elif b - a > 2 * margin + 0.05:
+            segs.append((start, a + margin))
+            start = b - margin
+    segs.append((start, total))
+    return segs
+
+
+def cut_segments(src, segs, out):
+    """Join the kept parts with 5 ms fades at each joint, so no cut clicks."""
+    chains, labels = [], []
+    for k, (a, b) in enumerate(segs):
+        d = b - a
+        chains.append(f"[0:a]atrim={a:.3f}:{b:.3f},asetpts=PTS-STARTPTS,"
+                      f"afade=t=in:d=0.005,afade=t=out:st={max(0.0, d - 0.005):.3f}:d=0.005[s{k}]")
+        labels.append(f"[s{k}]")
+    graph = ";".join(chains) + ";" + "".join(labels) + f"concat=n={len(segs)}:v=0:a=1[out]"
+    run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(src), "-filter_complex", graph, "-map", "[out]", str(out)])
 
 
 # ---------- timing ----------
@@ -244,11 +379,33 @@ def sfx_ticks(span, count=10):
     return out
 
 
-def make_sfx(name, span):
+def sfx_pops(span, count):
+    """A run of pops, evenly spaced, rising slightly. The picture places a dot on each."""
+    out = blank(span + 0.2)
+    for k in range(count):
+        add(out, sfx_pop(), span * k / max(1, count), 0.75 + 0.25 * k / max(1, count))
+    return out
+
+
+def sfx_snip():
+    """Scissors: two short bright clicks."""
+    out = blank(0.12)
+    add(out, noise(0.015, 0.7, 0.004), 0.0)
+    add(out, tone(4200, 0.02, 0.2, 0.004), 0.0)
+    add(out, noise(0.015, 0.8, 0.004), 0.055)
+    add(out, tone(3600, 0.02, 0.22, 0.004), 0.055)
+    return out
+
+
+def make_sfx(name, span, count=None):
     if name == "typing":
         return sfx_typing(span)
     if name == "ticks":
-        return sfx_ticks(span)
+        return sfx_ticks(span, count or 10)
+    if name == "pops":
+        return sfx_pops(span, count or 3)
+    if name == "snip":
+        return sfx_snip()
     if name == "whoosh_small":
         return sfx_whoosh(0.3, 0.4)
     return {"pop": sfx_pop, "click": sfx_click, "key": sfx_key, "shutter": sfx_shutter,
@@ -298,7 +455,9 @@ def make_music(total, turn_at, chord_at):
             break
         tones, bass = chords[(step // 8) % 4]
         k = step % 8
-        add(out, pluck(tones[pattern[k]], 0.6, 0.32, 0.994), t)
+        # Sparse in the rough sketch part (quarter notes), full eighths after the turn.
+        if t >= turn_at or k % 2 == 0:
+            add(out, pluck(tones[pattern[k]], 0.6, 0.32, 0.994), t)
         if k in (0, 4):
             add(out, pluck(bass, 1.1, 0.5, 0.997), t)
         if t >= turn_at and k % 2 == 1:
@@ -306,6 +465,9 @@ def make_music(total, turn_at, chord_at):
         step += 1
     for k, note in enumerate([48, 60, 64, 67, 72, 76]):  # final strum, C major
         add(out, pluck(note, max(0.6, total - chord_at), 0.3, 0.9985), chord_at + k * 0.018)
+    fade_in = int(1.0 * SR)  # a soft start: the opening is pictures and music only
+    for i in range(min(fade_in, len(out))):
+        out[i] *= i / fade_in
     fade = int(0.6 * SR)
     end = int(total * SR)
     for i in range(max(0, end - fade), len(out)):
@@ -353,13 +515,20 @@ def patch_durations(total):
 
 def main():
     script = json.loads((ROOT / "script.json").read_text())
+    cfg = script["voice"]
+    use_say = "--say" in sys.argv or cfg.get("engine") != "openai"
     VO_DIR.mkdir(parents=True, exist_ok=True)
+    for old in VO_DIR.glob("*.wav"):  # line ids change between cuts
+        old.unlink()
 
     vo, lengths = {}, {}
     for scene in script["scenes"]:
         for line in scene["lines"]:
             path = VO_DIR / f"{line['id']}.wav"
-            make_vo(line["text"], script["voice"], script["rate"], script["tempo"], path)
+            if use_say:
+                make_vo_say(line["text"], cfg.get("fallback", "Ava (Premium)"), path)
+            else:
+                make_vo_openai(line["text"], cfg, line.get("direction", ""), path, line.get("take", 1), line.get("max_gap"))
             vo[line["id"]] = read_wav(path)
             lengths[line["id"]] = len(vo[line["id"]]) / SR
 
@@ -375,7 +544,7 @@ def main():
             active[i] = 1
     for c in script["cues"]:
         if c.get("sfx"):
-            add(fx, make_sfx(c["sfx"], c.get("span", 0.0)), cues[c["id"]])
+            add(fx, make_sfx(c["sfx"], c.get("span", 0.0), c.get("count")), cues[c["id"]])
 
     turn = next(s for s in scenes if s["id"] == "turn")
     music = make_music(total, turn["start"], cues["final_chord"])
@@ -406,7 +575,8 @@ def main():
     patch_durations(total)
 
     words = sum(len(line["text"].split()) for line in lines.values())
-    print(f"duration {total:.2f} s, {words} words, {len(captions)} captions")
+    who = cfg.get("fallback") if use_say else f"OpenAI {cfg['model']}, voice {cfg['name']}"
+    print(f"duration {total:.2f} s, {words} words, {len(captions)} captions, voice: {who}")
     for s in scenes:
         print(f"  {s['id']:<8} {s['start']:6.2f} to {s['end']:6.2f}")
 

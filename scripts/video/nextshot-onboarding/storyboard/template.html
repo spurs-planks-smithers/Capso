@@ -132,7 +132,7 @@ a { color: var(--accent-ink); }
 .av { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 7px 14px; margin: 0; }
 .av dt { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted); padding-top: 3px; }
 .av dd { margin: 0; font-size: 14px; }
-.av dd.spoken { font-size: 19px; font-weight: 650; line-height: 1.35; }
+.av dd.spoken { font-size: 19px; font-weight: 650; line-height: 1.35; text-wrap: balance; } /* quoted script: never reworded, so its lines are balanced instead */
 .caps { display: flex; flex-wrap: wrap; gap: 6px; }
 .cap { background: var(--sleek); color: #fff; font-size: 13px; font-weight: 600; padding: 2px 10px; border-radius: 6px; }
 .cues { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
@@ -261,7 +261,7 @@ footer { font-size: 12.5px; color: var(--muted); padding-block: 0 40px; }
     <section class="panel guide" aria-label="Plain-English guide">
       <h2>Words an editor uses</h2>
       <dl class="gloss">
-        <div><dt>Voiceover</dt><dd>the voice you hear but never see. Here it is Ava, a Mac voice.</dd></div>
+        <div><dt>Voiceover</dt><dd>the voice you hear but never see. Here it is {{VOICE}}.</dd></div>
         <div><dt>Caption</dt><dd>the spoken words on screen. Most people watch muted.</dd></div>
         <div><dt>Scene</dt><dd>one part of the story with one job. This cut has {{SCENE_COUNT}}.</dd></div>
         <div><dt>Beat</dt><dd>one moment inside a scene, such as a badge that pops in.</dd></div>
@@ -474,7 +474,7 @@ footer { font-size: 12.5px; color: var(--muted); padding-block: 0 40px; }
   sections.forEach((sec) => { if (local[sec.dataset.note]) { remote[sec.dataset.note] = local[sec.dataset.note]; render(sec, local[sec.dataset.note]); } });
   const use = window.claude && window.claude.use ? window.claude.use('db') : Promise.resolve(null);
   Promise.resolve(use).then((d) => {
-    if (!d) { setStatus('Notes save in this browser only', ''); return; }
+    if (!d) { setStatus('Notes save in this browser only. Use Copy all notes to send them.', ''); return; }
     db = d;
     setStatus('Notes save to this page', 'ok');
     db.collection('notes').onSnapshot((snap) => {

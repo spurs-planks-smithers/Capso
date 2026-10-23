@@ -303,8 +303,10 @@ def main():
 
     lines, dur = model["lines"], model["duration"]
     words = sum(ln["words"] for ln in lines)
+    v = script["voice"]
+    voice = f"{v['name']}, an OpenAI voice" if isinstance(v, dict) and v.get("engine") == "openai" else str(v)
     meta = [f"Cut {shots['version']}", f"{dur:.1f} seconds", f"{words} words", f"{words / dur * 60:.0f} words per minute",
-            f"{len(lines)} lines", f"{len(model['scenes'])} scenes", f"Voice: {script['voice']}"]
+            f"{len(lines)} lines", f"{len(model['scenes'])} scenes", f"Voice: {voice}"]
     data = {"version": shots["version"], "duration": dur,
             "lines": [{k: ln[k] for k in ("id", "n", "text", "start", "win")} for ln in lines],
             "scenes": [{k: s[k] for k in ("id", "n", "name", "start", "end")} for s in model["scenes"]]}
@@ -317,7 +319,7 @@ def main():
         "{{META}}": "".join(f'<span class="chip">{esc(m)}</span>' for m in meta),
         "{{TIMELINE}}": timeline_html(model), "{{CARDS}}": "".join(scene_html(s) for s in model["scenes"]),
         "{{FRAMEIO}}": esc(shots["frameio"]), "{{FRAMEIO_SHORT}}": esc(shots["frameio"].split("//", 1)[-1]),
-        "{{SCENE_COUNT}}": str(len(model["scenes"])), "{{FOOTER}}": footer, "{{POSTER}}": f"frames/{lines[0]['id']}-2.jpg",
+        "{{SCENE_COUNT}}": str(len(model["scenes"])), "{{FOOTER}}": footer, "{{VOICE}}": esc(voice), "{{POSTER}}": f"frames/{lines[0]['id']}-2.jpg",
         "{{DATA}}": json.dumps(data).replace("</", "<\\/"),
     }.items():
         need(key in page, f"template.html has no {key} slot")
