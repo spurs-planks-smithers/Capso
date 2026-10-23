@@ -1,5 +1,5 @@
 <!doctype html>
-<html>
+<html data-composition-variables='[{"id":"gif","type":"string","label":"GIF mode (on or off)","default":"off"}]'>
 <head>
 <meta charset="utf-8">
 <title>Nextshot onboarding</title>
@@ -255,6 +255,17 @@
   const line = (id) => T.lines[id];
   const $ = (q) => document.querySelector(q);
   const $$ = (q, el) => Array.from((el || document).querySelectorAll(q));
+
+  // GIF mode (hyperframes render --variables '{"gif":"on"}'): the email GIF is 640 pixels
+  // wide, one third of this frame, so captions grow to 66 px here to read at 22 px there.
+  const V = (window.__hyperframes && typeof window.__hyperframes.getVariables === 'function')
+    ? (window.__hyperframes.getVariables() || {}) : {};
+  const GIF = V.gif === 'on';
+  if (GIF) {
+    const st = document.createElement('style');
+    st.textContent = '#captions .cap { top: 946px; } #captions .cap span { font-size: 66px; padding: 14px 36px; border-radius: 26px; }';
+    document.head.appendChild(st);
+  }
 
   const INK = '#2B2B2B', LEMON = '#F5C518', TEAL = '#3CCDBE', BADGE = '#FF543E';
   const tl = gsap.timeline({ paused: true, defaults: { ease: 'power2.out', immediateRender: false } });
@@ -689,6 +700,7 @@
   // ---------- captions ----------
   const caps = $('#captions');
   T.captions.forEach((c) => {
+    if (GIF && c.start >= scene('close').start) return; // the end card carries its own words
     const el = document.createElement('div');
     el.className = 'cap';
     el.innerHTML = '<span></span>';

@@ -12,6 +12,7 @@ The video is `build/releases/Nextshot-onboarding-2026.10.22.mp4` (git ignores `b
 | `scripts/video/nextshot-onboarding/make_audio.py` | Makes the voice clips, sound effects, and music. Writes `audio/final.wav`, `timing.json`, and `timing.js` |
 | `scripts/video/nextshot-onboarding/index.html` | The HyperFrames composition: all seven scenes on one GSAP timeline that reads `timing.js` |
 | `scripts/video/nextshot-onboarding/render.sh` | Runs everything and writes the video and the poster to `build/releases/` |
+| `scripts/video/nextshot-onboarding/make_gif.py` | Renders the composition in GIF mode and cuts the email GIF (see "Email GIF") |
 | `scripts/video/nextshot-onboarding/assets/` | Caveat and Inter fonts (SIL Open Font License), GSAP and Rough.js, the Nextshot icon |
 
 `audio/`, `renders/`, `timing.json`, `timing.js`, and `node_modules/` are generated. They are not in git.
@@ -51,6 +52,21 @@ scripts/video/nextshot-onboarding/render.sh
 - The output file name takes the date of the HEAD commit.
 - HyperFrames telemetry is off on m5pro (`hyperframes telemetry disable`). Turn it off on any other Mac before the first render.
 - To check frames without a full render, use `node_modules/.bin/hyperframes snapshot . --at 12.5,20 --describe false`. Without `--describe false`, the snapshot sends frames to Gemini when `GEMINI_API_KEY` is set.
+
+## Email GIF
+
+`build/releases/Nextshot-onboarding-hero.gif` is a 24-second cut of the video for the launch email: 640 by 360 pixels, 12 frames per second, one 255-color palette, about 1.2 MB. It goes into the email as an inline attachment with a content id, and the email wraps it in a link to the full video.
+
+```bash
+python3 scripts/video/nextshot-onboarding/make_gif.py
+```
+
+- `--no-render` reuses the last GIF-mode render in `renders/gif-source.mp4`.
+- GIF mode is a composition variable (`--variables '{"gif":"on"}'`). It raises the captions to 66 pixels, one third of the frame's width maps to the GIF, so they read at 22 pixels there. It also drops the captions over the end card, which carries its own words.
+- The ffmpeg on m5pro has no subtitle filter, so the captions come from the composition, never from ffmpeg.
+- The segments are cut at cue times from `timing.json`, so a script change moves them with the voice.
+- The first frame must stand alone: classic Outlook on Windows shows only the first frame of an animated GIF. Outlook for Mac, the new Outlook for Windows, Outlook on iPhone and Android, Apple Mail, and Gmail play the loop. The first frame is the finished lemonade stand with the caption "Your AI agent just built you a lemonade stand."
+- Keep the file under about 3 MB. A larger GIF slows the email on a phone.
 
 ## Change it
 
