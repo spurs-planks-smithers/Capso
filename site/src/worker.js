@@ -18,22 +18,33 @@ export default {
     }
     if (url.pathname === "/download") return noindex(download(request, env, ctx));
     if (url.pathname === "/stats") return noindex(await stats(env));
-    return noindex(await ranged(request, await env.ASSETS.fetch(request)));
+    const asset = await env.ASSETS.fetch(request);
+    return noindex(ranged(request, asset, sizeOf(env, url.pathname)));
   },
 };
 
+// File sizes for the video and the DMG. site/deploy.sh passes them as
+// SIZES="/media/a.mp4=123,/releases/b.dmg=456", because the asset store's
+// response does not expose Content-Length to the Worker.
+function sizeOf(env, pathname) {
+  for (const entry of (env.SIZES || "").split(",")) {
+    const [path, bytes] = entry.split("=");
+    if (path === pathname) return Number(bytes);
+  }
+  return 0;
+}
+
 // Safari plays a video only when the server answers a Range request with 206.
-// When the asset store returns the whole file (200), cut the asked-for bytes here.
-async function ranged(request, response) {
+// When the asset store returns the whole file (200), stream only the asked-for
+// bytes. The body is never held in memory.
+function ranged(request, response, size) {
   if (request.method !== "GET" || response.status !== 200) return response;
   const match = /^bytes=(\d*)-(\d*)$/.exec(request.headers.get("Range") || "");
-  if (!match || (match[1] === "" && match[2] === "")) {
+  if (!match || (match[1] === "" && match[2] === "") || !size || response.headers.has("Content-Encoding")) {
     const out = new Response(response.body, response);
-    out.headers.set("Accept-Ranges", "bytes");
+    if (size && !response.headers.has("Content-Encoding")) out.headers.set("Accept-Ranges", "bytes");
     return out;
   }
-  const body = await response.arrayBuffer();
-  const size = body.byteLength;
   let start = Number(match[1]);
   let end = match[2] === "" ? size - 1 : Math.min(Number(match[2]), size - 1);
   if (match[1] === "") {
@@ -42,14 +53,29 @@ async function ranged(request, response) {
     end = size - 1;
   }
   if (start > end) {
+    response.body?.cancel();
     return new Response(null, { status: 416, headers: { "Content-Range": `bytes */${size}` } });
   }
   const headers = new Headers(response.headers);
   headers.set("Accept-Ranges", "bytes");
   headers.set("Content-Range", `bytes ${start}-${end}/${size}`);
-  headers.set("Content-Length", String(end - start + 1));
-  headers.delete("Content-Encoding"); // arrayBuffer() gave decoded bytes
-  return new Response(body.slice(start, end + 1), { status: 206, headers });
+  const body = response.body.pipeThrough(byteSlice(start, end)).pipeThrough(new FixedLengthStream(end - start + 1));
+  return new Response(body, { status: 206, headers });
+}
+
+// Passes on bytes start..end (inclusive) and stops reading after end.
+function byteSlice(start, end) {
+  let pos = 0;
+  return new TransformStream({
+    transform(chunk, controller) {
+      const chunkStart = pos;
+      pos += chunk.byteLength;
+      if (pos > start) {
+        controller.enqueue(chunk.subarray(Math.max(start - chunkStart, 0), Math.min(end + 1 - chunkStart, chunk.byteLength)));
+      }
+      if (pos > end) controller.terminate();
+    },
+  });
 }
 
 function noindex(response) {

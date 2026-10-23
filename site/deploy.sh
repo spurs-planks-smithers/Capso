@@ -81,16 +81,19 @@ sed -i '' -e "s|{{VERSION}}|$version|g" -e "s|{{SIZE}}|$size|g" \
   -e "s|{{VIDEO}}|$video_name|g" -e "s|{{POSTER}}|$poster_name|g" "$stage/index.html"
 ! grep -q '{{' "$stage/index.html" || fail "index.html still has a placeholder"
 
+# Byte sizes for the Worker's Range replies (see sizeOf in src/worker.js).
+sizes="/media/$video_name=$(stat -f %z "$video"),/releases/$dmg_name=$(stat -f %z "$dmg")"
+
 echo "Staged $stage: $dmg_name ($version, $size), $video_name"
 if ((stage_only)); then
-  echo "Local check: wrangler dev --config site/wrangler.jsonc --var DMG_FILE:$dmg_name --var VERSION:$version"
+  echo "Local check: wrangler dev --config site/wrangler.jsonc --var DMG_FILE:$dmg_name --var VERSION:$version --var SIZES:$sizes"
   exit 0
 fi
 
 token="$(security find-generic-password -s "$keychain_item" -w 2>/dev/null)" ||
   fail "no Keychain item $keychain_item. Store it with keychain-store.sh $keychain_item"
 export CLOUDFLARE_API_TOKEN="$token"
-wrangler deploy --config "$repo/site/wrangler.jsonc" --var "DMG_FILE:$dmg_name" --var "VERSION:$version"
+wrangler deploy --config "$repo/site/wrangler.jsonc" --var "DMG_FILE:$dmg_name" --var "VERSION:$version" --var "SIZES:$sizes"
 
 # Smoke test. The user agent marks these requests as bots on /stats. curl asks
 # public DNS (1.1.1.1 over HTTPS), because this Mac can cache "no such domain"
