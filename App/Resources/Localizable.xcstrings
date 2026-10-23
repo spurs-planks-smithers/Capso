@@ -3007,61 +3007,67 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Über Capso"
+            "value" : "Über Nextshot"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About Nextshot"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Acerca de Capso"
+            "value" : "Acerca de Nextshot"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "À propos de Capso"
+            "value" : "À propos de Nextshot"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Informazioni su Capso"
+            "value" : "Informazioni su Nextshot"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso について"
+            "value" : "Nextshot について"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso 정보"
+            "value" : "Nextshot 정보"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sobre o Capso"
+            "value" : "Sobre o Nextshot"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "О программе Capso"
+            "value" : "О программе Nextshot"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "关于 Capso"
+            "value" : "关于 Nextshot"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "關於 Capso"
+            "value" : "關於 Nextshot"
           }
         }
       }
@@ -4864,61 +4870,67 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Eine andere App hat mit Capso deinen Bildschirm aufgenommen."
+            "value" : "Eine andere App hat mit Nextshot deinen Bildschirm aufgenommen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Another app used Nextshot to capture your screen."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Otra app ha usado Capso para capturar tu pantalla."
+            "value" : "Otra app ha usado Nextshot para capturar tu pantalla."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Une autre app a utilisé Capso pour capturer votre écran."
+            "value" : "Une autre app a utilisé Nextshot pour capturer votre écran."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un'altra app ha usato Capso per catturare lo schermo."
+            "value" : "Un'altra app ha usato Nextshot per catturare lo schermo."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "別のアプリが Capso を使って画面をキャプチャしました。"
+            "value" : "別のアプリが Nextshot を使って画面をキャプチャしました。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "다른 앱이 Capso를 사용해 화면을 캡처했습니다."
+            "value" : "다른 앱이 Nextshot를 사용해 화면을 캡처했습니다."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Outro app usou o Capso para capturar sua tela."
+            "value" : "Outro app usou o Nextshot para capturar sua tela."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Другое приложение использовало Capso для снимка экрана."
+            "value" : "Другое приложение использовало Nextshot для снимка экрана."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "另一个 App 使用 Capso 截取了你的屏幕。"
+            "value" : "另一个 App 使用 Nextshot 截取了你的屏幕。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "另一個 App 使用 Capso 擷取了你的螢幕。"
+            "value" : "另一個 App 使用 Nextshot 擷取了你的螢幕。"
           }
         }
       }
@@ -4928,61 +4940,67 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Eine andere App möchte Capso steuern"
+            "value" : "Eine andere App möchte Nextshot steuern"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Another app wants to control Nextshot"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Otra app quiere controlar Capso"
+            "value" : "Otra app quiere controlar Nextshot"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Une autre app souhaite contrôler Capso"
+            "value" : "Une autre app souhaite contrôler Nextshot"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un'altra app vuole controllare Capso"
+            "value" : "Un'altra app vuole controllare Nextshot"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "別のアプリが Capso を操作しようとしています"
+            "value" : "別のアプリが Nextshot を操作しようとしています"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "다른 앱이 Capso를 제어하려고 합니다"
+            "value" : "다른 앱이 Nextshot를 제어하려고 합니다"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Outro app quer controlar o Capso"
+            "value" : "Outro app quer controlar o Nextshot"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Другое приложение хочет управлять Capso"
+            "value" : "Другое приложение хочет управлять Nextshot"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "另一个 App 想要控制 Capso"
+            "value" : "另一个 App 想要控制 Nextshot"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "另一個 App 想要控制 Capso"
+            "value" : "另一個 App 想要控制 Nextshot"
           }
         }
       }
@@ -8202,61 +8220,67 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Kamerazugriff ist deaktiviert. Aktiviere Capso unter Systemeinstellungen > Datenschutz & Sicherheit > Kamera und versuche es erneut."
+            "value" : "Der Kamerazugriff ist deaktiviert. Aktiviere Nextshot unter Systemeinstellungen > Datenschutz & Sicherheit > Kamera und versuche es erneut."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Camera access is turned off. Enable Nextshot in System Settings > Privacy & Security > Camera, then try again."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "El acceso a la cámara está desactivado. Activa Capso en Ajustes del Sistema > Privacidad y seguridad > Cámara y vuelve a intentarlo."
+            "value" : "El acceso a la cámara está desactivado. Activa Nextshot en Ajustes del Sistema > Privacidad y seguridad > Cámara y vuelve a intentarlo."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "L'accès à la caméra est désactivé. Activez Capso dans Réglages Système > Confidentialité et sécurité > Caméra, puis réessayez."
+            "value" : "L'accès à la caméra est désactivé. Activez Nextshot dans Réglages Système > Confidentialité et sécurité > Caméra, puis réessayez."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "L'accesso alla fotocamera è disattivato. Attiva Capso in Impostazioni di Sistema > Privacy e sicurezza > Fotocamera, poi riprova."
+            "value" : "L'accesso alla fotocamera è disattivato. Attiva Nextshot in Impostazioni di Sistema > Privacy e sicurezza > Fotocamera, poi riprova."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "カメラへのアクセスがオフになっています。システム設定 > プライバシーとセキュリティ > カメラ で Capso を有効にしてから、もう一度お試しください。"
+            "value" : "カメラへのアクセスがオフになっています。システム設定 > プライバシーとセキュリティ > カメラ で Nextshot を有効にしてから、もう一度お試しください。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "카메라 접근이 꺼져 있습니다. 시스템 설정 > 개인정보 보호 및 보안 > 카메라에서 Capso를 활성화한 후 다시 시도하세요."
+            "value" : "카메라 접근이 꺼져 있습니다. 시스템 설정 > 개인정보 보호 및 보안 > 카메라에서 Nextshot를 활성화한 후 다시 시도하세요."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O acesso à câmera está desativado. Ative o Capso em Ajustes do Sistema > Privacidade e Segurança > Câmera e tente novamente."
+            "value" : "O acesso à câmera está desativado. Ative o Nextshot em Ajustes do Sistema > Privacidade e Segurança > Câmera e tente novamente."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Доступ к камере отключен. Включите Capso в разделе Системные настройки > Конфиденциальность и безопасность > Камера и повторите попытку."
+            "value" : "Доступ к камере отключен. Включите Nextshot в разделе Системные настройки > Конфиденциальность и безопасность > Камера и повторите попытку."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "摄像头访问已关闭。请在“系统设置” > “隐私与安全性” > “摄像头”中启用 Capso，然后重试。"
+            "value" : "摄像头访问已关闭。请在“系统设置” > “隐私与安全性” > “摄像头”中启用 Nextshot，然后重试。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "相機取用權限已關閉。請在「系統設定」>「隱私權與安全性」>「相機」中啟用 Capso，然後再試一次。"
+            "value" : "相機取用權限已關閉。請在「系統設定」>「隱私權與安全性」>「相機」中啟用 Nextshot，然後再試一次。"
           }
         }
       }
@@ -8523,61 +8547,67 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso stellt dies jedem hochgeladenen Dateinamen voran, um den Link zum Teilen zu bilden. Hast du in R2 eine eigene Domain eingerichtet, füge sie hier ein – ansonsten verwende die pub-…r2.dev-URL aus dem Abschnitt „Public access“ deines Buckets."
+            "value" : "Nextshot stellt dies jedem hochgeladenen Dateinamen voran, um den Link zum Teilen zu bilden. Hast du in R2 eine eigene Domain eingerichtet, füge sie hier ein – ansonsten verwende die pub-…r2.dev-URL aus dem Abschnitt „Public access“ deines Buckets."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nextshot prepends this to every uploaded filename to build the share link. If you set up a custom domain in R2, paste that here — otherwise use the pub-…r2.dev URL from your bucket's Public access section."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso antepone esto a cada nombre de archivo subido para crear el enlace para compartir. Si has configurado un dominio personalizado en R2, pégalo aquí; si no, usa la URL pub-…r2.dev de la sección Public access de tu bucket."
+            "value" : "Nextshot antepone esto a cada nombre de archivo subido para crear el enlace para compartir. Si has configurado un dominio personalizado en R2, pégalo aquí; si no, usa la URL pub-…r2.dev de la sección Public access de tu bucket."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso ajoute ce préfixe à chaque nom de fichier téléversé pour créer le lien de partage. Si vous avez configuré un domaine personnalisé dans R2, collez-le ici — sinon, utilisez l'URL pub-…r2.dev de la section Public access de votre bucket."
+            "value" : "Nextshot ajoute ce préfixe à chaque nom de fichier téléversé pour créer le lien de partage. Si vous avez configuré un domaine personnalisé dans R2, collez-le ici — sinon, utilisez l'URL pub-…r2.dev de la section Public access de votre bucket."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso aggiunge questo prefisso al nome di ogni file caricato per creare il link di condivisione. Se hai configurato un dominio personalizzato in R2, incollalo qui; altrimenti usa l'URL pub-…r2.dev dalla sezione Public access del bucket."
+            "value" : "Nextshot aggiunge questo prefisso al nome di ogni file caricato per creare il link di condivisione. Se hai configurato un dominio personalizzato in R2, incollalo qui; altrimenti usa l'URL pub-…r2.dev dalla sezione Public access del bucket."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso はこれをアップロードされたファイル名の先頭に付加して共有リンクを生成します。R2 でカスタムドメインを設定した場合はそれを貼り付けてください — そうでない場合はバケットの Public access セクションにある pub-…r2.dev の URL を使用してください。"
+            "value" : "Nextshot はこれをアップロードされたファイル名の先頭に付加して共有リンクを生成します。R2 でカスタムドメインを設定した場合はそれを貼り付けてください — そうでない場合はバケットの Public access セクションにある pub-…r2.dev の URL を使用してください。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso는 업로드된 파일명 앞에 이것을 붙여 공유 링크를 만듭니다. R2에서 커스텀 도메인을 설정했다면 여기에 붙여 넣으세요 — 그렇지 않은 경우 버킷의 Public access 섹션에 있는 pub-…r2.dev URL을 사용하세요."
+            "value" : "Nextshot는 업로드된 파일명 앞에 이것을 붙여 공유 링크를 만듭니다. R2에서 커스텀 도메인을 설정했다면 여기에 붙여 넣으세요 — 그렇지 않은 경우 버킷의 Public access 섹션에 있는 pub-…r2.dev URL을 사용하세요."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O Capso adiciona isto antes de cada nome de arquivo enviado para montar o link de compartilhamento. Se você configurou um domínio personalizado no R2, cole-o aqui — caso contrário, use o URL pub-…r2.dev da seção Public access do seu bucket."
+            "value" : "O Nextshot adiciona isto antes de cada nome de arquivo enviado para montar o link de compartilhamento. Se você configurou um domínio personalizado no R2, cole-o aqui — caso contrário, use o URL pub-…r2.dev da seção Public access do seu bucket."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso добавляет это значение перед именем каждого загруженного файла, чтобы получить ссылку для обмена. Если вы настроили в R2 собственный домен, вставьте его сюда, иначе используйте URL вида pub-…r2.dev из раздела Public access вашего бакета."
+            "value" : "Nextshot добавляет это значение перед именем каждого загруженного файла, чтобы получить ссылку для обмена. Если вы настроили в R2 собственный домен, вставьте его сюда, иначе используйте URL вида pub-…r2.dev из раздела Public access вашего бакета."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso 会将此前缀拼接到每个上传文件名前，生成分享链接。如果您在 R2 中配置了自定义域名，请粘贴于此 — 否则请使用存储桶 Public access 部分中的 pub-…r2.dev URL。"
+            "value" : "Nextshot 会将此前缀拼接到每个上传文件名前，生成分享链接。如果您在 R2 中配置了自定义域名，请粘贴于此 — 否则请使用存储桶 Public access 部分中的 pub-…r2.dev URL。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso 會將此前綴加在每個上傳的檔案名稱前面，以產生分享連結。如果你在 R2 中設定了自訂網域，請貼在這裡 — 否則請使用儲存貯體 Public access 區段中的 pub-…r2.dev URL。"
+            "value" : "Nextshot 會將此前綴加在每個上傳的檔案名稱前面，以產生分享連結。如果你在 R2 中設定了自訂網域，請貼在這裡 — 否則請使用儲存貯體 Public access 區段中的 pub-…r2.dev URL。"
           }
         }
       }
@@ -8588,61 +8618,67 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso stellt dies jedem hochgeladenen Dateinamen voran, um den Link zum Teilen zu bilden. Verwende deine eigene Domain, falls verbunden, ansonsten die pub-…r2.dev-URL aus dem Abschnitt „Public Development URL“."
+            "value" : "Nextshot stellt dies jedem hochgeladenen Dateinamen voran, um den Link zum Teilen zu bilden. Verwende deine eigene Domain, falls verbunden, ansonsten die pub-…r2.dev-URL aus dem Abschnitt „Public Development URL“."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nextshot prepends this to every uploaded filename to build the share link. Use your custom domain if you connected one, otherwise use the pub-…r2.dev URL from the Public Development URL section."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso antepone esto a cada nombre de archivo subido para crear el enlace para compartir. Usa tu dominio personalizado si has conectado uno; si no, usa la URL pub-…r2.dev de la sección Public Development URL."
+            "value" : "Nextshot antepone esto a cada nombre de archivo subido para crear el enlace para compartir. Usa tu dominio personalizado si has conectado uno; si no, usa la URL pub-…r2.dev de la sección Public Development URL."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso ajoute ce préfixe à chaque nom de fichier téléversé pour créer le lien de partage. Utilisez votre domaine personnalisé si vous en avez connecté un, sinon l'URL pub-…r2.dev de la section Public Development URL."
+            "value" : "Nextshot ajoute ce préfixe à chaque nom de fichier téléversé pour créer le lien de partage. Utilisez votre domaine personnalisé si vous en avez connecté un, sinon l'URL pub-…r2.dev de la section Public Development URL."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso aggiunge questo prefisso al nome di ogni file caricato per creare il link di condivisione. Usa il tuo dominio personalizzato se ne hai collegato uno, altrimenti usa l'URL pub-…r2.dev dalla sezione Public Development URL."
+            "value" : "Nextshot aggiunge questo prefisso al nome di ogni file caricato per creare il link di condivisione. Usa il tuo dominio personalizzato se ne hai collegato uno, altrimenti usa l'URL pub-…r2.dev dalla sezione Public Development URL."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso はアップロードされたファイル名の前にこれを付加して共有リンクを生成します。カスタムドメインを接続した場合はそれを、そうでなければ Public Development URL セクションの pub-…r2.dev URL を使用してください。"
+            "value" : "Nextshot はアップロードされたファイル名の前にこれを付加して共有リンクを生成します。カスタムドメインを接続した場合はそれを、そうでなければ Public Development URL セクションの pub-…r2.dev URL を使用してください。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso는 업로드된 모든 파일 이름 앞에 이것을 붙여 공유 링크를 만듭니다. 사용자 지정 도메인을 연결한 경우 해당 도메인을, 그렇지 않으면 Public Development URL 섹션의 pub-…r2.dev URL을 사용하세요."
+            "value" : "Nextshot는 업로드된 모든 파일 이름 앞에 이것을 붙여 공유 링크를 만듭니다. 사용자 지정 도메인을 연결한 경우 해당 도메인을, 그렇지 않으면 Public Development URL 섹션의 pub-…r2.dev URL을 사용하세요."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O Capso adiciona isto antes de cada nome de arquivo enviado para montar o link de compartilhamento. Use seu domínio personalizado, se tiver conectado um; caso contrário, use o URL pub-…r2.dev da seção Public Development URL."
+            "value" : "O Nextshot adiciona isto antes de cada nome de arquivo enviado para montar o link de compartilhamento. Use seu domínio personalizado, se tiver conectado um; caso contrário, use o URL pub-…r2.dev da seção Public Development URL."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso добавляет это значение перед именем каждого загруженного файла, чтобы получить ссылку для обмена. Используйте собственный домен, если вы его подключили, иначе — URL вида pub-…r2.dev из раздела Public Development URL."
+            "value" : "Nextshot добавляет это значение перед именем каждого загруженного файла, чтобы получить ссылку для обмена. Используйте собственный домен, если вы его подключили, иначе — URL вида pub-…r2.dev из раздела Public Development URL."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso 会把这段前缀加在每个上传文件名前面来生成分享链接。如果你连接了自定义域名就用那个，否则用 Public Development URL 章节里的 pub-…r2.dev URL。"
+            "value" : "Nextshot 会把这段前缀加在每个上传文件名前面来生成分享链接。如果你连接了自定义域名就用那个，否则用 Public Development URL 章节里的 pub-…r2.dev URL。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso 會將此前綴加在每個上傳的檔案名稱前面，以產生分享連結。如果你已連接自訂網域，請使用該網域；否則請使用 Public Development URL 區段中的 pub-…r2.dev URL。"
+            "value" : "Nextshot 會將此前綴加在每個上傳的檔案名稱前面，以產生分享連結。如果你已連接自訂網域，請使用該網域；否則請使用 Public Development URL 區段中的 pub-…r2.dev URL。"
           }
         }
       }
@@ -8652,61 +8688,67 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso wurde während einer Aufzeichnung unerwartet beendet. Das bisher Aufgezeichnete wurde unter %@ gesichert."
+            "value" : "Nextshot wurde während einer Aufzeichnung unerwartet beendet. Das bisher Aufgezeichnete wurde unter %@ gesichert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nextshot quit unexpectedly during a recording. What was captured has been saved to %@."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso se cerró inesperadamente durante una grabación. Lo que se capturó se ha guardado en %@."
+            "value" : "Nextshot se cerró inesperadamente durante una grabación. Lo que se capturó se ha guardado en %@."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso a quitté de manière inattendue pendant un enregistrement. Ce qui a été capturé a été enregistré dans %@."
+            "value" : "Nextshot a quitté de manière inattendue pendant un enregistrement. Ce qui a été capturé a été enregistré dans %@."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso si è chiuso inaspettatamente durante una registrazione. Quanto catturato è stato salvato in %@."
+            "value" : "Nextshot si è chiuso inaspettatamente durante una registrazione. Quanto catturato è stato salvato in %@."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "録画中に Capso が予期せず終了しました。それまでに収録された内容は %@ に保存されています。"
+            "value" : "録画中に Nextshot が予期せず終了しました。それまでに収録された内容は %@ に保存されています。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "녹화 중 Capso가 예기치 않게 종료되었습니다. 그때까지 녹화된 내용은 %@에 저장되었습니다."
+            "value" : "녹화 중 Nextshot가 예기치 않게 종료되었습니다. 그때까지 녹화된 내용은 %@에 저장되었습니다."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O Capso foi encerrado inesperadamente durante uma gravação. O que foi gravado foi salvo em %@."
+            "value" : "O Nextshot foi encerrado inesperadamente durante uma gravação. O que foi gravado foi salvo em %@."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso неожиданно завершил работу во время записи. Записанное сохранено в %@."
+            "value" : "Nextshot неожиданно завершил работу во время записи. Записанное сохранено в %@."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso 在录制期间意外退出。已录制的内容已保存到 %@。"
+            "value" : "Nextshot 在录制期间意外退出。已录制的内容已保存到 %@。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso 在錄製期間意外結束。已錄製的內容已儲存到 %@。"
+            "value" : "Nextshot 在錄製期間意外結束。已錄製的內容已儲存到 %@。"
           }
         }
       }
@@ -8716,61 +8758,67 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso-Einstellungen"
+            "value" : "Nextshot-Einstellungen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nextshot Settings"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ajustes de Capso"
+            "value" : "Ajustes de Nextshot"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Réglages de Capso"
+            "value" : "Réglages de Nextshot"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Impostazioni di Capso"
+            "value" : "Impostazioni di Nextshot"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso 設定"
+            "value" : "Nextshot 設定"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso 설정"
+            "value" : "Nextshot 설정"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ajustes do Capso"
+            "value" : "Ajustes do Nextshot"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Настройки Capso"
+            "value" : "Настройки Nextshot"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso 设置"
+            "value" : "Nextshot 设置"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso 設定"
+            "value" : "Nextshot 設定"
           }
         }
       }
@@ -8781,61 +8829,67 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso spricht das S3-Protokoll, daher funktioniert jeder S3-kompatible Bucket. Wir empfehlen Cloudflare R2 – großzügige Gratisstufe und keine Egress-Gebühren."
+            "value" : "Nextshot spricht das S3-Protokoll, daher funktioniert jeder S3-kompatible Bucket. Wir empfehlen Cloudflare R2 – großzügige Gratisstufe und keine Egress-Gebühren."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nextshot speaks the S3 protocol, so any S3-compatible bucket works. We recommend Cloudflare R2 — generous free tier and no egress fees."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso usa el protocolo S3, así que funciona con cualquier bucket compatible con S3. Recomendamos Cloudflare R2: plan gratuito generoso y sin tarifas de salida."
+            "value" : "Nextshot usa el protocolo S3, así que funciona con cualquier bucket compatible con S3. Recomendamos Cloudflare R2: plan gratuito generoso y sin tarifas de salida."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso utilise le protocole S3 : tout bucket compatible S3 fonctionne. Nous recommandons Cloudflare R2 — une offre gratuite généreuse et aucuns frais de sortie."
+            "value" : "Nextshot utilise le protocole S3 : tout bucket compatible S3 fonctionne. Nous recommandons Cloudflare R2 — une offre gratuite généreuse et aucuns frais de sortie."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso usa il protocollo S3, quindi funziona con qualsiasi bucket compatibile S3. Consigliamo Cloudflare R2: piano gratuito generoso e nessun costo di egress."
+            "value" : "Nextshot usa il protocollo S3, quindi funziona con qualsiasi bucket compatibile S3. Consigliamo Cloudflare R2: piano gratuito generoso e nessun costo di egress."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso は S3 プロトコルに対応しているため、S3 互換のバケットであれば利用できます。Cloudflare R2 を推奨します — 無料枠が充実しており、下り転送費もかかりません。"
+            "value" : "Nextshot は S3 プロトコルに対応しているため、S3 互換のバケットであれば利用できます。Cloudflare R2 を推奨します — 無料枠が充実しており、下り転送費もかかりません。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso는 S3 프로토콜을 지원하므로 S3 호환 버킷이라면 모두 사용할 수 있습니다. Cloudflare R2를 권장합니다 — 무료 용량이 넉넉하고 이그레스 요금이 없습니다."
+            "value" : "Nextshot는 S3 프로토콜을 지원하므로 S3 호환 버킷이라면 모두 사용할 수 있습니다. Cloudflare R2를 권장합니다 — 무료 용량이 넉넉하고 이그레스 요금이 없습니다."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O Capso usa o protocolo S3, então qualquer bucket compatível com S3 funciona. Recomendamos o Cloudflare R2 — plano gratuito generoso e sem taxas de egress."
+            "value" : "O Nextshot usa o protocolo S3, então qualquer bucket compatível com S3 funciona. Recomendamos o Cloudflare R2 — plano gratuito generoso e sem taxas de egress."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso поддерживает протокол S3, поэтому подойдет любой S3-совместимый бакет. Мы рекомендуем Cloudflare R2 — щедрый бесплатный тариф и без платы за исходящий трафик."
+            "value" : "Nextshot поддерживает протокол S3, поэтому подойдет любой S3-совместимый бакет. Мы рекомендуем Cloudflare R2 — щедрый бесплатный тариф и без платы за исходящий трафик."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso 支持 S3 协议，任何 S3 兼容的存储桶均可使用。推荐 Cloudflare R2 — 免费额度充足，且无出流量费用。"
+            "value" : "Nextshot 支持 S3 协议，任何 S3 兼容的存储桶均可使用。推荐 Cloudflare R2 — 免费额度充足，且无出流量费用。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso 使用 S3 通訊協定，因此任何相容 S3 的儲存貯體皆可使用。我們推薦 Cloudflare R2 — 免費額度充足，且無輸出流量費用。"
+            "value" : "Nextshot 使用 S3 通訊協定，因此任何相容 S3 的儲存貯體皆可使用。我們推薦 Cloudflare R2 — 免費額度充足，且無輸出流量費用。"
           }
         }
       }
@@ -8845,61 +8899,67 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso lädt in **deinen eigenen Cloud-Speicher** hoch – niemals auf unsere Server. Du stellst den Bucket, dir gehören die Dateien, du trägst die Kosten. Wir liefern dir nur den Link zum Teilen."
+            "value" : "Nextshot lädt in **deinen eigenen Cloud-Speicher** hoch – niemals auf unsere Server. Du stellst den Bucket, dir gehören die Dateien, du trägst die Kosten. Wir liefern dir nur den Link zum Teilen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nextshot uploads to **your own cloud storage** — never our servers. You bring the bucket, you own the files, you keep the bill. We just hand you the share link."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso sube los archivos a **tu propio almacenamiento en la nube**, nunca a nuestros servidores. Tú pones el bucket, los archivos son tuyos y tú pagas la factura. Nosotros solo te damos el enlace para compartir."
+            "value" : "Nextshot sube los archivos a **tu propio almacenamiento en la nube**, nunca a nuestros servidores. Tú pones el bucket, los archivos son tuyos y tú pagas la factura. Nosotros solo te damos el enlace para compartir."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso téléverse vers **votre propre stockage cloud** — jamais vers nos serveurs. Vous fournissez le bucket, les fichiers vous appartiennent et vous gardez la maîtrise des coûts. Nous vous donnons simplement le lien de partage."
+            "value" : "Nextshot téléverse vers **votre propre stockage cloud** — jamais vers nos serveurs. Vous fournissez le bucket, les fichiers vous appartiennent et vous gardez la maîtrise des coûts. Nous vous donnons simplement le lien de partage."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso carica i file sul **tuo spazio di archiviazione cloud**, mai sui nostri server. Il bucket è tuo, i file sono tuoi, la fattura è tua. Noi ti diamo solo il link di condivisione."
+            "value" : "Nextshot carica i file sul **tuo spazio di archiviazione cloud**, mai sui nostri server. Il bucket è tuo, i file sono tuoi, la fattura è tua. Noi ti diamo solo il link di condivisione."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso はファイルを**あなた自身のクラウドストレージ**にアップロードします — 当社のサーバーには送りません。バケットはあなたのもの、ファイルもあなたのもの、料金もあなた負担。私たちは共有リンクをお渡しするだけです。"
+            "value" : "Nextshot はファイルを**あなた自身のクラウドストレージ**にアップロードします — 当社のサーバーには送りません。バケットはあなたのもの、ファイルもあなたのもの、料金もあなた負担。私たちは共有リンクをお渡しするだけです。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso는 파일을 **내 클라우드 스토리지**에 업로드합니다 — 저희 서버에는 절대 저장되지 않습니다. 버킷은 내 것, 파일도 내 것, 비용도 내가 냅니다. 저희는 공유 링크만 전달합니다."
+            "value" : "Nextshot는 파일을 **내 클라우드 스토리지**에 업로드합니다 — 저희 서버에는 절대 저장되지 않습니다. 버킷은 내 것, 파일도 내 것, 비용도 내가 냅니다. 저희는 공유 링크만 전달합니다."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O Capso envia para **o seu próprio armazenamento na nuvem** — nunca para nossos servidores. O bucket é seu, os arquivos são seus e a conta também. Nós só entregamos o link de compartilhamento."
+            "value" : "O Nextshot envia para **o seu próprio armazenamento na nuvem** — nunca para nossos servidores. O bucket é seu, os arquivos são seus e a conta também. Nós só entregamos o link de compartilhamento."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso загружает файлы в **ваше собственное облачное хранилище** — никогда на наши серверы. Бакет ваш, файлы ваши, счета тоже ваши. Мы лишь даем вам ссылку для обмена."
+            "value" : "Nextshot загружает файлы в **ваше собственное облачное хранилище** — никогда на наши серверы. Бакет ваш, файлы ваши, счета тоже ваши. Мы лишь даем вам ссылку для обмена."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso 将文件上传到**您自己的云存储** — 从不经过我们的服务器。存储桶是您的，文件是您的，费用也由您支付。我们只是把分享链接交到您手中。"
+            "value" : "Nextshot 将文件上传到**您自己的云存储** — 从不经过我们的服务器。存储桶是您的，文件是您的，费用也由您支付。我们只是把分享链接交到您手中。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso 會上傳到**你自己的雲端儲存空間** — 絕不經過我們的伺服器。儲存貯體由你提供，檔案歸你所有，費用由你負擔。我們只負責把分享連結交給你。"
+            "value" : "Nextshot 會上傳到**你自己的雲端儲存空間** — 絕不經過我們的伺服器。儲存貯體由你提供，檔案歸你所有，費用由你負擔。我們只負責把分享連結交給你。"
           }
         }
       }
@@ -8909,61 +8969,67 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso erstellt mit diesem HTTPS-Präfix nach dem Upload den Freigabelink. Verwende deine öffentliche Bucket-URL, eine eigene Domain oder eine CDN-URL."
+            "value" : "Nextshot erstellt mit diesem HTTPS-Präfix nach dem Upload den Freigabelink. Verwende deine öffentliche Bucket-URL, eine eigene Domain oder eine CDN-URL."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nextshot uses this HTTPS prefix to build the share link after upload. Use your public bucket URL, custom domain, or CDN URL."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso usa este prefijo HTTPS para crear el enlace para compartir tras la subida. Usa la URL pública de tu bucket, un dominio personalizado o la URL de tu CDN."
+            "value" : "Nextshot usa este prefijo HTTPS para crear el enlace para compartir tras la subida. Usa la URL pública de tu bucket, un dominio personalizado o la URL de tu CDN."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso utilise ce préfixe HTTPS pour créer le lien de partage après le téléversement. Utilisez l'URL publique de votre bucket, un domaine personnalisé ou une URL de CDN."
+            "value" : "Nextshot utilise ce préfixe HTTPS pour créer le lien de partage après le téléversement. Utilisez l'URL publique de votre bucket, un domaine personnalisé ou une URL de CDN."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso usa questo prefisso HTTPS per creare il link di condivisione dopo il caricamento. Usa l'URL pubblico del bucket, un dominio personalizzato o l'URL della CDN."
+            "value" : "Nextshot usa questo prefisso HTTPS per creare il link di condivisione dopo il caricamento. Usa l'URL pubblico del bucket, un dominio personalizzato o l'URL della CDN."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso はアップロード後、この HTTPS プレフィックスを使って共有リンクを作成します。公開バケット URL、カスタムドメイン、または CDN URL を使用してください。"
+            "value" : "Nextshot はアップロード後、この HTTPS プレフィックスを使って共有リンクを作成します。公開バケット URL、カスタムドメイン、または CDN URL を使用してください。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso는 업로드 후 이 HTTPS 접두사로 공유 링크를 만듭니다. 공개 버킷 URL, 사용자 지정 도메인 또는 CDN URL을 사용하세요."
+            "value" : "Nextshot는 업로드 후 이 HTTPS 접두사로 공유 링크를 만듭니다. 공개 버킷 URL, 사용자 지정 도메인 또는 CDN URL을 사용하세요."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O Capso usa este prefixo HTTPS para montar o link de compartilhamento após o envio. Use o URL público do bucket, um domínio personalizado ou um URL de CDN."
+            "value" : "O Nextshot usa este prefixo HTTPS para montar o link de compartilhamento após o envio. Use o URL público do bucket, um domínio personalizado ou um URL de CDN."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso использует этот HTTPS-префикс, чтобы сформировать ссылку после загрузки. Укажите публичный URL бакета, собственный домен или URL CDN."
+            "value" : "Nextshot использует этот HTTPS-префикс, чтобы сформировать ссылку после загрузки. Укажите публичный URL бакета, собственный домен или URL CDN."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "上传后，Capso 会使用此 HTTPS 前缀生成分享链接。请使用存储桶的公开 URL、自定义域名或 CDN URL。"
+            "value" : "上传后，Nextshot 会使用此 HTTPS 前缀生成分享链接。请使用存储桶的公开 URL、自定义域名或 CDN URL。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "上傳後，Capso 會使用此 HTTPS 前綴產生分享連結。請使用儲存貯體的公開 URL、自訂網域或 CDN URL。"
+            "value" : "上傳後，Nextshot 會使用此 HTTPS 前綴產生分享連結。請使用儲存貯體的公開 URL、自訂網域或 CDN URL。"
           }
         }
       }
@@ -8974,67 +9040,67 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso läuft weiter und deine globalen Kurzbefehle funktionieren weiterhin:\n\n• Bereich aufnehmen: %1$@\n• Bildschirm aufzeichnen: %2$@\n• Bildschirmfotoverlauf: %3$@\n\nUm die Einstellungen wieder zu öffnen, starte Capso über Spotlight, Launchpad oder den Finder – auch wenn es bereits läuft."
+            "value" : "Nextshot läuft weiter und deine globalen Kurzbefehle funktionieren weiterhin:\n\n• Bereich aufnehmen: %1$@\n• Bildschirm aufzeichnen: %2$@\n• Bildschirmfotoverlauf: %3$@\n\nUm die Einstellungen wieder zu öffnen, starte Nextshot über Spotlight, Launchpad oder den Finder – auch wenn es bereits läuft."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso will keep running, and your global shortcuts still work:\n\n• Capture Area: %1$@\n• Record Screen: %2$@\n• Screenshot History: %3$@\n\nTo open Preferences again, launch Capso from Spotlight, Launchpad, or Finder — even while it's still running."
+            "value" : "Nextshot will keep running, and your global shortcuts still work:\n\n• Capture Area: %1$@\n• Record Screen: %2$@\n• Screenshot History: %3$@\n\nTo open Preferences again, launch Nextshot from Spotlight, Launchpad, or Finder — even while it's still running."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso seguirá ejecutándose y tus atajos globales seguirán funcionando:\n\n• Capturar área: %1$@\n• Grabar pantalla: %2$@\n• Historial de capturas: %3$@\n\nPara volver a abrir las preferencias, abre Capso desde Spotlight, Launchpad o el Finder, aunque ya se esté ejecutando."
+            "value" : "Nextshot seguirá ejecutándose y tus atajos globales seguirán funcionando:\n\n• Capturar área: %1$@\n• Grabar pantalla: %2$@\n• Historial de capturas: %3$@\n\nPara volver a abrir las preferencias, abre Nextshot desde Spotlight, Launchpad o el Finder, aunque ya se esté ejecutando."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso continuera de fonctionner et vos raccourcis globaux resteront actifs :\n\n• Capturer une zone : %1$@\n• Enregistrer l'écran : %2$@\n• Historique des captures d'écran : %3$@\n\nPour rouvrir les Préférences, lancez Capso depuis Spotlight, le Launchpad ou le Finder — même s'il est déjà en cours d'exécution."
+            "value" : "Nextshot continuera de fonctionner et vos raccourcis globaux resteront actifs :\n\n• Capturer une zone : %1$@\n• Enregistrer l'écran : %2$@\n• Historique des captures d'écran : %3$@\n\nPour rouvrir les Préférences, lancez Nextshot depuis Spotlight, le Launchpad ou le Finder — même s'il est déjà en cours d'exécution."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso continuerà a funzionare e le scorciatoie globali resteranno attive:\n\n• Cattura area: %1$@\n• Registra schermo: %2$@\n• Cronologia istantanee: %3$@\n\nPer aprire di nuovo le Preferenze, avvia Capso da Spotlight, Launchpad o Finder, anche se è già in esecuzione."
+            "value" : "Nextshot continuerà a funzionare e le scorciatoie globali resteranno attive:\n\n• Cattura area: %1$@\n• Registra schermo: %2$@\n• Cronologia istantanee: %3$@\n\nPer aprire di nuovo le Preferenze, avvia Nextshot da Spotlight, Launchpad o Finder, anche se è già in esecuzione."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capsoは動作し続け、グローバルショートカットも引き続き使えます:\n\n• エリアをキャプチャ: %1$@\n• 画面を録画: %2$@\n• スクリーンショット履歴: %3$@\n\n設定を再び開くには、Spotlight、Launchpad、Finder から Capso を起動してください — 起動中でも開きます。"
+            "value" : "Nextshotは動作し続け、グローバルショートカットも引き続き使えます:\n\n• エリアをキャプチャ: %1$@\n• 画面を録画: %2$@\n• スクリーンショット履歴: %3$@\n\n設定を再び開くには、Spotlight、Launchpad、Finder から Nextshot を起動してください — 起動中でも開きます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso는 계속 실행되며, 전역 단축키도 정상적으로 작동합니다:\n\n• 영역 캡처: %1$@\n• 화면 녹화: %2$@\n• 스크린샷 기록: %3$@\n\n환경설정을 다시 열려면 Spotlight, Launchpad 또는 Finder에서 Capso를 실행하세요 — 실행 중이어도 열립니다."
+            "value" : "Nextshot는 계속 실행되며, 전역 단축키도 정상적으로 작동합니다:\n\n• 영역 캡처: %1$@\n• 화면 녹화: %2$@\n• 스크린샷 기록: %3$@\n\n환경설정을 다시 열려면 Spotlight, Launchpad 또는 Finder에서 Nextshot를 실행하세요 — 실행 중이어도 열립니다."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O Capso continuará em execução e seus atalhos globais continuarão funcionando:\n\n• Capturar Área: %1$@\n• Gravar Tela: %2$@\n• Histórico de Capturas de Tela: %3$@\n\nPara abrir as Preferências novamente, abra o Capso pelo Spotlight, Launchpad ou Finder — mesmo que ele já esteja em execução."
+            "value" : "O Nextshot continuará em execução e seus atalhos globais continuarão funcionando:\n\n• Capturar Área: %1$@\n• Gravar Tela: %2$@\n• Histórico de Capturas de Tela: %3$@\n\nPara abrir as Preferências novamente, abra o Nextshot pelo Spotlight, Launchpad ou Finder — mesmo que ele já esteja em execução."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso продолжит работать, и глобальные сочетания клавиш останутся доступны:\n\n• Снять область: %1$@\n• Записать экран: %2$@\n• История снимков экрана: %3$@\n\nЧтобы снова открыть настройки, запустите Capso из Spotlight, Launchpad или Finder — даже если приложение уже работает."
+            "value" : "Nextshot продолжит работать, и глобальные сочетания клавиш останутся доступны:\n\n• Снять область: %1$@\n• Записать экран: %2$@\n• История снимков экрана: %3$@\n\nЧтобы снова открыть настройки, запустите Nextshot из Spotlight, Launchpad или Finder — даже если приложение уже работает."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso 会继续运行,全局快捷键仍可正常使用:\n\n• 截取区域: %1$@\n• 录制屏幕: %2$@\n• 截图历史: %3$@\n\n要再次打开偏好设置,从 Spotlight、Launchpad 或 Finder 启动 Capso 即可——即使它正在运行也可以。"
+            "value" : "Nextshot 会继续运行,全局快捷键仍可正常使用:\n\n• 截取区域: %1$@\n• 录制屏幕: %2$@\n• 截图历史: %3$@\n\n要再次打开偏好设置,从 Spotlight、Launchpad 或 Finder 启动 Nextshot 即可——即使它正在运行也可以。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso 會繼續執行，全域快速鍵仍可使用：\n\n• 擷取區域：%1$@\n• 錄製螢幕：%2$@\n• 截圖歷史記錄：%3$@\n\n若要再次打開偏好設定，請從 Spotlight、啟動台或 Finder 啟動 Capso — 即使它仍在執行中也可以。"
+            "value" : "Nextshot 會繼續執行，全域快速鍵仍可使用：\n\n• 擷取區域：%1$@\n• 錄製螢幕：%2$@\n• 截圖歷史記錄：%3$@\n\n若要再次打開偏好設定，請從 Spotlight、啟動台或 Finder 啟動 Nextshot — 即使它仍在執行中也可以。"
           }
         }
       }
@@ -10709,61 +10775,67 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wähle, wohin Capso Bildschirmfotos hochlädt. Die Dateien bleiben in deinem eigenen Speicherkonto und Capso kopiert den öffentlichen Freigabelink."
+            "value" : "Wähle, wohin Nextshot Bildschirmfotos hochlädt. Die Dateien bleiben in deinem eigenen Speicherkonto und Nextshot kopiert den öffentlichen Freigabelink."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose where Nextshot uploads screenshots. Files stay in your own storage account and Nextshot copies the public share link."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Elige dónde sube Capso las capturas. Los archivos se quedan en tu propia cuenta de almacenamiento y Capso copia el enlace público para compartir."
+            "value" : "Elige dónde sube Nextshot las capturas. Los archivos se quedan en tu propia cuenta de almacenamiento y Nextshot copia el enlace público para compartir."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Choisissez où Capso téléverse les captures d'écran. Les fichiers restent dans votre propre compte de stockage et Capso copie le lien de partage public."
+            "value" : "Choisissez où Nextshot téléverse les captures d'écran. Les fichiers restent dans votre propre compte de stockage et Nextshot copie le lien de partage public."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Scegli dove Capso carica le istantanee. I file restano nel tuo account di archiviazione e Capso copia il link pubblico di condivisione."
+            "value" : "Scegli dove Nextshot carica le istantanee. I file restano nel tuo account di archiviazione e Nextshot copia il link pubblico di condivisione."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso がスクリーンショットをアップロードする先を選択します。ファイルはご自身のストレージアカウントに保存され、Capso は公開共有リンクをコピーします。"
+            "value" : "Nextshot がスクリーンショットをアップロードする先を選択します。ファイルはご自身のストレージアカウントに保存され、Nextshot は公開共有リンクをコピーします。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso가 스크린샷을 업로드할 위치를 선택하세요. 파일은 사용자의 스토리지 계정에 보관되며 Capso는 공개 공유 링크를 복사합니다."
+            "value" : "Nextshot가 스크린샷을 업로드할 위치를 선택하세요. 파일은 사용자의 스토리지 계정에 보관되며 Nextshot는 공개 공유 링크를 복사합니다."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Escolha para onde o Capso envia as capturas de tela. Os arquivos ficam na sua própria conta de armazenamento e o Capso copia o link público de compartilhamento."
+            "value" : "Escolha para onde o Nextshot envia as capturas de tela. Os arquivos ficam na sua própria conta de armazenamento e o Nextshot copia o link público de compartilhamento."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Выберите, куда Capso будет загружать снимки экрана. Файлы хранятся в вашем собственном хранилище, а Capso копирует публичную ссылку."
+            "value" : "Выберите, куда Nextshot будет загружать снимки экрана. Файлы хранятся в вашем собственном хранилище, а Nextshot копирует публичную ссылку."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "选择 Capso 上传截图的位置。文件保存在你自己的存储账户中，Capso 会复制公开分享链接。"
+            "value" : "选择 Nextshot 上传截图的位置。文件保存在你自己的存储账户中，Nextshot 会复制公开分享链接。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "選擇 Capso 上傳截圖的位置。檔案會保留在你自己的儲存空間帳號中，Capso 會拷貝公開分享連結。"
+            "value" : "選擇 Nextshot 上傳截圖的位置。檔案會保留在你自己的儲存空間帳號中，Nextshot 會拷貝公開分享連結。"
           }
         }
       }
@@ -23084,61 +23156,67 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Dateien liegen in deinem Account. Kündige Capso, behalte deine Bildschirmfotos."
+            "value" : "Die Dateien liegen in deinem Account. Kündige Nextshot, behalte deine Bildschirmfotos."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Files live in your account. Cancel Nextshot, keep your screenshots."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Los archivos están en tu cuenta. Aunque dejes Capso, conservas tus capturas."
+            "value" : "Los archivos están en tu cuenta. Aunque dejes Nextshot, conservas tus capturas."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Les fichiers restent dans votre compte. Arrêtez d'utiliser Capso, gardez vos captures d'écran."
+            "value" : "Les fichiers restent dans votre compte. Arrêtez d'utiliser Nextshot, gardez vos captures d'écran."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "I file restano nel tuo account. Anche se smetti di usare Capso, le istantanee restano tue."
+            "value" : "I file restano nel tuo account. Anche se smetti di usare Nextshot, le istantanee restano tue."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ファイルはあなたのアカウントに保存されます。Capso を解約しても、スクリーンショットはそのまま残ります。"
+            "value" : "ファイルはあなたのアカウントに保存されます。Nextshot を解約しても、スクリーンショットはそのまま残ります。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "파일은 내 계정에 저장됩니다. Capso를 취소해도 스크린샷은 그대로 유지됩니다."
+            "value" : "파일은 내 계정에 저장됩니다. Nextshot를 취소해도 스크린샷은 그대로 유지됩니다."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Os arquivos ficam na sua conta. Deixe de usar o Capso e mantenha suas capturas de tela."
+            "value" : "Os arquivos ficam na sua conta. Deixe de usar o Nextshot e mantenha suas capturas de tela."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Файлы хранятся в вашей учетной записи. Откажетесь от Capso — снимки останутся у вас."
+            "value" : "Файлы хранятся в вашей учетной записи. Откажетесь от Nextshot — снимки останутся у вас."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "文件保存在您的账户中。取消 Capso 订阅，截图依然保留。"
+            "value" : "文件保存在您的账户中。取消 Nextshot 订阅，截图依然保留。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "檔案存放在你的帳號中。即使不再使用 Capso，截圖依然保留。"
+            "value" : "檔案存放在你的帳號中。即使不再使用 Nextshot，截圖依然保留。"
           }
         }
       }
@@ -27828,61 +27906,67 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sie hat diesen Befehl gesendet:\n%@\n\nAnderen Apps erlauben, mit Capso Aufnahmen und Aufzeichnungen zu starten? Du kannst das später unter Einstellungen → Allgemein ändern."
+            "value" : "Sie hat diesen Befehl gesendet:\n%@\n\nAnderen Apps erlauben, mit Nextshot Aufnahmen und Aufzeichnungen zu starten? Du kannst das später unter Einstellungen → Allgemein ändern."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It sent this command:\n%@\n\nAllow other apps to start captures and recordings with Nextshot? You can change this later in Settings → General."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ha enviado este comando:\n%@\n\n¿Permitir que otras apps inicien capturas y grabaciones con Capso? Puedes cambiarlo más tarde en Ajustes → General."
+            "value" : "Ha enviado este comando:\n%@\n\n¿Permitir que otras apps inicien capturas y grabaciones con Nextshot? Puedes cambiarlo más tarde en Ajustes → General."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Elle a envoyé cette commande :\n%@\n\nAutoriser d'autres apps à lancer des captures et des enregistrements avec Capso ? Vous pourrez modifier ce choix plus tard dans Réglages → Général."
+            "value" : "Elle a envoyé cette commande :\n%@\n\nAutoriser d'autres apps à lancer des captures et des enregistrements avec Nextshot ? Vous pourrez modifier ce choix plus tard dans Réglages → Général."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ha inviato questo comando:\n%@\n\nConsentire ad altre app di avviare catture e registrazioni con Capso? Puoi modificarlo in seguito in Impostazioni → Generali."
+            "value" : "Ha inviato questo comando:\n%@\n\nConsentire ad altre app di avviare catture e registrazioni con Nextshot? Puoi modificarlo in seguito in Impostazioni → Generali."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "次のコマンドが送信されました:\n%@\n\n他のアプリが Capso でキャプチャや録画を開始することを許可しますか？この設定は後で 設定 → 一般 で変更できます。"
+            "value" : "次のコマンドが送信されました:\n%@\n\n他のアプリが Nextshot でキャプチャや録画を開始することを許可しますか？この設定は後で 設定 → 一般 で変更できます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "다음 명령을 보냈습니다:\n%@\n\n다른 앱이 Capso로 캡처 및 녹화를 시작하도록 허용하시겠습니까? 나중에 설정 → 일반에서 변경할 수 있습니다."
+            "value" : "다음 명령을 보냈습니다:\n%@\n\n다른 앱이 Nextshot로 캡처 및 녹화를 시작하도록 허용하시겠습니까? 나중에 설정 → 일반에서 변경할 수 있습니다."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ele enviou este comando:\n%@\n\nPermitir que outros apps iniciem capturas e gravações com o Capso? Você pode alterar isso depois em Ajustes → Geral."
+            "value" : "Ele enviou este comando:\n%@\n\nPermitir que outros apps iniciem capturas e gravações com o Nextshot? Você pode alterar isso depois em Ajustes → Geral."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Оно отправило эту команду:\n%@\n\nРазрешить другим приложениям запускать снимки и записи с помощью Capso? Это можно изменить позже в разделе Настройки → Основные."
+            "value" : "Оно отправило эту команду:\n%@\n\nРазрешить другим приложениям запускать снимки и записи с помощью Nextshot? Это можно изменить позже в разделе Настройки → Основные."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "它发送了以下命令：\n%@\n\n允许其他 App 通过 Capso 开始截图和录制吗？你之后可以在“设置” → “通用”中更改。"
+            "value" : "它发送了以下命令：\n%@\n\n允许其他 App 通过 Nextshot 开始截图和录制吗？你之后可以在“设置” → “通用”中更改。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "它傳送了以下指令：\n%@\n\n要允許其他 App 透過 Capso 開始擷取和錄製嗎？你之後可以在「設定」→「一般」中更改。"
+            "value" : "它傳送了以下指令：\n%@\n\n要允許其他 App 透過 Nextshot 開始擷取和錄製嗎？你之後可以在「設定」→「一般」中更改。"
           }
         }
       }
@@ -29687,61 +29771,67 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "macOS verwendet ⇧⌘3, ⇧⌘4 und ⇧⌘5 noch für eigene Bildschirmfotos. Um sie für Capso zu nutzen, deaktiviere die Kurzbefehle unter Tastaturkurzbefehle → Bildschirmfotos."
+            "value" : "macOS verwendet ⇧⌘3, ⇧⌘4 und ⇧⌘5 noch für eigene Bildschirmfotos. Um sie für Nextshot zu nutzen, deaktiviere die Kurzbefehle unter Tastaturkurzbefehle → Bildschirmfotos."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS still uses ⇧⌘3, ⇧⌘4 and ⇧⌘5 for its own screenshots. To use them for Nextshot, turn off the shortcuts under Keyboard Shortcuts → Screenshots."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "macOS sigue usando ⇧⌘3, ⇧⌘4 y ⇧⌘5 para sus propias capturas. Para usarlos con Capso, desactiva esos atajos en Funciones rápidas de teclado → Capturas de pantalla."
+            "value" : "macOS sigue usando ⇧⌘3, ⇧⌘4 y ⇧⌘5 para sus propias capturas. Para usarlos con Nextshot, desactiva esos atajos en Funciones rápidas de teclado → Capturas de pantalla."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "macOS utilise toujours ⇧⌘3, ⇧⌘4 et ⇧⌘5 pour ses propres captures d'écran. Pour les utiliser avec Capso, désactivez les raccourcis dans Raccourcis clavier → Captures d'écran."
+            "value" : "macOS utilise toujours ⇧⌘3, ⇧⌘4 et ⇧⌘5 pour ses propres captures d'écran. Pour les utiliser avec Nextshot, désactivez les raccourcis dans Raccourcis clavier → Captures d'écran."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "macOS usa ancora ⇧⌘3, ⇧⌘4 e ⇧⌘5 per le proprie istantanee. Per usarle con Capso, disattiva le abbreviazioni in Abbreviazioni da tastiera → Istantanee schermo."
+            "value" : "macOS usa ancora ⇧⌘3, ⇧⌘4 e ⇧⌘5 per le proprie istantanee. Per usarle con Nextshot, disattiva le abbreviazioni in Abbreviazioni da tastiera → Istantanee schermo."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "macOS はまだ ⇧⌘3、⇧⌘4、⇧⌘5 を自身のスクリーンショットに使用しています。Capso で使うには、キーボードショートカット → スクリーンショット でこれらのショートカットをオフにしてください。"
+            "value" : "macOS はまだ ⇧⌘3、⇧⌘4、⇧⌘5 を自身のスクリーンショットに使用しています。Nextshot で使うには、キーボードショートカット → スクリーンショット でこれらのショートカットをオフにしてください。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "macOS가 아직 ⇧⌘3, ⇧⌘4, ⇧⌘5를 자체 스크린샷에 사용하고 있습니다. Capso에서 사용하려면 키보드 단축키 → 스크린샷에서 해당 단축키를 끄세요."
+            "value" : "macOS가 아직 ⇧⌘3, ⇧⌘4, ⇧⌘5를 자체 스크린샷에 사용하고 있습니다. Nextshot에서 사용하려면 키보드 단축키 → 스크린샷에서 해당 단축키를 끄세요."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O macOS ainda usa ⇧⌘3, ⇧⌘4 e ⇧⌘5 para as próprias capturas de tela. Para usá-los no Capso, desative os atalhos em Atalhos de Teclado → Capturas de Tela."
+            "value" : "O macOS ainda usa ⇧⌘3, ⇧⌘4 e ⇧⌘5 para as próprias capturas de tela. Para usá-los no Nextshot, desative os atalhos em Atalhos de Teclado → Capturas de Tela."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "macOS по-прежнему использует ⇧⌘3, ⇧⌘4 и ⇧⌘5 для собственных снимков экрана. Чтобы назначить их Capso, отключите эти сочетания в разделе Сочетания клавиш → Снимки экрана."
+            "value" : "macOS по-прежнему использует ⇧⌘3, ⇧⌘4 и ⇧⌘5 для собственных снимков экрана. Чтобы назначить их Nextshot, отключите эти сочетания в разделе Сочетания клавиш → Снимки экрана."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "macOS 仍在使用 ⇧⌘3、⇧⌘4 和 ⇧⌘5 进行系统截图。若要将它们用于 Capso，请在“键盘快捷键” → “截屏”中关闭这些快捷键。"
+            "value" : "macOS 仍在使用 ⇧⌘3、⇧⌘4 和 ⇧⌘5 进行系统截图。若要将它们用于 Nextshot，请在“键盘快捷键” → “截屏”中关闭这些快捷键。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "macOS 仍在使用 ⇧⌘3、⇧⌘4 和 ⇧⌘5 進行系統截圖。若要將它們用於 Capso，請在「鍵盤快速鍵」→「截圖」中關閉這些快速鍵。"
+            "value" : "macOS 仍在使用 ⇧⌘3、⇧⌘4 和 ⇧⌘5 進行系統截圖。若要將它們用於 Nextshot，請在「鍵盤快速鍵」→「截圖」中關閉這些快速鍵。"
           }
         }
       }
@@ -32509,61 +32599,67 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lokalen Protokollordner von Capso öffnen"
+            "value" : "Lokalen Protokollordner von Nextshot öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Nextshot's local log folder"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Abrir la carpeta de registros locales de Capso"
+            "value" : "Abrir la carpeta de registros locales de Nextshot"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ouvrir le dossier des journaux locaux de Capso"
+            "value" : "Ouvrir le dossier des journaux locaux de Nextshot"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Apri la cartella dei log locali di Capso"
+            "value" : "Apri la cartella dei log locali di Nextshot"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capsoのローカルログフォルダを開く"
+            "value" : "Nextshotのローカルログフォルダを開く"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso 로컬 로그 폴더 열기"
+            "value" : "Nextshot 로컬 로그 폴더 열기"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Abrir a pasta local de registros do Capso"
+            "value" : "Abrir a pasta local de registros do Nextshot"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Открыть папку с локальными журналами Capso"
+            "value" : "Открыть папку с локальными журналами Nextshot"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "打开 Capso 的本地日志文件夹"
+            "value" : "打开 Nextshot 的本地日志文件夹"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "打開 Capso 的本機記錄檔案夾"
+            "value" : "打開 Nextshot 的本機記錄檔案夾"
           }
         }
       }
@@ -37001,61 +37097,67 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso beenden"
+            "value" : "Nextshot beenden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quit Nextshot"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Salir de Capso"
+            "value" : "Salir de Nextshot"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Quitter Capso"
+            "value" : "Quitter Nextshot"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Esci da Capso"
+            "value" : "Esci da Nextshot"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso を終了"
+            "value" : "Nextshot を終了"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso 종료"
+            "value" : "Nextshot 종료"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Encerrar o Capso"
+            "value" : "Encerrar o Nextshot"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Завершить Capso"
+            "value" : "Завершить Nextshot"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "退出 Capso"
+            "value" : "退出 Nextshot"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "結束 Capso"
+            "value" : "結束 Nextshot"
           }
         }
       }
@@ -46091,61 +46193,67 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso bei der Anmeldung starten"
+            "value" : "Nextshot bei der Anmeldung starten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start Nextshot when you log in"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Abrir Capso al iniciar sesión"
+            "value" : "Abrir Nextshot al iniciar sesión"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ouvrir Capso lorsque vous ouvrez une session"
+            "value" : "Ouvrir Nextshot lorsque vous ouvrez une session"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Avvia Capso al login"
+            "value" : "Avvia Nextshot al login"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mac にログインしたときに Capso を自動起動"
+            "value" : "Mac にログインしたときに Nextshot を自動起動"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mac에 로그인할 때 Capso 자동 실행"
+            "value" : "Mac에 로그인할 때 Nextshot 자동 실행"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Abrir o Capso ao iniciar sessão"
+            "value" : "Abrir o Nextshot ao iniciar sessão"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Открывать Capso при входе в систему"
+            "value" : "Открывать Nextshot при входе в систему"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "登录 Mac 时自动启动 Capso"
+            "value" : "登录 Mac 时自动启动 Nextshot"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "登入時啟動 Capso"
+            "value" : "登入時啟動 Nextshot"
           }
         }
       }
@@ -49233,61 +49341,67 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Bildschirmfoto-Kurzbefehle von macOS sind deaktiviert. Capso kann sie übernehmen: ⇧⌘3 Vollbild aufnehmen, ⇧⌘4 Bereich aufnehmen, ⇧⌘5 Alles in einem."
+            "value" : "Die Bildschirmfoto-Kurzbefehle von macOS sind deaktiviert. Nextshot kann sie übernehmen: ⇧⌘3 Vollbild aufnehmen, ⇧⌘4 Bereich aufnehmen, ⇧⌘5 Alles in einem."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The macOS screenshot shortcuts are off. Nextshot can take them over: ⇧⌘3 Capture Fullscreen, ⇧⌘4 Capture Area, ⇧⌘5 All-in-One."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Los atajos de captura de macOS están desactivados. Capso puede usarlos: ⇧⌘3 Capturar pantalla completa, ⇧⌘4 Capturar área, ⇧⌘5 Todo en uno."
+            "value" : "Los atajos de captura de macOS están desactivados. Nextshot puede usarlos: ⇧⌘3 Capturar pantalla completa, ⇧⌘4 Capturar área, ⇧⌘5 Todo en uno."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Les raccourcis de capture d'écran de macOS sont désactivés. Capso peut les reprendre : ⇧⌘3 Capturer l'écran entier, ⇧⌘4 Capturer une zone, ⇧⌘5 Tout-en-un."
+            "value" : "Les raccourcis de capture d'écran de macOS sont désactivés. Nextshot peut les reprendre : ⇧⌘3 Capturer l'écran entier, ⇧⌘4 Capturer une zone, ⇧⌘5 Tout-en-un."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Le abbreviazioni per le istantanee di macOS sono disattivate. Capso può usarle: ⇧⌘3 Cattura schermo intero, ⇧⌘4 Cattura area, ⇧⌘5 Tutto in uno."
+            "value" : "Le abbreviazioni per le istantanee di macOS sono disattivate. Nextshot può usarle: ⇧⌘3 Cattura schermo intero, ⇧⌘4 Cattura area, ⇧⌘5 Tutto in uno."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "macOS のスクリーンショットショートカットはオフです。Capso で引き継げます: ⇧⌘3 フルスクリーンをキャプチャ、⇧⌘4 エリアをキャプチャ、⇧⌘5 オールインワン。"
+            "value" : "macOS のスクリーンショットショートカットはオフです。Nextshot で引き継げます: ⇧⌘3 フルスクリーンをキャプチャ、⇧⌘4 エリアをキャプチャ、⇧⌘5 オールインワン。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "macOS 스크린샷 단축키가 꺼져 있습니다. Capso가 대신 사용할 수 있습니다: ⇧⌘3 전체 화면 캡처, ⇧⌘4 영역 캡처, ⇧⌘5 올인원."
+            "value" : "macOS 스크린샷 단축키가 꺼져 있습니다. Nextshot가 대신 사용할 수 있습니다: ⇧⌘3 전체 화면 캡처, ⇧⌘4 영역 캡처, ⇧⌘5 올인원."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Os atalhos de captura de tela do macOS estão desativados. O Capso pode assumi-los: ⇧⌘3 Capturar Tela Inteira, ⇧⌘4 Capturar Área, ⇧⌘5 Tudo em Um."
+            "value" : "Os atalhos de captura de tela do macOS estão desativados. O Nextshot pode assumi-los: ⇧⌘3 Capturar Tela Inteira, ⇧⌘4 Capturar Área, ⇧⌘5 Tudo em Um."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Сочетания клавиш macOS для снимков экрана отключены. Capso может взять их на себя: ⇧⌘3 — Снять весь экран, ⇧⌘4 — Снять область, ⇧⌘5 — Все в одном."
+            "value" : "Сочетания клавиш macOS для снимков экрана отключены. Nextshot может взять их на себя: ⇧⌘3 — Снять весь экран, ⇧⌘4 — Снять область, ⇧⌘5 — Все в одном."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "macOS 截屏快捷键已关闭。Capso 可以接管它们：⇧⌘3 截取全屏、⇧⌘4 截取区域、⇧⌘5 全能截图。"
+            "value" : "macOS 截屏快捷键已关闭。Nextshot 可以接管它们：⇧⌘3 截取全屏、⇧⌘4 截取区域、⇧⌘5 全能截图。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "macOS 截圖快速鍵已關閉。Capso 可以接管它們：⇧⌘3 擷取全螢幕、⇧⌘4 擷取區域、⇧⌘5 全能擷取。"
+            "value" : "macOS 截圖快速鍵已關閉。Nextshot 可以接管它們：⇧⌘3 擷取全螢幕、⇧⌘4 擷取區域、⇧⌘5 全能擷取。"
           }
         }
       }
@@ -50258,61 +50372,67 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Um Tastenanschläge beim Aufzeichnen anzuzeigen, aktiviere Capso unter Systemeinstellungen > Datenschutz & Sicherheit > Eingabeüberwachung und starte die Aufzeichnung erneut."
+            "value" : "Um Tastenanschläge beim Aufzeichnen anzuzeigen, aktiviere Nextshot unter Systemeinstellungen > Datenschutz & Sicherheit > Eingabeüberwachung und starte die Aufzeichnung erneut."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To show key presses while recording, enable Nextshot in System Settings > Privacy & Security > Input Monitoring, then start recording again."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Para mostrar las pulsaciones de teclas al grabar, activa Capso en Ajustes del Sistema > Privacidad y seguridad > Monitorización de entrada y vuelve a iniciar la grabación."
+            "value" : "Para mostrar las pulsaciones de teclas al grabar, activa Nextshot en Ajustes del Sistema > Privacidad y seguridad > Monitorización de entrada y vuelve a iniciar la grabación."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pour afficher les touches pressées pendant l'enregistrement, activez Capso dans Réglages Système > Confidentialité et sécurité > Surveillance de l'entrée, puis relancez l'enregistrement."
+            "value" : "Pour afficher les touches pressées pendant l'enregistrement, activez Nextshot dans Réglages Système > Confidentialité et sécurité > Surveillance de l'entrée, puis relancez l'enregistrement."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Per mostrare i tasti premuti durante la registrazione, attiva Capso in Impostazioni di Sistema > Privacy e sicurezza > Monitoraggio input, poi avvia di nuovo la registrazione."
+            "value" : "Per mostrare i tasti premuti durante la registrazione, attiva Nextshot in Impostazioni di Sistema > Privacy e sicurezza > Monitoraggio input, poi avvia di nuovo la registrazione."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "録画中にキー入力を表示するには、システム設定 > プライバシーとセキュリティ > 入力監視 で Capso を有効にしてから、録画をやり直してください。"
+            "value" : "録画中にキー入力を表示するには、システム設定 > プライバシーとセキュリティ > 入力監視 で Nextshot を有効にしてから、録画をやり直してください。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "녹화 중 키 입력을 표시하려면 시스템 설정 > 개인정보 보호 및 보안 > 입력 모니터링에서 Capso를 활성화한 후 녹화를 다시 시작하세요."
+            "value" : "녹화 중 키 입력을 표시하려면 시스템 설정 > 개인정보 보호 및 보안 > 입력 모니터링에서 Nextshot를 활성화한 후 녹화를 다시 시작하세요."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Para mostrar as teclas pressionadas durante a gravação, ative o Capso em Ajustes do Sistema > Privacidade e Segurança > Monitoramento de Entrada e inicie a gravação novamente."
+            "value" : "Para mostrar as teclas pressionadas durante a gravação, ative o Nextshot em Ajustes do Sistema > Privacidade e Segurança > Monitoramento de Entrada e inicie a gravação novamente."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Чтобы показывать нажатия клавиш во время записи, включите Capso в разделе Системные настройки > Конфиденциальность и безопасность > Мониторинг ввода, затем снова начните запись."
+            "value" : "Чтобы показывать нажатия клавиш во время записи, включите Nextshot в разделе Системные настройки > Конфиденциальность и безопасность > Мониторинг ввода, затем снова начните запись."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "若要在录制时显示按键，请在“系统设置” > “隐私与安全性” > “输入监控”中启用 Capso，然后重新开始录制。"
+            "value" : "若要在录制时显示按键，请在“系统设置” > “隐私与安全性” > “输入监控”中启用 Nextshot，然后重新开始录制。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "若要在錄製時顯示按鍵，請在「系統設定」>「隱私權與安全性」>「輸入監控」中啟用 Capso，然後重新開始錄製。"
+            "value" : "若要在錄製時顯示按鍵，請在「系統設定」>「隱私權與安全性」>「輸入監控」中啟用 Nextshot，然後重新開始錄製。"
           }
         }
       }
@@ -50706,61 +50826,67 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Text aus jedem Bildschirmfoto übersetzen, ohne Capso zu verlassen"
+            "value" : "Text aus jedem Bildschirmfoto übersetzen, ohne Nextshot zu verlassen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Translate text from any screenshot without leaving Nextshot"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Traduce el texto de cualquier captura sin salir de Capso"
+            "value" : "Traduce el texto de cualquier captura sin salir de Nextshot"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Traduisez le texte de n'importe quelle capture d'écran sans quitter Capso"
+            "value" : "Traduisez le texte de n'importe quelle capture d'écran sans quitter Nextshot"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Traduci il testo di qualsiasi istantanea senza uscire da Capso"
+            "value" : "Traduci il testo di qualsiasi istantanea senza uscire da Nextshot"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso から離れずに任意のスクリーンショットのテキストを翻訳"
+            "value" : "Nextshot から離れずに任意のスクリーンショットのテキストを翻訳"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso를 떠나지 않고 모든 스크린샷의 텍스트 번역"
+            "value" : "Nextshot를 떠나지 않고 모든 스크린샷의 텍스트 번역"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Traduza o texto de qualquer captura de tela sem sair do Capso"
+            "value" : "Traduza o texto de qualquer captura de tela sem sair do Nextshot"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Переводите текст с любого снимка экрана, не выходя из Capso"
+            "value" : "Переводите текст с любого снимка экрана, не выходя из Nextshot"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无需离开 Capso 即可翻译任何截图中的文字"
+            "value" : "无需离开 Nextshot 即可翻译任何截图中的文字"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "不必離開 Capso，即可翻譯任何截圖中的文字"
+            "value" : "不必離開 Nextshot，即可翻譯任何截圖中的文字"
           }
         }
       }
@@ -51283,61 +51409,67 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso-Aktionen aus Raycast, Alfred, Kurzbefehlen oder Shell-Skripten auslösen."
+            "value" : "Nextshot-Aktionen aus Raycast, Alfred, Kurzbefehlen oder Shell-Skripten auslösen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trigger Nextshot actions from Raycast, Alfred, Shortcuts, or shell scripts."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ejecuta acciones de Capso desde Raycast, Alfred, Atajos o scripts de shell."
+            "value" : "Ejecuta acciones de Nextshot desde Raycast, Alfred, Atajos o scripts de shell."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Déclenchez des actions Capso depuis Raycast, Alfred, Raccourcis ou des scripts shell."
+            "value" : "Déclenchez des actions Nextshot depuis Raycast, Alfred, Raccourcis ou des scripts shell."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Attiva le azioni di Capso da Raycast, Alfred, Comandi Rapidi o script shell."
+            "value" : "Attiva le azioni di Nextshot da Raycast, Alfred, Comandi Rapidi o script shell."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Raycast、Alfred、ショートカット、シェルスクリプトから Capso の操作を実行できます。"
+            "value" : "Raycast、Alfred、ショートカット、シェルスクリプトから Nextshot の操作を実行できます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Raycast, Alfred, 단축어 또는 셸 스크립트에서 Capso 동작을 실행합니다."
+            "value" : "Raycast, Alfred, 단축어 또는 셸 스크립트에서 Nextshot 동작을 실행합니다."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Acione ações do Capso pelo Raycast, Alfred, Atalhos ou scripts de shell."
+            "value" : "Acione ações do Nextshot pelo Raycast, Alfred, Atalhos ou scripts de shell."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Запускайте действия Capso из Raycast, Alfred, Быстрых команд или скриптов оболочки."
+            "value" : "Запускайте действия Nextshot из Raycast, Alfred, Быстрых команд или скриптов оболочки."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "从 Raycast、Alfred、快捷指令或 Shell 脚本触发 Capso 操作。"
+            "value" : "从 Raycast、Alfred、快捷指令或 Shell 脚本触发 Nextshot 操作。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "從 Raycast、Alfred、捷徑或 Shell 腳本觸發 Capso 動作。"
+            "value" : "從 Raycast、Alfred、捷徑或 Shell 腳本觸發 Nextshot 動作。"
           }
         }
       }
@@ -52629,61 +52761,67 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verwende einen Bucket in **%@**, in den Capso Objekte schreiben kann."
+            "value" : "Verwende einen Bucket in **%@**, in den Nextshot Objekte schreiben kann."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use a bucket in **%@** that Nextshot can write objects into."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Usa un bucket de **%@** en el que Capso pueda escribir objetos."
+            "value" : "Usa un bucket de **%@** en el que Nextshot pueda escribir objetos."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Utilisez un bucket dans **%@** dans lequel Capso peut écrire des objets."
+            "value" : "Utilisez un bucket dans **%@** dans lequel Nextshot peut écrire des objets."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Usa un bucket in **%@** in cui Capso possa scrivere oggetti."
+            "value" : "Usa un bucket in **%@** in cui Nextshot possa scrivere oggetti."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso がオブジェクトを書き込める **%@** のバケットを使用してください。"
+            "value" : "Nextshot がオブジェクトを書き込める **%@** のバケットを使用してください。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso가 객체를 쓸 수 있는 **%@**의 버킷을 사용하세요."
+            "value" : "Nextshot가 객체를 쓸 수 있는 **%@**의 버킷을 사용하세요."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Use um bucket em **%@** no qual o Capso possa gravar objetos."
+            "value" : "Use um bucket em **%@** no qual o Nextshot possa gravar objetos."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Используйте бакет в **%@**, в который Capso может записывать объекты."
+            "value" : "Используйте бакет в **%@**, в который Nextshot может записывать объекты."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请使用位于 **%@** 且 Capso 可写入对象的存储桶。"
+            "value" : "请使用位于 **%@** 且 Nextshot 可写入对象的存储桶。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "請使用位於 **%@** 且 Capso 可寫入物件的儲存貯體。"
+            "value" : "請使用位於 **%@** 且 Nextshot 可寫入物件的儲存貯體。"
           }
         }
       }
@@ -52693,61 +52831,67 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verwende eine öffentliche Bucket-URL oder verbinde eine eigene Domain/ein CDN. Capso braucht ein öffentliches HTTPS-Präfix, um einen Freigabelink kopieren zu können."
+            "value" : "Verwende eine öffentliche Bucket-URL oder verbinde eine eigene Domain/ein CDN. Nextshot braucht ein öffentliches HTTPS-Präfix, um einen Freigabelink kopieren zu können."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use a public bucket URL or connect a custom domain/CDN. Nextshot needs a public HTTPS prefix so it can copy a share link."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Usa una URL pública del bucket o conecta un dominio personalizado/CDN. Capso necesita un prefijo HTTPS público para poder copiar un enlace para compartir."
+            "value" : "Usa una URL pública del bucket o conecta un dominio personalizado/CDN. Nextshot necesita un prefijo HTTPS público para poder copiar un enlace para compartir."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Utilisez une URL de bucket publique ou connectez un domaine personnalisé/CDN. Capso a besoin d'un préfixe HTTPS public pour copier un lien de partage."
+            "value" : "Utilisez une URL de bucket publique ou connectez un domaine personnalisé/CDN. Nextshot a besoin d'un préfixe HTTPS public pour copier un lien de partage."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Usa un URL pubblico del bucket o collega un dominio personalizzato/CDN. Capso ha bisogno di un prefisso HTTPS pubblico per copiare un link di condivisione."
+            "value" : "Usa un URL pubblico del bucket o collega un dominio personalizzato/CDN. Nextshot ha bisogno di un prefisso HTTPS pubblico per copiare un link di condivisione."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "公開バケット URL を使用するか、カスタムドメイン/CDN を接続してください。共有リンクをコピーするには、Capso に公開 HTTPS プレフィックスが必要です。"
+            "value" : "公開バケット URL を使用するか、カスタムドメイン/CDN を接続してください。共有リンクをコピーするには、Nextshot に公開 HTTPS プレフィックスが必要です。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "공개 버킷 URL을 사용하거나 사용자 지정 도메인/CDN을 연결하세요. 공유 링크를 복사하려면 Capso에 공개 HTTPS 접두사가 필요합니다."
+            "value" : "공개 버킷 URL을 사용하거나 사용자 지정 도메인/CDN을 연결하세요. 공유 링크를 복사하려면 Nextshot에 공개 HTTPS 접두사가 필요합니다."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Use um URL público do bucket ou conecte um domínio personalizado/CDN. O Capso precisa de um prefixo HTTPS público para copiar um link de compartilhamento."
+            "value" : "Use um URL público do bucket ou conecte um domínio personalizado/CDN. O Nextshot precisa de um prefixo HTTPS público para copiar um link de compartilhamento."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Используйте публичный URL бакета или подключите собственный домен/CDN. Capso нужен публичный HTTPS-префикс, чтобы копировать ссылку."
+            "value" : "Используйте публичный URL бакета или подключите собственный домен/CDN. Nextshot нужен публичный HTTPS-префикс, чтобы копировать ссылку."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请使用存储桶的公开 URL，或连接自定义域名/CDN。Capso 需要公开的 HTTPS 前缀才能复制分享链接。"
+            "value" : "请使用存储桶的公开 URL，或连接自定义域名/CDN。Nextshot 需要公开的 HTTPS 前缀才能复制分享链接。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "請使用儲存貯體的公開 URL，或連接自訂網域／CDN。Capso 需要公開的 HTTPS 前綴才能拷貝分享連結。"
+            "value" : "請使用儲存貯體的公開 URL，或連接自訂網域／CDN。Nextshot 需要公開的 HTTPS 前綴才能拷貝分享連結。"
           }
         }
       }
@@ -54827,7 +54971,7 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capso è aggiornato!"
+            "value" : "Nextshot è aggiornato!"
           }
         },
         "ja" : {

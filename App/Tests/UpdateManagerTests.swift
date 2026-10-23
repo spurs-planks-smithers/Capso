@@ -37,8 +37,9 @@ final class FakeSoftwareUpdater: SoftwareUpdating {
 /// nothing stored for them, so editing the plist would silently move everyone
 /// who upgrades. Anyone who wants a different interval can pick one.
 final class ShippedUpdateDefaultsTests: XCTestCase {
-    func testAutomaticChecksAreOnByDefault() {
-        XCTAssertEqual(Bundle.main.object(forInfoDictionaryKey: "SUEnableAutomaticChecks") as? Bool, true)
+    // Fork: security baseline rec 1 turns Sparkle's automatic checks off.
+    func testAutomaticChecksAreOffInTheFork() {
+        XCTAssertEqual(Bundle.main.object(forInfoDictionaryKey: "SUEnableAutomaticChecks") as? Bool, false)
     }
 
     func testAutomaticInstallIsOffByDefault() {

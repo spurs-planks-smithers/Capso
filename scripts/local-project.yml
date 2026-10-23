@@ -1,0 +1,27 @@
+# Fork: local signed build. Includes the upstream spec and overrides only the
+# Capso target, so package targets keep their own product names.
+# Used by scripts/build-local.sh, which generates CapsoLocal.xcodeproj in the
+# repo root (git ignores *.xcodeproj). The script passes --project-root with
+# the repo root, so paths here and in project.yml resolve from the root and
+# relative build settings such as CODE_SIGN_ENTITLEMENTS stay valid.
+name: CapsoLocal
+
+include:
+  - project.yml
+
+targets:
+  Capso:
+    # Nextshot's own app icon (Icon Composer). Only this build uses it, so the
+    # upstream Capso.app keeps Capso's AppIcon. `type: file` keeps the .icon
+    # folder as one reference, which actool compiles.
+    sources:
+      - path: Branding/Nextshot.icon
+        type: file
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.drewschulz.nextshot
+        PRODUCT_NAME: Nextshot
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: Apple Development
+        ASSETCATALOG_COMPILER_APPICON_NAME: Nextshot

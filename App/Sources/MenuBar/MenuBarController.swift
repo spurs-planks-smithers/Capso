@@ -62,9 +62,8 @@ final class MenuBarController: NSObject {
     private func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         if let button = statusItem?.button {
-            button.image = NSImage(named: "MenuBarIcon")
-            button.image?.size = NSSize(width: 18, height: 18)
-            button.image?.isTemplate = true
+            // Fork: the Nextshot mark, not Capso's logo.
+            button.image = ForkBranding.menuBarMark(description: ForkBranding.name, fallbackSymbol: "camera.viewfinder")
         }
         statusItem?.menu = buildMenu()
     }
@@ -157,9 +156,9 @@ final class MenuBarController: NSObject {
         menu.addItem(.separator())
 
         menu.addItem(menuItem(String(localized: "Preferences..."), action: #selector(openPreferences), key: ",", modifiers: [.command]))
-        menu.addItem(menuItem(String(localized: "About Capso"), action: #selector(openAbout)))
+        menu.addItem(menuItem(ForkBranding.renamed(String(localized: "About Capso")), action: #selector(openAbout))) // Fork: product name
         menu.addItem(.separator())
-        menu.addItem(menuItem(String(localized: "Quit Capso"), action: #selector(quitApp), key: "q", modifiers: [.command]))
+        menu.addItem(menuItem(ForkBranding.renamed(String(localized: "Quit Capso")), action: #selector(quitApp), key: "q", modifiers: [.command])) // Fork: product name
 
         return menu
     }

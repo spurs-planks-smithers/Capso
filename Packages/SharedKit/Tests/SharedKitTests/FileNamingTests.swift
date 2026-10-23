@@ -25,16 +25,16 @@ struct FileNamingTests {
         return components.date!
     }
 
-    @Test("Default screenshot name contains 'Capso Screenshot'")
+    @Test("Default screenshot name contains 'Nextshot Screenshot'")
     func defaultScreenshotName() {
         let name = FileNaming.generateName(for: .screenshot)
-        #expect(name.hasPrefix("Capso Screenshot"))
+        #expect(name.hasPrefix("Nextshot Screenshot"))
     }
 
-    @Test("Default recording name contains 'Capso Recording'")
+    @Test("Default recording name contains 'Nextshot Recording'")
     func defaultRecordingName() {
         let name = FileNaming.generateName(for: .recording)
-        #expect(name.hasPrefix("Capso Recording"))
+        #expect(name.hasPrefix("Nextshot Recording"))
     }
 
     @Test("Name includes date components")
@@ -49,7 +49,7 @@ struct FileNamingTests {
         let date = Date(timeIntervalSince1970: 1_705_348_800)
         let name = FileNaming.generateName(for: .screenshot, date: date, sourceAppName: "Safari")
 
-        #expect(name.hasPrefix("Capso Screenshot - Safari "))
+        #expect(name.hasPrefix("Nextshot Screenshot - Safari "))
     }
 
     @Test("Source app name is sanitized for filenames")
@@ -62,7 +62,7 @@ struct FileNamingTests {
             sourceAppName: "Foo/Bar:Beta"
         )
 
-        #expect(fileName.hasPrefix("Capso Screenshot - Foo-Bar-Beta "))
+        #expect(fileName.hasPrefix("Nextshot Screenshot - Foo-Bar-Beta "))
         #expect(fileName.hasSuffix(".png"))
     }
 
@@ -135,7 +135,7 @@ struct FileNamingTests {
             template: "   "
         )
 
-        #expect(name == "Capso Screenshot 2024-01-15 at 16.00.00")
+        #expect(name == "Nextshot Screenshot 2024-01-15 at 16.00.00")
     }
 
     @Test("Rendered filename strips unsafe characters")

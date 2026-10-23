@@ -48,7 +48,7 @@ struct TextAndTranslationSettingsView: View {
                         showDivider: true
                     ) {
                         Picker("", selection: $viewModel.translationProvider) {
-                            ForEach(TranslationProviderKind.allCases, id: \.rawValue) { provider in
+                            ForEach([TranslationProviderKind.apple], id: \.rawValue) { provider in // Fork: on-device only
                                 Text(provider.displayName).tag(provider)
                             }
                         }

@@ -54,6 +54,9 @@ final class CaptureCoordinator {
     var historyCoordinator: HistoryCoordinator?
     var shareCoordinator: ShareCoordinator?
 
+    /// Fork: receives `.feedback` captures. Set by `FeedbackController` (App/Feedback).
+    var feedbackSink: ((CaptureResult) -> Void)?
+
     /// Post-capture action override. When set, ignores Settings toggles.
     private(set) var pendingAction: PostCaptureAction = .default
     private var pendingSourceApplication: SourceApplication?
@@ -80,10 +83,11 @@ final class CaptureCoordinator {
         case pin          // Pin selected capture to screen
         case save         // Save to file only, no preview
         case share        // Upload to cloud, skip Quick Access, save to history
+        case feedback     // Fork: hand the capture to feedbackSink (App/Feedback)
 
         var playsShutterSound: Bool {
             switch self {
-            case .annotate, .inlineAnnotate:
+            case .annotate, .inlineAnnotate, .feedback:
                 false
             case .default, .clipboard, .ocr, .pin, .save, .share:
                 true
@@ -92,7 +96,7 @@ final class CaptureCoordinator {
 
         var savesOriginalCaptureToHistory: Bool {
             switch self {
-            case .annotate, .inlineAnnotate, .pin:
+            case .annotate, .inlineAnnotate, .pin, .feedback:
                 false
             case .default, .clipboard, .ocr, .save, .share:
                 true
@@ -165,7 +169,7 @@ final class CaptureCoordinator {
     private func beautifiedResultIfNeeded(_ result: CaptureResult, action: PostCaptureAction) -> CaptureResult {
         // Editors start from the plain capture so Beautify stays adjustable there.
         guard settings.autoBeautifyScreenshots,
-              ![.pin, .ocr, .annotate, .inlineAnnotate].contains(action) else { return result }
+              ![.pin, .ocr, .annotate, .inlineAnnotate, .feedback].contains(action) else { return result }
         var style = BeautifySettings.saved(settings: settings)
         style.isEnabled = true
         guard let image = BeautifyRenderer.render(image: result.image, settings: style) else { return result }
@@ -412,6 +416,11 @@ final class CaptureCoordinator {
         scheduleSelectionStart { [weak self] in
             self?.showFrozenAllInOneOverlay()
         }
+    }
+
+    /// Fork: area capture whose result goes to `feedbackSink`.
+    func captureAreaForFeedback() {
+        startAreaCapture(action: .feedback)
     }
 
     private func startAreaCapture(action: PostCaptureAction) {
@@ -975,6 +984,7 @@ final class CaptureCoordinator {
             }
             overlay.onCancelled = { [weak self] in
                 self?.pendingSourceApplication = nil
+                self?.pendingAction = .default // Fork: a cancelled selection must not pass its action to the next capture
                 self?.dismissOverlay()
             }
             overlay.activate(mode: mode)
@@ -1631,6 +1641,8 @@ final class CaptureCoordinator {
             openAnnotationEditor(outputResult, anchorScreen: screenFor(result: result))
         case .inlineAnnotate:
             openInlineAnnotationEditor(outputResult, anchorScreen: screenFor(result: result))
+        case .feedback:
+            feedbackSink?(outputResult)
         case .ocr:
             ocrCoordinator?.startVisualOCR(image: result.image, anchorScreen: screenFor(result: result))
         case .pin:

@@ -36,6 +36,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
             return
         }
+        SingleInstanceGuard.quitIfAnotherCopyRuns() // Fork: App/Feedback
+        ForkDefaults.register() // Fork: App/Feedback
 
         Self.shared = self
         NSAppleEventManager.shared().setEventHandler(
@@ -85,6 +87,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onShowPreferences: { [weak self] in self?.showPreferences() }
         )
         registerGlobalShortcuts()
+        FeedbackController.shared.start(captureCoordinator: captureCoordinator!, settings: settings) // Fork: App/Feedback
         performPendingAutomationURLAction()
         performPendingImageFileOpen()
         historyCoordinator?.runCleanup()

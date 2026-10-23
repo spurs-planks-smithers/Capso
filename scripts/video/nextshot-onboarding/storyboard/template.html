@@ -1,0 +1,519 @@
+<title>Nextshot Onboarding Storyboard</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: an editor's workspace. A sticky timeline across the top, a sticky player on the left,
+   and the script cards (AV script plus storyboard frames plus notes) scrolling on the right. */
+{{FONTS}}
+:root {
+  --bg: #EEF2F2; --surface: #FFFFFF; --surface-2: #E3E9EA; --ink: #1B2225; --muted: #56636A; --line: #CFD8DA;
+  --accent: #3CCDBE; --accent-ink: #0B7369; --accent-soft: #DDF6F2;
+  --lemon: #F7DB6A; --lemon-soft: #FBF0C2; --lemon-ink: #5E4A06;
+  --sleek: #23282C; --sleek-ink: #8FF3E4;
+  --red: #FF543E; --red-ink: #B3301F; --voice-ink: #0F2E2A;
+  --f-body: "Inter", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --f-hand: "Caveat", "Marker Felt", "Comic Sans MS", cursive;
+  --f-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --lab: 64px; --tlh: 168px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #101416; --surface: #181E21; --surface-2: #222A2E; --ink: #E3EAEC; --muted: #93A1A7; --line: #2E383C;
+  --accent: #3CCDBE; --accent-ink: #6FE3D6; --accent-soft: #15302D;
+  --lemon: #F7DB6A; --lemon-soft: #3B3418; --lemon-ink: #F7DB6A;
+  --sleek: #07090A; --sleek-ink: #8FF3E4;
+  --red: #FF6A55; --red-ink: #FF8A78; --voice-ink: #0F2E2A; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #101416; --surface: #181E21; --surface-2: #222A2E; --ink: #E3EAEC; --muted: #93A1A7; --line: #2E383C;
+  --accent: #3CCDBE; --accent-ink: #6FE3D6; --accent-soft: #15302D;
+  --lemon: #F7DB6A; --lemon-soft: #3B3418; --lemon-ink: #F7DB6A;
+  --sleek: #07090A; --sleek-ink: #8FF3E4;
+  --red: #FF6A55; --red-ink: #FF8A78; --voice-ink: #0F2E2A; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--f-body); margin: 0; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.pad { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1480px; margin: 0 auto; }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visible, .blk:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+a { color: var(--accent-ink); }
+.tc { font-family: var(--f-mono); font-variant-numeric: tabular-nums; font-size: 12.5px; color: var(--muted); }
+
+/* Header */
+.top { padding-block: 18px 12px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 22px; }
+.titles { display: grid; gap: 8px; min-width: 0; }
+.actions { display: flex; align-items: center; gap: 14px; }
+.top h1 { font-size: 22px; font-weight: 750; letter-spacing: -0.3px; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; background: var(--surface-2); color: var(--muted); white-space: nowrap; }
+.top .spacer { flex: 1; }
+.status { font-size: 12.5px; color: var(--muted); }
+.status.ok { color: var(--accent-ink); }
+.status.bad { color: var(--red-ink); }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 6px 12px; font-size: 13px; font-weight: 600; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--voice-ink); }
+
+/* Timeline band */
+.tl-band { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 8px 10px; border-bottom: 1px solid var(--line); }
+.tl-scroll { overflow-x: auto; }
+.tl { position: relative; display: grid; grid-template-columns: var(--lab) 1fr; row-gap: 4px; min-width: 760px; --p: 0; }
+.tl-lab { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted); align-self: center; }
+.tl-track { position: relative; height: 24px; background: var(--surface-2); border-radius: 5px; cursor: pointer; }
+.tl-track.ruler { height: 16px; background: none; }
+.tl-track.sounds { height: 18px; }
+.tl-track.music { height: 26px; overflow: hidden; }
+.tick { position: absolute; top: 0; width: 1px; height: 5px; background: var(--line); }
+.tick.big { height: 8px; background: var(--muted); }
+.tick span { position: absolute; top: 4px; left: 3px; font: 10.5px var(--f-mono); color: var(--muted); }
+.blk { position: absolute; top: 0; bottom: 0; border-radius: 4px; overflow: hidden; display: flex; align-items: center; padding: 0 5px; font-size: 11.5px; font-weight: 650; white-space: nowrap; }
+.blk span { overflow: hidden; text-overflow: ellipsis; }
+.blk.tight span { visibility: hidden; }
+.blk.sketch { background: var(--lemon-soft); color: var(--lemon-ink); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lemon) 55%, transparent); }
+.blk.sleek { background: var(--sleek); color: var(--sleek-ink); box-shadow: inset 0 0 0 1px var(--line); }
+.blk.voice { background: var(--accent); color: var(--voice-ink); top: 3px; bottom: 3px; justify-content: center; padding: 0 2px; }
+.blk.voice.active { background: var(--red); color: #fff; }
+.sfx { position: absolute; top: 3px; width: 7px; height: 12px; margin-left: -3.5px; border-radius: 2px; background: var(--ink); opacity: 0.75; }
+.sfx.silent { background: none; box-shadow: inset 0 0 0 1.5px var(--muted); opacity: 1; }
+.music svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.music .band { fill: var(--accent); opacity: 0.35; }
+.music .band.after { opacity: 0.7; }
+.mlab.end { transform: translateX(-100%); border-left: 0; border-right: 2px solid var(--ink); padding: 0 5px 0 0; }
+.mlab { position: absolute; top: 5px; font-size: 10.5px; font-weight: 700; color: var(--ink); padding-left: 5px; border-left: 2px solid var(--ink); white-space: nowrap; }
+.tl-ph { position: absolute; top: 0; bottom: 0; left: calc(var(--lab) + (100% - var(--lab)) * var(--p)); width: 2px; margin-left: -1px; background: var(--red); pointer-events: none; z-index: 2; }
+.tl-ph::before { content: ""; position: absolute; top: -2px; left: -5px; border: 6px solid transparent; border-top-color: var(--red); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 8px; font-size: 12px; color: var(--muted); }
+.legend .sw { display: inline-block; width: 14px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.legend .sw.sfx-k { width: 7px; height: 12px; background: var(--ink); opacity: 0.75; }
+.legend .sw.sil-k { width: 7px; height: 12px; box-shadow: inset 0 0 0 1.5px var(--muted); }
+
+/* Main area */
+.main { display: grid; grid-template-columns: minmax(0, 500px) minmax(0, 1fr); gap: 28px; padding-block: 20px 60px; align-items: start; }
+.left { position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--tlh) + 14px); display: grid; gap: 14px; }
+.player { background: #000; border-radius: 10px; overflow: hidden; aspect-ratio: 16 / 9; max-width: 100%; }
+.player video { width: 100%; height: 100%; display: block; }
+.vidfail { margin: 0; font-size: 13px; color: var(--red-ink); }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+.now .k { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted); }
+.now .t { font-size: 17px; font-weight: 650; margin-top: 2px; }
+.now label { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); margin-top: 10px; }
+.how ol { margin: 6px 0 0; padding-left: 20px; display: grid; gap: 6px; font-size: 13.5px; }
+.how h2, .guide h2 { font-size: 13px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted); }
+
+.right { display: grid; gap: 22px; min-width: 0; }
+.guide { display: grid; gap: 12px; }
+.gloss { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px 22px; margin: 4px 0 0; }
+.gloss div { font-size: 13.5px; }
+.gloss dt { font-weight: 700; display: inline; }
+.gloss dd { display: inline; margin: 0; color: var(--muted); }
+.gloss dt::after { content: ": "; }
+.rules { margin: 0; padding-left: 20px; font-size: 13.5px; display: grid; gap: 4px; }
+
+/* Scenes and cards */
+.scene { display: grid; gap: 14px; }
+.scene-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; padding-top: 10px; border-top: 2px solid var(--ink); }
+.scene-head .num { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted); }
+.scene-head h2 { font-family: var(--f-hand); font-size: 36px; font-weight: 700; line-height: 1; }
+.scene-head .look { font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 5px; }
+.look.sketch { background: var(--lemon-soft); color: var(--lemon-ink); }
+.look.sleek { background: var(--sleek); color: var(--sleek-ink); }
+.scene-head .job { margin: 0; flex-basis: 100%; font-size: 14px; color: var(--muted); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 14px; scroll-margin-top: calc(var(--tlh) + 20px); }
+.card.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.card-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.badge { width: 30px; height: 30px; border-radius: 50%; background: #FF543E; color: #fff; font-weight: 800; font-size: 15px; display: grid; place-items: center; box-shadow: 0 0 0 2.5px #fff, 0 0 0 3.5px var(--line); flex: none; }
+.card-head .lid { font-size: 12px; color: var(--muted); }
+.card-head .spacer { flex: 1; }
+.frames { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.frames figure { margin: 0; }
+.frames button { padding: 0; border: 0; background: none; display: block; width: 100%; border-radius: 7px; overflow: hidden; }
+.frames img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; background: var(--surface-2); }
+.frames figcaption { margin-top: 3px; }
+.av { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 7px 14px; margin: 0; }
+.av dt { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted); padding-top: 3px; }
+.av dd { margin: 0; font-size: 14px; }
+.av dd.spoken { font-size: 19px; font-weight: 650; line-height: 1.35; text-wrap: balance; } /* quoted script: never reworded, so its lines are balanced instead */
+.caps { display: flex; flex-wrap: wrap; gap: 6px; }
+.cap { background: var(--sleek); color: #fff; font-size: 13px; font-weight: 600; padding: 2px 10px; border-radius: 6px; }
+.cues { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.cues li { font-size: 13.5px; }
+.cues .snd { font-weight: 650; }
+.cues .none { color: var(--muted); }
+.timing { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13.5px; }
+.timing b { font-weight: 700; font-variant-numeric: tabular-nums; }
+.pace { font-size: 11.5px; font-weight: 700; padding: 1px 7px; border-radius: 5px; background: var(--surface-2); }
+.pace.fast { background: var(--lemon-soft); color: var(--lemon-ink); }
+
+.notes { border-top: 1px dashed var(--line); padding-top: 12px; display: grid; gap: 10px; }
+.notes .row { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.notes .k { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted); }
+.verdict { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.verdict button { border: 0; background: var(--surface); padding: 5px 14px; font-size: 13px; font-weight: 650; }
+.verdict button + button { border-left: 1px solid var(--line); }
+.verdict button[aria-pressed="true"][data-v="keep"] { background: var(--accent); color: var(--voice-ink); }
+.verdict button[aria-pressed="true"][data-v="change"] { background: var(--lemon); color: #3A2E02; }
+.verdict button[aria-pressed="true"][data-v="cut"] { background: var(--red); color: #fff; }
+.field { display: grid; gap: 4px; min-width: 0; }
+.field input, .field textarea { width: 100%; font: 14px/1.45 var(--f-body); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; }
+.field textarea { min-height: 62px; resize: vertical; }
+.field input.changed { border-color: var(--lemon); background: var(--lemon-soft); }
+.note-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.reply { margin: 0; font-size: 13.5px; padding: 8px 12px; border-radius: 8px; background: var(--accent-soft); }
+.reply b { color: var(--accent-ink); }
+.overall .note-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.copyout { width: 100%; min-height: 160px; font: 12.5px/1.5 var(--f-mono); }
+footer { font-size: 12.5px; color: var(--muted); padding-block: 0 40px; }
+
+@media (max-width: 1180px) {
+  .main { grid-template-columns: minmax(0, 1fr); }
+  .left { position: static; }
+  .tl-band { position: static; }
+  .card { scroll-margin-top: 16px; }
+}
+@media (max-width: 640px) {
+  .frames, .note-grid, .overall .note-grid { grid-template-columns: minmax(0, 1fr); }
+  .av { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .av dd { margin-bottom: 6px; }
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+/* Print: the Letter PDF. Light colors, one column, no player, blank boxes for handwritten notes. */
+@page { size: Letter; margin: 0.6in 0.5in 0.6in;
+  @top-left { content: "Nextshot onboarding storyboard, cut {{VERSION}}"; font: 9px Arial, sans-serif; color: #56636A; }
+  @bottom-right { content: "Page " counter(page) " of " counter(pages); font: 9px Arial, sans-serif; color: #56636A; } }
+@media print {
+  :root { --bg: #FFFFFF; --surface: #FFFFFF; --surface-2: #EEF2F2; --ink: #1B2225; --muted: #56636A; --line: #C9D3D5;
+    --accent-ink: #0B7369; --lemon-soft: #FBF0C2; --lemon-ink: #5E4A06; --sleek: #23282C; --red-ink: #B3301F; color-scheme: light; }
+  body { font-size: 11px; }
+  .pad { padding-left: 0; padding-right: 0; }
+  .tl-band { position: static; border: 0; }
+  .tl { min-width: 0; }
+  .left, .top .btn, .status, .play, .guide, .copybox, footer, .tl-ph, .noprint { display: none !important; }
+  .main { display: block; padding-block: 8px 0; }
+  .right { display: block; }
+  .scene { display: block; }
+  .scene-head { break-inside: avoid; break-after: avoid; margin: 12px 0 6px; padding-top: 6px; }
+  .scene-head h2 { font-size: 26px; }
+  .card { break-inside: avoid; margin-bottom: 8px; padding: 8px 10px; gap: 6px 14px; box-shadow: none !important;
+    grid-template-columns: 1.75in minmax(0, 1fr); grid-template-areas: "head head" "frames av" "notes notes"; }
+  .card-head { grid-area: head; }
+  .frames { grid-area: frames; grid-template-columns: 1fr; gap: 4px; align-content: start; }
+  .frames figcaption { margin-top: 0; font-size: 9px; }
+  .av { grid-area: av; grid-template-columns: 70px minmax(0, 1fr); gap: 3px 10px; align-content: start; }
+  .av dt { font-size: 8.5px; padding-top: 2px; }
+  .notes { grid-area: notes; padding-top: 6px; gap: 5px 14px; grid-template-columns: auto minmax(0, 1fr); align-items: end; }
+  .notes .note-grid, .notes .reply { grid-column: 1 / -1; }
+  .notes .k { font-size: 8.5px; }
+  .field input, .field textarea { font-size: 10px; padding: 3px 6px; }
+  .field textarea::placeholder { color: transparent; }
+  .badge { width: 22px; height: 22px; font-size: 11px; }
+  .av dd.spoken { font-size: 14px; }
+  .av dd, .cues li, .timing { font-size: 11px; }
+  .notes textarea { min-height: 30px; background: #fff; }
+  .notes input { background: #fff; }
+  .verdict button { background: #fff !important; color: #1B2225 !important; padding: 3px 10px; }
+  .reply { display: none; }
+  .overall { break-inside: avoid; }
+}
+</style>
+
+<header class="wrap pad top">
+  <div class="titles"><h1>Nextshot onboarding storyboard</h1><div class="meta">{{META}}</div></div>
+  <div class="actions"><span class="status" id="status" role="status">Notes save to this page</span>
+    <button class="btn primary" id="copyAll" type="button">Copy all notes</button></div>
+</header>
+
+<div class="tl-band" id="tlBand">
+  <div class="wrap pad">
+    <div class="tl-scroll">{{TIMELINE}}</div>
+    <div class="legend">
+      <span><span class="sw" style="background:var(--lemon-soft);box-shadow:inset 0 0 0 1px var(--lemon)"></span>Sketch look</span>
+      <span><span class="sw" style="background:var(--sleek)"></span>Nextshot look</span>
+      <span><span class="sw" style="background:var(--accent)"></span>Voice line (gaps are silence)</span>
+      <span><span class="sw sfx-k"></span>Sound effect</span>
+      <span><span class="sw sil-k"></span>Picture change, no sound</span>
+      <span><span class="sw" style="background:var(--accent);opacity:.5"></span>Music (lower while the voice talks)</span>
+      <span class="noprint">Click anywhere on the timeline to jump there.</span>
+    </div>
+  </div>
+</div>
+
+<div class="wrap pad main">
+  <aside class="left">
+    <div class="player"><video id="vid" src="video.mp4" poster="{{POSTER}}" controls playsinline preload="metadata"></video></div>
+    <p class="vidfail" id="vidfail" hidden>The video file did not load here. Watch it on Frame.io at <a href="{{FRAMEIO}}" target="_blank" rel="noopener">{{FRAMEIO_SHORT}}</a>. The cards and notes still work.</p>
+    <div class="panel now">
+      <div class="k">Now playing</div>
+      <div class="t" id="now">Press play, or click a line on the timeline.</div>
+      <label><input type="checkbox" id="follow"> Scroll the cards with the video</label>
+    </div>
+    <div class="panel how">
+      <h2>How to review</h2>
+      <ol>
+        <li>Watch the whole video once with sound. Then watch it once muted, as most people see it in Teams and Outlook.</li>
+        <li>Go card by card. Mark each line Keep, Change, or Cut. To change the words, type the new line in "Rewrite the line".</li>
+        <li>Add notes on the picture and the timing. When you finish, tell Claude that the notes are in.</li>
+      </ol>
+    </div>
+  </aside>
+
+  <main class="right">
+    <section class="panel guide" aria-label="Plain-English guide">
+      <h2>Words an editor uses</h2>
+      <dl class="gloss">
+        <div><dt>Voiceover</dt><dd>the voice you hear but never see. Here it is {{VOICE}}.</dd></div>
+        <div><dt>Caption</dt><dd>the spoken words on screen. Most people watch muted.</dd></div>
+        <div><dt>Scene</dt><dd>one part of the story with one job. This cut has {{SCENE_COUNT}}.</dd></div>
+        <div><dt>Beat</dt><dd>one moment inside a scene, such as a badge that pops in.</dd></div>
+        <div><dt>Cue</dt><dd>a planned moment when a picture change or a sound hits a word.</dd></div>
+        <div><dt>Sound effect</dt><dd>a short sound for an action: a pop, a click, a camera shutter.</dd></div>
+        <div><dt>Music bed</dt><dd>the quiet music under the whole video. It sets the pace and mood.</dd></div>
+        <div><dt>Ducking</dt><dd>the music gets quieter while the voice talks, then comes back up.</dd></div>
+        <div><dt>Lead-in</dt><dd>the silence at the start of a scene, before its first line.</dd></div>
+        <div><dt>Tail</dt><dd>the silence after a scene's last line, before the next scene starts.</dd></div>
+        <div><dt>Hold</dt><dd>time the picture stays still, so the viewer can read it.</dd></div>
+        <div><dt>Cut and wipe</dt><dd>a cut changes the picture at once. A wipe reveals the new picture with a moving shape, such as the teal circle at "Meet Nextshot."</dd></div>
+        <div><dt>Timecode</dt><dd>a time in the video, as minutes:seconds. 0:12.1 is 12.1 seconds in.</dd></div>
+      </dl>
+      <h2>Rules of thumb</h2>
+      <ul class="rules">
+        <li>The hook must land in the first 3 seconds (<a href="https://zubtitle.com/blog/unlock-your-product-the-short-form-explainer-video-guide" target="_blank" rel="noopener">Zubtitle</a>).</li>
+        <li>The video must work muted, so every line has a caption (same source).</li>
+        <li>Explainer narration runs about 150 words per minute, or 2.5 words per second (<a href="https://breadnbeyond.com/how-many-words-does-a-60-seconds-explainer-video-needs/" target="_blank" rel="noopener">Breadnbeyond</a>). Short, punchy lines can run faster. Each card shows its speed.</li>
+      </ul>
+    </section>
+
+{{CARDS}}
+
+    <section class="panel overall notes" data-note="overall" aria-label="Notes on the whole video">
+      <h2 class="k">Notes on the whole video</h2>
+      <div class="note-grid">
+        <label class="field"><span class="k">The whole video</span><textarea id="n-overall-whole" data-f="whole" placeholder="Story, length, tone, what is missing"></textarea></label>
+        <label class="field"><span class="k">Music and sound</span><textarea id="n-overall-sound" data-f="sound" placeholder="Voice, music, sound effects, loudness"></textarea></label>
+      </div>
+      <p class="reply" hidden></p>
+    </section>
+
+    <section class="panel copybox" id="copybox" hidden>
+      <h2 class="k">All notes as text</h2>
+      <p class="status">Copy did not work here. Select the text below and copy it.</p>
+      <textarea class="copyout" id="copyout" readonly></textarea>
+    </section>
+  </main>
+</div>
+
+<footer class="wrap pad">{{FOOTER}}</footer>
+
+<script id="sb-data" type="application/json">{{DATA}}</script>
+<script>
+(() => {
+  const SB = JSON.parse(document.getElementById('sb-data').textContent);
+  const D = SB.duration;
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const fmt = (t) => { const m = Math.floor(t / 60); const s = (t - m * 60).toFixed(1).padStart(4, '0'); return m + ':' + s; };
+
+  // ---------- player, timeline, playhead ----------
+  const vid = $('#vid'), tl = $('#tl'), now = $('#now'), follow = $('#follow');
+  let stopAt = null, activeId = null;
+  const lineAt = (t) => SB.lines.find((l) => t >= l.win[0] && t < l.win[1]) || null;
+
+  function paint() {
+    const t = vid.currentTime || 0;
+    tl.style.setProperty('--p', Math.min(1, t / D));
+    if (stopAt !== null && t >= stopAt) { vid.pause(); stopAt = null; }
+    const l = lineAt(t);
+    const id = l ? l.id : null;
+    if (id !== activeId) {
+      $$('.card.active, .blk.voice.active').forEach((e) => e.classList.remove('active'));
+      if (l) {
+        $$('[data-line="' + id + '"]').forEach((e) => e.classList.add('active'));
+        now.textContent = 'Line ' + l.n + ', ' + fmt(t) + ': ' + l.text;
+        if (follow.checked && !vid.paused) $('#line-' + id).scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }
+      activeId = id;
+    }
+    if (!l) {
+      const s = SB.scenes.find((x) => t >= x.start && t < x.end);
+      now.textContent = fmt(t) + (s ? ', scene ' + s.n + ' (' + s.name + '), silence' : ', end of the video');
+    }
+  }
+  function loop() { paint(); if (!vid.paused) requestAnimationFrame(loop); }
+  vid.addEventListener('play', () => requestAnimationFrame(loop));
+  ['seeked', 'timeupdate', 'pause', 'loadedmetadata'].forEach((ev) => vid.addEventListener(ev, paint));
+  vid.addEventListener('error', () => { $('#vidfail').hidden = false; });
+
+  function seek(t, play, stop) {
+    stopAt = stop == null ? null : stop;
+    try { vid.currentTime = Math.max(0, Math.min(D - 0.05, t)); } catch (e) {}
+    paint();
+    if (play) vid.play().catch(() => {});
+  }
+  $$('.tl-track').forEach((tr) => tr.addEventListener('click', (ev) => {
+    const blk = ev.target.closest('.blk.voice');
+    if (blk) {
+      const l = SB.lines.find((x) => x.id === blk.dataset.line);
+      seek(l.win[0] - 0.15, true, l.win[1]);
+      $('#line-' + l.id).scrollIntoView({ block: 'start', behavior: 'smooth' });
+      return;
+    }
+    const r = tr.getBoundingClientRect();
+    seek(((ev.clientX - r.left) / r.width) * D, !vid.paused, null);
+  }));
+  $$('.blk.voice').forEach((b) => b.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); b.click(); } }));
+  $$('[data-play]').forEach((b) => b.addEventListener('click', () => {
+    const l = SB.lines.find((x) => x.id === b.dataset.play);
+    seek(l.win[0] - 0.15, true, l.win[1]);
+  }));
+  $$('[data-play-scene]').forEach((b) => b.addEventListener('click', () => {
+    const s = SB.scenes.find((x) => x.id === b.dataset.playScene);
+    seek(s.start, true, s.end);
+  }));
+  $$('[data-seek]').forEach((b) => b.addEventListener('click', () => seek(+b.dataset.seek, false, null)));
+
+  // Hide a timeline label that does not fit its block (short lines on a narrow screen).
+  const fitLabels = () => $$('.blk').forEach((b) => { const s = b.firstElementChild; b.classList.remove('tight'); if (s && s.scrollWidth > b.clientWidth - 2) b.classList.add('tight'); });
+  fitLabels();
+  addEventListener('resize', fitLabels);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitLabels);
+
+  // Keep the sticky player below the sticky timeline.
+  const band = $('#tlBand');
+  const setH = () => document.documentElement.style.setProperty('--tlh', band.offsetHeight + 'px');
+  setH();
+  try { new ResizeObserver(setH).observe(band); } catch (e) { addEventListener('resize', setH); }
+
+  // ---------- notes ----------
+  const statusEl = $('#status');
+  const setStatus = (text, cls) => { statusEl.textContent = text; statusEl.className = 'status' + (cls ? ' ' + cls : ''); };
+  const sections = $$('[data-note]');
+  const remote = {};            // last stored body per note id
+  const timers = {}, busy = {}, again = {};
+  let db = null, readOnly = false;
+  const LS = 'nextshot-storyboard-notes';
+  const lsRead = () => { try { return JSON.parse(localStorage.getItem(LS) || '{}'); } catch (e) { return {}; } };
+  const lsWrite = (all) => { try { localStorage.setItem(LS, JSON.stringify(all)); return true; } catch (e) { return false; } };
+
+  function collect(sec) {
+    const id = sec.dataset.note;
+    const body = Object.assign({}, remote[id] || {});
+    const v = $('.verdict [aria-pressed="true"]', sec);
+    if ($('.verdict', sec)) body.verdict = v ? v.dataset.v : '';
+    $$('[data-f]', sec).forEach((f) => { body[f.dataset.f] = f.value; });
+    const line = SB.lines.find((l) => l.id === id);
+    if (line) body.line = line.text;
+    body.cut = SB.version;
+    body.updated = new Date().toISOString();
+    if (body.status === 'done') body.status = 'open';
+    return body;
+  }
+  function render(sec, body) {
+    const ae = document.activeElement;
+    const editing = sec.contains(ae) || timers[sec.dataset.note] || busy[sec.dataset.note];
+    if (!editing) {
+      $$('[data-f]', sec).forEach((f) => { if (typeof body[f.dataset.f] === 'string') f.value = body[f.dataset.f]; });
+      $$('.verdict button', sec).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === body.verdict)));
+      markRewrite(sec);
+    }
+    const rep = $('.reply', sec);
+    if (body.reply) {
+      rep.hidden = false;
+      rep.innerHTML = '';
+      const b = document.createElement('b');
+      b.textContent = body.status === 'done' ? 'Done. Claude: ' : 'Claude: ';
+      rep.append(b, document.createTextNode(body.reply));
+    } else rep.hidden = true;
+  }
+  function markRewrite(sec) {
+    const inp = $('[data-f="rewrite"]', sec);
+    const line = SB.lines.find((l) => l.id === sec.dataset.note);
+    if (inp && line) inp.classList.toggle('changed', inp.value.trim() !== line.text);
+  }
+  async function flush(sec) {
+    const id = sec.dataset.note;
+    timers[id] = null;
+    if (busy[id]) { again[id] = true; return; }
+    busy[id] = true;
+    const body = collect(sec);
+    try {
+      if (db) await db.doc('notes/' + id).set(body);
+      else { const all = lsRead(); all[id] = body; if (!lsWrite(all)) throw { code: 'local' }; }
+      remote[id] = body;
+      const hhmm = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      setStatus(db ? 'Saved to this page ' + hhmm : 'Saved in this browser only ' + hhmm, db ? 'ok' : '');
+    } catch (e) {
+      if (e && e.code === 'invalid_argument') { readOnly = true; lock(); setStatus('Read only: you cannot save notes on this page', 'bad'); }
+      else if (e && e.code === 'unavailable' && !again[id]) { again[id] = true; setStatus('Retrying the save', ''); await new Promise((r) => setTimeout(r, 600 + Math.random() * 600)); }
+      else setStatus('Not saved. Use Copy all notes to keep your work.', 'bad');
+    } finally {
+      busy[id] = false;
+      if (again[id] && !readOnly) { again[id] = false; flush(sec); }
+    }
+  }
+  function schedule(sec) {
+    if (readOnly) return;
+    const id = sec.dataset.note;
+    clearTimeout(timers[id]);
+    setStatus('Saving', '');
+    timers[id] = setTimeout(() => flush(sec), 700);
+  }
+  function lock() { $$('[data-note] input, [data-note] textarea, .verdict button').forEach((e) => { e.disabled = true; }); }
+
+  sections.forEach((sec) => {
+    $$('[data-f]', sec).forEach((f) => f.addEventListener('input', () => { markRewrite(sec); schedule(sec); }));
+    $$('.verdict button', sec).forEach((b) => b.addEventListener('click', () => {
+      const on = b.getAttribute('aria-pressed') !== 'true';
+      $$('.verdict button', sec).forEach((x) => x.setAttribute('aria-pressed', 'false'));
+      b.setAttribute('aria-pressed', String(on));
+      schedule(sec);
+    }));
+  });
+
+  // Local notes first (preview and PDF), then the page database when the viewer grants it.
+  const local = lsRead();
+  sections.forEach((sec) => { if (local[sec.dataset.note]) { remote[sec.dataset.note] = local[sec.dataset.note]; render(sec, local[sec.dataset.note]); } });
+  const use = window.claude && window.claude.use ? window.claude.use('db') : Promise.resolve(null);
+  Promise.resolve(use).then((d) => {
+    if (!d) { setStatus('Notes save in this browser only. Use Copy all notes to send them.', ''); return; }
+    db = d;
+    setStatus('Notes save to this page', 'ok');
+    db.collection('notes').onSnapshot((snap) => {
+      snap.docs.forEach((doc) => {
+        if (!doc.exists) return;
+        const body = doc.data();
+        remote[doc.id] = body;
+        const sec = $('[data-note="' + doc.id + '"]');
+        if (sec) render(sec, body);
+      });
+    }, (e) => { setStatus(e && e.code === 'revoked' ? 'Notes are not available now' : 'Live notes stopped. Reload the page.', 'bad'); });
+  }).catch(() => setStatus('Notes save in this browser only', ''));
+
+  // ---------- copy all notes ----------
+  function allNotesText() {
+    const out = ['Nextshot onboarding storyboard notes, cut ' + SB.version, ''];
+    SB.lines.forEach((l) => {
+      const sec = $('[data-note="' + l.id + '"]');
+      const b = collect(sec);
+      const rw = (b.rewrite || '').trim();
+      const parts = [];
+      if (b.verdict) parts.push('  Verdict: ' + b.verdict[0].toUpperCase() + b.verdict.slice(1));
+      if (rw && rw !== l.text) parts.push('  Rewrite: ' + rw);
+      [['words', 'Words'], ['picture', 'Picture'], ['timing', 'Timing']].forEach(([k, lab]) => { if ((b[k] || '').trim()) parts.push('  ' + lab + ': ' + b[k].trim()); });
+      if (parts.length) out.push('Line ' + l.n + ' (' + l.id + '), ' + fmt(l.start) + ': "' + l.text + '"', ...parts, '');
+    });
+    const o = collect($('[data-note="overall"]'));
+    if ((o.whole || '').trim()) out.push('Whole video: ' + o.whole.trim());
+    if ((o.sound || '').trim()) out.push('Music and sound: ' + o.sound.trim());
+    return out.join('\n').trim() + '\n';
+  }
+  $('#copyAll').addEventListener('click', () => {
+    const text = allNotesText();
+    const fallback = () => { $('#copybox').hidden = false; const ta = $('#copyout'); ta.value = text; ta.focus(); ta.select(); };
+    try {
+      navigator.clipboard.writeText(text).then(() => setStatus('All notes copied', 'ok'), fallback);
+    } catch (e) { fallback(); }
+  });
+
+  paint();
+})();
+</script>

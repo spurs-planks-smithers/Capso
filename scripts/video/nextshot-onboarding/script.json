@@ -1,0 +1,142 @@
+{
+  "version": "v3",
+  "voice": {
+    "engine": "openai",
+    "model": "gpt-4o-mini-tts-2025-12-15",
+    "name": "sage",
+    "keychain": "OPENAI_API_KEY_NEXTSHOT",
+    "max_gap": 0.15,
+    "breath_db": -32,
+    "tempo": 1.08,
+    "style": "Voice: warm, clear, confident product host. Tone: friendly and lightly playful, never salesy. American English. Pace: fast and energetic, like a 30-second product commercial, about 200 words per minute. Almost no pause between sentences. Read exactly the given text, with no added words. Nextshot is pronounced NEXT-shot.",
+    "fallback": "Ava (Premium)"
+  },
+  "fps": 30,
+  "scenes": [
+    {
+      "id": "hook",
+      "lead": 1.2,
+      "tail": 0.35,
+      "lines": [
+        { "id": "built", "text": "So, you and AI just built a lemonade stand.", "pause": 0,
+          "direction": "Relaxed and inviting, with a small smile. Start gently." }
+      ]
+    },
+    {
+      "id": "problem",
+      "lead": 0.05,
+      "tail": 0.4,
+      "lines": [
+        { "id": "flawed", "text": "But AI output is far from perfect. Small things are wrong everywhere.",
+          "captions": ["But AI output is far from perfect.", "Small things are wrong everywhere."], "pause": 0.3,
+          "direction": "Let the problem land with a clear beat on 'far from perfect', then keep moving." },
+        { "id": "loop", "text": "So you screenshot. Crop. Paste. Prompt.", "pause": 0.15, "take": 2, "max_gap": 0.25,
+          "direction": "Punchy and quick: four crisp beats, rising frustration. Say 'you' clearly." },
+        { "id": "explain", "text": "But how do you tell AI what to change, and where?",
+          "captions": ["But how do you tell AI", "what to change, and where?"], "pause": 0.15,
+          "direction": "Exasperated and quick, with comic frustration." },
+        { "id": "again", "text": "Page after page, into AI eternity.", "pause": 0.2,
+          "direction": "Weary and wry." },
+        { "id": "ask", "text": "Why can't I give AI all my feedback at once?", "pause": 0,
+          "direction": "A sincere question that lifts at the end." }
+      ]
+    },
+    {
+      "id": "turn",
+      "lead": 0.1,
+      "tail": 0.45,
+      "lines": [
+        { "id": "meet", "text": "Now you can. Introducing Nextshot.", "pause": 0,
+          "direction": "A bright reset: confident, then proud and warm on 'Introducing Nextshot'." }
+      ]
+    },
+    {
+      "id": "how",
+      "lead": 0.1,
+      "tail": 0.5,
+      "lines": [
+        { "id": "g", "text": "Press Option Shift F. Grab the screen.", "pause": 0.25,
+          "direction": "Clear and instructive." },
+        { "id": "h", "text": "Circle each problem. Say what should change.", "pause": 0.2,
+          "direction": "Clear and instructive." }
+      ]
+    },
+    {
+      "id": "session",
+      "lead": 0.1,
+      "tail": 0.4,
+      "lines": [
+        { "id": "i", "text": "Then grab the next screen, and the next.", "pause": 0.25,
+          "direction": "Light and quick." },
+        { "id": "j", "text": "Circles, boxes, arrows, notes: one session holds it all.",
+          "captions": ["Circles, boxes, arrows, notes:", "one session holds it all."], "pause": 0.2,
+          "direction": "Confident. Stress 'one session'." }
+      ]
+    },
+    {
+      "id": "handoff",
+      "lead": 0.1,
+      "tail": 2.4,
+      "lines": [
+        { "id": "handoff", "text": "One handoff gives your agent every screen, every note. All the context.",
+          "captions": ["One handoff gives your agent", "every screen, every note. All the context."], "pause": 0.6,
+          "direction": "Deliberate and clear: this is the key point. Stress 'every screen' and 'all the context'." },
+        { "id": "paste", "text": "Paste it into any AI agent as one prompt-optimized package.",
+          "captions": ["Paste it into any AI agent", "as one prompt-optimized package."], "pause": 0,
+          "direction": "Clear and confident. Stress 'one prompt-optimized package'." }
+      ]
+    },
+    {
+      "id": "close",
+      "lead": 0.35,
+      "tail": 1.7,
+      "lines": [
+        { "id": "tagline", "text": "Nextshot. Mark it up. Hand it off.",
+          "captions": ["Nextshot.", "Mark it up. Hand it off."], "pause": 0,
+          "direction": "Say 'Nextshot' once, warm and proud. Then upbeat and crisp, with a smile." }
+      ]
+    }
+  ],
+  "cues": [
+    { "id": "stand", "line": "built", "offset": -1.2 },
+    { "id": "duo", "line": "built", "word": "you" },
+    { "id": "items", "line": "built", "word": "built", "sfx": "ticks", "span": 1.0, "count": 5 },
+    { "id": "dots", "line": "flawed", "word": "Small", "sfx": "pops", "span": 2.0, "count": 7 },
+    { "id": "shot", "line": "loop", "word": "screenshot", "sfx": "shutter" },
+    { "id": "crop", "line": "loop", "word": "Crop", "sfx": "snip" },
+    { "id": "paste1", "line": "loop", "word": "Paste", "sfx": "whoosh_small" },
+    { "id": "prompt", "line": "loop", "word": "Prompt", "sfx": "typing", "span": 0.45 },
+    { "id": "explain", "line": "explain", "word": "tell", "sfx": "typing", "span": 2.0 },
+    { "id": "again", "line": "again", "sfx": "ticks", "span": 1.4, "count": 10 },
+    { "id": "gather", "line": "ask", "word": "all", "sfx": "whoosh" },
+    { "id": "mark", "line": "meet", "word": "Now", "sfx": "whoosh_small" },
+    { "id": "wipe", "line": "meet", "word": "Nextshot", "sfx": "sparkle" },
+    { "id": "key_opt", "line": "g", "word": "Option", "sfx": "key" },
+    { "id": "key_shift", "line": "g", "word": "Shift", "sfx": "key" },
+    { "id": "key_f", "line": "g", "word": "F", "sfx": "key" },
+    { "id": "grab", "line": "g", "word": "Grab" },
+    { "id": "grab_done", "line": "g", "word": "screen", "offset": 0.3, "sfx": "shutter" },
+    { "id": "badge1", "line": "h", "word": "Circle", "sfx": "pop" },
+    { "id": "badge2", "line": "h", "word": "each", "sfx": "pop" },
+    { "id": "badge3", "line": "h", "word": "problem", "sfx": "pop" },
+    { "id": "panel", "line": "h", "word": "Say", "offset": -0.15, "sfx": "whoosh_small" },
+    { "id": "answer1", "line": "h", "word": "what", "sfx": "typing", "span": 0.7 },
+    { "id": "cap2", "line": "i", "word": "next", "sfx": "shutter" },
+    { "id": "cap3", "line": "i", "word": "next", "nth": 2, "sfx": "shutter" },
+    { "id": "m_circle", "line": "j", "word": "Circles", "sfx": "pop" },
+    { "id": "m_box", "line": "j", "word": "boxes", "sfx": "pop" },
+    { "id": "m_arrow", "line": "j", "word": "arrows", "sfx": "whoosh_small" },
+    { "id": "m_note", "line": "j", "word": "notes", "sfx": "pop" },
+    { "id": "tray", "line": "j", "word": "session", "sfx": "tick" },
+    { "id": "menu", "line": "handoff", "offset": -0.1, "sfx": "click" },
+    { "id": "copy", "line": "handoff", "word": "handoff", "sfx": "click" },
+    { "id": "toast", "line": "handoff", "word": "every", "sfx": "ding" },
+    { "id": "paste", "line": "paste", "word": "Paste", "sfx": "whoosh_small" },
+    { "id": "chips", "line": "paste", "word": "any" },
+    { "id": "pkg", "line": "paste", "word": "prompt", "sfx": "pops", "span": 1.8, "count": 4 },
+    { "id": "fix", "line": "tagline", "offset": -0.3, "sfx": "sparkle" },
+    { "id": "checks", "line": "tagline", "word": "Nextshot", "offset": 0.25, "sfx": "pops", "span": 0.5, "count": 3 },
+    { "id": "endcard", "line": "tagline", "word": "Mark" },
+    { "id": "final_chord", "line": "tagline", "word": "Hand" }
+  ]
+}
