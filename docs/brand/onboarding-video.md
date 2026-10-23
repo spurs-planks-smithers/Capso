@@ -14,6 +14,8 @@ The video is `build/releases/Nextshot-onboarding-2026.10.22.mp4` (git ignores `b
 | `scripts/video/nextshot-onboarding/render.sh` | Runs everything and writes the video and the poster to `build/releases/` |
 | `scripts/video/nextshot-onboarding/make_gif.py` | Renders the composition in GIF mode and cuts the email GIF (see "Email GIF") |
 | `scripts/video/nextshot-onboarding/assets/` | Caveat and Inter fonts (SIL Open Font License), GSAP and Rough.js, the Nextshot icon |
+| `scripts/video/nextshot-onboarding/storyboard/build_storyboard.py` | Builds the storyboard review page and its PDF from the files above (see "Storyboard review page") |
+| `scripts/video/nextshot-onboarding/storyboard/shots.json`, `template.html` | The page's hand-written text (what each line shows, scene jobs, cue names) and its design |
 
 `audio/`, `renders/`, `timing.json`, `timing.js`, and `node_modules/` are generated. They are not in git.
 
@@ -67,6 +69,22 @@ python3 scripts/video/nextshot-onboarding/make_gif.py
 - The segments are cut at cue times from `timing.json`, so a script change moves them with the voice.
 - The first frame must stand alone: classic Outlook on Windows shows only the first frame of an animated GIF. Outlook for Mac, the new Outlook for Windows, Outlook on iPhone and Android, Apple Mail, and Gmail play the loop. The first frame is the finished lemonade stand with the caption "Your AI agent just built you a lemonade stand."
 - Keep the file under about 3 MB. A larger GIF slows the email on a phone.
+
+## Storyboard review page
+
+Drew reviews each cut on one page and leaves notes on every voice line. The page is a private claude.ai artifact, first published 2026-10-23: https://claude.ai/artifact/7FfwHyYeL63MeLAp1yc46k. It puts four standard review formats in one place: an AV script (what you hear beside what you see), a storyboard (two frames per voice line), a timeline (scenes, voice, sounds, music), and timecoded notes. A plain-English glossary explains the editing terms.
+
+```bash
+python3 scripts/video/nextshot-onboarding/storyboard/build_storyboard.py --pdf
+```
+
+- Run it after each `render.sh`. It stops when `timing.json` is newer than the newest MP4, and when `script.json`, `timing.json`, and `shots.json` disagree on the lines, scenes, or cues.
+- It writes `build/releases/storyboard/`: `page.html` for the artifact, `local.html` for a browser and the PDF, `video.mp4`, and `frames/`. With `--pdf` it also writes `build/releases/Nextshot-onboarding-storyboard.pdf` (Letter, two cards a page, printed by Chrome).
+- `shots.json` holds the hand-written parts: what each line shows, each scene's job and look, the cue names, and the Frame.io link. A line can pin its two frames with `"frames": [0.3, 0.75]`, as fractions of the time from its start to the next line.
+- Republish: bump `version` in `shots.json`, build, then publish `build/releases/storyboard/page.html` to the artifact URL with `video.mp4` and `frames/*.jpg` as files (root `build/releases/storyboard`).
+- Notes live in the artifact's database, collection `notes`: one document per line id (`a`, `b`, `c1`, and so on) plus `overall`. Fields: `verdict` (keep, change, or cut), `rewrite`, `words`, `picture`, `timing` (`overall` has `whole` and `sound`), `cut`, `updated`. Claude reads them with the ArtifactData tool, answers in `reply`, and sets `status` to `done` when the change ships. The page shows the reply under the note.
+- Opened as a local file, the page saves notes in that browser only. "Copy all notes" gives plain text either way.
+- A local preview needs a server with byte-range support, or the video cannot seek. Python's `http.server` has none.
 
 ## Change it
 
