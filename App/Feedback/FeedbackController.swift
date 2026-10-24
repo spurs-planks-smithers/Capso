@@ -979,7 +979,8 @@ final class FeedbackController {
     private func showToast(_ message: String, screen: NSScreen?) {
         toast?.orderOut(nil)
         toast = ToastWindow(message: message, screen: screen)
-        toast?.show(autoDismissAfter: 2.5)
+        // 3x the old 2.5 s, as for every toast (Drew, 2026-10-24).
+        toast?.show(autoDismissAfter: 7.5)
     }
 
     /// One crop of the annotated capture per circle, in the capture's own
