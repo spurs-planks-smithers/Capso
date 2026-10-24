@@ -67,6 +67,40 @@ struct EndFeedbackRoundIntent: AppIntent {
     }
 }
 
+// MARK: - Actions saved before the rename to round (2026-10-24)
+
+// An App Intent's identifier comes from its type name. A Shortcut that Drew
+// or a colleague saved before the rename still names the old types. These
+// two keep that name, forward to the round actions, and stay out of the
+// Shortcuts action list (`isDiscoverable`). Their titles use the new words,
+// so a saved Shortcut reads like the new action. They are not in
+// `FeedbackAppShortcuts`.
+
+struct StartFeedbackSessionIntent: AppIntent {
+    static let title: LocalizedStringResource = "Start Feedback Round"
+    static let isDiscoverable = false
+
+    @Parameter(title: "Name")
+    var name: String?
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ReturnsValue<String> {
+        var forwarded = StartFeedbackRoundIntent()
+        forwarded.name = name
+        return try await forwarded.perform()
+    }
+}
+
+struct EndFeedbackSessionIntent: AppIntent {
+    static let title: LocalizedStringResource = "End Feedback Round"
+    static let isDiscoverable = false
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ReturnsValue<String> {
+        try await EndFeedbackRoundIntent().perform()
+    }
+}
+
 enum FeedbackIntentError: Error, CustomLocalizedStringResourceConvertible {
     case noActiveRound
     case roundAlreadyActive

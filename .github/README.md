@@ -58,7 +58,7 @@ Nextshot does not update itself. When you get a new DMG:
 
 Your rounds, settings, and permissions stay.
 
-The Shortcuts actions **Start Feedback Session** and **End Feedback Session** are now **Start Feedback Round** and **End Feedback Round**. A saved Shortcut that uses an old action needs the new action added again.
+The Shortcuts actions **Start Feedback Session** and **End Feedback Session** are now **Start Feedback Round** and **End Feedback Round**. A Shortcut saved before this change keeps working, because Nextshot still answers to the old actions. They no longer show in the action list, so use the new actions in new Shortcuts.
 
 To see which build you have, open the **Nshot** menu. The top row shows the build date and a build number, for example **Nextshot 2026.10.22 (497)**. A newer date or a higher number is a newer build. The DMG's file name starts with the same date.
 

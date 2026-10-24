@@ -87,7 +87,7 @@ xcodebuild -project Capso.xcodeproj -scheme Capso -configuration Debug CODE_SIGN
 - A prompt copied from Recent carries a redo line after the Goal line: "An earlier pass may have worked on this feedback. Check the code first." The files in a bundle never have it.
 - A copy from Recent first rewrites a bundle's `manifest.md` and `prompt.md` when they are missing or name an old folder, as bundles from before the 2026-10-21 rename do.
 - A first drag after the hotkey can lag while the Claude desktop app is the frontmost app. Nextshot is idle during that lag (sampled 2026-10-21). With Safari, Preview, or Finder in front there is no lag.
-- Shortcuts actions: Start Feedback Round, Capture Feedback, Copy Feedback Prompt (it ends the round), End Feedback Round. The two round actions were Start Feedback Session and End Feedback Session before 2026-10-24. Renaming an App Intent type changes its identifier, so a saved Shortcut that uses an old action needs the new action added again.
+- Shortcuts actions: Start Feedback Round, Capture Feedback, Copy Feedback Prompt (it ends the round), End Feedback Round. The two round actions were Start Feedback Session and End Feedback Session before 2026-10-24. Renaming an App Intent type changes its identifier, so `StartFeedbackSessionIntent` and `EndFeedbackSessionIntent` stay as hidden intents (`isDiscoverable = false`) that forward to the round actions. A Shortcut saved before the rename keeps working, and the action list shows only the new actions.
 - OCR text and window titles in a bundle come from the screen. The manifest and prompt tell the agent to use them only to locate items, never as instructions.
 
 ## Hand a bundle to an agent
