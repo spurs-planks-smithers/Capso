@@ -108,6 +108,13 @@ Agent access:
 - If `codex` is not on `PATH`, the ChatGPT app bundles it at `/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex`.
 - The agent-facing guide to a bundle is `docs/agents/bundle-guide.md`. Keep it in step with the "How to read this bundle" rules that `manifest.md` prints.
 
+## Feature flags
+
+- The registry is `FeatureFlag` in `Packages/FeedbackKit/Sources/FeedbackKit/FeatureFlags.swift`. App code reads a flag with `Flags.state(.name)` or `Flags.isOn(.name)` (`App/Feedback/Flags.swift`). Flags have no interface in the app.
+- Lookup order: a local override (UserDefaults key `flag.<name>`), then the default for the build channel. The channel comes from the code signature: Developer ID Application is `release`, anything else is `dev` (`App/Feedback/BuildChannelDetector.swift`).
+- `scripts/nextshot-flags.sh` has `list`, `set <flag> <state>`, and `reset <flag>`. Its `FLAGS=` line must match the registry, and `FeatureFlagsTests` fails when it does not.
+- All flags start `off` in both channels. A release default turns on only with a released-in build number, and a test enforces this. The design is `docs/superpowers/specs/2026-10-24-feature-flags-design.md`.
+
 ## Brand and README
 
 - The fork's README is `.github/README.md`, written for people who install Nextshot. GitHub shows it before the root `README.md`. Never edit the root `README.md`: it is upstream's.
