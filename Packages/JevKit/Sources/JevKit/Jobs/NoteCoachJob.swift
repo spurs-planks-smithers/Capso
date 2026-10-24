@@ -2,20 +2,207 @@
 import FeedbackKit
 import Foundation
 
-/// Note coach (idea 1, issue #37, flag `noteCoach`): judges whether each
-/// note names a change.
+/// What the note coach says about one item's note.
+public enum NoteCoachLabel: String, Sendable, CaseIterable {
+    /// The note is missing or holds only white space. Code decides this.
+    case empty
+    /// The note names no problem, no change, and no question.
+    case vague
+    /// Jev leans vague (level 0 is the most likely level), but the answers do
+    /// not pass the vague rule. It gets no line. Shadow review shows these
+    /// borderline notes so the thresholds can be tuned.
+    case unsure
+    /// The note names a problem with the item, but not the change.
+    case partial
+    /// The note asks for information, advice, or text, and names no change.
+    case question
+    /// The note names the change.
+    case clear
+
+    /// The label as code text, for the summary in jev.json.
+    public var code: JevCodeText {
+        switch self {
+        case .empty: "empty"
+        case .vague: "vague"
+        case .unsure: "unsure"
+        case .partial: "partial"
+        case .question: "question"
+        case .clear: "clear"
+        }
+    }
+}
+
+/// The rule that turns Jev's three answers for one item into a label. Pure
+/// code: the same answers always give the same label.
 ///
-/// Stub from the Jev base: it sends nothing and returns no lines. The #37
-/// session fills in this file and adds its own test file.
+/// The three thresholds are start values from TypeSafe's Noul docs. The
+/// accuracy test (issue #62) tunes them for the pinned model
+/// `JevEndpoint.model`.
+public enum NoteCoachRule {
+    /// A note is vague only when level 0 of `clarity` is at least this likely.
+    public static let vagueLevelMinimum = 0.7
+    /// An answer of at least this is a yes.
+    public static let yesMinimum = 0.7
+    /// An answer below this is a no.
+    public static let noMaximum = 0.3
+
+    /// Nil means not checked: an answer is missing, `clarity` does not have
+    /// three levels, or a number is not finite or is outside 0 to 1.
+    public static func label(clarity: JevScoreAnswer?, namesChange: Double?, asksAnswer: Double?) -> NoteCoachLabel? {
+        guard let clarity, let namesChange, let asksAnswer, clarity.probabilities.count == 3,
+              (clarity.probabilities + [namesChange, asksAnswer]).allSatisfy({ $0.isFinite && (0...1).contains($0) })
+        else { return nil }
+
+        let levels = clarity.probabilities
+        if levels[0] >= vagueLevelMinimum, namesChange < noMaximum, asksAnswer < noMaximum {
+            return .vague
+        }
+        if asksAnswer >= yesMinimum, namesChange < noMaximum {
+            return .question
+        }
+        if levels[0] > levels[1], levels[0] > levels[2] {
+            return .unsure
+        }
+        return levels[1] > levels[0] && levels[1] > levels[2] ? .partial : .clear
+    }
+
+    /// The refined-file line for a label. Unsure, partial, and clear notes
+    /// get none.
+    public static func line(for label: NoteCoachLabel) -> JevCodeText? {
+        switch label {
+        case .vague: "Ask the reviewer first: the note names no change."
+        case .question: "Answer this item. Change no code."
+        case .empty: "Ask the reviewer first: the item has no note."
+        case .unsure, .partial, .clear: nil
+        }
+    }
+}
+
+/// Note coach (idea 1, issue #37, flag `noteCoach`): labels each item's note
+/// as empty, vague, partial, question, or clear.
+///
+/// Code finds an empty note with no model. One request per capture asks Jev
+/// three questions about each filled note. The request holds reviewer text
+/// only: no window title, OCR text, app name, file name, or image. The job
+/// returns the same output in shadow and on. The runner writes the lines in
+/// on only. See docs/superpowers/specs/2026-10-24-note-coach-design.md.
 public struct NoteCoachJob: JevJob {
     public let id = "noteCoach"
     public let flag = FeatureFlag.noteCoach
     public let requires: JevDataKinds = []
-    public let version = 0
+    public let version = 1
 
     public init() {}
 
+    /// One numbered badge. `note` is the badge's instruction as stored, or
+    /// empty when the badge has none.
+    private struct Item {
+        var badge: Int
+        var note: String
+
+        var isFilled: Bool {
+            !note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+    }
+
     public func run(_ context: JevJobContext) async throws -> JevJobOutput {
-        .empty
+        let capture = context.capture
+        let items = Self.items(in: capture)
+        guard !items.isEmpty else { return .empty }
+
+        let filled = items.filter(\.isFilled)
+        var response: JevResponse?
+        if !filled.isEmpty {
+            response = try await context.jev.ask(Self.request(capture: capture, filled: filled))
+        }
+
+        var lines: [JevRefinedLine] = []
+        var summary: [JevSummaryField] = []
+        var review = ["### Capture \(capture.index)"]
+        for item in items {
+            let id = Self.itemID(capture: capture.index, badge: item.badge)
+            let label: NoteCoachLabel?
+            var reviewLine = "- \(id.text):"
+            if item.isFilled {
+                let clarity = response?.score("\(id.text).clarity")
+                let namesChange = response?.noul("\(id.text).names_change")
+                let asksAnswer = response?.noul("\(id.text).asks_answer")
+                label = NoteCoachRule.label(clarity: clarity, namesChange: namesChange, asksAnswer: asksAnswer)
+                reviewLine += " \(label?.rawValue ?? "not checked")."
+                reviewLine += " Level 0 \(Self.twoDecimals(clarity?.probabilities.first)), change \(Self.twoDecimals(namesChange)), answer \(Self.twoDecimals(asksAnswer))."
+            } else {
+                label = .empty
+                reviewLine += " empty."
+            }
+            reviewLine += " Note: \"\(item.note.split(whereSeparator: \.isNewline).joined(separator: " "))\""
+            review.append(reviewLine)
+
+            if let line = label.flatMap({ NoteCoachRule.line(for: $0) }) {
+                lines.append(JevRefinedLine(scope: .item(badge: item.badge), label: line))
+            }
+            summary.append(JevSummaryField(key: id, value: label.map { JevSummaryValue.code($0.code) } ?? "not_checked"))
+        }
+        return JevJobOutput(lines: lines, summary: summary, review: review.joined(separator: "\n"))
+    }
+
+    /// Each distinct badge, in ascending order. A badge with several marks
+    /// takes the first mark that has an instruction.
+    private static func items(in capture: FeedbackCapture) -> [Item] {
+        capture.badgeNumbers.sorted().map { badge in
+            let instruction = capture.marks.first { $0.badge == badge && $0.instruction != nil }?.instruction
+            return Item(badge: badge, note: instruction ?? "")
+        }
+    }
+
+    private static func itemID(capture: Int, badge: Int) -> JevCodeText {
+        "\(capture).\(badge)"
+    }
+
+    /// The whole capture in one request: three questions for each filled
+    /// item. Each question names its item's place in the state, `items[i]`.
+    private static func request(capture: FeedbackCapture, filled: [Item]) -> JevRequest {
+        var entries: [JevValue] = []
+        var questions: [(id: JevCodeText, question: JevQuestion)] = []
+        for (index, item) in filled.enumerated() {
+            let id = itemID(capture: capture.index, badge: item.badge)
+            entries.append(.fields(["item": .code(id), "note": .reviewer(item.note)]))
+            questions.append((
+                id: "\(id).clarity",
+                question: .score(
+                    "How clearly does `items[\(index)].note` tell a developer what to do about the marked item? `general_note` is context from the same reviewer. Words like \"this\" or \"here\" refer to the marked item.",
+                    levels: [
+                        "The note names no problem, names no change, and asks no question. Examples: \"fix this\", \"hmm\", \"look at this\", \"asdf\".",
+                        "The note names a problem with the item but not the change to make. Examples: \"this is cut off\", \"this number is wrong\".",
+                        "The note names the change to make, or asks a clear question. Examples: \"make this 50% wider\", \"rename this to Invoice Detail\", \"what does this setting do?\".",
+                    ]
+                )
+            ))
+            questions.append((
+                id: "\(id).names_change",
+                question: .noul(
+                    "Does `items[\(index)].note` ask for a change to the marked item?",
+                    yes: "The note names something to add, remove, move, resize, rename, recolor, reword, or fix.",
+                    no: "The note only describes, praises, or asks a question."
+                )
+            ))
+            questions.append((
+                id: "\(id).asks_answer",
+                question: .noul(
+                    "Does `items[\(index)].note` ask for information, an explanation, advice, or text to write?",
+                    yes: "The reviewer wants an answer or a draft.",
+                    no: "The reviewer wants only a change, or nothing."
+                )
+            ))
+        }
+        let state: JevValue = .fields([
+            "general_note": .reviewer(capture.note ?? ""),
+            "items": .array(entries),
+        ])
+        return JevRequest(state: state, questions: questions)
+    }
+
+    private static func twoDecimals(_ value: Double?) -> String {
+        guard let value else { return "n/a" }
+        return String(format: "%.2f", value)
     }
 }
