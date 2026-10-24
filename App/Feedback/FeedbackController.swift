@@ -169,10 +169,23 @@ final class FeedbackController {
     /// no empty session behind.
     func capture() {
         FeedbackLog.logger.notice("area capture requested")
+        let previousPhase = selectionPhase
+        let selectionWasUp = captureCoordinator?.isCaptureSelectionActive == true
         help.hide()
         selectionPhase = .starting
         helpScreen = NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) } ?? NSScreen.main
         captureCoordinator?.captureAreaForFeedback()
+        // The coordinator starts no selection when one is already up, or
+        // when it is gone. Then no end notification comes, and `.starting`
+        // would hide the help box until a later capture (#27). A selection
+        // that starts sets the coordinator's live state before the call
+        // returns. When one was already up, the phase it had comes back, so
+        // a selection of ours still shows its keys.
+        if selectionWasUp || captureCoordinator?.isCaptureSelectionActive != true {
+            FeedbackLog.logger.notice("area capture not started: a selection is up or the coordinator is gone")
+            selectionPhase = selectionWasUp ? previousPhase : .none
+            updateHelp()
+        }
     }
 
     /// Copy Prompt and End Round. The menu row, its hotkey, and the Copy
