@@ -48,6 +48,7 @@ Each item is one numbered badge. Its note is the badge's `instruction` in `feedb
 | --- | --- | --- | --- |
 | empty | The note is missing, or holds only white space. | Code | (no note) |
 | vague | The note names no problem, names no change, and asks no question. | Jev, then a code rule | "fix this", "hmm", "look at this", "asdf", "second note" |
+| unsure | Jev leans vague (level 0 is the most likely `clarity` level), but the answers do not pass the vague rule. Shadow review shows these notes, so the thresholds can be tuned. | Jev, then a code rule | n/a |
 | partial | The note names a problem with the marked item, but not the change. | Jev | "this is cut off", "this number is wrong" |
 | question | The note asks for information, an explanation, advice, or text to write, and names no change. | Jev, then a code rule | "what does this setting do?", "tell me what to put in this field" |
 | clear | The note names the change. A note that asks a question and also names a change ("if it is redundant, remove it") is clear. | Jev | "make this column 50% narrower" |
@@ -82,7 +83,7 @@ The code rule (thresholds start at TypeSafe's suggested 0.7 and 0.3; the accurac
 
 - vague: `clarity` level 0 probability ≥ 0.7, `names_change` < 0.3, and `asks_answer` < 0.3.
 - question: `asks_answer` ≥ 0.7 and `names_change` < 0.3.
-- Any other answer: no line. `jev.json` records the label from the highest `clarity` level (partial or clear) and every probability. My call.
+- Any other answer: no line. The label comes from the most likely `clarity` level: unsure (level 0), partial (level 1), or clear (level 2, or a tie). `jev.json` records it with every probability. My call.
 
 The code checks each answer's type and range before use. An answer outside 0 to 1, or a missing answer, makes the item not checked.
 
@@ -93,7 +94,7 @@ The coach runs only when both `jevBase` and `noteCoach` are on or in shadow. `je
 | `noteCoach` | Requests | `jev.json` | Refined file | Prompts and note panel |
 | --- | --- | --- | --- | --- |
 | off | none | no note coach entry | no note coach line | unchanged, byte for byte |
-| shadow | one per capture with a filled note | the runner's job record: status, model, time in ms, tokens, every answer by question id, and a summary with each item's label (`vague`, `question`, `empty`, `partial`, `clear`, or `not_checked`). No lines. | no note coach line | unchanged |
+| shadow | one per capture with a filled note | the runner's job record: status, model, time in ms, tokens, every answer by question id, and a summary with each item's label (`empty`, `vague`, `unsure`, `partial`, `question`, `clear`, or `not_checked`). No lines. | no note coach line | unchanged |
 | on | same as shadow | same as shadow, plus the lines | one line per vague, question, or empty item | the note panel is unchanged. The prompts change only through the base's pointer to the refined file. |
 
 The job never reads the flag state, as the base requires. It returns the same output in shadow and on. The runner writes the lines only in on, and writes the summary and the review file in both.
