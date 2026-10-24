@@ -51,23 +51,31 @@ struct Bundle {
         return try decoder.decode(JevRecordFile.self, from: Data(contentsOf: folder.appendingPathComponent("jev.json")))
     }
 
-    static func make(ocr: String? = "Copy Last Capture Prompt") async throws -> Bundle {
+    func record(_ capture: Int) throws -> JevJobRecord? {
+        try jevFile().captures.first { $0.capture == capture }?.jobs.first
+    }
+
+    /// `captures` captures, one minute apart, each with badge 1. `capture`
+    /// is the first one.
+    static func make(captures: Int = 1, ocr: String? = "Copy Last Capture Prompt") async throws -> Bundle {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("jev-runner-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         let store = FeedbackRoundStore(rootURL: root)
         let round = try await store.start(name: "test")
         let png = JevImagePreparation.pngData(blankImage(width: 800, height: 600))!
-        let capture = try await store.addCapture(FeedbackCaptureInput(
-            annotatedPNG: png,
-            cleanPNG: png,
-            size: PixelSize(width: 800, height: 600),
-            capturedAt: Date(timeIntervalSince1970: 1_792_000_000),
-            sourceApp: "Claude",
-            windowTitle: "Claude",
-            ocrText: ocr,
-            marks: [FeedbackMark(kind: .counter, badge: 1, box: FeedbackBox(x1: 100, y1: 100, x2: 130, y2: 130))]
-        ))
-        try await store.setInstruction(capture: capture.index, badge: 1, text: "make it brighter")
+        for offset in 0..<captures {
+            let capture = try await store.addCapture(FeedbackCaptureInput(
+                annotatedPNG: png,
+                cleanPNG: png,
+                size: PixelSize(width: 800, height: 600),
+                capturedAt: Date(timeIntervalSince1970: 1_792_000_000 + Double(offset * 60)),
+                sourceApp: "Claude",
+                windowTitle: "Claude",
+                ocrText: ocr,
+                marks: [FeedbackMark(kind: .counter, badge: 1, box: FeedbackBox(x1: 100, y1: 100, x2: 130, y2: 130))]
+            ))
+            try await store.setInstruction(capture: capture.index, badge: 1, text: "make it brighter")
+        }
         let stored = try #require(await store.activeRound?.captures.first)
         return Bundle(root: root, folderName: round.folderName, capture: stored)
     }
@@ -84,10 +92,12 @@ func makeRunner(
     JevRunner(rootURL: bundle.root, client: makeClient(transport, key: key), jobs: jobs, flags: flagSet(flags), settings: settings)
 }
 
-/// Starts the capture and waits until the runner is done with the folder.
-func runCapture(_ runner: JevRunner, _ bundle: Bundle) async {
-    await runner.expect(folderName: bundle.folderName, capture: bundle.capture.index)
-    await runner.start(folderName: bundle.folderName, capture: bundle.capture.index)
+/// Starts a capture (the first by default) and waits until the runner is
+/// done with the folder.
+func runCapture(_ runner: JevRunner, _ bundle: Bundle, capture: Int? = nil) async {
+    let index = capture ?? bundle.capture.index
+    await runner.expect(folderName: bundle.folderName, capture: index)
+    await runner.start(folderName: bundle.folderName, capture: index)
     while await runner.hasWork(bundle.folderName) {
         try? await Task.sleep(for: .milliseconds(5))
     }
@@ -257,10 +267,10 @@ struct RunnerConsentTests {
 
     @Test("A request with screen text or an image and no consent is refused before the transport")
     func refusedUnderJob() async throws {
-        let bundle = try await Bundle.make()
         let image = try preparedImage()
         let values: [JevValue] = [.screen("Copy Last Capture Prompt"), .image(image)]
         for value in values {
+            let bundle = try await Bundle.make()
             let transport = StubTransport(fallback: jsonResponse(noulBody()))
             let job = TestJob(id: "noteCoach", flag: .noteCoach) { context in
                 _ = try await context.jev.ask(JevRequest(state: .fields(["screen_text": value]), questions: ["q": .noul("?")]))
@@ -327,30 +337,47 @@ struct RunnerLimitTests {
 
     @Test("A rejected key pauses every later request until relaunch")
     func unauthorizedPauses() async throws {
-        let bundle = try await Bundle.make()
+        let bundle = try await Bundle.make(captures: 2)
         let transport = StubTransport([status(401)], fallback: jsonResponse(noulBody("1.1.names_change")))
         let runner = makeRunner(bundle, jobs: [askingJob()], flags: [.jevBase: .on, .noteCoach: .shadow], transport: transport)
-        await runCapture(runner, bundle)
-        await runCapture(runner, bundle)
+        await runCapture(runner, bundle, capture: 1)
+        await runCapture(runner, bundle, capture: 2)
         #expect(await transport.count == 1)
-        let record = try #require(try bundle.jevFile().captures.first?.jobs.first)
-        #expect(record.status == .skipped && record.reason == .paused)
+        #expect(try bundle.record(1)?.reason == .unauthorized)
+        let second = try #require(try bundle.record(2))
+        #expect(second.status == .skipped && second.reason == .paused)
     }
 
     @Test("Three slow failures in a row pause requests")
     func slowFailuresPause() async throws {
-        let bundle = try await Bundle.make()
+        let bundle = try await Bundle.make(captures: 4)
         let transport = StubTransport(fallback: status(503))
         var settings = JevRunnerSettings()
         settings.failuresBeforePause = 3
         let runner = makeRunner(bundle, jobs: [askingJob()], flags: [.jevBase: .on, .noteCoach: .shadow], transport: transport, settings: settings)
-        await runCapture(runner, bundle)
-        await runCapture(runner, bundle)
-        await runCapture(runner, bundle)
+        for capture in 1...3 {
+            await runCapture(runner, bundle, capture: capture)
+        }
         let before = await transport.count
-        await runCapture(runner, bundle)
+        await runCapture(runner, bundle, capture: 4)
         #expect(await transport.count == before)
-        #expect(try bundle.jevFile().captures.first?.jobs.first?.reason == .paused)
+        #expect(try bundle.record(3)?.reason == .server)
+        #expect(try bundle.record(4)?.reason == .paused)
+    }
+
+    @Test("A capture runs once, and an expect that arrives after its start leaves nothing waiting")
+    func lateExpect() async throws {
+        let bundle = try await Bundle.make()
+        let transport = StubTransport(fallback: jsonResponse(noulBody("1.1.names_change")))
+        let runner = makeRunner(bundle, jobs: [askingJob()], flags: [.jevBase: .on, .noteCoach: .shadow], transport: transport)
+        await runner.start(folderName: bundle.folderName, capture: 1)
+        while await runner.hasWork(bundle.folderName) {
+            try? await Task.sleep(for: .milliseconds(5))
+        }
+        await runner.expect(folderName: bundle.folderName, capture: 1)
+        #expect(await !runner.hasWork(bundle.folderName))
+        await runner.start(folderName: bundle.folderName, capture: 1)
+        #expect(await transport.count == 1)
     }
 
     @Test("The per-capture cap stops a job's extra requests")

@@ -42,6 +42,10 @@ public actor JevRunner {
     /// Captures stored but not started yet. Settle waits for them too.
     private var expected: Set<Key> = []
     private var running: [Key: Task<Void, Never>] = [:]
+    /// Every capture started in this app run. The app sends `expect` and
+    /// `start` from separate tasks, so an `expect` can arrive after its
+    /// `start`. It must not leave the capture expected forever.
+    private var started: Set<Key> = []
 
     private var unauthorized = false
     private var slowFailures = 0
@@ -81,15 +85,16 @@ public actor JevRunner {
 
     /// A capture was stored. Settle waits for it. Sends nothing.
     public func expect(folderName: String, capture: Int) {
-        guard JevGate.mayRun(jobs: jobs, flags: flags) else { return }
-        expected.insert(Key(folderName: folderName, capture: capture))
+        let key = Key(folderName: folderName, capture: capture)
+        guard !started.contains(key), JevGate.mayRun(jobs: jobs, flags: flags) else { return }
+        expected.insert(key)
     }
 
     /// The capture's notes are final and its screen text is stored. Starts
-    /// its jobs and returns at once.
+    /// its jobs and returns at once. A capture runs once per app run.
     public func start(folderName: String, capture: Int) {
         let key = Key(folderName: folderName, capture: capture)
-        guard running[key] == nil else { return }
+        guard started.insert(key).inserted else { return }
 
         // Flags are read once, so a change during a capture has effect at
         // the next one.
