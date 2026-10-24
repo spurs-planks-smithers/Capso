@@ -233,6 +233,14 @@ struct RetryTests {
         #expect(JevRetryPolicy.retryAfter(in: ["retry-after": "soon"]) == nil)
     }
 
+    @Test("A huge Retry-After value is clamped to one hour and never crashes")
+    func hugeRetryAfter() {
+        #expect(JevRetryPolicy.retryAfter(in: ["retry-after-ms": "1e30"]) == .seconds(3600))
+        #expect(JevRetryPolicy.retryAfter(in: ["retry-after": "1e300"]) == .seconds(3600))
+        #expect(JevRetryPolicy.retryAfter(in: ["retry-after": "Fri, 31 Dec 9999 23:59:59 GMT"]) == .seconds(3600))
+        #expect(JevRetryPolicy.retryAfter(in: ["retry-after": "Mon, 01 Jan 2001 00:00:00 GMT"]) == .zero)
+    }
+
     @Test("No key, or a key with a line break, sends nothing")
     func noKey() async {
         for key in [nil, "", "abc\r\nX-Evil: 1", "with space"] as [String?] {

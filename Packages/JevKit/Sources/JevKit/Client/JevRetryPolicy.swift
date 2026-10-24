@@ -36,22 +36,29 @@ public struct JevRetryPolicy: Sendable, Equatable {
         return jittered
     }
 
+    /// A header value is untrusted. Any wait longer than this is read as this,
+    /// so a huge number can never overflow the conversion to whole
+    /// milliseconds. Every such wait passes the deadline anyway.
+    static let maxRetryAfterMilliseconds = 3_600_000.0
+
     /// Reads `retry-after-ms` (milliseconds) or `retry-after` (seconds, or
     /// an HTTP date). Header names are lowercased. Nil when absent or bad.
     public static func retryAfter(in headers: [String: String], now: Date = Date()) -> Duration? {
+        func clamped(_ milliseconds: Double) -> Duration {
+            .milliseconds(Int64(min(max(milliseconds, 0), maxRetryAfterMilliseconds)))
+        }
         if let text = headers["retry-after-ms"], let milliseconds = Double(text), milliseconds >= 0, milliseconds.isFinite {
-            return .milliseconds(Int64(milliseconds))
+            return clamped(milliseconds)
         }
         guard let text = headers["retry-after"]?.trimmingCharacters(in: .whitespaces) else { return nil }
         if let seconds = Double(text), seconds >= 0, seconds.isFinite {
-            return .milliseconds(Int64(seconds * 1000))
+            return clamped(seconds * 1000)
         }
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = TimeZone(identifier: "GMT")
         formatter.dateFormat = "EEE, dd MMM yyyy HH:mm:ss zzz"
         guard let date = formatter.date(from: text) else { return nil }
-        let seconds = max(date.timeIntervalSince(now), 0)
-        return .milliseconds(Int64(seconds * 1000))
+        return clamped(date.timeIntervalSince(now) * 1000)
     }
 }
