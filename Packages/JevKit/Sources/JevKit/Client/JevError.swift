@@ -49,4 +49,24 @@ public struct JevError: Error, Equatable, Sendable, CustomStringConvertible {
     public var description: String {
         status.map { "\(reason.rawValue) (HTTP \($0))" } ?? reason.rawValue
     }
+
+    /// A retry can help only for these. Every other reason is final.
+    public var isRetryable: Bool {
+        switch reason {
+        case .timeout, .rateLimited, .overloaded, .server: true
+        default: false
+        }
+    }
+
+    /// The reason for an HTTP status other than 200.
+    static func forStatus(_ status: Int) -> JevError {
+        switch status {
+        case 401, 403: JevError(.unauthorized, status: status)
+        case 429: JevError(.rateLimited, status: status)
+        case 529: JevError(.overloaded, status: status)
+        case 408, 500...599: JevError(.server, status: status)
+        case 400...499: JevError(.badRequest, status: status)
+        default: JevError(.invalidResponse, status: status)
+        }
+    }
 }
