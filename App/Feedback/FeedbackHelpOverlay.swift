@@ -13,9 +13,10 @@ enum FeedbackHelpStage {
     case between
 }
 
-/// Fork: a see-through box at the top right of the screen that lists the keys
+/// Fork: a see-through box at the bottom right of the screen that lists the keys
 /// for the current stage, from the feedback hotkey until the round ends
-/// (Drew, 2026-10-21).
+/// (Drew, 2026-10-21). It moved from the top right on 2026-10-24, because at
+/// the top right it covered the Nshot menu (Drew, 2026-10-24, #31).
 ///
 /// It never takes clicks or focus. `sharingType = .none` keeps it out of
 /// screenshots and screen recordings. `FeedbackController` also hides it
@@ -30,7 +31,7 @@ final class FeedbackHelpOverlay {
     /// The box and its text draw at 75% opacity, up from 50%, so the screen
     /// still shows through (Drew, 2026-10-24).
     static let opacity: CGFloat = 0.75
-    /// Space between the box and the screen's top and right edges.
+    /// Space between the box and the screen's bottom and right edges.
     static let margin: CGFloat = 12
     /// The green dot in the box's top right corner, in points. It shows
     /// while a round is active, as the menu bar dot does (Drew, 2026-10-24).
@@ -54,14 +55,21 @@ final class FeedbackHelpOverlay {
         )
         hostingView?.rootView = view
         let size = hostingView?.fittingSize ?? .zero
-        let visible = screen.visibleFrame
-        panel.setFrame(NSRect(
-            x: visible.maxX - size.width - Self.margin,
-            y: visible.maxY - size.height - Self.margin,
+        panel.setFrame(Self.frame(size: size, in: screen.visibleFrame), display: true)
+        panel.orderFrontRegardless()
+    }
+
+    /// The box's frame at the bottom right of `visible`. `visibleFrame` leaves
+    /// out the Dock and the menu bar, so the box sits above a bottom Dock and
+    /// never covers a menu that opens under the menu bar. AppKit's origin is
+    /// the bottom left, so `visible.minY + margin` is the bottom edge.
+    static func frame(size: CGSize, in visible: CGRect) -> CGRect {
+        CGRect(
+            x: visible.maxX - size.width - margin,
+            y: visible.minY + margin,
             width: size.width,
             height: size.height
-        ), display: true)
-        panel.orderFrontRegardless()
+        )
     }
 
     func hide() {
