@@ -37,6 +37,8 @@ final class FeedbackController {
     private var toast: ToastWindow?
     private let help = FeedbackHelpOverlay()
     private var selectionPhase = SelectionPhase.none
+    /// Checks the coordinator's live state while a selection phase is set.
+    private var selectionWatch: Task<Void, Never>?
     /// The screen the help box shows on: the pointer's screen at the hotkey,
     /// then the capture's screen.
     private var helpScreen: NSScreen?
@@ -170,6 +172,7 @@ final class FeedbackController {
     func capture() {
         FeedbackLog.logger.notice("area capture requested")
         let previousPhase = selectionPhase
+        let previousScreen = helpScreen
         let selectionWasUp = captureCoordinator?.isCaptureSelectionActive == true
         help.hide()
         selectionPhase = .starting
@@ -180,11 +183,38 @@ final class FeedbackController {
         // would hide the help box until a later capture (#27). A selection
         // that starts sets the coordinator's live state before the call
         // returns. When one was already up, the phase it had comes back, so
-        // a selection of ours still shows its keys.
+        // a selection of ours still shows its keys. The screen comes back
+        // too, so a pointer on another display does not move the box (#28).
         if selectionWasUp || captureCoordinator?.isCaptureSelectionActive != true {
             FeedbackLog.logger.notice("area capture not started: a selection is up or the coordinator is gone")
             selectionPhase = selectionWasUp ? previousPhase : .none
+            helpScreen = previousScreen
             updateHelp()
+        } else {
+            watchSelection()
+        }
+    }
+
+    /// A selection can end with no `.capsoCaptureDidEnd`, for example when
+    /// the overlay fails after its delay (#28). Then `selectionPhase` would
+    /// keep the help box hidden, or stuck on the select keys, until some
+    /// later change. While a phase is set, this checks the coordinator's live
+    /// state a few times a second. The coordinator builds a selection in one
+    /// main-thread pass, so a check never sees a half-built one. When the
+    /// selection is gone, the box shows the current stage again.
+    private func watchSelection() {
+        selectionWatch?.cancel()
+        selectionWatch = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(250))
+                guard let self, !Task.isCancelled, self.selectionPhase != .none else { return }
+                if self.captureCoordinator?.isCaptureSelectionActive != true {
+                    FeedbackLog.logger.notice("area selection ended with no end notification")
+                    self.selectionPhase = .none
+                    self.updateHelp()
+                    return
+                }
+            }
         }
     }
 
