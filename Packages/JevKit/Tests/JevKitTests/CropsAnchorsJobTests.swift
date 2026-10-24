@@ -369,7 +369,7 @@ struct CropsAnchorsJobTests {
         for (id, question) in request.questions {
             #expect(!question.kinds.contains(.screenText), "\(id) holds screen text")
             if case .code(let text) = question.instructions {
-                #expect(text.text.hasPrefix(JevPrompting.screenTextNotice), "\(id)")
+                #expect(text.text.hasPrefix(JevPrompting.screenTextNotice.text), "\(id)")
             } else {
                 Issue.record("\(id) instructions are not code text")
             }
@@ -1056,11 +1056,6 @@ func boxNumbers(_ box: FeedbackBox) -> [Int] {
 
 @Suite("Crops and anchors: summary, failure, and search lines")
 struct CropsAnchorsSummaryTests {
-    @Test("The notice in the job is the base's screen text notice")
-    func noticeMatchesTheBase() {
-        #expect(CropsAnchorsJob.screenTextNotice.text == JevPrompting.screenTextNotice)
-    }
-
     @Test("The summary holds one object per item with the crop, window, target, and anchor facts")
     func summaryRecordsFacts() async throws {
         let marks = [CropsMark(number: 1, box: centerBadge), CropsMark(number: 2, box: cornerBadge)]
