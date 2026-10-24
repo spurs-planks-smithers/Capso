@@ -63,6 +63,10 @@ public struct JevJobRecord: Codable, Equatable, Sendable {
     public var summary: JevSummaryValue? = nil
     /// Shadow and on: this capture's section of `jev-review/<job>.md`.
     public var review: String? = nil
+    /// Answers dropped for a value check, as "<question id>: <check>".
+    public var dropped: [String]? = nil
+    /// For a refused response: the failed check and the question id.
+    public var failedCheck: String? = nil
 
     public var isOn: Bool { mode == "on" }
 }
