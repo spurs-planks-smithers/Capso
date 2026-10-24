@@ -93,7 +93,7 @@ The base gives every value a kind, and the client refuses a request with a kind 
 
 ### The Jev questions
 
-- One request per new entry. A capture with more entries than the base's cap (16 requests per capture) puts two or more entries in one request.
+- One request per new entry, at most 8 per capture. The base allows 16 HTTP attempts per capture, retries included, so half stay free for retries. A capture with more than 8 entries puts two or more entries in one request.
 - The state stays small: `new`, an array with the new entry (or entries). Each entry has its `note` (reviewer text) and, with consent, its `screen_text` and `app` (screen text) and its `crop` (image).
 - Each earlier entry gets two questions. The earlier note sits in the question's instructions object, next to the question text. This is the "Structured instructions" pattern of the TypeSafe Noul page, which checks a record against possible duplicates. TypeSafe notes that accuracy shifts as the state grows, so the state holds only the new entry.
 - The base forbids screen text in instructions. So the earlier entries' screen text and crops go in the state, under `earlier_screen_text` and `earlier_crops`, keyed by a code-built key such as `e3_2` (from the numbers 3 and 2, never from screen text). The question names its key by path.
@@ -146,7 +146,9 @@ A chain still shows. If 5.3 repeats 2.1, the job of capture 5 says so. If 7.2 re
 | shadow | yes | answers and timings (the runner writes them) | nothing for this job | as today | as today, byte for byte |
 | on | yes | answers and timings | this job's lines in `refined.md` and `<capture>-refined.md` | the base's pointer lines | as today, byte for byte |
 
-- The base writes `jev.json`. It holds answers and timings only, never notes, screen text, outcomes, or images. Code derives the outcomes from the answers and the thresholds.
+- The base writes `jev.json`. It holds answers, timings, and the job's summary, never notes, screen text, or images.
+- The summary (shadow and on) holds code-only facts: `flagged`, one `{"pair": "4.2.vs.3.2", "outcome": "duplicate"}` per pair that is not different, and `notChecked`, one `{"entry": "4.3", "reason": "timeout"}` per entry whose request failed. The review script reads it, so it needs none of the job's thresholds.
+- Every id, key, question, and label is `JevCodeText`: literals and numbers only (base change of 2026-10-24). Drew's notes go out only as reviewer text, and screen text only as screen text. The compiler enforces this.
 - In on, the base adds one pointer line to each copied prompt, when `jevBase` is on and at least one feature is on (base spec, "Prompt pointer lines"). This feature adds no prompt text of its own.
 - Every Jev flag needs `jevBase` on, and every Jev flag is dev-only (base decisions, 2026-10-24).
 
@@ -183,7 +185,8 @@ The base job interface (commit `d1de328`) covers every need of this feature:
 | --- | --- |
 | Every earlier capture, with notes, marks, and screen text | `JevJobContext.round`, read from `feedback.json` when the job starts |
 | Item ids (K.N) | `FeedbackItems.split(capture)`, public in the base |
-| Requests with many questions, in parallel, inside the deadline | `context.jev` (`JevAsker`), with caps of 16 requests per capture and 4 at the same time |
+| Requests with many questions, in parallel, inside the deadline | `context.jev` (`JevAsker`), with caps of 16 HTTP attempts per capture (retries included) and 4 at the same time |
+| Code-only facts for the review script | `JevJobOutput.summary`, written to `jev.json` in shadow and on |
 | Crops sized for Jev | `context.images.image(of:region:)`. The job computes each item's region with the `PreviewCrop` rules. |
 | Consent for screen text and images | `context.allowed`, and the client's kind check |
 | Lines for the round and for each item | `JevRefinedLine` with scope `.round`, `.capture`, or `.item(badge:)` |
@@ -195,7 +198,7 @@ This feature edits only `Packages/JevKit/Sources/JevKit/Jobs/DupesConflictsJob.s
 
 ## Latency and cost
 
-- Requests per capture: one per new entry, at most 16. A capture with 4 items and a note sends 5 requests, 4 at a time.
+- Requests per capture: one per new entry, at most 8. A capture with 4 items and a note sends 5 requests, 4 at a time.
 - Time: Jev answered six questions in 0.22 s on 2026-10-24. A request with 60 questions (30 earlier entries) is larger. The 2 s budget per capture is shared with the other jobs of the capture. The builder measures the time on a real round in shadow.
 - Cost, notes only: about 240 input tokens per pair. A 20-capture round with 4 entries per capture has about 3,000 pairs, so about 0.7M tokens, or about $0.03 at $0.042 per million input tokens. Output tokens are free. The base's guard of 1,000 requests per day is far above one round's need (about 80 requests).
 - Screen text and images raise the cost. Images go only to same-app pairs. The builder measures the tokens per crop.
@@ -212,13 +215,14 @@ This is Drew's personal fork, so tests cover the business logic only. The base's
 - Failure: one failed request leaves the other answers in use and adds the "Not checked" line.
 - Decision rules: the edges at 0.49, 0.5, 1.49, 1.5, and 0.7. A conflict wins over a duplicate.
 - Lines: a duplicate that names two earlier entries, an overlap, a conflict, a K.note entry, and an entry with nothing to say. The lines for a fixed round match stored copies.
-- Thresholds: the script's `THRESHOLDS=` line matches the job's constants, as `FeatureFlagsTests` does for `FLAGS=`.
+- Summary: `flagged` lists each pair that is not different, in entry order, and `notChecked` lists each failed entry with its reason.
+- Code text: the job's copy of the screen-text notice matches the base's, and each failure reason has a name.
 - Long lists: 48 earlier entries split into lines of at most 300 characters, and every entry is named.
 - In the real runner with a stubbed transport: with `dupesConflicts` or `jevBase` off, no request goes out, no key is read, and no Jev file is written. Shadow records both answers and writes no refined file. On shows a duplicate's round line once in `refined.md` and once in the capture's file. By default the request body holds Drew's note and no app name, window title, or screen text.
 
 ## Shadow review and the bar for on
 
-- A review script (Drew, 2026-10-24): `scripts/nextshot-jev-review.sh dupes`. It reads `jev.json` and `feedback.json` in each round folder. It derives each pair's outcome with the same thresholds as the job. It lists each flagged pair (duplicate, overlap, or conflict) that has no label yet.
+- A review script (Drew, 2026-10-24): `scripts/nextshot-jev-review.sh dupes`. It reads `jev.json` and `feedback.json` in each round folder. It takes each pair's outcome from the job's summary. It lists each flagged pair (duplicate, overlap, or conflict) that has no label yet. It also counts the entries that were not checked.
 - For each pair it prints both ids, both notes, and Jev's call. Drew presses y (right), n (wrong), or s (skip).
 - Labels go to `jev-labels.json` in the round folder, next to `jev.json`. A deleted round takes its labels with it.
 - At the end, the script prints the count and the share right for duplicates, overlaps, and conflicts, across all rounds.

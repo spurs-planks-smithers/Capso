@@ -14,11 +14,8 @@ set -euo pipefail
 
 root="${NEXTSHOT_ROUNDS_DIR:-$HOME/Library/Application Support/Nextshot}"
 
-# The decision rules of DupesConflictsJob. Keep this line in step with the
-# constants in Packages/JevKit/Sources/JevKit/Jobs/DupesConflictsJob.swift.
-# The test "scripts/nextshot-jev-review.sh uses the job's thresholds" in
-# DupesConflictsJobTests fails when the two differ.
-THRESHOLDS="conflictAt=0.7 duplicateAt=1.5 overlapAt=0.5"
+# The job writes each flagged pair's outcome in the summary of its jev.json
+# record, so this script needs none of the job's thresholds.
 
 # The bar for on (Drew, 2026-10-24): at least BAR_MIN labeled calls with at
 # most BAR_MAX_WRONG wrong, for duplicates and for conflicts.
@@ -62,25 +59,8 @@ CALL_TEXT = {
 
 root = Path(os.environ["REVIEW_ROOT"])
 mode = os.environ["REVIEW_MODE"]
-limits = dict(part.split("=", 1) for part in os.environ["REVIEW_THRESHOLDS"].split())
-CONFLICT_AT = float(limits["conflictAt"])
-DUPLICATE_AT = float(limits["duplicateAt"])
-OVERLAP_AT = float(limits["overlapAt"])
 BAR_MIN = int(os.environ["REVIEW_BAR_MIN"])
 BAR_MAX_WRONG = int(os.environ["REVIEW_BAR_MAX_WRONG"])
-
-
-def outcome(same_ask, opposite):
-    """The job's decision rules. A conflict wins over a duplicate."""
-    if opposite is not None and opposite >= CONFLICT_AT:
-        return "conflict"
-    if same_ask is None:
-        return "different"
-    if same_ask >= DUPLICATE_AT:
-        return "duplicate"
-    if same_ask >= OVERLAP_AT:
-        return "overlap"
-    return "different"
 
 
 class Unreadable(Exception):
@@ -141,35 +121,54 @@ def answer_value(answer):
     return None
 
 
-def flagged_calls(jev):
-    """Every pair whose outcome is not 'different', in pair order."""
-    values = {}
+def job_records(jev):
     for capture in (jev or {}).get("captures", []):
         for job in capture.get("jobs", []):
-            if job.get("job") != JOB:
-                continue
-            version = job.get("jobVersion")
-            for answer in job.get("answers", []):
-                parts = split_question_id(answer.get("id", ""))
-                if parts is None:
-                    continue
-                new, earlier, kind = parts
-                values.setdefault((new, earlier, version), {})[kind] = answer_value(answer)
+            if isinstance(job, dict) and job.get("job") == JOB:
+                yield job
+
+
+def flagged_calls(jev):
+    """Every flagged pair in the job's summary, in pair order. The answers
+    give the numbers to show next to each call."""
     calls = []
-    for (new, earlier, version), pair in values.items():
-        call = outcome(pair.get("sameAsk"), pair.get("opposite"))
-        if call != "different":
+    for job in job_records(jev):
+        values = {}
+        for answer in job.get("answers", []):
+            parts = split_question_id(answer.get("id", ""))
+            if parts is not None:
+                new, earlier, kind = parts
+                values.setdefault((new, earlier), {})[kind] = answer_value(answer)
+        summary = job.get("summary")
+        flagged = summary.get("flagged", []) if isinstance(summary, dict) else []
+        for item in flagged:
+            if not isinstance(item, dict) or item.get("outcome") not in FLAGGED:
+                continue
+            new, separator, earlier = str(item.get("pair", "")).partition(".vs.")
+            if not separator or not new or not earlier:
+                continue
+            pair = values.get((new, earlier), {})
             calls.append({
                 "pair": f"{new}.vs.{earlier}",
                 "new": new,
                 "earlier": earlier,
-                "jobVersion": version,
-                "outcome": call,
+                "jobVersion": job.get("jobVersion"),
+                "outcome": item["outcome"],
                 "sameAsk": pair.get("sameAsk"),
                 "opposite": pair.get("opposite"),
             })
     calls.sort(key=lambda call: (entry_key(call["new"]), entry_key(call["earlier"])))
     return calls
+
+
+def not_checked(jev, version):
+    """Entries whose request failed, for the given job version."""
+    count = 0
+    for job in job_records(jev):
+        summary = job.get("summary")
+        if job.get("jobVersion") == version and isinstance(summary, dict):
+            count += len(summary.get("notChecked", []))
+    return count
 
 
 def label_key(item):
@@ -206,9 +205,11 @@ folders = sorted(path.parent for path in root.glob("*/jev.json"))
 # First pass: read every round. A round with a file that cannot be read is
 # skipped as a whole, so its labels are never overwritten.
 rounds = []
+records = []
 for folder in folders:
     try:
-        calls = flagged_calls(load(folder / "jev.json"))
+        jev = load(folder / "jev.json")
+        calls = flagged_calls(jev)
         stored = load(folder / "jev-labels.json") or {}
         notes = notes_by_id(load(folder / "feedback.json"))
     except Unreadable as error:
@@ -218,6 +219,7 @@ for folder in folders:
     if not isinstance(stored_labels, list) or not all(isinstance(item, dict) for item in stored_labels):
         print(f"Skipped round {folder.name}: jev-labels.json has no list of labels. Fix or move the file, then run again.", file=sys.stderr)
         continue
+    records.append(jev)
     if calls:
         rounds.append((folder, calls, stored_labels, notes))
 
@@ -279,6 +281,9 @@ for call in FLAGGED:
 print(f"Flagged calls with no label: {unlabeled}")
 if older:
     print(f"Labels for older job versions, not counted: {older}")
+missed = sum(not_checked(jev, current) for jev in records)
+if missed:
+    print(f"Entries not checked, because a request failed: {missed}")
 print()
 print(f"Bar for on: at least {BAR_MIN} labeled calls with at most {BAR_MAX_WRONG} wrong, for duplicates and for conflicts.")
 for call, name in (("duplicate", "Duplicates"), ("conflict", "Conflicts")):
@@ -288,6 +293,6 @@ for call, name in (("duplicate", "Duplicates"), ("conflict", "Conflicts")):
     print(f"- {name}: {'meets the bar' if meets else 'not yet'} ({labeled} labeled, {wrong} wrong).")
 PY
 
-REVIEW_ROOT="$root" REVIEW_MODE="$mode" REVIEW_THRESHOLDS="$THRESHOLDS" \
+REVIEW_ROOT="$root" REVIEW_MODE="$mode" \
   REVIEW_BAR_MIN="$BAR_MIN" REVIEW_BAR_MAX_WRONG="$BAR_MAX_WRONG" \
   exec /usr/bin/python3 -I -c "$program"

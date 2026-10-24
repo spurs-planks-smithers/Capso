@@ -95,13 +95,13 @@ private func canned(_ table: [String: PairScore] = [:], log: RequestLog = Reques
         await log.append(request)
         var answers: [String: JevAnswer] = [:]
         for (id, _) in request.questions {
-            guard let parsed = DupesConflicts.parse(questionID: id) else { continue }
+            guard let parsed = DupesConflicts.parse(questionID: id.text) else { continue }
             let pair = table["\(parsed.new).vs.\(parsed.earlier)"] ?? PairScore(sameAsk: 0, opposite: 0)
             switch parsed.kind {
             case .sameAsk:
-                answers[id] = .score(JevScoreAnswer(score: pair.sameAsk, confidence: 1, probabilities: [0, 0, 0]))
+                answers[id.text] = .score(JevScoreAnswer(score: pair.sameAsk, confidence: 1, probabilities: [0, 0, 0]))
             case .opposite:
-                answers[id] = .noul(pair.opposite)
+                answers[id.text] = .noul(pair.opposite)
             }
         }
         return JevResponse(model: JevEndpoint.model, answers: answers, inputTokens: 0, outputTokens: 0)
@@ -112,7 +112,7 @@ private func canned(_ table: [String: PairScore] = [:], log: RequestLog = Reques
 private func failing(_ errors: [String: any Error & Sendable], otherwise ask: @escaping Ask) -> Ask {
     { request in
         if let first = request.questions.first,
-           let parsed = DupesConflicts.parse(questionID: first.id),
+           let parsed = DupesConflicts.parse(questionID: first.id.text),
            let error = errors[parsed.new] {
             throw error
         }
@@ -124,12 +124,12 @@ private func failing(_ errors: [String: any Error & Sendable], otherwise ask: @e
 
 private func field(_ name: String, in value: JevValue?) -> JevValue? {
     guard case .object(let fields)? = value else { return nil }
-    return fields.first { $0.0 == name }?.1
+    return fields.first { $0.0.text == name }?.1
 }
 
 private func names(of value: JevValue?) -> [String] {
     guard case .object(let fields)? = value else { return [] }
-    return fields.map(\.0)
+    return fields.map { $0.0.text }
 }
 
 private func newObjects(of request: JevRequest) -> [JevValue] {
@@ -140,24 +140,24 @@ private func newObjects(of request: JevRequest) -> [JevValue] {
 private func newIDs(of request: JevRequest) -> [String] {
     newObjects(of: request).compactMap { object in
         guard case .code(let id)? = field("id", in: object) else { return nil }
-        return id
+        return id.text
     }
 }
 
 private func questionText(_ question: JevQuestion) -> String? {
     guard case .code(let text)? = field("question", in: question.instructions) else { return nil }
-    return text
+    return text.text
 }
 
 private func requestHolding(_ newID: String, in requests: [JevRequest]) -> JevRequest? {
     requests.first { newIDs(of: $0) == [newID] }
 }
 
-private func itemLine(_ badge: Int, _ label: String) -> JevRefinedLine {
+private func itemLine(_ badge: Int, _ label: JevCodeText) -> JevRefinedLine {
     JevRefinedLine(scope: .item(badge: badge), label: label)
 }
 
-private func scopedLine(_ scope: JevRefinedLine.Scope, _ label: String) -> JevRefinedLine {
+private func scopedLine(_ scope: JevRefinedLine.Scope, _ label: JevCodeText) -> JevRefinedLine {
     JevRefinedLine(scope: scope, label: label)
 }
 
@@ -174,6 +174,18 @@ struct DupesConflictsJobTests {
         #expect(job.flag == .dupesConflicts)
         #expect(job.requires == [])
         #expect(job.version == 1)
+    }
+
+    @Test("The screen text notice says what JevPrompting's notice says")
+    func screenTextNoticeMatches() {
+        #expect(DupesConflicts.screenTextNotice.text == JevPrompting.screenTextNotice)
+    }
+
+    @Test("Every failure reason has a code name equal to its raw value")
+    func reasonCodes() {
+        for reason in JevFailureReason.allCases {
+            #expect(DupesConflicts.code(reason).text == reason.rawValue, "\(reason)")
+        }
     }
 
     // MARK: Entries
@@ -272,7 +284,7 @@ struct DupesConflictsJobTests {
         let requests = await log.requests
         #expect(requests.count == 2)
 
-        let ids = requests.flatMap { $0.questions.map(\.id) }
+        let ids = requests.flatMap { $0.questions.map { $0.id.text } }
         #expect(ids.count == 4)
         for id in ids {
             let parsed = DupesConflicts.parse(questionID: id)
@@ -441,7 +453,7 @@ struct DupesConflictsJobTests {
 
         // The two oldest pairs go text only.
         for entry in request.questions {
-            let parsed = try #require(DupesConflicts.parse(questionID: entry.id))
+            let parsed = try #require(DupesConflicts.parse(questionID: entry.id.text))
             let text = questionText(entry.question) ?? ""
             if parsed.earlier == "1.1" || parsed.earlier == "1.2" {
                 #expect(!text.contains("Crop for earlier_note"), "\(entry.id)")
@@ -455,18 +467,21 @@ struct DupesConflictsJobTests {
 
     @Test("A question id parses back into its pair and kind")
     func questionIDParser() {
-        let samples: [(String, String, String, DupesConflicts.QuestionKind)] = [
-            ("4.2.vs.3.2.sameAsk", "4.2", "3.2", .sameAsk),
-            ("4.note.vs.3.2.opposite", "4.note", "3.2", .opposite),
-            ("4.2.vs.3.note.sameAsk", "4.2", "3.note", .sameAsk),
-            ("12.10.vs.11.3.opposite", "12.10", "11.3", .opposite),
+        func entry(_ capture: Int, _ badge: Int?) -> DupesConflicts.Entry {
+            DupesConflicts.Entry(captureIndex: capture, badge: badge, note: "n")
+        }
+        let samples: [(String, DupesConflicts.Entry, DupesConflicts.Entry, DupesConflicts.QuestionKind)] = [
+            ("4.2.vs.3.2.sameAsk", entry(4, 2), entry(3, 2), .sameAsk),
+            ("4.note.vs.3.2.opposite", entry(4, nil), entry(3, 2), .opposite),
+            ("4.2.vs.3.note.sameAsk", entry(4, 2), entry(3, nil), .sameAsk),
+            ("12.10.vs.11.3.opposite", entry(12, 10), entry(11, 3), .opposite),
         ]
         for (id, new, earlier, kind) in samples {
             let parsed = DupesConflicts.parse(questionID: id)
-            #expect(parsed?.new == new, "\(id)")
-            #expect(parsed?.earlier == earlier, "\(id)")
+            #expect(parsed?.new == new.id.text, "\(id)")
+            #expect(parsed?.earlier == earlier.id.text, "\(id)")
             #expect(parsed?.kind == kind, "\(id)")
-            #expect(DupesConflicts.questionID(new: new, earlier: earlier, kind: kind) == id)
+            #expect(DupesConflicts.questionID(new: new, earlier: earlier, kind: kind).text == id)
         }
         #expect(DupesConflicts.parse(questionID: "garbage") == nil)
         #expect(DupesConflicts.parse(questionID: "4.2.vs.3.2.other") == nil)
@@ -488,7 +503,7 @@ struct DupesConflictsJobTests {
 
         var all: [String] = []
         for request in requests {
-            let ids = request.questions.map(\.id)
+            let ids = request.questions.map { $0.id.text }
             #expect(Set(ids).count == ids.count)
             all += ids
         }
@@ -501,21 +516,22 @@ struct DupesConflictsJobTests {
 
     // MARK: Chunking
 
-    @Test("Chunks keep the order and the count: one each up to 16, then exactly 16")
+    @Test("Chunks keep the order and the count: one each up to 8, then exactly 8")
     func chunkSizes() {
         func entries(_ count: Int) -> [DupesConflicts.Entry] {
             (1...count).map {
-                DupesConflicts.Entry(id: "9.\($0)", captureIndex: 9, badge: $0, note: "n", screenText: nil, app: nil, windowTitle: nil, cropRegion: nil)
+                DupesConflicts.Entry(captureIndex: 9, badge: $0, note: "n")
             }
         }
         #expect(DupesConflicts.chunks(entries(5)).map(\.count) == [1, 1, 1, 1, 1])
-        #expect(DupesConflicts.chunks(entries(16)).map(\.count) == Array(repeating: 1, count: 16))
-        #expect(DupesConflicts.chunks(entries(17)).map(\.count) == [2] + Array(repeating: 1, count: 15))
-        #expect(DupesConflicts.chunks(entries(40)).map(\.count) == Array(repeating: 3, count: 8) + Array(repeating: 2, count: 8))
+        #expect(DupesConflicts.chunks(entries(8)).map(\.count) == Array(repeating: 1, count: 8))
+        #expect(DupesConflicts.chunks(entries(9)).map(\.count) == [2] + Array(repeating: 1, count: 7))
+        #expect(DupesConflicts.chunks(entries(17)).map(\.count) == [3] + Array(repeating: 2, count: 7))
+        #expect(DupesConflicts.chunks(entries(40)).map(\.count) == Array(repeating: 5, count: 8))
         #expect(DupesConflicts.chunks(entries(40)).flatMap { $0 }.map(\.id) == entries(40).map(\.id))
     }
 
-    @Test("17 new entries make 16 requests, and every pair's two questions appear once")
+    @Test("17 new entries make 8 requests, and every pair's two questions appear once")
     func seventeenEntries() async throws {
         let captures = [
             dupesCapture(1, marks: [dupesItem(1, "make the title bigger"), dupesItem(2, "remove the border")]),
@@ -524,20 +540,22 @@ struct DupesConflictsJobTests {
         let log = RequestLog()
         _ = try await DupesConflictsJob().run(dupesContext(captures, current: 2, ask: canned(log: log)))
         let requests = await log.requests
-        #expect(requests.count == 16)
+        #expect(requests.count == 8)
 
         let counts = requests.map { newIDs(of: $0).count }.sorted()
-        #expect(counts == Array(repeating: 1, count: 15) + [2])
+        #expect(counts == Array(repeating: 2, count: 7) + [3])
 
-        let shared = try #require(requests.first { newIDs(of: $0).count == 2 })
-        #expect(newIDs(of: shared) == ["2.1", "2.2"])
+        let shared = try #require(requests.first { newIDs(of: $0).count == 3 })
+        let sharedIDs = newIDs(of: shared)
+        #expect(sharedIDs == ["2.1", "2.2", "2.3"])
         let texts = shared.questions.compactMap { questionText($0.question) }
         #expect(texts.contains { $0.contains("`new[0]`") })
         #expect(texts.contains { $0.contains("`new[1]`") })
+        #expect(texts.contains { $0.contains("`new[2]`") })
         for entry in shared.questions {
             // The position in the text matches the new entry in the id.
-            let parsed = try #require(DupesConflicts.parse(questionID: entry.id))
-            let position = parsed.new == "2.1" ? 0 : 1
+            let parsed = try #require(DupesConflicts.parse(questionID: entry.id.text))
+            let position = try #require(sharedIDs.firstIndex(of: parsed.new))
             #expect((questionText(entry.question) ?? "").contains("`new[\(position)]`"), "\(entry.id)")
         }
 
@@ -550,7 +568,7 @@ struct DupesConflictsJobTests {
                 expected.insert("\(n).vs.\(e).opposite")
             }
         }
-        let sent = requests.flatMap { $0.questions.map(\.id) }
+        let sent = requests.flatMap { $0.questions.map { $0.id.text } }
         #expect(sent.count == 68)
         #expect(Set(sent) == expected)
     }
@@ -597,7 +615,9 @@ struct DupesConflictsJobTests {
             return JevResponse(model: JevEndpoint.model, answers: [:], inputTokens: 0, outputTokens: 0)
         })
         #expect(await log.count == 1, "the job must send its request before it reads the answers")
-        #expect(output == .empty)
+        // The output is no longer `.empty`: it holds a summary with two empty lists.
+        #expect(output.lines.isEmpty)
+        #expect(output.files.isEmpty)
     }
 
     // MARK: Lines
@@ -715,10 +735,10 @@ struct DupesConflictsJobTests {
         ]
         #expect(lines.count == prefixes.count)
         for (line, prefix) in zip(lines, prefixes) {
-            #expect(line.label.hasPrefix(prefix), "\(line.label)")
+            #expect(line.label.text.hasPrefix(prefix), "\(line.label)")
         }
         #expect(lines.allSatisfy { $0.screenText == nil && $0.file == nil })
-        #expect(!lines.contains { $0.label.contains("Heading") })
+        #expect(!lines.contains { $0.label.text.contains("Heading") })
     }
 
     // MARK: Failures
@@ -739,18 +759,18 @@ struct DupesConflictsJobTests {
 
     @Test("A long list splits into labels the writer does not cut, and names every entry")
     func longListsSplit() throws {
-        let entry = DupesConflicts.Entry(id: "9.1", captureIndex: 9, badge: 1, note: "make it bigger")
+        let entry = DupesConflicts.Entry(captureIndex: 9, badge: 1, note: "make it bigger")
         let earlier: [DupesConflicts.Entry] = (1...8).flatMap { capture -> [DupesConflicts.Entry] in
             (1...6).map { (badge: Int) in
-                DupesConflicts.Entry(id: "\(capture).\(badge)", captureIndex: capture, badge: badge, note: "ask")
+                DupesConflicts.Entry(captureIndex: capture, badge: badge, note: "ask")
             }
         }
         for outcome in [DupesConflicts.Outcome.duplicate, .overlap] {
             let lines = DupesConflicts.lines(for: entry, outcomes: earlier.map { ($0, outcome) })
             try #require(lines.count > 1, "48 entries must not fit one label")
-            #expect(lines.allSatisfy { $0.label.unicodeScalars.count <= DupesConflicts.maxLabelLength })
+            #expect(lines.allSatisfy { $0.label.text.unicodeScalars.count <= DupesConflicts.maxLabelLength })
             let named = earlier.map(\.id).filter { id in
-                lines.contains { $0.label.contains(" \(id),") || $0.label.contains(" \(id) ") || $0.label.contains(" \(id).") }
+                lines.contains { $0.label.text.contains(" \(id),") || $0.label.text.contains(" \(id) ") || $0.label.text.contains(" \(id).") }
             }
             #expect(named.count == earlier.count, "every earlier entry is named")
         }
@@ -814,6 +834,34 @@ struct DupesConflictsJobTests {
         }
     }
 
+    @Test("The summary lists the flagged pairs in entry order and the entries that were not checked")
+    func summaryOfFlaggedAndNotChecked() async throws {
+        let captures = [
+            dupesCapture(1, note: "rename session to round", marks: [dupesItem(1, "make the title bigger"), dupesItem(2, "remove the border")]),
+            dupesCapture(2, marks: [dupesItem(1, "make the title smaller")]),
+            dupesCapture(3, marks: (1...4).map { dupesItem($0, "ask number \($0)") }),
+        ]
+        let table = [
+            "3.1.vs.1.2": PairScore(sameAsk: 1.0, opposite: 0),
+            // The different pair: both answers sit just under the thresholds.
+            "3.1.vs.2.1": PairScore(sameAsk: 0.49, opposite: 0.69),
+            "3.2.vs.2.1": PairScore(sameAsk: 0, opposite: 0.8),
+            "3.3.vs.1.1": PairScore(sameAsk: 1.8, opposite: 0),
+        ]
+        let ask = failing(["3.4": JevError(.timeout)], otherwise: canned(table))
+        let output = try await DupesConflictsJob().run(dupesContext(captures, current: 3, ask: ask))
+        #expect(output.summary == [
+            JevSummaryField(key: "flagged", value: .array([
+                .fields(["pair": "3.1.vs.1.2", "outcome": "overlap"]),
+                .fields(["pair": "3.2.vs.2.1", "outcome": "conflict"]),
+                .fields(["pair": "3.3.vs.1.1", "outcome": "duplicate"]),
+            ])),
+            JevSummaryField(key: "notChecked", value: .array([
+                .fields(["entry": "3.4", "reason": "timeout"]),
+            ])),
+        ])
+    }
+
     @Test("A fixed round gives a stored copy of the encoded request")
     func storedRequest() async throws {
         let captures = [
@@ -840,8 +888,8 @@ struct DupesConflictsJobTests {
 
     @Test("A request never holds more images than the encoder allows")
     func imageLimit() async throws {
-        // 40 new entries make 16 requests of 2 or 3 entries, each with a crop,
-        // plus up to 6 earlier crops.
+        // 40 new entries make 8 requests of 5 entries, each with a crop,
+        // plus the earlier crops that still fit.
         let captures = [
             dupesCapture(1, marks: (1...8).map { dupesItem($0, "earlier ask \($0)") }),
             dupesCapture(2, marks: (1...40).map { dupesItem($0, "new ask \($0)") }),
@@ -858,37 +906,11 @@ struct DupesConflictsJobTests {
         let log = RequestLog()
         _ = try await DupesConflictsJob().run(dupesContext(captures, current: 2, allowed: [.reviewerText, .images], images: images, ask: canned(log: log)))
         let requests = await log.requests
-        #expect(requests.count == 16)
+        #expect(requests.count == 8)
         for request in requests {
             #expect(request.images.count <= JevRequestEncoder.maxImages)
             _ = try JevRequestEncoder.encode(request)
         }
-    }
-
-    @Test("scripts/nextshot-jev-review.sh uses the job's thresholds")
-    func reviewScriptThresholds() throws {
-        // .../Packages/JevKit/Tests/JevKitTests/DupesConflictsJobTests.swift
-        var root = URL(fileURLWithPath: #filePath)
-        for _ in 0..<5 { root.deleteLastPathComponent() }
-        let script = try String(contentsOf: root.appendingPathComponent("scripts/nextshot-jev-review.sh"), encoding: .utf8)
-
-        let lines = script.split(separator: "\n").filter { $0.hasPrefix("THRESHOLDS=") }
-        #expect(lines.count == 1, "the script needs exactly one THRESHOLDS= line")
-        let value = lines.first?.dropFirst("THRESHOLDS=".count).trimmingCharacters(in: CharacterSet(charactersIn: "\"")) ?? ""
-        var listed: [String: Double] = [:]
-        for entry in value.split(separator: " ") {
-            let parts = entry.split(separator: "=", maxSplits: 1)
-            if parts.count == 2, let number = Double(parts[1]) {
-                listed[String(parts[0])] = number
-            }
-        }
-        // A parser that reads nothing must fail, not pass.
-        try #require(!listed.isEmpty, "the parser read nothing from the THRESHOLDS= line")
-        #expect(listed == [
-            "conflictAt": DupesConflicts.conflictAt,
-            "duplicateAt": DupesConflicts.duplicateAt,
-            "overlapAt": DupesConflicts.overlapAt,
-        ])
     }
 }
 
@@ -934,6 +956,16 @@ struct DupesConflictsRunnerTests {
         #expect(Set(record.answers.map(\.id)) == ["2.1.vs.1.1.sameAsk", "2.1.vs.1.1.opposite"])
         #expect(record.lines.isEmpty)
         #expect(!bundle.exists("refined.md"))
+        // The record decodes object keys in sorted order.
+        #expect(record.summary == .object([
+            JevSummaryField(key: "flagged", value: .array([
+                .object([
+                    JevSummaryField(key: "outcome", value: "duplicate"),
+                    JevSummaryField(key: "pair", value: "2.1.vs.1.1"),
+                ]),
+            ])),
+            JevSummaryField(key: "notChecked", value: .array([])),
+        ]))
     }
 
     @Test("On puts a duplicate's round line once in refined.md and once in the capture's file")
