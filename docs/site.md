@@ -54,6 +54,7 @@ The script stops when the DMG has no stapled notarization ticket, when a file is
 - Token permissions: Workers Scripts Edit, D1 Edit, Account Settings Read; on the nextshot.dev zone, Workers Routes Edit, DNS Edit, Zone Read.
 - Revoke or roll it in the Cloudflare dashboard under Manage Account, Account API Tokens, `nextshot-site deploy`.
 - `wrangler` itself stays signed out.
+- The zone's Minimum TLS Version is 1.2 (set 2026-10-24 in SSL/TLS, Edge Certificates). TLS 1.0 and 1.1 connections get a protocol-version alert. The token cannot change zone settings, so this one is a dashboard setting.
 
 ## Corporate web filters
 
