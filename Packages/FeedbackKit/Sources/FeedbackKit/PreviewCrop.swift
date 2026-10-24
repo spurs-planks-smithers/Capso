@@ -21,14 +21,7 @@ public enum PreviewCrop {
         var crops: [Int: FeedbackBox] = [:]
         for item in FeedbackItems.split(capture).items {
             guard let number = item.badge.badge, crops[number] == nil else { continue }
-            var focus = item.badge.box
-            if let shape = item.shape {
-                focus = focus.union(shape.box)
-            }
-            if let tip = item.badge.point {
-                focus = focus.union(FeedbackBox(x1: tip.x, y1: tip.y, x2: tip.x, y2: tip.y))
-            }
-            crops[number] = crop(center: item.badge.box.center, focus: focus, imageSize: imageSize, margin: margin, aspectRatio: aspectRatio)
+            crops[number] = crop(center: item.badge.box.center, focus: item.focus, imageSize: imageSize, margin: margin, aspectRatio: aspectRatio)
         }
         return crops
     }
