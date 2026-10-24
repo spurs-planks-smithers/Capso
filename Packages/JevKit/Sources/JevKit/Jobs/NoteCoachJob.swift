@@ -32,32 +32,42 @@ public enum NoteCoachLabel: String, Sendable, CaseIterable {
     }
 }
 
-/// The rule that turns Jev's three answers for one item into a label. Pure
+/// The rule that turns Jev's four answers for one item into a label. Pure
 /// code: the same answers always give the same label.
 ///
-/// The three thresholds are start values from TypeSafe's Noul docs. The
-/// accuracy test (issue #62) tunes them for the pinned model
-/// `JevEndpoint.model`.
+/// The accuracy test (issue #62) set the thresholds on 2026-10-24 for the
+/// pinned model `JevEndpoint.model`. A new model needs a new test run.
+/// - Vague uses `clarity` and `asks_answer` only. Jev reads "fix this" as
+///   naming a change, so `names_change` would let a vague note through.
+/// - A question may score high on `names_change` when it asks for text to
+///   write ("tell me what to put here"). Real change requests scored 0.94
+///   or more, so the cut sits at 0.8.
+/// - `reports_problem` keeps a bug report ("why is this not available?")
+///   from getting the question line, so the agent can fix it.
 public enum NoteCoachRule {
-    /// A note is vague only when level 0 of `clarity` is at least this likely.
+    /// Vague needs level 0 of `clarity` at least this likely...
     public static let vagueLevelMinimum = 0.7
-    /// An answer of at least this is a yes.
-    public static let yesMinimum = 0.7
-    /// An answer below this is a no.
-    public static let noMaximum = 0.3
+    /// ...and `asks_answer` below this.
+    public static let vagueAnswerMaximum = 0.5
+    /// A question needs `asks_answer` at least this...
+    public static let questionAnswerMinimum = 0.7
+    /// ...`names_change` below this...
+    public static let questionChangeMaximum = 0.8
+    /// ...and `reports_problem` below this.
+    public static let questionProblemMaximum = 0.5
 
     /// Nil means not checked: an answer is missing, `clarity` does not have
     /// three levels, or a number is not finite or is outside 0 to 1.
-    public static func label(clarity: JevScoreAnswer?, namesChange: Double?, asksAnswer: Double?) -> NoteCoachLabel? {
-        guard let clarity, let namesChange, let asksAnswer, clarity.probabilities.count == 3,
-              (clarity.probabilities + [namesChange, asksAnswer]).allSatisfy({ $0.isFinite && (0...1).contains($0) })
+    public static func label(clarity: JevScoreAnswer?, namesChange: Double?, asksAnswer: Double?, reportsProblem: Double?) -> NoteCoachLabel? {
+        guard let clarity, let namesChange, let asksAnswer, let reportsProblem, clarity.probabilities.count == 3,
+              (clarity.probabilities + [namesChange, asksAnswer, reportsProblem]).allSatisfy({ $0.isFinite && (0...1).contains($0) })
         else { return nil }
 
         let levels = clarity.probabilities
-        if levels[0] >= vagueLevelMinimum, namesChange < noMaximum, asksAnswer < noMaximum {
+        if levels[0] >= vagueLevelMinimum, asksAnswer < vagueAnswerMaximum {
             return .vague
         }
-        if asksAnswer >= yesMinimum, namesChange < noMaximum {
+        if asksAnswer >= questionAnswerMinimum, namesChange < questionChangeMaximum, reportsProblem < questionProblemMaximum {
             return .question
         }
         if levels[0] > levels[1], levels[0] > levels[2] {
@@ -82,7 +92,7 @@ public enum NoteCoachRule {
 /// as empty, vague, partial, question, or clear.
 ///
 /// Code finds an empty note with no model. One request per capture asks Jev
-/// three questions about each filled note. The request holds reviewer text
+/// four questions about each filled note. The request holds reviewer text
 /// only: no window title, OCR text, app name, file name, or image. The job
 /// returns the same output in shadow and on. The runner writes the lines in
 /// on only. See docs/superpowers/specs/2026-10-24-note-coach-design.md.
@@ -90,7 +100,7 @@ public struct NoteCoachJob: JevJob {
     public let id = "noteCoach"
     public let flag = FeatureFlag.noteCoach
     public let requires: JevDataKinds = []
-    public let version = 1
+    public let version = 2
 
     public init() {}
 
@@ -127,9 +137,10 @@ public struct NoteCoachJob: JevJob {
                 let clarity = response?.score("\(id.text).clarity")
                 let namesChange = response?.noul("\(id.text).names_change")
                 let asksAnswer = response?.noul("\(id.text).asks_answer")
-                label = NoteCoachRule.label(clarity: clarity, namesChange: namesChange, asksAnswer: asksAnswer)
+                let reportsProblem = response?.noul("\(id.text).reports_problem")
+                label = NoteCoachRule.label(clarity: clarity, namesChange: namesChange, asksAnswer: asksAnswer, reportsProblem: reportsProblem)
                 reviewLine += " \(label?.rawValue ?? "not checked")."
-                reviewLine += " Level 0 \(Self.twoDecimals(clarity?.probabilities.first)), change \(Self.twoDecimals(namesChange)), answer \(Self.twoDecimals(asksAnswer))."
+                reviewLine += " Level 0 \(Self.twoDecimals(clarity?.probabilities.first)), change \(Self.twoDecimals(namesChange)), answer \(Self.twoDecimals(asksAnswer)), problem \(Self.twoDecimals(reportsProblem))."
             } else {
                 label = .empty
                 reviewLine += " empty."
@@ -158,7 +169,7 @@ public struct NoteCoachJob: JevJob {
         "\(capture).\(badge)"
     }
 
-    /// The whole capture in one request: three questions for each filled
+    /// The whole capture in one request: four questions for each filled
     /// item. Each question names its item's place in the state, `items[i]`.
     private static func request(capture: FeedbackCapture, filled: [Item]) -> JevRequest {
         var entries: [JevValue] = []
@@ -191,6 +202,14 @@ public struct NoteCoachJob: JevJob {
                     "Does `items[\(index)].note` ask for information, an explanation, advice, or text to write?",
                     yes: "The reviewer wants an answer or a draft.",
                     no: "The reviewer wants only a change, or nothing."
+                )
+            ))
+            questions.append((
+                id: "\(id).reports_problem",
+                question: .noul(
+                    "Does `items[\(index)].note` report that something is broken, wrong, or not available?",
+                    yes: "The note says something does not work, shows a wrong value, or is missing when it should be there.",
+                    no: "The note only asks about something, or asks for a change, and says nothing is broken."
                 )
             ))
         }

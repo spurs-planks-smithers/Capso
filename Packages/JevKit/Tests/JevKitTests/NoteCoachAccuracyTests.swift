@@ -45,6 +45,7 @@ struct NoteCoachAccuracyTests {
         var levels: [Double]
         var namesChange: Double?
         var asksAnswer: Double?
+        var reportsProblem: Double?
 
         var json: [String: Any] {
             func number(_ value: Double?) -> Any { value.map { $0 as Any } ?? NSNull() }
@@ -55,6 +56,7 @@ struct NoteCoachAccuracyTests {
                 "level2": number(levels.count > 2 ? levels[2] : nil),
                 "names_change": number(namesChange),
                 "asks_answer": number(asksAnswer),
+                "reports_problem": number(reportsProblem),
             ]
         }
     }
@@ -143,7 +145,8 @@ struct NoteCoachAccuracyTests {
                     row.levels = clarity?.probabilities ?? []
                     row.namesChange = response?.noul("\(id).names_change")
                     row.asksAnswer = response?.noul("\(id).asks_answer")
-                    row.label = NoteCoachRule.label(clarity: clarity, namesChange: row.namesChange, asksAnswer: row.asksAnswer)?.rawValue ?? "not_checked"
+                    row.reportsProblem = response?.noul("\(id).reports_problem")
+                    row.label = NoteCoachRule.label(clarity: clarity, namesChange: row.namesChange, asksAnswer: row.asksAnswer, reportsProblem: row.reportsProblem)?.rawValue ?? "not_checked"
                 }
                 rows.append(row)
             }
@@ -155,8 +158,10 @@ struct NoteCoachAccuracyTests {
             "ran_at": ISO8601DateFormatter().string(from: Date()),
             "thresholds": [
                 "vague_level_minimum": NoteCoachRule.vagueLevelMinimum,
-                "yes_minimum": NoteCoachRule.yesMinimum,
-                "no_maximum": NoteCoachRule.noMaximum,
+                "vague_answer_maximum": NoteCoachRule.vagueAnswerMaximum,
+                "question_answer_minimum": NoteCoachRule.questionAnswerMinimum,
+                "question_change_maximum": NoteCoachRule.questionChangeMaximum,
+                "question_problem_maximum": NoteCoachRule.questionProblemMaximum,
             ],
             "errors": errors.map { ["key": $0.key, "error": $0.error] },
             "items": rows.map(\.json),

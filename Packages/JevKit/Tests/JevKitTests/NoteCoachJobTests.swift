@@ -32,13 +32,14 @@ private func makeNoteCapture(index: Int = 3, notes: [(badge: Int, note: String?)
 private let vague: (levels: [Double], change: Double, answer: Double) = ([0.9, 0.05, 0.05], 0.1, 0.1)
 private let question: (levels: [Double], change: Double, answer: Double) = ([0.1, 0.2, 0.7], 0.1, 0.9)
 
-/// The three answers for one item, as the client returns them.
+/// The four answers for one item, as the client returns them. `reports_problem` is a no.
 private func answers(_ item: String, _ shape: (levels: [Double], change: Double, answer: Double)) -> [String: JevAnswer] {
     let expected = shape.levels.enumerated().reduce(0.0) { $0 + Double($1.offset) * $1.element }
     return [
         "\(item).clarity": .score(JevScoreAnswer(score: expected, confidence: 0.8, probabilities: shape.levels)),
         "\(item).names_change": .noul(shape.change),
         "\(item).asks_answer": .noul(shape.answer),
+        "\(item).reports_problem": .noul(0.05),
     ]
 }
 
@@ -52,14 +53,15 @@ private func codeText(_ value: JevValue) -> String {
     return ""
 }
 
-/// A 200 body that answers one item's three questions, in the client's format.
+/// A 200 body that answers one item's four questions, in the client's format.
 private func noteCoachBody(item: String, levels: [Double], change: Double, answer: Double) -> String {
     let expected = levels.enumerated().reduce(0.0) { $0 + Double($1.offset) * $1.element }
     let scale = levels.enumerated().map { #""\#($0.offset)":\#($0.element)"# }.joined(separator: ",")
     let clarityJSON = #""\#(item).clarity":{"type":"score","score":\#(expected),"confidence":0.9,"legend":{},"probabilities":{\#(scale)}}"#
     let changeJSON = #""\#(item).names_change":{"type":"noul","noul":\#(change)}"#
     let answerJSON = #""\#(item).asks_answer":{"type":"noul","noul":\#(answer)}"#
-    return #"{"model":"\#(JevEndpoint.model)","answers":{\#(clarityJSON),\#(changeJSON),\#(answerJSON)},"usage":{"input_tokens":40,"output_tokens":3}}"#
+    let problemJSON = #""\#(item).reports_problem":{"type":"noul","noul":0.05}"#
+    return #"{"model":"\#(JevEndpoint.model)","answers":{\#(clarityJSON),\#(changeJSON),\#(answerJSON),\#(problemJSON)},"usage":{"input_tokens":40,"output_tokens":3}}"#
 }
 
 // MARK: - The job
@@ -78,7 +80,7 @@ struct NoteCoachJobTests {
         #expect(request.kinds == .reviewerText)
         #expect(request.images.isEmpty)
         #expect(!request.needsImagesHeader)
-        #expect(request.questions.map(\.id.text) == ["3.1.clarity", "3.1.names_change", "3.1.asks_answer", "3.3.clarity", "3.3.names_change", "3.3.asks_answer"])
+        #expect(request.questions.map(\.id.text) == ["3.1.clarity", "3.1.names_change", "3.1.asks_answer", "3.1.reports_problem", "3.3.clarity", "3.3.names_change", "3.3.asks_answer", "3.3.reports_problem"])
 
         // Each question names its own item's path in the state.
         for entry in request.questions {
@@ -100,7 +102,7 @@ struct NoteCoachJobTests {
         let sent = RequestLog()
         _ = try await NoteCoachJob().run(makeContext(capture: capture, sent: sent))
         let request = try #require(await sent.requests.first)
-        #expect(request.questions.count == 3)
+        #expect(request.questions.count == 4)
 
         let clarity = request.questions[0].question
         #expect(codeText(clarity.instructions) == #"How clearly does `items[0].note` tell a developer what to do about the marked item? `general_note` is context from the same reviewer. Words like "this" or "here" refer to the marked item."#)
@@ -131,6 +133,15 @@ struct NoteCoachJobTests {
         }
         #expect(asksYes.map(codeText) == "The reviewer wants an answer or a draft.")
         #expect(asksNo.map(codeText) == "The reviewer wants only a change, or nothing.")
+
+        let problem = request.questions[3].question
+        #expect(codeText(problem.instructions) == "Does `items[0].note` report that something is broken, wrong, or not available?")
+        guard case .noul(let problemYes, let problemNo) = problem.kind else {
+            Issue.record("reports_problem is not a Noul")
+            return
+        }
+        #expect(problemYes.map(codeText) == "The note says something does not work, shows a wrong value, or is missing when it should be there.")
+        #expect(problemNo.map(codeText) == "The note only asks about something, or asks for a change, and says nothing is broken.")
     }
 
     @Test("A badge with several marks uses the first note, and the general note is sent as stored")
@@ -139,7 +150,7 @@ struct NoteCoachJobTests {
         let sent = RequestLog()
         _ = try await NoteCoachJob().run(makeContext(capture: capture, sent: sent))
         let request = try #require(await sent.requests.first)
-        #expect(request.questions.count == 3)
+        #expect(request.questions.count == 4)
         let body = String(decoding: try JevRequestEncoder.encode(request).body, as: UTF8.self)
         #expect(body.contains(#""state":{"general_note":"","items":[{"item":"3.1","note":"first words"}]}"#))
     }
@@ -212,7 +223,7 @@ struct NoteCoachJobTests {
             JevSummaryField(key: "3.3", value: "not_checked"),
         ])
         let review = try #require(output.review)
-        #expect(review.contains(#"- 3.3: not checked. Level 0 n/a, change n/a, answer n/a. Note: "what does this do?""#))
+        #expect(review.contains(#"- 3.3: not checked. Level 0 n/a, change n/a, answer n/a, problem n/a. Note: "what does this do?""#))
     }
 
     @Test("An answer outside 0 to 1, or of the wrong type, makes only its item not checked")
@@ -236,9 +247,9 @@ struct NoteCoachJobTests {
 
         #expect(output.review == """
         ### Capture 3
-        - 3.1: vague. Level 0 0.90, change 0.10, answer 0.10. Note: "fix this now"
+        - 3.1: vague. Level 0 0.90, change 0.10, answer 0.10, problem 0.05. Note: "fix this now"
         - 3.2: empty. Note: ""
-        - 3.3: question. Level 0 0.10, change 0.10, answer 0.90. Note: "what does this do?"
+        - 3.3: question. Level 0 0.10, change 0.10, answer 0.90, problem 0.05. Note: "what does this do?"
         """)
         #expect(output.review?.lowercased().contains("secret") == false)
     }
@@ -255,11 +266,11 @@ struct NoteCoachJobTests {
         }
     }
 
-    @Test("The job is registered at version 1, with no consent beyond reviewer text")
+    @Test("The job is registered at version 2, with no consent beyond reviewer text")
     func identity() {
         let job = NoteCoachJob()
         #expect(job.id == "noteCoach" && job.flag == .noteCoach)
-        #expect(job.version == 1)
+        #expect(job.version == 2)
         #expect(job.requires.isEmpty)
     }
 }
@@ -271,6 +282,7 @@ struct RuleCase: Sendable, CustomTestStringConvertible {
     var levels: [Double]
     var change: Double
     var answer: Double
+    var problem = 0.05
     var expected: NoteCoachLabel
 
     var testDescription: String { name }
@@ -282,18 +294,21 @@ struct NoteCoachRuleTests {
         RuleCase(name: "a clear vague note", levels: [0.9, 0.05, 0.05], change: 0.1, answer: 0.1, expected: .vague),
         RuleCase(name: "level 0 exactly 0.7 is vague", levels: [0.7, 0.2, 0.1], change: 0.0, answer: 0.0, expected: .vague),
         RuleCase(name: "level 0 just under 0.7 is unsure", levels: [0.69, 0.21, 0.1], change: 0.1, answer: 0.1, expected: .unsure),
-        RuleCase(name: "names_change exactly 0.3 is unsure, not vague", levels: [0.9, 0.05, 0.05], change: 0.3, answer: 0.1, expected: .unsure),
-        RuleCase(name: "names_change just under 0.3 is vague", levels: [0.9, 0.05, 0.05], change: 0.29, answer: 0.1, expected: .vague),
-        RuleCase(name: "asks_answer exactly 0.3 is unsure, not vague", levels: [0.9, 0.05, 0.05], change: 0.1, answer: 0.3, expected: .unsure),
+        RuleCase(name: "fix this is vague even when names_change is high", levels: [0.95, 0.03, 0.02], change: 0.97, answer: 0.1, expected: .vague),
+        RuleCase(name: "asks_answer exactly 0.5 is unsure, not vague", levels: [0.9, 0.05, 0.05], change: 0.1, answer: 0.5, expected: .unsure),
+        RuleCase(name: "asks_answer just under 0.5 is vague", levels: [0.9, 0.05, 0.05], change: 0.1, answer: 0.49, expected: .vague),
+        RuleCase(name: "level 0 on top with a high asks_answer is unsure", levels: [0.8, 0.1, 0.1], change: 0.1, answer: 0.6, expected: .unsure),
         RuleCase(name: "a clear question", levels: [0.1, 0.2, 0.7], change: 0.1, answer: 0.9, expected: .question),
-        RuleCase(name: "asks_answer exactly 0.7 with names_change 0.29 is a question", levels: [0.2, 0.3, 0.5], change: 0.29, answer: 0.7, expected: .question),
+        RuleCase(name: "asks_answer exactly 0.7 with names_change 0.79 is a question", levels: [0.2, 0.3, 0.5], change: 0.79, answer: 0.7, expected: .question),
+        RuleCase(name: "a request for text to write is a question", levels: [0.01, 0.01, 0.98], change: 0.74, answer: 0.98, expected: .question),
         RuleCase(name: "asks_answer just under 0.7 is not a question", levels: [0.2, 0.3, 0.5], change: 0.1, answer: 0.69, expected: .clear),
-        RuleCase(name: "names_change exactly 0.3 is not a question", levels: [0.1, 0.2, 0.7], change: 0.3, answer: 0.9, expected: .clear),
-        RuleCase(name: "a question that also names a change is clear", levels: [0.05, 0.15, 0.8], change: 0.8, answer: 0.9, expected: .clear),
+        RuleCase(name: "names_change exactly 0.8 is not a question", levels: [0.1, 0.2, 0.7], change: 0.8, answer: 0.9, expected: .clear),
+        RuleCase(name: "a bug report that asks why is not a question", levels: [0.0, 0.11, 0.89], change: 0.12, answer: 0.96, problem: 0.9, expected: .clear),
+        RuleCase(name: "reports_problem exactly 0.5 is not a question", levels: [0.1, 0.2, 0.7], change: 0.1, answer: 0.9, problem: 0.5, expected: .clear),
+        RuleCase(name: "reports_problem just under 0.5 is a question", levels: [0.1, 0.2, 0.7], change: 0.1, answer: 0.9, problem: 0.49, expected: .question),
+        RuleCase(name: "a question that also names a change is clear", levels: [0.05, 0.15, 0.8], change: 0.95, answer: 0.9, expected: .clear),
         RuleCase(name: "level 1 on top is partial", levels: [0.2, 0.6, 0.2], change: 0.4, answer: 0.1, expected: .partial),
-        RuleCase(name: "level 1 on top with a middle asks_answer is partial", levels: [0.2, 0.6, 0.2], change: 0.1, answer: 0.5, expected: .partial),
         RuleCase(name: "level 2 on top is clear", levels: [0.05, 0.15, 0.8], change: 0.9, answer: 0.05, expected: .clear),
-        RuleCase(name: "level 0 on top, but names a change, is unsure", levels: [0.6, 0.3, 0.1], change: 0.6, answer: 0.1, expected: .unsure),
         RuleCase(name: "level 0 tied with level 2 is clear", levels: [0.45, 0.1, 0.45], change: 0.5, answer: 0.1, expected: .clear),
     ]
 
@@ -303,15 +318,16 @@ struct NoteCoachRuleTests {
 
     @Test("Each answer set maps to its label", arguments: NoteCoachRuleTests.cases)
     func label(_ test: RuleCase) {
-        #expect(NoteCoachRule.label(clarity: Self.score(test.levels), namesChange: test.change, asksAnswer: test.answer) == test.expected)
+        #expect(NoteCoachRule.label(clarity: Self.score(test.levels), namesChange: test.change, asksAnswer: test.answer, reportsProblem: test.problem) == test.expected)
     }
 
     @Test("A missing input means not checked")
     func missingInput() {
         let good = Self.score([0.9, 0.05, 0.05])
-        #expect(NoteCoachRule.label(clarity: nil, namesChange: 0.1, asksAnswer: 0.1) == nil)
-        #expect(NoteCoachRule.label(clarity: good, namesChange: nil, asksAnswer: 0.1) == nil)
-        #expect(NoteCoachRule.label(clarity: good, namesChange: 0.1, asksAnswer: nil) == nil)
+        #expect(NoteCoachRule.label(clarity: nil, namesChange: 0.1, asksAnswer: 0.1, reportsProblem: 0.1) == nil)
+        #expect(NoteCoachRule.label(clarity: good, namesChange: nil, asksAnswer: 0.1, reportsProblem: 0.1) == nil)
+        #expect(NoteCoachRule.label(clarity: good, namesChange: 0.1, asksAnswer: nil, reportsProblem: 0.1) == nil)
+        #expect(NoteCoachRule.label(clarity: good, namesChange: 0.1, asksAnswer: 0.1, reportsProblem: nil) == nil)
     }
 
     @Test("A bad probability list or value means not checked")
@@ -332,15 +348,21 @@ struct NoteCoachRuleTests {
             ("an infinite asks_answer", Self.score([0.9, 0.05, 0.05]), 0.1, .infinity),
         ]
         for (name, clarity, change, answer) in bad {
-            #expect(NoteCoachRule.label(clarity: clarity, namesChange: change, asksAnswer: answer) == nil, "\(name)")
+            #expect(NoteCoachRule.label(clarity: clarity, namesChange: change, asksAnswer: answer, reportsProblem: 0.1) == nil, "\(name)")
+        }
+        let good = Self.score([0.9, 0.05, 0.05])
+        for problem in [1.2, -0.1, Double.nan, Double.infinity] {
+            #expect(NoteCoachRule.label(clarity: good, namesChange: 0.1, asksAnswer: 0.1, reportsProblem: problem) == nil, "reports_problem \(problem)")
         }
     }
 
-    @Test("The thresholds start at TypeSafe's values")
+    @Test("The thresholds are the values the accuracy test set")
     func thresholds() {
         #expect(NoteCoachRule.vagueLevelMinimum == 0.7)
-        #expect(NoteCoachRule.yesMinimum == 0.7)
-        #expect(NoteCoachRule.noMaximum == 0.3)
+        #expect(NoteCoachRule.vagueAnswerMaximum == 0.5)
+        #expect(NoteCoachRule.questionAnswerMinimum == 0.7)
+        #expect(NoteCoachRule.questionChangeMaximum == 0.8)
+        #expect(NoteCoachRule.questionProblemMaximum == 0.5)
     }
 
     @Test("Only vague, question, and empty have a line")
@@ -393,8 +415,8 @@ struct NoteCoachRunnerTests {
 
         #expect(await transport.count == 1)
         let record = try #require(try bundle.record(1))
-        #expect(record.job == "noteCoach" && record.jobVersion == 1 && record.mode == "shadow" && record.status == .done)
-        #expect(record.answers.map(\.id) == ["1.1.clarity", "1.1.names_change", "1.1.asks_answer"])
+        #expect(record.job == "noteCoach" && record.jobVersion == 2 && record.mode == "shadow" && record.status == .done)
+        #expect(record.answers.map(\.id) == ["1.1.clarity", "1.1.names_change", "1.1.asks_answer", "1.1.reports_problem"])
         #expect(record.lines.isEmpty)
         #expect(record.summary == .object([JevSummaryField(key: "1.1", value: "vague")]))
         #expect(!bundle.exists(JevRefinedRenderer.captureFileName(for: bundle.capture)))
@@ -402,7 +424,7 @@ struct NoteCoachRunnerTests {
 
         let review = try bundle.text("jev-review/noteCoach.md")
         #expect(review.contains("### Capture 1"))
-        #expect(review.contains(#"- 1.1: vague. Level 0 0.90, change 0.10, answer 0.10. Note: "make it brighter""#))
+        #expect(review.contains(#"- 1.1: vague. Level 0 0.90, change 0.10, answer 0.10, problem 0.05. Note: "make it brighter""#))
     }
 
     @Test("On writes the vague line under the item in the capture's refined file")
