@@ -33,11 +33,11 @@ private func capture(circles: Int = 3, first: String? = wispr, others: [Int: Str
 }
 
 private func ids(_ request: JevRequest) -> [String] {
-    request.questions.map(\.id)
+    request.questions.map(\.id.text)
 }
 
 private func instructions(_ question: JevQuestion) -> String {
-    if case .code(let text) = question.instructions { return text }
+    if case .code(let text) = question.instructions { return text.text }
     return ""
 }
 
@@ -104,9 +104,10 @@ struct OneBreathRequestTests {
 
         let with = try #require(plan.request(allowed: [.reviewerText, .screenText]) { _ in nil })
         #expect(with.request.kinds == [.reviewerText, .screenText])
-        for entry in with.request.questions where entry.id.hasSuffix(".badge") {
+        for entry in with.request.questions where entry.id.text.hasSuffix(".badge") {
             #expect(instructions(entry.question).hasPrefix(JevPrompting.screenTextNotice))
         }
+        #expect(OneBreathPlan.screenTextNotice.text == JevPrompting.screenTextNotice)
     }
 
     @Test("A part that corrects itself gets a Choice over its clauses, in Drew's words")
@@ -134,13 +135,53 @@ struct OneBreathRequestTests {
         #expect(await sent.count == 0)
     }
 
-    @Test("The job sends its one request through the asker")
+    @Test("The job sends its one request through the asker and returns a summary and a review section")
     func jobAsks() async throws {
         let sent = RequestLog()
         let output = try await OneBreathJob().run(makeContext(capture: capture(), sent: sent))
-        #expect(output == .empty)
         #expect(await sent.count == 1)
         #expect(await ids(sent.requests[0]).first == "answer.c1.multi")
+        #expect(output.lines.isEmpty && output.files.isEmpty && output.failure == nil)
+        #expect(output.summary.map(\.key) == ["circles", "emptyCircle", "answers"])
+        #expect(output.review?.contains("Code: one-breath, 3 parts.") == true)
+    }
+
+    @Test("When Jev fails, the job reports the failure and still returns the code split for review")
+    func jobFailure() async throws {
+        let base = makeContext(capture: capture())
+        let context = JevJobContext(
+            round: base.round,
+            capture: base.capture,
+            folderURL: base.folderURL,
+            allowed: base.allowed,
+            deadline: base.deadline,
+            jev: JevAsker { _ in throw JevError(.timeout) },
+            images: base.images
+        )
+        let output = try await OneBreathJob().run(context)
+        #expect(output.failure == JevError(.timeout))
+        #expect(output.review?.contains("Jev: not checked (timeout).") == true)
+        #expect(output.review?.contains("| 3 | 3. Move the button left. | circle 3 | not checked | |") == true)
+    }
+
+    @Test("The summary holds code facts only: numbers, booleans, and code text")
+    func summaryFacts() {
+        let summary = OneBreathPlan(capture: capture()).summary
+        #expect(summary == [
+            JevSummaryField(key: "circles", value: .numbers([1, 2, 3])),
+            JevSummaryField(key: "emptyCircle", value: true),
+            JevSummaryField(key: "answers", value: .object([
+                JevSummaryField(key: "c1", value: .fields([
+                    "split": true,
+                    "parts": 3,
+                    "strongMentions": 3,
+                    "mediumMentions": 0,
+                    "startsAtOne": true,
+                    "coversAllCircles": true,
+                    "partsWithCues": 0,
+                ])),
+            ])),
+        ])
     }
 }
 
@@ -159,8 +200,7 @@ struct OneBreathReviewTests {
         ]
         let section = OneBreathReview.section(plan: plan, extras: .init(), response: response(answers), failure: nil, timeZone: utc)
         #expect(section == """
-        ## Capture 3 (17:46), 3 circles
-
+        Captured 17:46, 3 circles.
         Jev had: words.
 
         ### Answer at circle 1's step
@@ -251,10 +291,18 @@ private func trialBundle() async throws -> Bundle {
     return Bundle(root: root, folderName: round.folderName, capture: capture)
 }
 
-/// Every file in the round folder, by name.
+/// Every file in the round folder and its subfolders, by relative path.
 private func snapshot(_ bundle: Bundle) throws -> [String: Data] {
-    let names = try FileManager.default.contentsOfDirectory(atPath: bundle.folder.path)
-    return try Dictionary(uniqueKeysWithValues: names.map { ($0, try Data(contentsOf: bundle.folder.appendingPathComponent($0))) })
+    let paths = FileManager.default.subpaths(atPath: bundle.folder.path) ?? []
+    var files: [String: Data] = [:]
+    for path in paths {
+        var isFolder: ObjCBool = false
+        let url = bundle.folder.appendingPathComponent(path)
+        if FileManager.default.fileExists(atPath: url.path, isDirectory: &isFolder), !isFolder.boolValue {
+            files[path] = try Data(contentsOf: url)
+        }
+    }
+    return files
 }
 
 private let trialBody = """
@@ -291,7 +339,7 @@ struct OneBreathFlagTests {
         }
     }
 
-    @Test("In shadow, one request goes out, jev.json records every answer, and no other file changes")
+    @Test("In shadow, one request goes out, jev.json and the review file are written, and no other file changes")
     func shadow() async throws {
         let bundle = try await trialBundle()
         let before = try snapshot(bundle)
@@ -306,9 +354,29 @@ struct OneBreathFlagTests {
         #expect(record.answers.map(\.id) == ["answer.c1.multi", "part.c1.p1.badge", "part.c1.p2.badge", "part.c1.p3.badge"])
         #expect(record.lines.isEmpty && record.files.isEmpty)
 
+        let review = try bundle.text("jev-review/oneBreath.md")
+        #expect(review.contains("Agents: do not act on this file."))
+        #expect(review.contains("## Capture 1"))
+        #expect(review.contains("| 2 | 2. Remove the line under it. | circle 2 | circle 2, 0.96 | |"))
+        #expect(!review.contains("Copy Last Capture Prompt"), "screen text in the review file")
+
         var after = try snapshot(bundle)
         after["jev.json"] = nil
+        after["jev-review/oneBreath.md"] = nil
         #expect(after == before)
+    }
+
+    @Test("When Jev is offline in shadow, jev.json says not refined and the review still shows the code split")
+    func shadowOffline() async throws {
+        let bundle = try await trialBundle()
+        let runner = makeRunner(bundle, jobs: [OneBreathJob()], flags: [.jevBase: .on, .oneBreath: .shadow], transport: StubTransport())
+        await runCapture(runner, bundle)
+
+        let record = try #require(try bundle.record(bundle.capture.index))
+        #expect(record.status == .notRefined && record.reason == .offline)
+        let review = try bundle.text("jev-review/oneBreath.md")
+        #expect(review.contains("Jev: not checked (offline)."))
+        #expect(review.contains("| 1 | 1. Make the title brighter. | circle 1 | not checked | |"))
     }
 
     @Test("A local override cannot turn oneBreath on")

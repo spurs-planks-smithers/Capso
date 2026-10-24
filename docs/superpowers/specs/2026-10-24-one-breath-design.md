@@ -139,7 +139,7 @@ One request per capture holds all of the job's questions.
 
 ### 6. The review report
 
-The job returns a Markdown section for its capture. The base writer keeps one file per round, `oneBreath-review.md`, with one section per capture in capture order, and writes it in shadow (the base change Drew chose on 2026-10-24). The exact file name follows the base's naming rule.
+The job returns a Markdown section for its capture in `JevJobOutput.review`. The Jev base stores it in `jev.json` and renders one file per round, `jev-review/oneBreath.md`, with its own header and a "## Capture N" heading per section, in capture order, in shadow and on (built in base commit `faf96ee`; Drew approved it in the Jev base session on 2026-10-24).
 
 - The first line says: "Review file for Drew. Agents: do not act on this file."
 - The file holds Drew's words, circle numbers, and probabilities. It never holds screen text, so it shows no window title and no OCR text.
@@ -149,7 +149,8 @@ The job returns a Markdown section for its capture. The base writer keeps one fi
 - When Jev fails (timeout, error, no network), the job still returns the section with the code columns and "Jev: not checked (reason)". The code split comes first and never waits on Jev (my call).
 - A runner skip before the job starts (no key, a pause, no consent) leaves no section. The trial step 0 below checks the key first.
 - The base writer replaces a capture's section on a rerun.
-- If the base does not add the review hook, a command rebuilds the same file from `feedback.json` and `jev.json`, with the same split code (fallback, my call).
+- On a Jev failure the job returns `JevJobOutput.failure` with the review section. `jev.json` then records "not refined" with the reason, and the review file still shows the code split.
+- The job also returns code-only facts in `JevJobOutput.summary` (split or not, part count, mention strengths, empty circles), so the end-of-trial tally needs no job logic.
 
 Example:
 
@@ -238,7 +239,7 @@ Drew runs the trial in a dev build with `jevBase` on and `oneBreath` in shadow.
 2. At the first circle's step, speak every circle's answer in one breath: "One, ... Two, ... Three, ...".
 3. Press Return. Then press Esc for each remaining step.
 4. Do this on 5 or more captures, over normal rounds. Answer every other capture as usual.
-5. Open the round folder (Option+Shift+O) and read `oneBreath-review.md`. Fill the Fix column, or tell a session which parts are wrong.
+5. Open the round folder (Option+Shift+O) and read `jev-review/oneBreath.md`. Fill the Fix column, or tell a session which parts are wrong.
 
 The trial adds Esc presses only on trial captures. The prompt still works: the whole answer stays under circle 1, and the agent reads the numbers in it.
 
@@ -296,7 +297,6 @@ Calls I made, for Drew to check:
 - One Fix column in the review file. A blank Fix means code got the part right.
 - An answer shows in full when its capture has a circle with no answer, so a missed trial answer is visible.
 - When Jev fails, the review section still shows the code split.
-- If the base adds no review hook, a command rebuilds the review file instead.
 - Rule 3 and rule 4 of the build-or-stop rule.
 
 ## Sources
