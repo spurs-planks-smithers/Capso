@@ -57,10 +57,26 @@
   #menu .gray { color: #8D979E; }
   #menu .sep { height: 1px; background: rgba(255,255,255,0.12); margin: 5px 10px; }
 
-  #tray { position: absolute; left: 70px; top: 96px; width: 340px; height: 790px; background: #2B3135; border-radius: 18px;
-          border: 1px solid rgba(255,255,255,0.08); }
+  #tray { border: 3px solid rgba(60,205,190,0.85); box-sizing: border-box; position: absolute; left: 70px; top: 96px; width: 340px; height: 814px; background: rgba(60,205,190,0.04); border-radius: 18px; }
   .slotlabel { position: absolute; left: 30px; font-size: 22px; color: #F2F4F5; font-weight: 600; white-space: nowrap; }
-  .slotlabel span { color: #9AA6AD; font-weight: 500; font-size: 18px; margin-left: 8px; }
+  .slotlabel span { display: block; color: #9AA6AD; font-weight: 500; font-size: 18px; margin-top: 2px; }
+  #menu .row { justify-content: space-between; }
+  #menu .hk { color: #8D979E; font-size: 18px; letter-spacing: 1px; }
+  .gdot { position: absolute; width: 10px; height: 10px; border-radius: 50%; background: #34C759; box-shadow: 0 0 0 1.5px #15191C; }
+  #steps { position: absolute; left: 0; top: 972px; width: 1920px; height: 60px; z-index: 19; }
+  .step { position: absolute; left: 48px; display: flex; justify-content: flex-start; }
+  .step span { display: inline-flex; align-items: center; gap: 14px; padding: 8px 24px 8px 10px; border-radius: 999px;
+               background: rgba(21,25,28,0.92); border: 1.5px solid rgba(60,205,190,0.55); color: #8FF3E4; font-size: 30px; font-weight: 650; }
+  .step b { width: 40px; height: 40px; border-radius: 50%; background: #3CCDBE; color: #0F2E2A; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+  .crow { display: flex; align-items: center; gap: 28px; margin-top: 26px; }
+  .cicon { width: 104px; height: 104px; flex: none; border-radius: 24px; background: #2A3034; border: 2px solid rgba(60,205,190,0.6);
+           display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 800; color: var(--mint); }
+  .ctitle { font-size: 44px; font-weight: 700; color: #fff; letter-spacing: -0.8px; }
+  .csub { font-size: 30px; font-weight: 500; color: #B9C3C9; margin-top: 4px; }
+  .prow2 { display: grid; grid-template-columns: 120px 330px 1fr 60px; align-items: center; padding: 18px 26px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 30px; color: #E6ECEE; }
+  .ptag { font-size: 16px; color: #7E8A92; margin-top: 4px; letter-spacing: 0.2px; }
+  .fchip { padding: 8px 14px; border-radius: 10px; background: #2A3034; border: 1px solid rgba(255,255,255,0.12);
+           font-family: Menlo, monospace; font-size: 18px; color: #C9D1D6; }
 
   .chip { padding: 8px 18px; border-radius: 999px; font-size: 18px; font-weight: 600; background: #2F363B; color: #C9D1D6; }
   #captions .cap { position: absolute; left: 0; width: 1920px; top: 968px; display: flex; justify-content: center; }
@@ -81,8 +97,8 @@
 </style>
 </head>
 <body>
-<div id="root" data-composition-id="root" data-start="0" data-auto-duration data-duration="70.352" data-width="1920" data-height="1080">
-  <audio id="soundtrack" class="clip" src="audio/final.wav" data-start="0" data-auto-duration data-duration="70.352" data-volume="1"></audio>
+<div id="root" data-composition-id="root" data-start="0" data-auto-duration data-duration="82.407" data-width="1920" data-height="1080">
+  <audio id="soundtrack" class="clip" src="audio/final.wav" data-start="0" data-auto-duration data-duration="82.407" data-volume="1"></audio>
 
   <div id="sketch" class="layer"></div>
 
@@ -90,21 +106,28 @@
     <div id="wordmark" style="position:absolute;left:0;top:630px;width:1920px;text-align:center;color:#fff;font-size:96px;font-weight:800;letter-spacing:-1px;">Nextshot</div>
 
     <div id="menubar">
-      <div class="mbitem" id="nshotItem"><span id="nshotCount"></span></div>
-      <div class="mbitem">Thu Oct 22&nbsp;&nbsp;4:12 PM</div>
+      <div class="mbitem" id="nshotItem" style="position:relative;"><span class="gdot" id="roundDot" style="left:31px;top:5px;"></span><span id="nshotCount"></span></div>
+      <div class="mbitem">Sat Oct 24&nbsp;&nbsp;4:12 PM</div>
+    </div>
+
+    <div id="steps">
+      <div class="step" id="step1"><span><b>1</b>Grab</span></div>
+      <div class="step" id="step2"><span><b>2</b>Mark</span></div>
+      <div class="step" id="step3"><span><b>3</b>Repeat</span></div>
+      <div class="step" id="step4"><span><b>4</b>Hand off</span></div>
     </div>
 
     <!-- The session tray sits before the cards, so the captures that land in it paint on top. -->
     <div id="tray">
-      <div style="position:absolute;left:30px;top:26px;font-size:20px;color:#8D979E;font-weight:500;">Session: feedback</div>
-      <div class="slotlabel" id="slot1" style="top:268px;">1 Lemonaid page<span>3 items</span></div>
-      <div class="slotlabel" id="slot2" style="top:510px;">2 Checkout<span>2 items</span></div>
-      <div class="slotlabel" id="slot3" style="top:752px;">3 Flavors<span>1 item, note</span></div>
+      <div style="position:absolute;left:30px;top:22px;display:flex;align-items:center;gap:10px;font-size:26px;color:#3CCDBE;font-weight:800;letter-spacing:0.5px;"><span style="width:12px;height:12px;border-radius:50%;background:#34C759;"></span>Round</div>
+      <div class="slotlabel" id="slot1" style="top:250px;">1 Lemonaid page<span>3 dots, 3 notes</span></div>
+      <div class="slotlabel" id="slot2" style="top:500px;">2 Checkout<span>2 dots, 2 notes</span></div>
+      <div class="slotlabel" id="slot3" style="top:740px;">3 Flavors<span>1 dot, 2 notes</span></div>
     </div>
     <div id="lens" style="position:absolute;left:1418px;top:66px;z-index:21;">
       <svg width="40" height="16" style="position:absolute;left:140px;top:-14px;"><path d="M0 16 L20 0 L40 16 Z" fill="#3CCDBE"/></svg>
       <div style="display:flex;align-items:center;gap:16px;padding:16px 30px;background:#15191C;border:3px solid #3CCDBE;border-radius:18px;color:#fff;font-size:48px;font-weight:600;">
-        <span id="lensMark" style="display:flex;width:62px;height:46px;"></span>Nshot (3)
+        <span id="lensMark" style="position:relative;display:flex;width:62px;height:46px;"></span>Nshot (3)
       </div>
     </div>
 
@@ -179,7 +202,7 @@
       <div class="key">F</div>
     </div>
     <div class="keys" id="keysC" style="top:842px;"><div class="key">C</div></div>
-    <div class="keys" id="keysS" style="top:842px;"><div class="key"><span class="sym">⌘</span>S</div></div>
+    <div class="keys" id="keysS" style="top:842px;"><div class="key"><span class="sym">⌘</span>S</div><div style="align-self:center;font-size:26px;color:#AAB4BA;margin-left:4px;">saves the capture</div></div>
 
     <div class="panel" id="notePanel" style="left:1170px;top:200px;width:660px;padding:24px;">
       <div id="question" style="font-size:28px;font-weight:600;margin-bottom:12px;">Circle 1 (1 of 3): what should change?</div>
@@ -192,7 +215,7 @@
         </svg>
       </div>
       <div style="font-size:15px;color:#9AA6AD;margin-top:10px;">Return saves and goes on. Esc skips this one. Arrow keys go back and forward.</div>
-      <div id="preview" style="position:relative;margin-top:14px;width:610px;height:300px;border-radius:7px;overflow:hidden;background:#ECEEF0;border:1px solid rgba(255,255,255,0.2);"></div>
+      <div id="preview" style="position:relative;margin-top:14px;width:610px;height:250px;border-radius:7px;overflow:hidden;background:#ECEEF0;border:1px solid rgba(255,255,255,0.2);"></div>
     </div>
 
     <!-- session -->
@@ -204,33 +227,35 @@
     </div>
 
     <!-- hand-off -->
-    <div id="menu">
-      <div class="row gray">Nextshot 2026.10.22 (501)</div>
+    <div id="menu" style="width:420px;left:1460px;">
+      <div class="row gray">Nextshot 2026.10.24 (516)</div>
       <div class="sep"></div>
       <div class="row gray">Session: feedback</div>
       <div class="sep"></div>
-      <div class="row">Copy Last Capture</div>
-      <div class="row" id="copyRow">Copy Session Prompt</div>
-      <div class="row">Open Folder</div>
-      <div class="row">End Session</div>
+      <div class="row"><span>Copy Last Capture Prompt</span><span class="hk">⌥⇧C</span></div>
+      <div class="row" id="copyRow"><span>Copy Prompt and End Round</span><span class="hk">⌥⇧R</span></div>
+      <div class="row"><span>Open Round Folder</span><span class="hk">⌥⇧O</span></div>
+      <div class="row"><span>End Round</span><span class="hk">⌥⇧E</span></div>
       <div class="sep"></div>
-      <div class="row">All Sessions</div>
-      <div class="row">Feedback Shortcut</div>
-      <div class="row">Settings</div>
+      <div class="row">All Sessions...</div>
+      <div class="row">Change Start Round Shortcut...</div>
+      <div class="sep"></div>
+      <div class="row">Settings...</div>
       <div class="row">Quit Nextshot</div>
     </div>
     <!-- The key line, in brand type: a narrator note, never app UI. -->
     <div id="callout" style="position:absolute;left:0;top:380px;width:1920px;display:flex;justify-content:center;">
-      <div style="position:relative;font-weight:800;font-size:88px;letter-spacing:-2px;color:#fff;white-space:nowrap;">
-        3 captures. 7 notes. <span style="color:var(--mint);">1 prompt.</span>
-        <svg style="position:absolute;left:0;top:110px;width:100%;height:26px;" viewBox="0 0 1000 26" preserveAspectRatio="none"><path id="calloutLine" d="M6 16 Q500 4 994 16" fill="none" stroke="#3CCDBE" stroke-width="8" stroke-linecap="round" stroke-dasharray="1100" stroke-dashoffset="1100"/></svg>
+      <div style="position:relative;text-align:center;">
+        <div style="position:relative;font-weight:800;font-size:104px;letter-spacing:-2.5px;color:#fff;white-space:nowrap;">One round. <span style="color:var(--mint);">One prompt.</span>
+          <svg style="position:absolute;left:0;top:128px;width:100%;height:26px;" viewBox="0 0 1000 26" preserveAspectRatio="none"><path id="calloutLine" d="M6 13 L994 13" fill="none" stroke="#3CCDBE" stroke-width="7" stroke-linecap="round" stroke-dasharray="1100" stroke-dashoffset="1100"/></svg></div>
+        <div id="calloutSub" style="margin-top:58px;display:flex;justify-content:center;gap:22px;font-size:46px;font-weight:650;color:#E6ECEE;white-space:nowrap;"><span class="csubi" style="padding:10px 26px;border-radius:16px;background:#2A3034;">3 screens</span><span class="csubi" style="padding:10px 26px;border-radius:16px;background:#2A3034;">6 dots</span><span class="csubi" style="padding:10px 26px;border-radius:16px;background:#2A3034;">7 notes</span></div>
       </div>
     </div>
 
     <div class="panel" id="agent" style="left:300px;top:110px;width:1320px;height:760px;background:#1B1F22;">
       <div style="position:absolute;left:32px;top:22px;font-size:26px;font-weight:700;">Your agent</div>
       <div style="position:absolute;right:28px;top:16px;display:flex;gap:12px;">
-        <div class="chip" id="chip1">Claude Code</div><div class="chip" id="chip2">Codex</div><div class="chip" id="chip3">Any agent</div>
+        <div class="chip" id="chip1">Claude Code</div><div class="chip" id="chip2">Codex</div><div id="chipAny" style="align-self:center;font-size:24px;color:#8D979E;margin-left:4px;">or any agent</div>
       </div>
       <div id="bubble" style="position:absolute;left:32px;top:84px;width:1256px;height:640px;background:#2A3034;border-radius:16px;padding:26px 30px;box-sizing:border-box;">
         <div class="pl" style="font-family:Menlo,monospace;font-size:24px;color:var(--mint);">&lt;feedback_bundle captures="3" items="6"&gt;</div>
@@ -245,12 +270,29 @@
       </div>
     </div>
 
-    <div class="panel" id="pkg" style="left:1030px;top:170px;width:830px;padding:34px 38px;background:#1B1F22;">
-      <div style="font-size:24px;font-weight:700;letter-spacing:1.5px;color:var(--mint);text-transform:uppercase;">Built for AI agents</div>
-      <div class="prow"><div class="picon"><span class="pbadge">1</span></div><div><div class="ptitle">Numbered marks</div><div class="psub">Badge 1 in image 1 is item 1.1 in the text</div></div></div>
-      <div class="prow"><div class="picon">Aa</div><div><div class="ptitle">Screen text</div><div class="psub">Read on your Mac, so the agent can find the code</div></div></div>
-      <div class="prow"><div class="picon">PNG</div><div><div class="ptitle">Right-sized images</div><div class="psub">Lossless, sized to the model's limits</div></div></div>
-      <div class="prow"><div class="picon">1 2 3</div><div><div class="ptitle">Plan first</div><div class="psub">The prompt asks for a plan before any edit</div></div></div>
+    <div class="panel" id="pkg" style="left:340px;top:110px;width:1240px;padding:34px 44px 30px;background:#1B1F22;">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;">
+        <div style="font-size:28px;font-weight:800;letter-spacing:2px;color:var(--mint);text-transform:uppercase;">Built the way AI reads</div>
+        <div id="fchips" style="display:flex;gap:10px;"><span class="fchip">PNG</span><span class="fchip">manifest.md</span><span class="fchip">feedback.json</span><span class="fchip">prompt.md</span></div>
+      </div>
+      <div class="crow"><div class="cicon"><span class="pbadge" style="width:66px;height:66px;font-size:30px;">1</span></div><div><div class="ctitle">Numbered dots</div><div class="csub">Dot 1 in image 1 is item 1.1 in the text</div></div></div>
+      <div class="crow"><div class="cicon">Aa</div><div><div class="ctitle">A note on each dot</div><div class="csub">AI follows a picture best with words beside it</div></div></div>
+      <div class="crow"><div class="cicon" style="font-size:28px;">x, y</div><div><div class="ctitle">Exact pixels and screen text</div><div class="csub">So the agent finds the right code to change</div></div></div>
+      <div class="crow"><div class="cicon"><svg width="58" height="58" viewBox="0 0 58 58" fill="none" stroke="#8FF3E4" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10 L9 15 L18 5"/><path d="M27 10 H54"/><rect x="5" y="23" width="12" height="12" rx="3" stroke-width="3"/><path d="M27 29 H54"/><rect x="5" y="42" width="12" height="12" rx="3" stroke-width="3"/><path d="M27 48 H54"/></svg></div><div><div class="ctitle">A plan before it edits</div><div class="csub">Then a re-check of every item</div></div></div>
+      <div id="pkgSrc" style="margin-top:28px;font-size:22px;color:#8D979E;">Research: Set-of-Mark (Microsoft Research, 2023), FronTalk (ICML 2026), MT-Web2Code (2026)</div>
+    </div>
+
+    <!-- The proof: the agent plans every item, then checks each one. Agent output, not app UI. -->
+    <div class="panel" id="plan" style="left:340px;top:170px;width:1240px;background:#1B1F22;overflow:hidden;">
+      <div style="padding:26px 34px;display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-size:30px;font-weight:700;">Your agent</div>
+        <div style="font-size:24px;color:#9AA6AD;">Plan before any edit</div>
+      </div>
+      <div class="prow2" style="font-size:22px;color:#8D979E;font-weight:700;letter-spacing:1px;text-transform:uppercase;"><span>Item</span><span>File</span><span>Planned change</span><span></span></div>
+      <div class="prow2 prr"><span style="color:var(--mint);font-weight:700;">1.1</span><span style="font-family:Menlo,monospace;font-size:24px;">site/index.html</span><span>Spell the sign Lemonade</span><span class="pck" style="width:44px;height:44px;border-radius:50%;background:#3CCDBE;display:flex;align-items:center;justify-content:center;"><svg width="26" height="26" viewBox="0 0 26 26"><path d="M5 13.5 L10.5 19 L21 7.5" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="prow2 prr"><span style="color:var(--mint);font-weight:700;">1.2</span><span style="font-family:Menlo,monospace;font-size:24px;">site/index.html</span><span>Change the price to $3</span><span class="pck" style="width:44px;height:44px;border-radius:50%;background:#3CCDBE;display:flex;align-items:center;justify-content:center;"><svg width="26" height="26" viewBox="0 0 26 26"><path d="M5 13.5 L10.5 19 L21 7.5" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="prow2 prr"><span style="color:var(--mint);font-weight:700;">1.3</span><span style="font-family:Menlo,monospace;font-size:24px;">site/styles.css</span><span>Make the Buy button larger</span><span class="pck" style="width:44px;height:44px;border-radius:50%;background:#3CCDBE;display:flex;align-items:center;justify-content:center;"><svg width="26" height="26" viewBox="0 0 26 26"><path d="M5 13.5 L10.5 19 L21 7.5" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="prow2" style="font-size:24px;color:#9AA6AD;"><span></span><span></span><span>And 4 more items, then a re-check of all 7</span><span></span></div>
     </div>
 
     <!-- The close: the fixed stand as a clean page, checks where the badges were. -->
@@ -276,12 +318,12 @@
       </svg>
     </div>
 
-    <div id="endcard" style="position:absolute;left:1070px;top:220px;width:800px;">
+    <div id="endcard" style="position:absolute;left:1070px;top:190px;width:800px;">
       <div class="er" style="display:flex;align-items:center;gap:26px;"><img src="assets/img/nextshot-icon-512.png" style="width:140px;height:140px;"><div style="font-size:100px;font-weight:800;letter-spacing:-2px;color:#fff;">Nextshot</div></div>
-      <div class="er" style="position:relative;margin-top:34px;font-size:54px;font-weight:700;letter-spacing:-1px;color:#fff;">Mark it up. Hand it off.<svg style="position:absolute;left:0;top:66px;" width="640" height="24"><path id="endline" d="M4 14 Q320 4 636 14" fill="none" stroke="#3CCDBE" stroke-width="8" stroke-linecap="round"/></svg></div>
-      <div class="er" style="display:flex;align-items:center;gap:14px;margin-top:56px;"><div class="key" style="height:62px;font-size:26px;"><span class="sym">⌥</span>Option</div><div class="key" style="height:62px;font-size:26px;"><span class="sym">⇧</span>Shift</div><div class="key" style="height:62px;font-size:26px;">F</div><div style="font-size:26px;color:#AAB4BA;margin-left:8px;">starts a capture</div></div>
-      <div class="er" style="margin-top:44px;font-size:42px;font-weight:700;color:var(--mint);">Get the DMG in this message.</div>
-      <div class="er" style="margin-top:12px;font-size:26px;color:#AAB4BA;">Feedback stays on your Mac until you paste it.</div>
+      <div class="er" style="position:relative;margin-top:30px;font-size:58px;font-weight:700;letter-spacing:-1px;color:#fff;"><span id="tagline">Show AI what you mean.</span><svg style="position:absolute;left:0;top:76px;" width="610" height="14"><path id="endline" pathLength="100" d="M3 7 L607 7" fill="none" stroke="#3CCDBE" stroke-width="6" stroke-linecap="round"/></svg></div>
+      <div class="er" style="margin-top:34px;font-size:30px;color:#AAB4BA;">Visual feedback for AI coding agents, on your Mac.</div>
+      <div class="er" style="margin-top:40px;display:inline-flex;align-items:center;height:96px;padding:0 44px;border-radius:20px;background:#3CCDBE;color:#0F2E2A;font-size:50px;font-weight:800;letter-spacing:-0.5px;">Get it at nextshot.dev</div>
+      <div class="er" style="display:flex;align-items:center;gap:14px;margin-top:34px;opacity:0.7;"><div class="key" style="height:58px;font-size:24px;"><span class="sym">⌥</span>Option</div><div class="key" style="height:58px;font-size:24px;"><span class="sym">⇧</span>Shift</div><div class="key" style="height:58px;font-size:24px;">F</div><div style="font-size:26px;color:#AAB4BA;margin-left:8px;">starts a round</div></div>
     </div>
 
     <svg id="cursor" style="position:absolute;left:0;top:0;z-index:30;" width="36" height="52" viewBox="0 0 24 34">
@@ -289,6 +331,7 @@
     </svg>
   </div>
 
+  <div id="bookend" style="position:absolute;left:110px;top:190px;width:900px;height:600px;border-radius:16px;background:#FFF3C9;overflow:hidden;"></div>
   <div id="wipeRing" style="position:absolute;left:960px;top:460px;width:0;height:0;border-radius:50%;border:16px solid #3CCDBE;box-sizing:border-box;pointer-events:none;"></div>
   <img id="logo" src="assets/img/nextshot-icon-512.png" style="position:absolute;left:830px;top:330px;width:260px;height:260px;">
   <div id="flash" class="layer" style="background:#fff;"></div>
@@ -453,7 +496,10 @@
   const page = actor(636, 110, 900, 600);
   gsap.set(page.el, { transformOrigin: '0 0', scale: 0.72 });
   const pageNodes = drawPage(page);
-  revealPage(pageNodes, cue('stand') + 0.05, 0.75);
+  // The first frame is the poster in Teams and email, so the stand page is drawn from the start.
+  drawn([pageNodes.frame, pageNodes.header, ...pageNodes.cup, pageNodes.button]);
+  ['nav', 'title', 'tag', 'price', 'buy'].forEach((k) => { pageNodes[k].style.clipPath = 'none'; });
+  tl.fromTo(page.el, { scale: 0.69 }, { scale: 0.72, duration: 1.6, ease: 'power2.out' }, 0);
 
   const robot = actor(690, 615, 420, 560);
   gsap.set(robot.el, { transformOrigin: '0 0', scale: 0.55 });
@@ -468,7 +514,7 @@
   drawOn(robotNodes, Math.max(1.0, tDuo - 0.3), 0.7);
   drawOn(youNodes, Math.max(1.2, tDuo), 0.55);
   label('AI', 790, 880, 46, tDuo + 0.45);
-  label('you', 1032, 900, 46, tDuo + 0.6);
+  const youLab = label('you', 1032, 900, 46, tDuo + 0.6);
 
   const tI = cue('items');
   // The app: its order button runs off the edge of the screen.
@@ -485,7 +531,7 @@
   drawOn(appNodes, tI, 0.4);
   write(appTitle, tI + 0.2, 0.2);
   write(appBtn, tI + 0.3, 0.15);
-  label('app', 268, 500, 42, tI + 0.35);
+  const appLab = label('app', 268, 500, 42, tI + 0.35);
 
   // The legal docs: a refund line no lawyer would sign.
   const legal = actor(1470, 96, 310, 380);
@@ -556,6 +602,9 @@
   const board = [page.el, robot.el, you.el, app.el, legal.el, mail.el, flyer.el, labels.el, dotsLayer];
   const tShot = cue('shot');
   tl.fromTo(board, { autoAlpha: 1 }, { autoAlpha: 0.1, duration: 0.3 }, tShot - 0.35);
+  tl.fromTo(you.el, { autoAlpha: 0.1 }, { autoAlpha: 0, duration: 0.2 }, tShot - 0.05);
+  // The "you" label leaves with its figure, and "app" clears for the figure up front.
+  tl.fromTo([youLab, appLab], { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.2 }, tShot - 0.05);
 
   // You, up front, doing it the hard way.
   const me = actor(150, 300, 260, 560);
@@ -620,6 +669,29 @@
   pop(qm, tE + 0.9, 0.35);
   meSweat.forEach((s, k) => show(s, tE + 0.5 + k * 0.25, 0.15));
 
+  // So many fixes, so many screens: a new AI chat for each, one after another.
+  const tC = cue('chats');
+  const CHATS = [[930, 300, 'AI chat 2', 'the refund line in the terms...'], [990, 395, 'AI chat 3', 'email subject has a typo'],
+                 [1050, 490, 'AI chat 4', 'the lemon on the flyer is a lime'], [1110, 585, 'AI chat 5', 'that app button, the OTHER one']];
+  const chats = CHATS.map(([x, y, name, text], k) => {
+    const c = actor(x, y, 600, 290);
+    drawn([draw(c, 'rectangle', [6, 6, 588, 278], { fill: '#FFFFFF', fillStyle: 'solid' }), draw(c, 'line', [6, 60, 594, 60]),
+           draw(c, 'rectangle', [28, 82, 118, 70], { strokeWidth: 2.6 })]);
+    const lab = hand(c, name, 22, 10, 40);
+    lab.style.clipPath = 'none';
+    const dot = document.createElement('div');
+    dot.className = 'dot small';
+    Object.assign(dot.style, { left: '104px', top: '96px' });
+    c.el.appendChild(dot);
+    const msg = hand(c, '', 30, 176, 36);
+    msg.style.clipPath = 'none';
+    gsap.set(c.el, { autoAlpha: 0, rotation: [-2, 1.5, -1, 2][k] });
+    const t = tC + 1.6 * k / CHATS.length;
+    pop(c.el, t, 0.3);
+    tl.fromTo(msg, { text: '' }, { text, duration: 0.55, ease: 'none' }, t + 0.25);
+    return c.el;
+  });
+
   // Page after page: the work piles up.
   const tA = cue('again');
   // The pile and the tally grow through the whole line, so the picture never stalls.
@@ -647,9 +719,10 @@
 
   // Why not all at once? The clutter clears, and every red dot gathers in one place.
   const ask = line('ask');
-  const clutter = [me.el, thumb.el, crop.el, chat.el, tally.el, qm, ...minis];
+  const clutter = [me.el, thumb.el, crop.el, chat.el, tally.el, qm, ...minis, ...chats];
   tl.fromTo(clutter, { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.3 }, ask.start - 0.1);
   tl.fromTo(board, { autoAlpha: 0.1 }, { autoAlpha: 1, duration: 0.35 }, ask.start - 0.05);
+  tl.fromTo([youLab, appLab], { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.35 }, ask.start - 0.05);
   const tG = cue('gather');
   const CLUSTER = [[0, 0], [40, 0], [-40, 0], [20, 34], [-20, 34], [20, -34], [-20, -34]];
   dots.forEach((d, k) => {
@@ -658,6 +731,23 @@
   });
   const boardOnly = board.filter((e) => e !== dotsLayer);
   tl.fromTo(boardOnly, { autoAlpha: 1 }, { autoAlpha: 0.15, duration: 0.5 }, tG + 0.1);
+
+  // One round: a teal circle gathers every dot. One prompt: an arrow to a single box.
+  const roundA = actor(0, 0, 1920, 1080);
+  const ring = draw(roundA, 'circle', [960, 460, 340], { stroke: TEAL, strokeWidth: 7, roughness: 1.2 });
+  const roundLab = hand(roundA, '1 round', 858, 232, 64, { font: 'Marker', color: '#1E9E91' });
+  const arrowR = [draw(roundA, 'line', [1146, 460, 1300, 460], { stroke: INK, strokeWidth: 5 }),
+                  draw(roundA, 'linearPath', [[[1276, 438], [1304, 460], [1276, 482]]], { stroke: INK, strokeWidth: 5 })];
+  const promptBox = draw(roundA, 'rectangle', [1320, 392, 330, 136], { fill: '#FFFFFF', fillStyle: 'solid', strokeWidth: 5 });
+  const promptLab = hand(roundA, '1 prompt', 1366, 424, 58, { font: 'Marker' });
+  const tR = cue('round'), tQ = cue('oneprompt');
+  drawOn(ring, tR - 0.25, 0.45);
+  write(roundLab, tR, 0.3);
+  drawOn(arrowR, tQ - 0.35, 0.25);
+  hide(promptBox);
+  show(promptBox, tQ - 0.1, 0.08);
+  drawOn(promptBox, tQ - 0.1, 0.25);
+  write(promptLab, tQ + 0.05, 0.3);
 
   // ---------- scene 3: turn. The dots become Nextshot ----------
   const turn = scene('turn');
@@ -670,6 +760,10 @@
   const LOGO_END = 1.1;
   tl.fromTo(logo, { scale: 1 }, { scale: LOGO_END, duration: Math.max(0.3, cue('wipe') + 0.6 - (tM + 0.6)), ease: 'sine.inOut' }, tM + 0.6);
   tl.fromTo(boardOnly, { autoAlpha: 0.15 }, { autoAlpha: 0, duration: 0.3 }, tM);
+  // The round becomes Nextshot: the circle closes in to the icon's size as the icon appears.
+  tl.fromTo([roundLab, promptLab, promptBox, ...arrowR], { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.25 }, tM - 0.1);
+  tl.fromTo(ring, { scale: 1 }, { scale: 0.62, svgOrigin: '960 460', duration: 0.4, ease: 'power3.in' }, tM - 0.15);
+  tl.fromTo(ring, { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.2 }, tM + 0.25);
   const sleek = $('#sleek');
   gsap.set(sleek, { clipPath: 'circle(0px at 960px 460px)' });
   tl.fromTo(sleek, { clipPath: 'circle(0px at 960px 460px)' }, { clipPath: 'circle(1250px at 960px 460px)', duration: 0.7, ease: 'power2.in' }, cue('wipe'));
@@ -678,7 +772,7 @@
   tl.fromTo('#wipeRing', { autoAlpha: 1, width: 0, height: 0, x: 0, y: 0 }, { width: 2532, height: 2532, x: -1266, y: -1266, duration: 0.7, ease: 'power2.in' }, cue('wipe'));
   tl.fromTo('#wipeRing', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.15 }, cue('wipe') + 0.7);
   hide('#wordmark');
-  tl.fromTo('#wordmark', { autoAlpha: 0, y: 30 }, { autoAlpha: 1, y: 0, duration: 0.4 }, cue('wipe') + 0.35);
+  tl.fromTo('#wordmark', { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: 0.3 }, cue('wipe') + 0.72);
 
   // ---------- scene 4: how ----------
   const how = scene('how');
@@ -686,9 +780,15 @@
   fade('#wordmark', how.start, 0.25);
   const markSvg = '<svg viewBox="0 0 27 20"><rect x="2" y="2" width="16" height="16" rx="4.4" fill="#fff" fill-opacity="0.5"/><path d="M14.5 4.5 L20 10 L14.5 15.5" fill="none" stroke="#15191C" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><path d="M14.5 4.5 L20 10 L14.5 15.5" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   $('#nshotItem').insertAdjacentHTML('afterbegin', markSvg);
-  $('#lensMark').innerHTML = markSvg.replace('<svg ', '<svg width="62" height="46" ');
+  $('#lensMark').innerHTML = markSvg.replace('<svg ', '<svg width="62" height="46" ') + '<span class="gdot" style="left:50px;top:-2px;width:18px;height:18px;"></span>';
   hide('#menubar');
   show('#menubar', how.start + 0.35, 0.3);
+  const stepAt = [how.start + 0.3, cue('key_c') - 0.1, scene('session').start + 0.1, cue('menu') - 0.6, cue('paste') - 0.3];
+  hide(['#step1', '#step2', '#step3', '#step4']);
+  ['#step1', '#step2', '#step3', '#step4'].forEach((st, k) => {
+    tl.fromTo(st, { autoAlpha: 0, y: -12 }, { autoAlpha: 1, y: 0, duration: 0.3 }, stepAt[k]);
+    fade(st, stepAt[k + 1] - 0.15, 0.15);
+  });
 
   const card1 = $('#card1'), card2 = $('#card2'), card3 = $('#card3');
   // Clones for the note panel preview and the agent's thumbnails, taken while every mark is visible.
@@ -708,7 +808,7 @@
   });
 
   hide([card1, card2, card3, '#sel', '#crosshair', '#flash1', '#keysF', '#keysC', '#keysS', '#notePanel', '#tray', '#lens', '#flash2', '#flash3',
-        '#notePanel3', '#menu', '#callout', '#agent', '#cursor', '#pkg', '#closeCard', ...$$('#tray .slotlabel')]);
+        '#notePanel3', '#menu', '#callout', '#agent', '#cursor', '#pkg', '#plan', '#closeCard', ...$$('#tray .slotlabel')]);
   gsap.set($$('.badge', card1).concat($$('.badge', card2), $$('.badge', card3)), { scale: 0, autoAlpha: 0 });
   tl.fromTo(card1, { autoAlpha: 0, y: 80 }, { autoAlpha: 1, y: 0, duration: 0.45, ease: 'power3.out' }, how.start + 0.15);
 
@@ -717,7 +817,7 @@
   ['key_opt', 'key_shift', 'key_f'].forEach((c, k) => {
     tl.fromTo(keysF[k], { y: 0 }, { y: 6, duration: 0.07, yoyo: true, repeat: 1, ease: 'none' }, cue(c));
   });
-  fade('#keysF', cue('grab_done') - 0.1, 0.2);
+  fade('#keysF', cue('grab'), 0.25);
 
   const g0 = cue('grab'), g1 = cue('grab_done');
   show('#sel', g0, 0.15);
@@ -727,19 +827,32 @@
   fade('#crosshair', g1, 0.1);
   tl.fromTo('#flash1', { autoAlpha: 0.85 }, { autoAlpha: 0, duration: 0.3 }, g1);
 
-  show('#keysC', cue('badge1') - 0.12, 0.12);
+  show('#keysC', cue('key_c') - 0.1, 0.12);
+  // The cursor clicks each spot, and a numbered dot drops where it clicks.
+  const BADGE_AT = [[704, 280], [532, 488], [306, 596]];
+  show('#cursor', cue('key_c') + 0.05, 0.12);
+  ['badge1', 'badge2', 'badge3'].forEach((c, k) => {
+    const [x, y] = BADGE_AT[k];
+    const from = k ? BADGE_AT[k - 1] : [820, 420];
+    tl.fromTo('#cursor', { x: from[0], y: from[1] }, { x, y, duration: Math.max(0.12, Math.min(0.3, cue(c) - 0.05 - (k ? cue(['badge1', 'badge2'][k - 1]) : cue('key_c') + 0.1))), ease: 'power2.inOut' },
+              (k ? cue(['badge1', 'badge2'][k - 1]) : cue('key_c') + 0.1) + 0.02);
+    tl.fromTo('#cursor', { scale: 1 }, { scale: 0.85, duration: 0.06, yoyo: true, repeat: 1, transformOrigin: '0 0' }, cue(c) - 0.06);
+  });
+  fade('#cursor', cue('badge3') + 0.25, 0.15);
   ['badge1', 'badge2', 'badge3'].forEach((c, k) => pop($$('.badge', card1)[k], cue(c)));
   fade('#keysC', cue('badge3') + 0.3, 0.15);
-  show('#keysS', cue('panel') - 0.2, 0.12);
-  fade('#keysS', cue('panel') + 0.25, 0.15);
+  show('#keysS', cue('badge3') + 0.45, 0.12);
+  fade('#keysS', cue('panel') + 0.65, 0.15);
 
   const p = cue('panel');
   tl.fromTo('#notePanel', { autoAlpha: 0, x: 120 }, { autoAlpha: 1, x: 0, duration: 0.35, ease: 'power3.out' }, p);
   // The preview shows the whole sign word with its badge (v2 cut it to "onaid").
-  gsap.set(prevCard, { scale: 1, x: -30, y: -90 });
+  gsap.set(prevCard, { scale: 1, x: -30, y: -45 });
   hide('#nshotCount');
   tl.fromTo('#nshotCount', { text: '' }, { text: 'Nshot (1)', duration: 0.01 }, p);
   show('#nshotCount', p, 0.15);
+  hide('#roundDot');
+  show('#roundDot', p, 0.15);
   const a1 = cue('answer1');
   tl.fromTo('#ph1', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.05 }, a1);
   tl.fromTo('#answer', { text: '' }, { text: 'Spell it Lemonade.', duration: 0.6, ease: 'none' }, a1);
@@ -747,7 +860,7 @@
   const step2 = how.end - 0.75;
   tl.fromTo('#question', { text: 'Circle 1 (1 of 3): what should change?' }, { text: 'Circle 2 (2 of 3): what should change?', duration: 0.01 }, step2);
   tl.fromTo('#answer', { text: 'Spell it Lemonade.' }, { text: '', duration: 0.01 }, step2);
-  tl.fromTo(prevCard, { scale: 1, x: -30, y: -90 }, { scale: 1, x: -30, y: -270, duration: 0.3, ease: 'power2.inOut' }, step2);
+  tl.fromTo(prevCard, { scale: 1, x: -30, y: -45 }, { scale: 1, x: -30, y: -238, duration: 0.3, ease: 'power2.inOut' }, step2);
   tl.fromTo('#answer', { text: '' }, { text: 'Make it $3.', duration: 0.4, ease: 'none' }, step2 + 0.15);
 
   // ---------- scene 5: session ----------
@@ -781,44 +894,60 @@
 
   const tr = cue('tray');
   fade('#notePanel3', tr - 0.05, 0.2);
-  tl.fromTo(card2, { x: 0, y: 0, scale: 1 }, { x: -350, y: 180, scale: 0.4167, duration: 0.55, ease: 'power3.inOut' }, tr);
-  tl.fromTo(card3, { x: 0, y: 0, scale: 1 }, { x: -1070, y: 422, scale: 0.4167, duration: 0.55, ease: 'power3.inOut' }, tr + 0.12);
+  tl.fromTo('#tray', { x: 0 }, { x: 718, duration: 0.6, ease: 'power3.inOut' }, tr);
+  tl.fromTo(card1, { x: -50 }, { x: 668, duration: 0.6, ease: 'power3.inOut' }, tr);
+  tl.fromTo(card2, { x: 0, y: 0, scale: 1 }, { x: 368, y: 180, scale: 0.4167, duration: 0.6, ease: 'power3.inOut' }, tr);
+  tl.fromTo(card3, { x: 0, y: 0, scale: 1 }, { x: -352, y: 422, scale: 0.4167, duration: 0.6, ease: 'power3.inOut' }, tr + 0.08);
   show('#slot2', tr + 0.45, 0.2);
   show('#slot3', tr + 0.57, 0.2);
   tl.fromTo('#nshotCount', { text: 'Nshot (1)' }, { text: 'Nshot (2)', duration: 0.01 }, tr + 0.5);
   tl.fromTo('#nshotCount', { text: 'Nshot (2)' }, { text: 'Nshot (3)', duration: 0.01 }, tr + 0.65);
   tl.fromTo('#nshotItem', { scale: 1 }, { scale: 1.15, duration: 0.12, yoyo: true, repeat: 1 }, tr + 0.65);
-  // The full tray moves to the middle while the voice says "one session holds it all".
-  const mid = tr + 0.8;
-  tl.fromTo('#tray', { x: 0 }, { x: 720, duration: 0.5, ease: 'power3.inOut' }, mid);
-  tl.fromTo(card1, { x: -50 }, { x: 670, duration: 0.5, ease: 'power3.inOut' }, mid);
-  tl.fromTo(card2, { x: -350 }, { x: 370, duration: 0.5, ease: 'power3.inOut' }, mid);
-  tl.fromTo(card3, { x: -1070 }, { x: -350, duration: 0.5, ease: 'power3.inOut' }, mid);
+  const mid = tr + 0.55;
   pop('#lens', mid + 0.2, 0.4);
+  tl.fromTo('#tray', { boxShadow: '0 0 0px 0px rgba(60,205,190,0)' }, { boxShadow: '0 0 44px 6px rgba(60,205,190,0.4)', duration: 0.4 }, cue('tray'));
   fade('#lens', cue('menu') - 0.6, 0.2);
 
   // ---------- scene 6: hand-off ----------
   const hand6 = scene('handoff');
   const m0 = cue('menu');
-  show('#cursor', m0 - 0.5, 0.15);
-  tl.fromTo('#cursor', { x: 1200, y: 420 }, { x: 1570, y: 12, duration: 0.45, ease: 'power2.inOut' }, m0 - 0.5);
+  show('#cursor', m0 - 0.55, 0.15);
+  tl.fromTo('#cursor', { x: 1200, y: 420 }, { x: 1574, y: 12, duration: 0.45, ease: 'power2.inOut' }, m0 - 0.55);
   tl.set('#nshotItem', { attr: { class: 'mbitem open' } }, m0);
   show('#menu', m0, 0.12);
-  const cp = cue('copy'), closeMenu = cue('toast') - 0.3;
-  tl.fromTo('#cursor', { x: 1570, y: 12 }, { x: 1800, y: 196, duration: Math.max(0.3, cp - m0 - 0.2), ease: 'power2.inOut' }, m0 + 0.15);
-  tl.fromTo('#copyRow', { backgroundColor: 'rgba(47,124,246,0)' }, { backgroundColor: 'rgba(47,124,246,1)', duration: 0.05 }, cp);
+  // Zoom the menu bar and the menu toward the top right corner, so the rows read.
+  gsap.set('#menubar', { transformOrigin: '100% 0%' });
+  gsap.set('#menu', { transformOrigin: '460px -46px' });
+  tl.fromTo(['#menubar', '#menu'], { scale: 1 }, { scale: 1.6, duration: 0.45, ease: 'power2.inOut' }, m0 + 0.05);
+  const cp = cue('copy'), closeMenu = cp + 0.4;
+  const arrive = Math.max(m0 + 0.75, Math.min(cp - 0.2, m0 + 0.85));
+  tl.fromTo('#cursor', { x: 1574, y: 12 }, { x: 1700, y: 322, duration: arrive - (m0 + 0.5), ease: 'power2.inOut' }, m0 + 0.5);
+  tl.fromTo('#copyRow', { backgroundColor: 'rgba(47,124,246,0)' }, { backgroundColor: 'rgba(47,124,246,1)', duration: 0.05 }, arrive);
+  tl.fromTo('#copyRow .hk', { color: '#8D979E' }, { color: '#FFFFFF', duration: 0.05 }, arrive);
+  // The click: the row blinks once, as a macOS menu does, then the menu closes.
+  tl.fromTo('#copyRow', { backgroundColor: 'rgba(47,124,246,1)' }, { backgroundColor: 'rgba(47,124,246,0)', duration: 0.01 }, cp + 0.02);
+  tl.fromTo('#copyRow', { backgroundColor: 'rgba(47,124,246,0)' }, { backgroundColor: 'rgba(47,124,246,1)', duration: 0.01 }, cp + 0.09);
+  tl.fromTo('#cursor', { scale: 1 }, { scale: 0.85, duration: 0.06, yoyo: true, repeat: 1, transformOrigin: '0 0' }, cp - 0.06);
   fade('#menu', closeMenu, 0.15);
+  // Copying the round prompt ends the round: the count and the green dot go.
+  tl.fromTo('#nshotCount', { text: 'Nshot (3)' }, { text: '', duration: 0.01 }, closeMenu + 0.1);
+  fade('#roundDot', closeMenu + 0.1, 0.15);
   tl.set('#nshotItem', { attr: { class: 'mbitem' } }, closeMenu);
+  tl.fromTo('#menubar', { scale: 1.6 }, { scale: 1, duration: 0.4, ease: 'power2.inOut' }, closeMenu + 0.15);
   fade('#cursor', closeMenu + 0.05, 0.15);
 
   const toast = cue('toast');
-  pop('#callout', toast, 0.45);
-  tl.fromTo('#calloutLine', { strokeDashoffset: 1100 }, { strokeDashoffset: 0, duration: 0.5, ease: 'power2.out' }, toast + 0.3);
-  // The key line holds while the voice finishes it, so it grows slowly to keep it alive.
-  tl.fromTo('#callout > div', { scale: 1 }, { scale: 1.06, duration: Math.max(0.5, cue('paste') - 0.2 - (toast + 0.45)), ease: 'sine.inOut' }, toast + 0.45);
-  tl.fromTo([card1, card2, card3], { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.3 }, toast - 0.05);
-  fade('#tray', toast, 0.3);
-  ['#slot1', '#slot2', '#slot3'].forEach((s) => fade(s, toast, 0.3));
+  const tCall = closeMenu + 0.25;
+  pop('#callout', tCall, 0.45);
+  tl.fromTo('#calloutLine', { strokeDashoffset: 1100 }, { strokeDashoffset: 0, duration: 0.5, ease: 'power2.out' }, tCall + 0.3);
+  // "Every screen, every dot, every note": each count pops on its word.
+  const subs = $$('#calloutSub .csubi');
+  gsap.set(subs, { autoAlpha: 0 });
+  [toast, cue('sub2'), cue('sub3')].forEach((t, k) => pop(subs[k], t, 0.3));
+  tl.fromTo('#callout > div', { scale: 1 }, { scale: 1.04, duration: Math.max(0.5, cue('paste') - 0.2 - (tCall + 0.45)), ease: 'sine.inOut' }, tCall + 0.45);
+  tl.fromTo([card1, card2, card3], { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.3 }, tCall - 0.05);
+  fade('#tray', tCall, 0.3);
+  ['#slot1', '#slot2', '#slot3'].forEach((s) => fade(s, tCall, 0.3));
 
   const pst = cue('paste');
   tl.fromTo('#callout', { y: 0, scale: 1, autoAlpha: 1 }, { y: 300, scale: 0.5, autoAlpha: 0, duration: 0.4, ease: 'power2.in' }, pst - 0.2);
@@ -827,43 +956,77 @@
   gsap.set(parts, { autoAlpha: 0 });
   parts.forEach((el, k) => tl.fromTo(el, { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.25 }, pst + 0.3 + k * 0.12));
   $$('#bubble .id').forEach((el) => Object.assign(el.style, { color: 'var(--mint)', fontWeight: 700, marginRight: '8px' }));
-  ['#chip1', '#chip2', '#chip3'].forEach((chip, k) => {
+  ['#chip1', '#chip2'].forEach((chip, k) => {
     tl.fromTo(chip, { backgroundColor: '#2F363B', color: '#C9D1D6' }, { backgroundColor: TEAL, color: '#0F2E2A', duration: 0.15 }, cue('chips') + k * 0.15);
   });
+  tl.fromTo('#chipAny', { color: '#8D979E' }, { color: '#E6ECEE', duration: 0.15 }, cue('chips') + 0.3);
 
-  // The package, opened: why an agent can act on it.
+  // The package, opened: why an agent can act on it. Each row arrives on its spoken word.
   const tK = cue('pkg');
-  gsap.set('#agent', { transformOrigin: '0% 50%' }); // shrink toward the left edge, clear of the package panel
-  tl.fromTo('#agent', { x: 0, scale: 1 }, { x: -270, scale: 0.74, duration: 0.5, ease: 'power3.inOut' }, tK - 0.4);
-  show('#pkg', tK - 0.2, 0.25);
-  const rows = $$('#pkg .prow');
+  tl.fromTo('#agent', { autoAlpha: 1, filter: 'blur(0px)' }, { autoAlpha: 0.15, filter: 'blur(8px)', duration: 0.5, ease: 'power2.inOut' }, tK - 0.5);
+  show('#pkg', tK - 0.35, 0.25);
+  const rows = $$('#pkg .crow');
   gsap.set(rows, { autoAlpha: 0 });
-  rows.forEach((r, k) => tl.fromTo(r, { autoAlpha: 0, x: 40 }, { autoAlpha: 1, x: 0, duration: 0.3, ease: 'power3.out' }, tK + 1.8 * k / rows.length));
+  ['pkg', 'pkg2', 'pkg3', 'pkg4'].forEach((c, k) => tl.fromTo(rows[k], { autoAlpha: 0, x: 40 }, { autoAlpha: 1, x: 0, duration: 0.3, ease: 'power3.out' }, cue(c) - 0.05));
+
+  // The proof: the agent's plan table builds, then each item gets its check.
+  const tPr = cue('proof');
+  fade(['#pkg', '#agent'], tPr - 0.1, 0.25);
+  tl.fromTo('#plan', { autoAlpha: 0, y: 40 }, { autoAlpha: 1, y: 0, duration: 0.35, ease: 'power3.out' }, tPr);
+  const planRows = $$('#plan .prr');
+  gsap.set(planRows, { autoAlpha: 0 });
+  planRows.forEach((r, k) => tl.fromTo(r, { autoAlpha: 0, x: 30 }, { autoAlpha: 1, x: 0, duration: 0.25 }, tPr + 0.35 + k * 0.3));
+  const pcks = $$('#plan .pck');
+  gsap.set(pcks, { scale: 0, autoAlpha: 0 });
+  pcks.forEach((c, k) => pop(c, tPr + 1.4 + k * 0.3, 0.3));
 
   // ---------- scene 7: close. Clean and on brand ----------
   const close = scene('close');
   const fx = cue('fix');
-  fade(['#agent', '#pkg'], fx - 0.15, 0.3);
+  fade('#plan', fx - 0.15, 0.3);
   fade('#menubar', fx - 0.15, 0.3);
-  tl.fromTo('#closeCard', { autoAlpha: 0, y: 60 }, { autoAlpha: 1, y: 0, duration: 0.5, ease: 'power3.out' }, fx);
+  // Bookend: the opening sketch of the stand returns, then wipes into the clean page.
+  const bk = $('#bookend');
+  const bkSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  bkSvg.setAttribute('width', 900); bkSvg.setAttribute('height', 600);
+  Object.assign(bkSvg.style, { position: 'absolute', left: '0px', top: '0px', overflow: 'visible' });
+  bk.appendChild(bkSvg);
+  const bkActor = { el: bk, svg: bkSvg, rc: rough.svg(bkSvg) };
+  const bkNodes = drawPage(bkActor);
+  drawn([bkNodes.frame, bkNodes.header, ...bkNodes.cup, bkNodes.button]);
+  ['nav', 'title', 'tag', 'price', 'buy'].forEach((k) => { bkNodes[k].style.clipPath = 'none'; });
+  hide(bk);
+  tl.fromTo('#closeCard', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.01 }, fx + 0.3);
+  tl.fromTo(bk, { autoAlpha: 0, scale: 0.94 }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: 'power2.out' }, fx);
+  tl.fromTo(bk, { clipPath: 'inset(0px 0px 0px 0px)' }, { clipPath: 'inset(0px 0px 0px 100%)', duration: 0.85, ease: 'power2.inOut' }, fx + 0.55);
   const checks = $$('#closeCard .check');
   gsap.set(checks, { scale: 0, autoAlpha: 0 });
   checks.forEach((c, k) => pop(c, cue('checks') + 0.5 * k / checks.length, 0.35));
 
   const endRows = $$('#endcard .er');
   gsap.set(endRows, { autoAlpha: 0 });
-  pop(endRows[0], fx + 0.75, 0.45);
+  pop(endRows[0], cue('brand'), 0.45);
   const ec = cue('endcard');
-  endRows.slice(1).forEach((el, k) => tl.fromTo(el, { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.35 }, ec + k * 0.22));
+  tl.fromTo(endRows[1], { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.35 }, ec);
+  const ecRest = Math.max(ec + 0.35, cue('checks'));
+  endRows.slice(2).forEach((el, k) => tl.fromTo(el, { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.35 }, ecRest + k * 0.22));
+  // The rule spans the tagline exactly, whatever its words. It is measured again once the fonts load.
   const endline = $('#endline');
-  const EL = endline.getTotalLength();
-  gsap.set(endline, { strokeDasharray: EL + ' ' + EL, strokeDashoffset: EL });
-  tl.fromTo(endline, { strokeDashoffset: EL }, { strokeDashoffset: 0, duration: 0.4, ease: 'none' }, cue('final_chord'));
+  const fitRule = () => {
+    const w = Math.round($('#tagline').offsetWidth);
+    endline.parentNode.setAttribute('width', w + 8);
+    endline.setAttribute('d', 'M4 7 L' + (w + 4) + ' 7');
+  };
+  fitRule();
+  if (document.fonts) document.fonts.ready.then(fitRule);
+  gsap.set(endline, { strokeDasharray: '100 100', strokeDashoffset: 100 });
+  tl.fromTo(endline, { strokeDashoffset: 100 }, { strokeDashoffset: 0, duration: 0.45, ease: 'power2.out' }, ec + 0.25);
 
   // ---------- captions ----------
   const caps = $('#captions');
   T.captions.forEach((c) => {
     if (GIF && c.start >= scene('close').start) return; // the end card carries its own words
+    if (c.start >= cue('fix')) return; // the end card carries its own words, so no caption repeats them
     const el = document.createElement('div');
     el.className = 'cap';
     el.innerHTML = '<span></span>';

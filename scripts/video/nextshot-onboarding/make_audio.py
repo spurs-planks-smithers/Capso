@@ -122,7 +122,7 @@ def openai_key(item):
     return _KEY
 
 
-def make_vo_openai(text, cfg, direction, out_wav, take=1, max_gap=None):
+def make_vo_openai(text, cfg, direction, out_wav, take=1, max_gap=None, tempo=None):
     """Speak one line with the OpenAI speech API. Cached by model, voice, direction, text, and take.
 
     A new take number asks for a fresh reading of the same line.
@@ -158,7 +158,7 @@ def make_vo_openai(text, cfg, direction, out_wav, take=1, max_gap=None):
     segs = keep_segments(quiet, wav_seconds(raw))
     cut = out_wav.with_suffix(".cut.wav")
     cut_segments(raw, segs, cut)
-    trim_to(cut, out_wav, cfg.get("tempo", 1.0), max_gap or cfg.get("max_gap"))
+    trim_to(cut, out_wav, tempo or cfg.get("tempo", 1.0), max_gap or cfg.get("max_gap"))
     cut.unlink()
 
 
@@ -475,6 +475,50 @@ def make_music(total, turn_at, chord_at):
     return out
 
 
+# ---------- music from a licensed track ----------
+
+def arg_value(flag):
+    return sys.argv[sys.argv.index(flag) + 1] if flag in sys.argv[:-1] else None
+
+
+def lufs(path):
+    """Integrated loudness of a file, from ffmpeg ebur128."""
+    err = subprocess.run(["ffmpeg", "-hide_banner", "-i", str(path), "-af", "ebur128", "-f", "null", "-"],
+                         capture_output=True, text=True).stderr
+    return float(re.findall(r"I:\s+(-?[0-9.]+) LUFS", err)[-1])
+
+
+def mix_with_track(cfg, total, vofx, out):
+    """Lay a licensed track under the voice.
+
+    The track is timed backward from its end, so its own ending lands on the end card.
+    It sits about 17 dB under the voice by loudness, and dips a further few dB while the
+    voice speaks (side-chain compression keyed by the voice track).
+    """
+    src = (ROOT / cfg["file"]) if not Path(cfg["file"]).is_absolute() else Path(cfg["file"])
+    if not src.exists():
+        sys.exit(f"make_audio: no music file {src}. Download it from {cfg.get('source', 'its source')}.")
+    length = float(run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(src)]).stdout)
+    if length < total:
+        sys.exit(f"make_audio: {src.name} runs {length:.1f} s, shorter than the {total:.1f} s cut")
+    start = length - total - cfg.get("end_trim", 0.0)
+    fade_in, fade_out = cfg.get("fade_in", 1.0), cfg.get("fade_out", 2.5)
+    bed = AUDIO / "music.wav"
+    run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(src), "-af",
+         f"atrim=start={start:.3f}:duration={total:.3f},asetpts=PTS-STARTPTS,"
+         f"afade=t=in:d={fade_in},afade=t=out:st={max(0.0, total - fade_out):.3f}:d={fade_out}",
+         "-ar", str(SR), "-ac", "2", "-c:a", "pcm_s16le", str(bed)])
+    gain = (lufs(vofx) - cfg.get("under_db", 17.0)) - lufs(bed)
+    graph = (f"[1:a]volume={gain:.2f}dB[m];"
+             "[0:a]aformat=channel_layouts=stereo,asplit=2[v][key];"
+             "[m][key]sidechaincompress=threshold=0.05:ratio=4:attack=20:release=400[duck];"
+             "[v][duck]amix=inputs=2:normalize=0:duration=first[mx];"
+             # A gentle peak limiter, so loudness can reach -16 LUFS under the -1.5 dBTP ceiling.
+             "[mx]alimiter=limit=0.5:attack=3:release=60:level=false[out]")
+    run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(vofx), "-i", str(bed), "-filter_complex", graph,
+         "-map", "[out]", "-ar", str(SR), "-ac", "2", "-c:a", "pcm_s16le", str(out)])
+
+
 # ---------- mix ----------
 
 def rms(samples, mask=None):
@@ -487,8 +531,9 @@ def rms(samples, mask=None):
 
 
 def loudnorm(src, dst):
-    """Two-pass EBU R128 normalization to -16 LUFS, -1.5 dBTP."""
-    target = "I=-16:TP=-1.5:LRA=11"
+    """Two-pass EBU R128 normalization to -16 LUFS. The ceiling is -2.0 dBTP, so the AAC
+    encode, which adds a few tenths of overshoot, still lands under -1.5 dBTP."""
+    target = "I=-16:TP=-2.0:LRA=11"
     first = subprocess.run(
         ["ffmpeg", "-hide_banner", "-i", str(src), "-af", f"loudnorm={target}:print_format=json",
          "-f", "null", "-"], capture_output=True, text=True, check=True)
@@ -528,7 +573,8 @@ def main():
             if use_say:
                 make_vo_say(line["text"], cfg.get("fallback", "Ava (Premium)"), path)
             else:
-                make_vo_openai(line["text"], cfg, line.get("direction", ""), path, line.get("take", 1), line.get("max_gap"))
+                make_vo_openai(line["text"], cfg, line.get("direction", ""), path, line.get("take", 1),
+                               line.get("max_gap"), line.get("tempo"))
             vo[line["id"]] = read_wav(path)
             lengths[line["id"]] = len(vo[line["id"]]) / SR
 
@@ -546,27 +592,32 @@ def main():
         if c.get("sfx"):
             add(fx, make_sfx(c["sfx"], c.get("span", 0.0), c.get("count")), cues[c["id"]])
 
-    turn = next(s for s in scenes if s["id"] == "turn")
-    music = make_music(total, turn["start"], cues["final_chord"])
-
-    # Levels relative to the voice: music about 20 dB under it, effects about 8 dB under.
-    vo_rms = rms(voice, active)
-    music_gain = vo_rms * 10 ** (-20 / 20) / max(1e-9, rms(music))
+    # Effects sit about 8 dB under the voice peak. The voice and effects go out as one mono
+    # track, and the music joins in ffmpeg, so a stereo track stays stereo.
     fx_peak = max(abs(s) for s in fx) or 1.0
     vo_peak = max(abs(s) for s in voice)
     fx_gain = vo_peak * 10 ** (-8 / 20) / fx_peak
-
-    mix = blank(total + 0.5)
-    duck = 1.0
+    vofx = blank(total + 0.5)
     for i in range(n):
-        want = 0.55 if active[i] else 1.0  # duck the music under speech
-        rate = 0.0006 if want < duck else 0.00008
-        duck += (want - duck) * rate * 48
-        mix[i] = voice[i] + fx[i] * fx_gain + music[i] * music_gain * duck
-    mix = mix[: int(total * SR)]
+        vofx[i] = voice[i] + fx[i] * fx_gain
+    write_wav(AUDIO / "vofx.wav", vofx[: int(total * SR)])
 
-    write_wav(AUDIO / "mix.wav", mix)
-    loudnorm(AUDIO / "mix.wav", AUDIO / "final.wav")
+    music_cfg = dict(script.get("music") or {})
+    override = arg_value("--music")
+    if override:
+        music_cfg["file"] = override
+    if music_cfg.get("file"):
+        mix_with_track(music_cfg, total, AUDIO / "vofx.wav", AUDIO / "mix.wav")
+    else:  # no track named: the old plucked-string bed
+        turn = next(s for s in scenes if s["id"] == "turn")
+        bed = make_music(total, turn["start"], cues["final_chord"])
+        gain = rms(voice, active) * 10 ** (-20 / 20) / max(1e-9, rms(bed))
+        write_wav(AUDIO / "mix.wav", array("f", (v + b * gain for v, b in zip(vofx[: int(total * SR)], bed))))
+    out = AUDIO / (arg_value("--out") or "final.wav")
+    loudnorm(AUDIO / "mix.wav", out)
+    if arg_value("--out"):  # an alternate mix for a music option: leave the timing alone
+        print(f"wrote {out}")
+        return
 
     timing = {"duration": total, "fps": script["fps"], "scenes": scenes,
               "lines": lines, "captions": captions, "cues": cues}

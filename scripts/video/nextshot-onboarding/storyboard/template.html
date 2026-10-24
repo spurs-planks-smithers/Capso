@@ -102,7 +102,7 @@ a { color: var(--accent-ink); }
 
 .right { display: grid; gap: 22px; min-width: 0; }
 .guide { display: grid; gap: 12px; }
-.gloss { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px 22px; margin: 4px 0 0; }
+.gloss { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; margin: 4px 0 0; }
 .gloss div { font-size: 13.5px; }
 .gloss dt { font-weight: 700; display: inline; }
 .gloss dd { display: inline; margin: 0; color: var(--muted); }
@@ -251,7 +251,7 @@ footer { font-size: 12.5px; color: var(--muted); padding-block: 0 40px; }
       <h2>How to review</h2>
       <ol>
         <li>Watch the whole video once with sound. Then watch it once muted, as most people see it in Teams and Outlook.</li>
-        <li>Go card by card. Mark each line Keep, Change, or Cut. To change the words, type the new line in "Rewrite the line".</li>
+        <li>Go card by card. Mark each line Keep, Change, or Cut. For new words, type them in "Rewrite the line".</li>
         <li>Add notes on the picture and the timing. When you finish, tell Claude that the notes are in.</li>
       </ol>
     </div>
@@ -262,17 +262,17 @@ footer { font-size: 12.5px; color: var(--muted); padding-block: 0 40px; }
       <h2>Words an editor uses</h2>
       <dl class="gloss">
         <div><dt>Voiceover</dt><dd>the voice you hear but never see. Here it is {{VOICE}}.</dd></div>
-        <div><dt>Caption</dt><dd>the spoken words on screen. Most people watch muted.</dd></div>
-        <div><dt>Scene</dt><dd>one part of the story with one job. This cut has {{SCENE_COUNT}}.</dd></div>
-        <div><dt>Beat</dt><dd>one moment inside a scene, such as a badge that pops in.</dd></div>
+        <div><dt>Caption</dt><dd>the spoken words, shown on screen.</dd></div>
+        <div><dt>Scene</dt><dd>one of {{SCENE_COUNT}} story parts, each with one job.</dd></div>
+        <div><dt>Beat</dt><dd>one moment in a scene, such as a pop.</dd></div>
         <div><dt>Cue</dt><dd>a planned moment when a picture change or a sound hits a word.</dd></div>
         <div><dt>Sound effect</dt><dd>a short sound for an action: a pop, a click, a camera shutter.</dd></div>
         <div><dt>Music bed</dt><dd>the quiet music under the whole video. It sets the pace and mood.</dd></div>
         <div><dt>Ducking</dt><dd>the music gets quieter while the voice talks, then comes back up.</dd></div>
-        <div><dt>Lead-in</dt><dd>the silence at the start of a scene, before its first line.</dd></div>
-        <div><dt>Tail</dt><dd>the silence after a scene's last line, before the next scene starts.</dd></div>
-        <div><dt>Hold</dt><dd>time the picture stays still, so the viewer can read it.</dd></div>
-        <div><dt>Cut and wipe</dt><dd>a cut changes the picture at once. A wipe reveals the new picture with a moving shape, such as the teal circle at "Meet Nextshot."</dd></div>
+        <div><dt>Lead-in</dt><dd>the silence before a scene's first line.</dd></div>
+        <div><dt>Tail</dt><dd>the silence after a scene's last line.</dd></div>
+        <div><dt>Hold</dt><dd>how long the picture stays still.</dd></div>
+        <div><dt>Cut and wipe</dt><dd>a cut changes the picture at once. A wipe reveals it behind a moving shape.</dd></div>
         <div><dt>Timecode</dt><dd>a time in the video, as minutes:seconds. 0:12.1 is 12.1 seconds in.</dd></div>
       </dl>
       <h2>Rules of thumb</h2>

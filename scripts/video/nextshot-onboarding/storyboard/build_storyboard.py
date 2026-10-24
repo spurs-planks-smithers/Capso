@@ -61,7 +61,9 @@ def secs(t):
 
 
 def newest_video():
-    vids = sorted(RELEASES.glob("Nextshot-onboarding-20*.mp4"), key=lambda p: p.stat().st_mtime)
+    # Music option cuts (-musicB, -musicC) share the timing but are not the main cut.
+    vids = sorted((v for v in RELEASES.glob("Nextshot-onboarding-20*.mp4") if "-music" not in v.name),
+                  key=lambda p: p.stat().st_mtime)
     need(vids, f"no render in {RELEASES}. Run render.sh first.")
     vid = vids[-1]
     need((VIDEO / "timing.json").stat().st_mtime <= vid.stat().st_mtime + 2,
