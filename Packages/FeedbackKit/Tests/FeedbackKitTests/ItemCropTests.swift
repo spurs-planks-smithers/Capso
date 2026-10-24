@@ -68,12 +68,21 @@ struct ItemCropTests {
 
     // MARK: Target crop
 
-    @Test("Joins the target with the seed and pads")
+    @Test("Joins the target with the seed, pads, and keeps the marks crop")
     func targetCropJoinsSeed() {
         let target = FeedbackBox(x1: 300, y1: 150, x2: 600, y2: 300)
         let seed = FeedbackBox(x1: 700, y1: 400, x2: 720, y2: 420)
-        // Joined with the seed: (300, 150, 720, 420). Padded by 24.
-        #expect(ItemCrop.targetCrop(target: target, seed: seed, imageSize: image) == FeedbackBox(x1: 276, y1: 126, x2: 744, y2: 444))
+        // Joined with the seed and padded by 24: (276, 126, 744, 444).
+        // Joined with the marks crop (580, 280, 840, 540): (276, 126, 840, 540).
+        #expect(ItemCrop.targetCrop(target: target, seed: seed, imageSize: image) == FeedbackBox(x1: 276, y1: 126, x2: 840, y2: 540))
+    }
+
+    @Test("A tight target never gives a crop smaller than the marks crop")
+    func targetCropNeverSmallerThanMarksCrop() {
+        let seed = FeedbackBox(x1: 1038, y1: 1226, x2: 1066, y2: 1254)
+        let target = FeedbackBox(x1: 1039, y1: 1210, x2: 1061, y2: 1251)
+        let crop = ItemCrop.targetCrop(target: target, seed: seed, imageSize: image)
+        #expect(crop == ItemCrop.marksCrop(seed: seed, imageSize: image))
     }
 
     @Test("The target crop always contains the seed and stays in the image")
@@ -83,11 +92,11 @@ struct ItemCropTests {
         #expect(ItemCrop.targetCrop(target: target, seed: seed, imageSize: image) == FeedbackBox(x1: 0, y1: 0, x2: 2000, y2: 1500))
     }
 
-    @Test("A zero-size target, as a Box answer in the padding gives, still yields the padded seed")
+    @Test("A zero-size target, as a Box answer in the padding gives, still yields the marks crop")
     func targetCropZeroSizeTarget() {
         let target = FeedbackBox(x1: 710, y1: 410, x2: 710, y2: 410)
         let seed = FeedbackBox(x1: 700, y1: 400, x2: 720, y2: 420)
-        #expect(ItemCrop.targetCrop(target: target, seed: seed, imageSize: image) == FeedbackBox(x1: 676, y1: 376, x2: 744, y2: 444))
+        #expect(ItemCrop.targetCrop(target: target, seed: seed, imageSize: image) == FeedbackBox(x1: 580, y1: 280, x2: 840, y2: 540))
     }
 
     // MARK: Edge checks

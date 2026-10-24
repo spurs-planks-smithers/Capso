@@ -28,6 +28,15 @@ End Round
 let centerBadge = FeedbackBox(x1: 480, y1: 380, x2: 510, y2: 410)
 let cornerBadge = FeedbackBox(x1: 150, y1: 600, x2: 180, y2: 630)
 
+/// The crop of `centerBadge` in the default fixture: the seed plus 120 pixels. The default
+/// Box answer gives a smaller target crop, and a target crop is never smaller than the
+/// marks crop (Drew, 2026-10-24), so this is also the crop after Jev's target.
+let defaultCrop = FeedbackBox(x1: 360, y1: 260, x2: 630, y2: 530)
+
+/// A Box over most of the 430 pixel window around `centerBadge`. Its target crop is far larger
+/// than the marks crop, so a crop that came from it cannot pass for the marks crop.
+let wideBox = JevBox(top: 0.05, bottom: 0.95, left: 0.05, right: 0.95)
+
 /// `shapes` are rectangles. A rectangle that touches a badge widens that item's seed box.
 func cropsCapture(
     size: PixelSize = PixelSize(width: 1000, height: 800),
@@ -403,11 +412,14 @@ struct CropsAnchorsJobTests {
         #expect(try run.request(0).questions.map(\.id) == ["1.1.target", "1.1.target_shown"])
         #expect(try run.request(1).questions.map(\.id) == ["1.1.cut_left", "1.1.cut_right", "1.1.cut_top", "1.1.cut_bottom"])
 
-        // Jev's target (388, 288, 603, 503) in the 430 pixel window, plus 24 pixels.
-        let box = FeedbackBox(x1: 364, y1: 264, x2: 627, y2: 527)
+        // Jev's target (388, 288, 603, 503) in the 430 pixel window, plus 24 pixels, is inside
+        // the marks crop, so the crop is the marks crop. The source is still the target.
+        let object = try #require(summaryItem(run.output, "1.1"))
+        #expect(summaryNumbers(object["target"]) == [388, 288, 603, 503])
+        #expect(summaryCode(object["cropSource"]) == "target")
         #expect(run.output.lines == [
             cropsRuleLine,
-            cropLine(1, "edges checked", box, file: "1028-claude-item-1.png"),
+            cropLine(1, "edges checked", defaultCrop, file: "1028-claude-item-1.png"),
             cleanLine(1, file: "1028-claude-item-1-clean.png"),
         ])
         #expect(run.output.searchLines.isEmpty)
@@ -424,7 +436,7 @@ struct CropsAnchorsJobTests {
         // Only item 1 is asked again, with the second-check ids.
         #expect(try run.request(2).questions.map(\.id) == ["1.1.cut_left_2", "1.1.cut_right_2", "1.1.cut_top_2", "1.1.cut_bottom_2"])
 
-        let base = FeedbackBox(x1: 364, y1: 264, x2: 627, y2: 527)
+        let base = defaultCrop
         let moved = ItemCrop.expanded(base, edges: .left, imageSize: PixelSize(width: 1000, height: 800))
         #expect(moved.x1 < base.x1)
         #expect(moved.y1 == base.y1 && moved.x2 == base.x2 && moved.y2 == base.y2)
@@ -444,7 +456,7 @@ struct CropsAnchorsJobTests {
 
         #expect(run.requests.count == 3)
         let size = PixelSize(width: 1000, height: 800)
-        let once = ItemCrop.expanded(FeedbackBox(x1: 364, y1: 264, x2: 627, y2: 527), edges: .left, imageSize: size)
+        let once = ItemCrop.expanded(defaultCrop, edges: .left, imageSize: size)
         let twice = ItemCrop.expanded(once, edges: .left, imageSize: size)
         #expect(twice.x1 < once.x1)
         #expect(run.output.cropLabels.first == "Crop of this item (edges unsure: open the full image if the crop cuts something off; px \(twice.x1) \(twice.y1) \(twice.x2) \(twice.y2) of the full image):")
@@ -452,16 +464,20 @@ struct CropsAnchorsJobTests {
 
     @Test("A low target_shown or a low Box confidence gives the marks crop, and the edge check still runs")
     func marksCropAfterLowTarget() async throws {
+        var lowShown = CropsScript(noul: ["target_shown": 0.1])
+        lowShown.box = JevBoxAnswer(box: wideBox, confidence: 0.9)
         var lowConfidence = CropsScript(noul: ["target_shown": 0.9])
-        lowConfidence.box = JevBoxAnswer(box: lowConfidence.box.box, confidence: 0.1)
-        let scripts = [CropsScript(noul: ["target_shown": 0.1]), lowConfidence]
-        for script in scripts {
+        lowConfidence.box = JevBoxAnswer(box: wideBox, confidence: 0.1)
+        for script in [lowShown, lowConfidence] {
             let run = try await runCropsJob(cropsCapture(), allowed: [.reviewerText, .images], script: script)
             #expect(run.requests.count == 2)
             #expect(try run.request(1).questions.count == 4)
             let label = try #require(run.output.cropLabels.first)
             #expect(label.contains("edges checked"))
-            #expect(cropPixelBox(label) == FeedbackBox(x1: 360, y1: 260, x2: 630, y2: 530))
+            #expect(cropPixelBox(label) == defaultCrop)
+            let object = try #require(summaryItem(run.output, "1.1"))
+            #expect(summaryCode(object["cropSource"]) == "marks")
+            #expect(object["target"] == nil)
         }
     }
 
@@ -743,7 +759,7 @@ struct CropsAnchorsStateTests {
     @Test("Each edge yes moves only its own edge", arguments: ["left", "right", "top", "bottom"])
     func eachEdgeMovesAlone(name: String) async throws {
         let size = PixelSize(width: 1000, height: 800)
-        let base = FeedbackBox(x1: 364, y1: 264, x2: 627, y2: 527)
+        let base = defaultCrop
         let edge = try #require(edgesByName[name])
         let run = try await runCropsJob(
             cropsCapture(),
@@ -774,9 +790,10 @@ struct CropsAnchorsStateTests {
 
     @Test("A crop that an edge yes makes too wide to reshape is too small in round 2, and gets no crop")
     func tooSmallInRoundTwo() async throws {
-        // The crop is 450 by 100. Both sides move out by 113 pixels, to 676 by 100.
+        // The crop is the marks crop, 540 by 100: it fits the shape limit of 5.6. Both sides move out
+        // by 135 pixels, to 810 by 100, and the capture is too short to grow it to 145.
         let script = CropsScript(noul: ["target_shown": 0.9, "cut_left": 0.9, "cut_right": 0.9])
-        let run = try await runCropsJob(thinCapture(seedWidth: 402), allowed: [.reviewerText, .images], script: script)
+        let run = try await runCropsJob(thinCapture(seedWidth: 300), allowed: [.reviewerText, .images], script: script)
 
         #expect(run.requests.count == 2)
         #expect(run.output.lines.isEmpty && run.output.files.isEmpty)
@@ -785,20 +802,23 @@ struct CropsAnchorsStateTests {
 
     @Test("In the last round the moved crop is reshaped, and the item says edges unsure")
     func lastRoundReshapes() async throws {
-        let size = PixelSize(width: 1000, height: 800)
-        let seed = FeedbackBox(x1: 200, y1: 385, x2: 800, y2: 415)
+        // The marks crop is at least 270 pixels high, so a crop that the reshape can change is very
+        // wide: a 1400 pixel shape in a 2400 by 1200 capture.
+        let size = PixelSize(width: 2400, height: 1200)
+        let seed = FeedbackBox(x1: 500, y1: 585, x2: 1900, y2: 615)
         // A flat strip across the window: a wide, short target.
-        var script = CropsScript(noul: ["target_shown": 0.9, "cut_left": 0.9, "cut_right_2": 0.9])
+        var script = CropsScript(noul: ["target_shown": 0.9, "cut_top": 0.9, "cut_left_2": 0.9, "cut_right_2": 0.9])
         script.box = JevBoxAnswer(box: JevBox(top: 0.45, bottom: 0.55, left: 0.05, right: 0.95), confidence: 0.9)
-        let capture = cropsCapture(marks: [CropsMark(number: 1, box: FeedbackBox(x1: 480, y1: 385, x2: 510, y2: 415))], shapes: [seed])
+        let capture = cropsCapture(size: size, marks: [CropsMark(number: 1, box: FeedbackBox(x1: 1180, y1: 585, x2: 1210, y2: 615))], shapes: [seed])
         let run = try await runCropsJob(capture, allowed: [.reviewerText, .images], script: script)
 
         #expect(run.requests.count == 3)
         let image = try #require(try run.request(0).images.first)
         let target = image.sourceBox(for: script.box.box)
+        // Round 1 shapes the target crop, and the top edge moves out. Round 2 shapes it again, and both sides move out.
         let first = try #require(ItemCrop.shaped(ItemCrop.targetCrop(target: target, seed: seed, imageSize: size), imageSize: size))
-        let second = try #require(ItemCrop.shaped(ItemCrop.expanded(first, edges: .left, imageSize: size), imageSize: size))
-        let moved = ItemCrop.expanded(second, edges: .right, imageSize: size)
+        let second = try #require(ItemCrop.shaped(ItemCrop.expanded(first, edges: .top, imageSize: size), imageSize: size))
+        let moved = ItemCrop.expanded(second, edges: [.left, .right], imageSize: size)
         let reshaped = try #require(ItemCrop.shaped(moved, imageSize: size))
         // The case is only a test of the reshape if the reshape changes the box.
         #expect(reshaped != moved)
@@ -840,7 +860,7 @@ struct CropsAnchorsStateTests {
         let notChecked: JevCodeText = "not checked: open the full image if the crop cuts something off"
         #expect(run.output.lines == [
             cropsRuleLine,
-            cropLine(1, "edges checked", FeedbackBox(x1: 364, y1: 264, x2: 627, y2: 527), file: "1028-claude-item-1.png"),
+            cropLine(1, "edges checked", defaultCrop, file: "1028-claude-item-1.png"),
             cleanLine(1, file: "1028-claude-item-1-clean.png"),
             cropLine(2, notChecked, FeedbackBox(x1: 30, y1: 480, x2: 300, y2: 750), file: "1028-claude-item-2.png"),
             cleanLine(2, file: "1028-claude-item-2-clean.png"),
@@ -860,20 +880,42 @@ struct CropsAnchorsStateTests {
         #expect(run.requests.count == 1)
         let label = try #require(run.output.cropLabels.first)
         #expect(label.contains("not checked: open the full image"))
-        #expect(cropPixelBox(label) == FeedbackBox(x1: 364, y1: 264, x2: 627, y2: 527))
+        #expect(cropPixelBox(label) == defaultCrop)
+    }
+
+    @Test("A tight Box near the badge gives exactly the marks crop, and the source is still the target")
+    func tightBoxGivesMarksCrop() async throws {
+        var script = CropsScript(noul: ["target_shown": 0.9])
+        // Fractions of the 430 pixel window around the badge: a box of about 43 pixels at its center.
+        script.box = JevBoxAnswer(box: JevBox(top: 0.45, bottom: 0.55, left: 0.45, right: 0.55), confidence: 0.9)
+        let run = try await runCropsJob(cropsCapture(), allowed: [.reviewerText, .images], script: script)
+
+        let object = try #require(summaryItem(run.output, "1.1"))
+        let target = try #require(summaryNumbers(object["target"]))
+        // The target is a small box inside the marks crop, and the padded target is inside it too.
+        #expect(target[2] - target[0] < 60 && target[3] - target[1] < 60)
+        #expect(summaryCode(object["cropSource"]) == "target")
+        let marksCrop = ItemCrop.marksCrop(seed: centerBadge, imageSize: PixelSize(width: 1000, height: 800))
+        #expect(summaryNumbers(object["crop"]) == boxNumbers(marksCrop))
+        #expect(marksCrop == defaultCrop)
+        #expect(run.output.cropLabels.compactMap(cropPixelBox) == [marksCrop])
+        #expect(run.output.cropLabels.first?.contains("edges checked") == true)
     }
 
     @Test("A Box with no confidence is incomplete: the marks crop, and the edge check still runs")
     func nilBoxConfidence() async throws {
         var script = CropsScript(noul: ["target_shown": 0.9])
-        script.box = JevBoxAnswer(box: script.box.box, confidence: nil)
+        script.box = JevBoxAnswer(box: wideBox, confidence: nil)
         let run = try await runCropsJob(cropsCapture(), allowed: [.reviewerText, .images], script: script)
 
         #expect(run.requests.count == 2)
         #expect(try run.request(1).questions.count == 4)
         let label = try #require(run.output.cropLabels.first)
         #expect(label.contains("edges checked"))
-        #expect(cropPixelBox(label) == FeedbackBox(x1: 360, y1: 260, x2: 630, y2: 530))
+        #expect(cropPixelBox(label) == defaultCrop)
+        let object = try #require(summaryItem(run.output, "1.1"))
+        #expect(summaryCode(object["cropSource"]) == "marks")
+        #expect(object["target"] == nil)
     }
 
     @Test("The reviewer's note goes into requests A and B exactly as stored")
@@ -911,16 +953,19 @@ struct CropsAnchorsStateTests {
 
         // Item 1: window (280, 180, 710, 610) gives the target (538, 223, 667, 352).
         // Item 2: window (0, 400, 380, 800) gives the target (228, 440, 342, 560).
-        // Each joins its seed box and adds 24 pixels.
-        let expected = [FeedbackBox(x1: 456, y1: 199, x2: 691, y2: 434), FeedbackBox(x1: 126, y1: 416, x2: 366, y2: 654)]
+        let targets = [FeedbackBox(x1: 538, y1: 223, x2: 667, y2: 352), FeedbackBox(x1: 228, y1: 440, x2: 342, y2: 560)]
         let images = try run.request(0).images
         #expect(images.count == 2)
         #expect(images[0].sourceRegion != images[1].sourceRegion)
+        #expect(zip(images, targets).allSatisfy { $0.sourceBox(for: script.box.box) == $1 })
+        // The summary records each target in capture pixels.
+        #expect(summaryNumbers(summaryItem(run.output, "1.1")?["target"]) == boxNumbers(targets[0]))
+        #expect(summaryNumbers(summaryItem(run.output, "1.2")?["target"]) == boxNumbers(targets[1]))
+
+        // Each crop joins the target with its seed box, adds 24 pixels, and keeps the marks crop.
         let size = PixelSize(width: 1000, height: 800)
-        let derived = zip(images, [centerBadge, cornerBadge]).map { image, seed in
-            ItemCrop.targetCrop(target: image.sourceBox(for: script.box.box), seed: seed, imageSize: size)
-        }
-        #expect(derived == expected)
+        let expected = zip(targets, [centerBadge, cornerBadge]).map { ItemCrop.targetCrop(target: $0, seed: $1, imageSize: size) }
+        #expect(expected == [FeedbackBox(x1: 360, y1: 199, x2: 691, y2: 530), FeedbackBox(x1: 30, y1: 416, x2: 366, y2: 750)])
         #expect(run.output.cropLabels.compactMap(cropPixelBox) == expected)
     }
 
@@ -941,11 +986,14 @@ struct CropsAnchorsStateTests {
 
         let target = image.sourceBox(for: script.box.box)
         #expect(target == FeedbackBox(x1: 1045, y1: 25, x2: 1115, y2: 39))
+        // The summary records that target. Read as plain fractions of the 100 pixel region,
+        // the same Box would give (1045, 30, 1115, 41).
+        let object = try #require(summaryItem(run.output, "1.1"))
+        #expect(summaryNumbers(object["target"]) == boxNumbers(target))
+        #expect(summaryNumbers(object["target"]) != [1045, 30, 1115, 41])
+        // The crop is the target crop. Here the marks crop (880, 0, 1420, 100) holds it.
         let expected = ItemCrop.targetCrop(target: target, seed: seed, imageSize: capture.size)
-        #expect(expected == FeedbackBox(x1: 976, y1: 1, x2: 1324, y2: 100))
-        // Read as plain fractions of the 100 pixel region, the same Box would give another crop.
-        let naive = ItemCrop.targetCrop(target: FeedbackBox(x1: 1045, y1: 30, x2: 1115, y2: 41), seed: seed, imageSize: capture.size)
-        #expect(naive != expected)
+        #expect(expected == FeedbackBox(x1: 880, y1: 0, x2: 1420, y2: 100))
         #expect(run.output.cropLabels.compactMap(cropPixelBox) == [expected])
     }
 

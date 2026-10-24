@@ -79,9 +79,12 @@ public enum ItemCrop {
 
     /// The crop for the box that Jev found, already mapped to capture pixels
     /// (JevKit's `JevImage.sourceBox` does this). The result joins the seed
-    /// box, so the badge stays in the crop, and adds `targetPad`.
+    /// box, so the badge stays in the crop, and adds `targetPad`. It is never
+    /// smaller than the marks crop, so a tight target keeps its context
+    /// (Drew, 2026-10-24, after a live crop showed only two words).
     public static func targetCrop(target: FeedbackBox, seed: FeedbackBox, imageSize: PixelSize) -> FeedbackBox {
         padded(target.union(seed), by: targetPad, imageSize: imageSize)
+            .union(marksCrop(seed: seed, imageSize: imageSize))
     }
 
     /// Moves each named edge outward by `edgeStep` of the crop's width (left,
