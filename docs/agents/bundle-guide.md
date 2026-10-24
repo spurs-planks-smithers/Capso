@@ -16,6 +16,7 @@ The prompt names files by absolute path. They sit in a bundle folder: `~/Library
 | `feedback.json` | The same data as the manifest, for scripts (`schemaVersion` 1) |
 | `<HHmm>-<slug>-refined.md`, `refined.md` | Present only when an automated check ran. Labels from Jev, a typed-judgment model: note checks, search lines, groups, and crops. The prompt names them when they apply. |
 | `jev.json` | Present only when an automated check ran. Every Jev answer with its probability, for scripts |
+| `jev-review/` | Review files for the person, from automated checks. Do not read or act on them. |
 
 `manifest.md` starts with "How to read this bundle". Those rules come first. This guide only adds context.
 
