@@ -1,9 +1,9 @@
 // Packages/FeedbackKit/Sources/FeedbackKit/FeedbackBasket.swift
 import Foundation
 
-/// One capture in a past session: the session folder name and the capture's
+/// One capture in a past round: the round folder name and the capture's
 /// 1-based `index`. The store gives a capture the next free index and never
-/// renumbers, so a key stays valid after a session is resumed.
+/// renumbers, so a key stays valid after a round is resumed.
 public struct FeedbackBasketKey: Hashable, Sendable {
     public var folderName: String
     public var captureIndex: Int
@@ -14,8 +14,8 @@ public struct FeedbackBasketKey: Hashable, Sendable {
     }
 }
 
-/// The captures a user has checked in the Recent menu, across sessions. It
-/// holds keys only. `FeedbackLibrary.entries(for:in:)` reads the sessions again
+/// The captures a user has checked in the Recent menu, across rounds. It
+/// holds keys only. `FeedbackLibrary.entries(for:in:)` reads the rounds again
 /// when the basket is copied, so the basket never holds stale data.
 public struct FeedbackBasket: Equatable, Sendable {
     public private(set) var keys: Set<FeedbackBasketKey>
@@ -41,7 +41,7 @@ public struct FeedbackBasket: Equatable, Sendable {
         keys.count
     }
 
-    /// How many captures of one session are in the basket.
+    /// How many captures of one round are in the basket.
     public func count(inFolder folderName: String) -> Int {
         keys.reduce(0) { $0 + ($1.folderName == folderName ? 1 : 0) }
     }
@@ -51,22 +51,22 @@ public struct FeedbackBasket: Equatable, Sendable {
     }
 }
 
-/// A basket key resolved against its session folder.
+/// A basket key resolved against its round folder.
 public struct FeedbackSelectionEntry: Equatable, Sendable {
-    public var session: FeedbackSession
+    public var round: FeedbackRound
     public var capture: FeedbackCapture
-    /// The absolute path of the session folder that was read.
+    /// The absolute path of the round folder that was read.
     public var folderPath: String
 
-    public init(session: FeedbackSession, capture: FeedbackCapture, folderPath: String) {
-        self.session = session
+    public init(round: FeedbackRound, capture: FeedbackCapture, folderPath: String) {
+        self.round = round
         self.capture = capture
         self.folderPath = folderPath
     }
 }
 
 extension FeedbackLibrary {
-    /// Resolves each key of `basket` against the session folders under
+    /// Resolves each key of `basket` against the round folders under
     /// `rootURL`. Each folder is read once. `entries` are in capture-time
     /// order: ties go by folder, then capture index. `missing` holds the keys
     /// whose folder, `feedback.json`, or capture could not be found, sorted
@@ -79,14 +79,14 @@ extension FeedbackLibrary {
         var missing: [FeedbackBasketKey] = []
 
         for (folderName, keys) in Dictionary(grouping: basket.keys, by: \.folderName) {
-            guard let session = session(named: folderName, in: rootURL) else {
+            guard let round = round(named: folderName, in: rootURL) else {
                 missing.append(contentsOf: keys)
                 continue
             }
             let folderPath = rootURL.appendingPathComponent(folderName).path
             for key in keys {
-                if let capture = session.captures.first(where: { $0.index == key.captureIndex }) {
-                    entries.append(FeedbackSelectionEntry(session: session, capture: capture, folderPath: folderPath))
+                if let capture = round.captures.first(where: { $0.index == key.captureIndex }) {
+                    entries.append(FeedbackSelectionEntry(round: round, capture: capture, folderPath: folderPath))
                 } else {
                     missing.append(key)
                 }
@@ -95,7 +95,7 @@ extension FeedbackLibrary {
 
         // The folder path stands for the folder name here: every path shares
         // the root. It also stays unique when two folders hold equal copies of
-        // a session, so the order never depends on set or dictionary order.
+        // a round, so the order never depends on set or dictionary order.
         entries.sort { lhs, rhs in
             if lhs.capture.capturedAt != rhs.capture.capturedAt {
                 return lhs.capture.capturedAt < rhs.capture.capturedAt

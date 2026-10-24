@@ -1,58 +1,58 @@
 // Packages/FeedbackKit/Sources/FeedbackKit/FeedbackLibrary.swift
 import Foundation
 
-/// Reads past sessions from the store's root folder and words the menu rows
-/// that list them. Read-only: it never writes to a session folder.
+/// Reads past rounds from the store's root folder and words the menu rows
+/// that list them. Read-only: it never writes to a round folder.
 public enum FeedbackLibrary {
-    /// The sessions found by `recent(in:)`.
+    /// The rounds found by `recent(in:)`.
     public struct Listing: Equatable, Sendable {
         /// Newest end first.
-        public var sessions: [FeedbackSession]
+        public var rounds: [FeedbackRound]
         /// Folder names whose `feedback.json` could not be read or decoded.
         public var unreadable: [String]
 
-        public init(sessions: [FeedbackSession], unreadable: [String]) {
-            self.sessions = sessions
+        public init(rounds: [FeedbackRound], unreadable: [String]) {
+            self.rounds = rounds
             self.unreadable = unreadable
         }
     }
 
-    /// Ended sessions that hold at least one capture, newest end first, at
-    /// most `limit`. The active session has no end time, so it is left out.
-    /// A folder with no `feedback.json` is not a session and is ignored. A
+    /// Ended rounds that hold at least one capture, newest end first, at
+    /// most `limit`. The active round has no end time, so it is left out.
+    /// A folder with no `feedback.json` is not a round and is ignored. A
     /// folder whose `feedback.json` fails to decode is named in `unreadable`.
-    /// A caller that lists often should keep a `FeedbackSessionCache` instead.
+    /// A caller that lists often should keep a `FeedbackRoundCache` instead.
     public static func recent(in rootURL: URL, limit: Int = 5) -> Listing {
-        var cache = FeedbackSessionCache()
+        var cache = FeedbackRoundCache()
         return cache.recent(in: rootURL, limit: limit)
     }
 
-    /// One session by its folder name, or nil when the folder or its
+    /// One round by its folder name, or nil when the folder or its
     /// `feedback.json` is missing or unreadable. A name with a path separator
     /// is refused, so a name cannot point outside the root.
-    public static func session(named folderName: String, in rootURL: URL) -> FeedbackSession? {
+    public static func round(named folderName: String, in rootURL: URL) -> FeedbackRound? {
         guard !folderName.isEmpty, folderName != ".", folderName != "..", !folderName.contains("/") else { return nil }
         return load(rootURL
             .appendingPathComponent(folderName, isDirectory: true)
-            .appendingPathComponent(FeedbackSessionStore.sessionFileName))
+            .appendingPathComponent(FeedbackRoundStore.roundFileName))
     }
 
-    /// True when the session's `manifest.md` or `prompt.md` is missing or does
+    /// True when the round's `manifest.md` or `prompt.md` is missing or does
     /// not name the folder's current path, for example after the bundles moved
-    /// from the old `CapsoFeedback` folder. False when the session itself
+    /// from the old `CapsoFeedback` folder. False when the round itself
     /// does not load, because there is then nothing to rewrite them from.
     public static func bundleFilesNeedRepair(folderName: String, in rootURL: URL) -> Bool {
-        guard session(named: folderName, in: rootURL) != nil else { return false }
+        guard round(named: folderName, in: rootURL) != nil else { return false }
         let folder = rootURL.appendingPathComponent(folderName, isDirectory: true)
-        return [FeedbackSessionStore.manifestFileName, FeedbackSessionStore.promptFileName].contains { name in
+        return [FeedbackRoundStore.manifestFileName, FeedbackRoundStore.promptFileName].contains { name in
             guard let text = try? String(contentsOf: folder.appendingPathComponent(name), encoding: .utf8) else { return true }
             return !text.contains(folder.path)
         }
     }
 
-    static func load(_ file: URL) -> FeedbackSession? {
+    static func load(_ file: URL) -> FeedbackRound? {
         guard let data = try? Data(contentsOf: file) else { return nil }
-        return try? FeedbackSessionStore.decoder().decode(FeedbackSession.self, from: data)
+        return try? FeedbackRoundStore.decoder().decode(FeedbackRound.self, from: data)
     }
 
     // MARK: - Row labels
@@ -76,12 +76,12 @@ public enum FeedbackLibrary {
 
     /// Apps in capture order without repeats, then the capture count and, when
     /// some are picked, the selection count: "Preview, TextEdit, 5 captures, 2 selected".
-    public static func subtitle(for session: FeedbackSession, selectedCount: Int) -> String {
+    public static func subtitle(for round: FeedbackRound, selectedCount: Int) -> String {
         var apps: [String] = []
-        for app in session.captures.compactMap(\.sourceApp) where !apps.contains(app) {
+        for app in round.captures.compactMap(\.sourceApp) where !apps.contains(app) {
             apps.append(app)
         }
-        let count = session.captures.count
+        let count = round.captures.count
         var parts = apps
         parts.append(count == 1 ? "1 capture" : "\(count) captures")
         if selectedCount > 0 {

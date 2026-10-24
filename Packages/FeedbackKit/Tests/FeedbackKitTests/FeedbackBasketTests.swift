@@ -28,19 +28,19 @@ struct FeedbackBasketTests {
 
     /// Writes `root/<folderName>/feedback.json`, the way the store does.
     @discardableResult
-    private func write(_ session: FeedbackSession) throws -> FeedbackSession {
-        let folder = root.appendingPathComponent(session.folderName, isDirectory: true)
+    private func write(_ round: FeedbackRound) throws -> FeedbackRound {
+        let folder = root.appendingPathComponent(round.folderName, isDirectory: true)
         try fileManager.createDirectory(at: folder, withIntermediateDirectories: true)
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
-        try encoder.encode(session).write(to: folder.appendingPathComponent("feedback.json"))
-        return session
+        try encoder.encode(round).write(to: folder.appendingPathComponent("feedback.json"))
+        return round
     }
 
-    /// Session A started on the 20th. Its folder name sorts after B's, so a
+    /// Round A started on the 20th. Its folder name sorts after B's, so a
     /// sort by folder name alone would put B first.
-    private func sessionA() -> FeedbackSession {
-        FeedbackSession(
+    private func roundA() -> FeedbackRound {
+        FeedbackRound(
             name: "pricing page",
             slug: "pricing-page",
             folderName: "2026-10-20-1912-pricing-page",
@@ -54,9 +54,9 @@ struct FeedbackBasketTests {
         )
     }
 
-    /// Session B started on the 19th and was resumed on the 21st.
-    private func sessionB() -> FeedbackSession {
-        FeedbackSession(
+    /// Round B started on the 19th and was resumed on the 21st.
+    private func roundB() -> FeedbackRound {
+        FeedbackRound(
             name: "checkout",
             slug: "checkout",
             folderName: "2026-10-19-0900-checkout",
@@ -85,7 +85,7 @@ struct FeedbackBasketTests {
         #expect(basket.keys.isEmpty)
     }
 
-    @Test("Counts keys per session folder")
+    @Test("Counts keys per round folder")
     func countsPerFolder() {
         var basket = FeedbackBasket()
         basket.toggle(key("A", 2))
@@ -109,11 +109,11 @@ struct FeedbackBasketTests {
         #expect(basket.count == 0)
     }
 
-    @Test("Resolves keys across sessions in capture-time order")
+    @Test("Resolves keys across rounds in capture-time order")
     func resolvesInCaptureTimeOrder() throws {
         defer { try? fileManager.removeItem(at: root) }
-        let a = try write(sessionA())
-        let b = try write(sessionB())
+        let a = try write(roundA())
+        let b = try write(roundB())
 
         var basket = FeedbackBasket()
         basket.toggle(key(b.folderName, 2))
@@ -124,10 +124,10 @@ struct FeedbackBasketTests {
         #expect(result.entries.count == 2)
         #expect(result.entries.map(\.capture.capturedAt) == result.entries.map(\.capture.capturedAt).sorted())
         #expect(result.entries.first?.folderPath == root.appendingPathComponent(a.folderName).path)
-        #expect(result.entries.first?.session == a)
+        #expect(result.entries.first?.round == a)
         #expect(result.entries.first?.capture.index == 2)
         #expect(result.entries.last?.folderPath == root.appendingPathComponent(b.folderName).path)
-        #expect(result.entries.last?.session == b)
+        #expect(result.entries.last?.round == b)
         #expect(result.entries.last?.capture == b.captures[1])
     }
 
@@ -135,8 +135,8 @@ struct FeedbackBasketTests {
     func breaksTies() throws {
         defer { try? fileManager.removeItem(at: root) }
         let moment = FeedbackFixtures.date(21, 10, 0)
-        func session(_ folderName: String) -> FeedbackSession {
-            FeedbackSession(
+        func round(_ folderName: String) -> FeedbackRound {
+            FeedbackRound(
                 name: folderName,
                 slug: folderName,
                 folderName: folderName,
@@ -145,8 +145,8 @@ struct FeedbackBasketTests {
                 captures: [capture(1, at: moment), capture(2, at: moment)]
             )
         }
-        try write(session("beta"))
-        try write(session("alpha"))
+        try write(round("beta"))
+        try write(round("alpha"))
 
         var basket = FeedbackBasket()
         for k in [key("beta", 1), key("alpha", 2), key("beta", 2), key("alpha", 1)] {
@@ -154,7 +154,7 @@ struct FeedbackBasketTests {
         }
 
         let result = FeedbackLibrary.entries(for: basket, in: root)
-        #expect(result.entries.map { "\($0.session.folderName)#\($0.capture.index)" } == [
+        #expect(result.entries.map { "\($0.round.folderName)#\($0.capture.index)" } == [
             "alpha#1", "alpha#2", "beta#1", "beta#2",
         ])
     }
@@ -162,7 +162,7 @@ struct FeedbackBasketTests {
     @Test("Reports keys whose folder or capture is gone")
     func reportsMissing() throws {
         defer { try? fileManager.removeItem(at: root) }
-        let a = try write(sessionA())
+        let a = try write(roundA())
 
         var basket = FeedbackBasket()
         basket.toggle(key("deleted-folder", 1))
@@ -173,7 +173,7 @@ struct FeedbackBasketTests {
         #expect(Set(result.missing) == [key("deleted-folder", 1), key(a.folderName, 99)])
         #expect(result.missing.count == 2)
         #expect(result.entries.map(\.capture.index) == [1])
-        #expect(result.entries.first?.session == a)
+        #expect(result.entries.first?.round == a)
     }
 
     @Test("Resolves an empty basket to nothing")

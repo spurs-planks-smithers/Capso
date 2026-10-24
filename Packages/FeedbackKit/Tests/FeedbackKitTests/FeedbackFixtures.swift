@@ -47,8 +47,8 @@ enum FeedbackFixtures {
         )
     }
 
-    static func session(captures: [FeedbackCapture]) -> FeedbackSession {
-        FeedbackSession(
+    static func round(captures: [FeedbackCapture]) -> FeedbackRound {
+        FeedbackRound(
             name: "pricing page",
             slug: "pricing-page",
             folderName: "2026-10-20-1912-pricing-page",

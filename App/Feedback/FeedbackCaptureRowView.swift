@@ -2,7 +2,7 @@
 import AppKit
 import FeedbackKit
 
-/// Fork: one capture row in a session's submenu. From the left: a checkbox,
+/// Fork: one capture row in a round's submenu. From the left: a checkbox,
 /// a thumbnail, and two lines of text (the capture title and an item count).
 ///
 /// The row is a custom menu item view, so a click does not close the menu.

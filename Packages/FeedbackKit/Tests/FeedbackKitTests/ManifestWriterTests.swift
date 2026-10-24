@@ -8,7 +8,7 @@ struct ManifestWriterTests {
 
     private func render(_ captures: [FeedbackCapture]) -> String {
         ManifestWriter.render(
-            FeedbackFixtures.session(captures: captures),
+            FeedbackFixtures.round(captures: captures),
             folderPath: folder,
             timeZone: FeedbackFixtures.timeZone
         )

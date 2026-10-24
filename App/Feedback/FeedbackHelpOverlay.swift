@@ -4,7 +4,7 @@ import AppKit
 import KeyboardShortcuts
 import SwiftUI
 
-/// What the user does now in a feedback session. The help box lists the
+/// What the user does now in a feedback round. The help box lists the
 /// keys for it.
 enum FeedbackHelpStage {
     case selecting
@@ -14,7 +14,7 @@ enum FeedbackHelpStage {
 }
 
 /// Fork: a see-through box at the top right of the screen that lists the keys
-/// for the current stage, from the feedback hotkey until the session ends
+/// for the current stage, from the feedback hotkey until the round ends
 /// (Drew, 2026-10-21).
 ///
 /// It never takes clicks or focus. `sharingType = .none` keeps it out of

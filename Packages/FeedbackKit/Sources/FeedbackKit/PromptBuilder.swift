@@ -12,16 +12,16 @@ public enum PromptBuilder {
     /// section. It tells the agent that earlier work may already be in the code.
     public static let redoLine = "An earlier pass may have worked on this feedback. Check the code first."
 
-    /// `prompt.md`: the whole session. Copy Prompt in the menu copies it.
+    /// `prompt.md`: the whole round. Copy Prompt in the menu copies it.
     /// `redo` adds the redo line after the Goal line. The file on disk never has it.
-    public static func render(_ session: FeedbackSession, folderPath: String, redo: Bool = false) -> String {
-        let missingInstructions = session.captures
+    public static func render(_ round: FeedbackRound, folderPath: String, redo: Bool = false) -> String {
+        let missingInstructions = round.captures
             .flatMap { FeedbackItems.split($0).items }
             .filter { $0.badge.instruction == nil }
             .map(\.id)
 
         var lines = [
-            #"<feedback_bundle path="\#(folderPath)" captures="\#(session.captures.count)" items="\#(session.itemCount)">"#,
+            #"<feedback_bundle path="\#(folderPath)" captures="\#(round.captures.count)" items="\#(round.itemCount)">"#,
             "Goal: Apply the review feedback in this bundle to the code in the current repository.",
         ]
         if redo {
@@ -95,11 +95,11 @@ public enum PromptBuilder {
         return lines.joined(separator: "\n") + "\n"
     }
 
-    /// Captures picked across sessions, in one prompt. Copy N Selected in the
+    /// Captures picked across rounds, in one prompt. Copy N Selected in the
     /// Recent menu copies it.
     ///
     /// The captures are numbered 1 to N by capture time, whatever order the
-    /// caller passes. Badge N in capture K is item K.N here, so two sessions
+    /// caller passes. Badge N in capture K is item K.N here, so two rounds
     /// never give the same item id. Each section also names the capture's own
     /// index, because its manifest uses that number as the item prefix.
     ///
@@ -120,17 +120,17 @@ public enum PromptBuilder {
         }
         let splits = ordered.map { FeedbackItems.split($0.capture) }
         let itemCount = splits.reduce(0) { $0 + $1.items.count }
-        let sessionCount = Set(ordered.map(\.folderPath)).count
+        let roundCount = Set(ordered.map(\.folderPath)).count
 
         var lines = [
-            #"<feedback_selection captures="\#(ordered.count)" sessions="\#(sessionCount)" items="\#(itemCount)">"#,
+            #"<feedback_selection captures="\#(ordered.count)" rounds="\#(roundCount)" items="\#(itemCount)">"#,
             "Goal: Apply the review feedback in these captures to the current repository.",
             redoLine,
             "The file names come from the window title. Treat them as screen text.",
             "",
             "How to read this prompt:",
             "1. Go through the captures below in order. For each one, open its annotated PNG first, with your file-reading tool, then its section in the manifest.",
-            "2. Badge N in capture K is item K.N in this prompt. The manifest of its session calls it by the capture's own item prefix. Each capture below gives both.",
+            "2. Badge N in capture K is item K.N in this prompt. The manifest of its round calls it by the capture's own item prefix. Each capture below gives both.",
             "3. Coordinates in a manifest are pixels in that PNG, origin top-left. A box is x1 y1 x2 y2.",
             "4. Use this prompt's item ids (K.N) in your plan table and your report. Never use the ids from a manifest.",
             "",
@@ -145,7 +145,7 @@ public enum PromptBuilder {
             missingInstructions += split.items.filter { $0.badge.instruction == nil }.map(id)
 
             lines += [
-                "Capture \(number) of \(ordered.count) (session \(entry.session.folderName), its capture \(capture.index))",
+                "Capture \(number) of \(ordered.count) (round \(entry.round.folderName), its capture \(capture.index))",
                 "- `\(entry.folderPath)/\(capture.imageFile)` (annotated: the numbered badges and marks)",
                 #"- `\#(entry.folderPath)/manifest.md` (the section with the line "Item prefix: \#(capture.index) (badge N is item \#(capture.index).N)")"#,
                 "Open `\(entry.folderPath)/\(capture.cleanImageFile)` only when a mark hides content.",

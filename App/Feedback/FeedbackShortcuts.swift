@@ -3,8 +3,8 @@ import AppKit
 import KeyboardShortcuts
 
 extension KeyboardShortcuts.Name {
-    /// Fork: capture an area into the active feedback session. Starts a
-    /// session named "feedback" when none is active. Not in `allCapso`. The
+    /// Fork: capture an area into the active feedback round. Starts a
+    /// round named "feedback" when none is active. Not in `allCapso`. The
     /// Nextshot section of Settings > Shortcuts lists it
     /// (`FeedbackShortcutSettingsSection`), and so does the Nshot menu.
     static let feedbackCapture = Self("feedbackCapture", default: .init(.f, modifiers: [.option, .shift]))

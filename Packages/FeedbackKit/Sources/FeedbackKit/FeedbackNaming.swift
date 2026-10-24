@@ -71,7 +71,7 @@ public enum FeedbackNaming {
         return "Capture: \(shown), \(time)"
     }
 
-    /// The file name without extension: "2224-pricing-acme". The session
+    /// The file name without extension: "2224-pricing-acme". The round
     /// folder already holds the date.
     public static func captureFileStem(windowTitle: String?, sourceApp: String?, capturedAt: Date, timeZone: TimeZone) -> String {
         let time = format(capturedAt, "HHmm", timeZone: timeZone)

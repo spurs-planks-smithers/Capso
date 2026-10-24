@@ -1,9 +1,9 @@
 // Packages/FeedbackKit/Sources/FeedbackKit/FeedbackModel.swift
 import Foundation
 
-/// A feedback session: one folder under the store's root with numbered captures.
+/// A feedback round: one folder under the store's root with numbered captures.
 /// `feedback.json` stores this value and is the bundle's source of truth.
-public struct FeedbackSession: Codable, Equatable, Sendable {
+public struct FeedbackRound: Codable, Equatable, Sendable {
     public static let currentSchemaVersion = 1
 
     public var schemaVersion: Int
@@ -39,7 +39,7 @@ public struct FeedbackSession: Codable, Equatable, Sendable {
 
 /// One saved capture. All coordinates are pixels of `imageFile`.
 public struct FeedbackCapture: Codable, Equatable, Sendable {
-    /// 1-based position in the session. It is the item prefix K in the
+    /// 1-based position in the round. It is the item prefix K in the
     /// manifest; file names use the capture time and window title instead.
     public var index: Int
     public var imageFile: String

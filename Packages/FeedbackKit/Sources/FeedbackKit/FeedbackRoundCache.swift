@@ -1,14 +1,14 @@
-// Packages/FeedbackKit/Sources/FeedbackKit/FeedbackSessionCache.swift
+// Packages/FeedbackKit/Sources/FeedbackKit/FeedbackRoundCache.swift
 import Foundation
 
-/// Lists recent sessions like `FeedbackLibrary.recent(in:)`, and keeps each
+/// Lists recent rounds like `FeedbackLibrary.recent(in:)`, and keeps each
 /// decoded `feedback.json` between calls. A file is decoded again only when
 /// its modification date or size differs from the last read, so a menu that
-/// lists sessions on every open does not decode them all each time.
+/// lists rounds on every open does not decode them all each time.
 ///
 /// A change that keeps both the size and the modification date goes unseen.
 /// The store always writes a whole new file, so its changes move the date.
-public struct FeedbackSessionCache: Sendable {
+public struct FeedbackRoundCache: Sendable {
     private struct Stamp: Equatable, Sendable {
         var modified: Date
         var size: Int64
@@ -17,7 +17,7 @@ public struct FeedbackSessionCache: Sendable {
     private struct Entry: Sendable {
         var stamp: Stamp
         /// Nil when the file failed to decode.
-        var session: FeedbackSession?
+        var round: FeedbackRound?
     }
 
     private var rootURL: URL?
@@ -26,10 +26,10 @@ public struct FeedbackSessionCache: Sendable {
 
     public init() {}
 
-    /// The same rules as `FeedbackLibrary.recent(in:limit:)`: ended sessions
+    /// The same rules as `FeedbackLibrary.recent(in:limit:)`: ended rounds
     /// that hold at least one capture, newest end first, at most `limit`. The
-    /// active session has no end time, so it is left out. A folder with no
-    /// `feedback.json` is not a session and is ignored. A folder whose
+    /// active round has no end time, so it is left out. A folder with no
+    /// `feedback.json` is not a round and is ignored. A folder whose
     /// `feedback.json` fails to decode is named in `unreadable`.
     public mutating func recent(in rootURL: URL, limit: Int = 5) -> FeedbackLibrary.Listing {
         // Folder names repeat across roots, so entries never carry over.
@@ -46,47 +46,47 @@ public struct FeedbackSessionCache: Sendable {
         )) ?? []
 
         var kept: [String: Entry] = [:]
-        var sessions: [FeedbackSession] = []
+        var rounds: [FeedbackRound] = []
         var unreadable: [String] = []
         for folder in folders {
             guard (try? folder.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true else { continue }
-            let file = folder.appendingPathComponent(FeedbackSessionStore.sessionFileName)
+            let file = folder.appendingPathComponent(FeedbackRoundStore.roundFileName)
             guard fileManager.fileExists(atPath: file.path) else { continue }
 
             // The stamp is read before the file, so a write between the two
             // reads leaves an old stamp and the next call decodes again.
             let name = folder.lastPathComponent
             let stamp = Self.stamp(of: file)
-            let session: FeedbackSession?
+            let round: FeedbackRound?
             if let stamp, let cached = entries[name], cached.stamp == stamp {
-                session = cached.session
+                round = cached.round
                 kept[name] = cached
             } else {
-                session = FeedbackLibrary.load(file)
+                round = FeedbackLibrary.load(file)
                 if let stamp {
-                    kept[name] = Entry(stamp: stamp, session: session)
+                    kept[name] = Entry(stamp: stamp, round: round)
                 }
             }
 
-            guard let session else {
+            guard let round else {
                 unreadable.append(name)
                 continue
             }
-            if session.endedAt != nil, !session.captures.isEmpty {
-                sessions.append(session)
+            if round.endedAt != nil, !round.captures.isEmpty {
+                rounds.append(round)
             }
         }
         // Entries of folders that are gone are not carried forward.
         entries = kept
 
-        // Every kept session has an end time. The folder name breaks a tie, so
+        // Every kept round has an end time. The folder name breaks a tie, so
         // the order never depends on directory order.
-        sessions.sort { lhs, rhs in
+        rounds.sort { lhs, rhs in
             let lhsEnd = lhs.endedAt ?? .distantPast
             let rhsEnd = rhs.endedAt ?? .distantPast
             return lhsEnd != rhsEnd ? lhsEnd > rhsEnd : lhs.folderName > rhs.folderName
         }
-        return FeedbackLibrary.Listing(sessions: Array(sessions.prefix(max(limit, 0))), unreadable: unreadable.sorted())
+        return FeedbackLibrary.Listing(rounds: Array(rounds.prefix(max(limit, 0))), unreadable: unreadable.sorted())
     }
 
     /// Nil when the file's date or size cannot be read. The file is then

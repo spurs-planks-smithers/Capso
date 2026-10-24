@@ -14,14 +14,14 @@ enum FeedbackLog {
     static let logger = Logger(subsystem: "com.drewschulz.nextshot", category: "Feedback")
 }
 
-/// Fork: owns feedback sessions. Each saved capture goes into the active
-/// session's folder under `defaultRootURL`. This code makes no network calls.
+/// Fork: owns feedback rounds. Each saved capture goes into the active
+/// round's folder under `defaultRootURL`. This code makes no network calls.
 @MainActor
 final class FeedbackController {
     static let shared = FeedbackController()
 
-    let store: FeedbackSessionStore
-    private(set) var session: FeedbackSession?
+    let store: FeedbackRoundStore
+    private(set) var round: FeedbackRound?
     private(set) var folderURL: URL?
 
     private weak var captureCoordinator: CaptureCoordinator?
@@ -29,7 +29,7 @@ final class FeedbackController {
     private var inlineEditor: InlineAnnotationEditorWindow?
     private var fullEditor: AnnotationEditorWindow?
     private var keyMonitor: Any?
-    /// Saves in progress, so `endSession()` can wait for them.
+    /// Saves in progress, so `endRound()` can wait for them.
     private var saveTasks: [UUID: Task<Void, Never>] = [:]
     private let statusItem = FeedbackStatusItem()
     private let notePanel = FeedbackNotePanel()
@@ -40,8 +40,8 @@ final class FeedbackController {
     /// The screen the help box shows on: the pointer's screen at the hotkey,
     /// then the capture's screen.
     private var helpScreen: NSScreen?
-    /// End Session while it waits for saves and ends the session.
-    private var ending: Task<FeedbackSession, Error>?
+    /// End Round while it waits for saves and ends the round.
+    private var ending: Task<FeedbackRound, Error>?
     /// True while Copy Prompt and End Round from the menu or its key runs, so
     /// a second press copies nothing more.
     private var copyingRoundPrompt = false
@@ -50,9 +50,9 @@ final class FeedbackController {
     private let quickLook = FeedbackQuickLook()
     /// The Recent list as read from disk. The menu asks for it on every open
     /// and every submenu open. The cache decodes a `feedback.json` only when
-    /// its modification date or size changed, so an ended or resumed session
+    /// its modification date or size changed, so an ended or resumed round
     /// shows at once and an unchanged one costs a file attribute read.
-    private var sessionCache = FeedbackSessionCache()
+    private var roundCache = FeedbackRoundCache()
     /// The unreadable folders named in the last log line, so an unchanged list
     /// logs once, not on every menu open.
     private var loggedUnreadable: [String] = []
@@ -74,11 +74,11 @@ final class FeedbackController {
         if rootURL == Self.defaultRootURL {
             Self.moveLegacyFolder(to: rootURL)
         }
-        store = FeedbackSessionStore(rootURL: rootURL)
+        store = FeedbackRoundStore(rootURL: rootURL)
     }
 
     /// Moves the bundles from the folder used before the rename, once. The
-    /// active session moves with them. A failed move leaves the old folder
+    /// active round moves with them. A failed move leaves the old folder
     /// as it was.
     private static func moveLegacyFolder(to rootURL: URL) {
         let fileManager = FileManager.default
@@ -116,7 +116,7 @@ final class FeedbackController {
         statusItem.onOpenFolder = { [weak self] in
             self?.openFolder()
         }
-        statusItem.onEndSession = { [weak self] in
+        statusItem.onEndRound = { [weak self] in
             FeedbackLog.logger.notice("menu: End Round")
             self?.endRoundFromMenuOrKey()
         }
@@ -150,23 +150,23 @@ final class FeedbackController {
                 }
             }
         }
-        // The status item shows at launch, with or without a session. A
-        // session left active before a relaunch shows its count.
+        // The status item shows at launch, with or without a round. A
+        // round left active before a relaunch shows its count.
         Task { await refresh() }
     }
 
-    // MARK: - Session actions (hotkey, status menu, App Intents)
+    // MARK: - Round actions (hotkey, status menu, App Intents)
 
     @discardableResult
-    func startSession(name: String?) async throws -> FeedbackSession {
-        let session = try await store.start(name: name ?? "")
+    func startRound(name: String?) async throws -> FeedbackRound {
+        let round = try await store.start(name: name ?? "")
         await refresh()
-        return session
+        return round
     }
 
-    /// Starts an area capture. The first saved capture starts a session named
+    /// Starts an area capture. The first saved capture starts a round named
     /// "feedback" when none is active, so a screenshot copied with Esc leaves
-    /// no empty session behind.
+    /// no empty round behind.
     func capture() {
         FeedbackLog.logger.notice("area capture requested")
         let previousPhase = selectionPhase
@@ -196,9 +196,9 @@ final class FeedbackController {
     /// that `end()` writes. Resume in Recent reopens the round.
     @discardableResult
     func copyPromptAndEndRound() async throws -> String {
-        let session = try await endSession()
-        let folder = store.rootURL.appendingPathComponent(session.folderName, isDirectory: true)
-        let prompt = PromptBuilder.render(session, folderPath: folder.path)
+        let round = try await endRound()
+        let folder = store.rootURL.appendingPathComponent(round.folderName, isDirectory: true)
+        let prompt = PromptBuilder.render(round, folderPath: folder.path)
         copyToClipboard(prompt, toast: Self.promptCopiedRoundEndedToast, screen: nil)
         FeedbackLog.logger.notice("round prompt copied, round ended, \(prompt.count) characters")
         return prompt
@@ -218,7 +218,7 @@ final class FeedbackController {
             let joining = ending != nil
             do {
                 try await copyPromptAndEndRound()
-            } catch FeedbackSessionStore.StoreError.noActiveSession {
+            } catch FeedbackRoundStore.StoreError.noActiveRound {
                 FeedbackLog.logger.notice("copy prompt and end round: no active round")
             } catch {
                 if joining {
@@ -231,21 +231,21 @@ final class FeedbackController {
     }
 
     /// End Round from the menu row or the hotkey. During an end, a press
-    /// joins that end (`endSession()`). No active round means nothing to
+    /// joins that end (`endRound()`). No active round means nothing to
     /// end: no beep (#26). Other failures beep and are logged by the press
     /// that started the end only.
     private func endRoundFromMenuOrKey() {
         Task {
             let joining = ending != nil
             do {
-                try await endSession()
-            } catch FeedbackSessionStore.StoreError.noActiveSession {
+                try await endRound()
+            } catch FeedbackRoundStore.StoreError.noActiveRound {
                 FeedbackLog.logger.notice("end round: no active round")
             } catch {
                 if joining {
                     FeedbackLog.logger.notice("end round: the joined end failed")
                 } else {
-                    report(error, context: "Feedback session did not end")
+                    report(error, context: "Feedback round did not end")
                 }
             }
         }
@@ -253,10 +253,10 @@ final class FeedbackController {
 
     /// Waits for saves in progress first. OCR can take 30 s, and the note
     /// panel can finish before the save does, so ending at once would start a
-    /// new session for that capture. A capture saved during the wait waits
-    /// for `ending` and then goes into a new session.
+    /// new round for that capture. A capture saved during the wait waits
+    /// for `ending` and then goes into a new round.
     @discardableResult
-    func endSession() async throws -> FeedbackSession {
+    func endRound() async throws -> FeedbackRound {
         // One end at a time (#26). A call during an end gets that end's
         // result. A second end would beep after a good end, or end the round
         // that a capture saved during the wait starts.
@@ -266,14 +266,14 @@ final class FeedbackController {
         defer { Task { await refresh() } }
         notePanel.close()
         let saves = Array(saveTasks.values)
-        FeedbackLog.logger.notice("end session: waiting for \(saves.count) saves")
+        FeedbackLog.logger.notice("end round: waiting for \(saves.count) saves")
         let ending = Task {
             for task in saves {
                 await task.value
             }
-            let session = try await self.store.end()
-            FeedbackLog.logger.notice("end session: ended, \(session.captures.count) captures")
-            return session
+            let round = try await self.store.end()
+            FeedbackLog.logger.notice("end round: ended, \(round.captures.count) captures")
+            return round
         }
         self.ending = ending
         defer {
@@ -296,9 +296,9 @@ final class FeedbackController {
     }
 
     private func refresh() async {
-        session = await store.activeSession
+        round = await store.activeRound
         folderURL = await store.activeFolderURL
-        statusItem.update(session: session)
+        statusItem.update(round: round)
         updateRoundShortcuts()
         updateHelp()
     }
@@ -312,7 +312,7 @@ final class FeedbackController {
             FeedbackLog.logger.notice("hotkey: Copy Last Capture Prompt")
             Task {
                 // No active round: nothing to copy, and no beep (#26).
-                guard let self, await self.store.activeSession != nil else { return }
+                guard let self, await self.store.activeRound != nil else { return }
                 await self.copyLastCapturePrompt()
             }
         }
@@ -365,7 +365,7 @@ final class FeedbackController {
     /// (#24). Settings refuses such a key, but an upstream recorder can still
     /// set one.
     func updateRoundShortcuts() {
-        if session != nil {
+        if round != nil {
             KeyboardShortcuts.enable(KeyboardShortcuts.Name.feedbackRoundKeys)
         } else {
             let alwaysOn = Set(
@@ -377,25 +377,25 @@ final class FeedbackController {
         }
     }
 
-    // MARK: - Session history (Recent menu)
+    // MARK: - Round history (Recent menu)
 
     /// Gives the status item its data and its actions for the Recent list,
-    /// the basket of checked captures, and Resume Session.
+    /// the basket of checked captures, and Resume Round.
     private func connectHistoryMenu() {
         statusItem.stateProvider = { [weak self] in
             guard let self else { return .empty }
             return FeedbackMenuState(
-                active: self.session,
-                recent: self.recentSessions(),
+                active: self.round,
+                recent: self.recentRounds(),
                 basket: self.basket,
                 rootURL: self.store.rootURL
             )
         }
-        statusItem.onStartSession = { [weak self] in
+        statusItem.onStartRound = { [weak self] in
             self?.capture()
         }
-        statusItem.onOpenAllSessions = { [weak self] in
-            self?.openAllSessions()
+        statusItem.onOpenAllRounds = { [weak self] in
+            self?.openAllRounds()
         }
         statusItem.onToggleCapture = { [weak self] key in
             guard let self else { return }
@@ -411,36 +411,36 @@ final class FeedbackController {
         statusItem.onQuickLook = { [weak self] key in
             self?.showQuickLook(for: key)
         }
-        statusItem.onCopyRecentSession = { [weak self] session in
-            self?.copyRecentSessionPrompt(session)
+        statusItem.onCopyRecentRound = { [weak self] round in
+            self?.copyRecentRoundPrompt(round)
         }
-        statusItem.onOpenRecentFolder = { [weak self] session in
+        statusItem.onOpenRecentFolder = { [weak self] round in
             guard let self else { return }
-            NSWorkspace.shared.open(self.store.rootURL.appendingPathComponent(session.folderName, isDirectory: true))
+            NSWorkspace.shared.open(self.store.rootURL.appendingPathComponent(round.folderName, isDirectory: true))
         }
-        statusItem.onResumeSession = { [weak self] session in
-            Task { await self?.resumeSession(session) }
+        statusItem.onResumeRound = { [weak self] round in
+            Task { await self?.resumeRound(round) }
         }
     }
 
-    /// The last ended sessions. The cache reads only the folders whose
+    /// The last ended rounds. The cache reads only the folders whose
     /// `feedback.json` changed. Unreadable folders are logged when the list
     /// differs from the last one logged.
-    private func recentSessions() -> [FeedbackSession] {
-        let listing = sessionCache.recent(in: store.rootURL)
+    private func recentRounds() -> [FeedbackRound] {
+        let listing = roundCache.recent(in: store.rootURL)
         let unreadable = listing.unreadable.sorted()
         if unreadable != loggedUnreadable {
             loggedUnreadable = unreadable
             if !unreadable.isEmpty {
-                // Folder names hold the session name, so only the count is public.
-                FeedbackLog.logger.error("recent sessions: \(unreadable.count, privacy: .public) unreadable: \(unreadable.joined(separator: ", "), privacy: .private)")
+                // Folder names hold the round name, so only the count is public.
+                FeedbackLog.logger.error("recent rounds: \(unreadable.count, privacy: .public) unreadable: \(unreadable.joined(separator: ", "), privacy: .private)")
             }
         }
-        return listing.sessions
+        return listing.rounds
     }
 
-    private func openAllSessions() {
-        // The folder does not exist before the first session.
+    private func openAllRounds() {
+        // The folder does not exist before the first round.
         try? FileManager.default.createDirectory(at: store.rootURL, withIntermediateDirectories: true)
         NSWorkspace.shared.open(store.rootURL)
     }
@@ -455,7 +455,7 @@ final class FeedbackController {
             guard FeedbackLibrary.bundleFilesNeedRepair(folderName: folderName, in: store.rootURL) else { continue }
             do {
                 try await store.repairBundleFiles(folderName: folderName)
-                // Folder names hold the session name, so they stay private.
+                // Folder names hold the round name, so they stay private.
                 FeedbackLog.logger.notice("bundle repaired: \(folderName, privacy: .private)")
             } catch {
                 let nsError = error as NSError
@@ -472,7 +472,7 @@ final class FeedbackController {
         let selection = basket
         basket.removeAll()
         Task { @MainActor in
-            // Repair first, so the sessions read next are the repaired ones.
+            // Repair first, so the rounds read next are the repaired ones.
             await self.repairBundles(inFolders: selection.keys.map(\.folderName))
             let resolved = FeedbackLibrary.entries(for: selection, in: self.store.rootURL)
             switch resolved.entries.count {
@@ -490,20 +490,20 @@ final class FeedbackController {
         }
     }
 
-    private func copyRecentSessionPrompt(_ session: FeedbackSession) {
+    private func copyRecentRoundPrompt(_ round: FeedbackRound) {
         Task { @MainActor in
-            await self.repairBundles(inFolders: [session.folderName])
-            let folder = self.store.rootURL.appendingPathComponent(session.folderName, isDirectory: true)
-            let prompt = PromptBuilder.render(session, folderPath: folder.path, redo: true)
+            await self.repairBundles(inFolders: [round.folderName])
+            let folder = self.store.rootURL.appendingPathComponent(round.folderName, isDirectory: true)
+            let prompt = PromptBuilder.render(round, folderPath: folder.path, redo: true)
             self.copyToClipboard(prompt, toast: Self.promptCopiedToast, screen: nil)
-            FeedbackLog.logger.notice("recent session prompt copied, \(prompt.count) characters")
+            FeedbackLog.logger.notice("recent round prompt copied, \(prompt.count) characters")
         }
     }
 
     /// Opens Quick Look on the capture's annotated PNG.
     private func showQuickLook(for key: FeedbackBasketKey) {
-        guard let session = FeedbackLibrary.session(named: key.folderName, in: store.rootURL),
-              let capture = session.captures.first(where: { $0.index == key.captureIndex }) else {
+        guard let round = FeedbackLibrary.round(named: key.folderName, in: store.rootURL),
+              let capture = round.captures.first(where: { $0.index == key.captureIndex }) else {
             NSSound.beep()
             return
         }
@@ -517,14 +517,14 @@ final class FeedbackController {
         quickLook.show(url)
     }
 
-    /// Reopens an ended session, so the next capture goes into it.
-    private func resumeSession(_ listed: FeedbackSession) async {
+    /// Reopens an ended round, so the next capture goes into it.
+    private func resumeRound(_ listed: FeedbackRound) async {
         do {
-            let session = try await store.resume(folderName: listed.folderName)
-            FeedbackLog.logger.notice("session resumed, \(session.captures.count) captures")
+            let round = try await store.resume(folderName: listed.folderName)
+            FeedbackLog.logger.notice("round resumed, \(round.captures.count) captures")
             await refresh()
         } catch {
-            report(error, context: "Feedback session did not resume")
+            report(error, context: "Feedback round did not resume")
         }
     }
 
@@ -539,8 +539,8 @@ final class FeedbackController {
         case selecting
     }
 
-    /// Shows the keys for the current stage. The box stays until the session
-    /// ends. With no session, it shows only while a capture is in progress.
+    /// Shows the keys for the current stage. The box stays until the round
+    /// ends. With no round, it shows only while a capture is in progress.
     private func updateHelp() {
         let stage: FeedbackHelpStage?
         switch selectionPhase {
@@ -553,14 +553,14 @@ final class FeedbackController {
                 stage = .marking
             } else if notePanel.isOpen {
                 stage = .notes
-            } else if session != nil {
+            } else if round != nil {
                 stage = .between
             } else {
                 stage = nil
             }
         }
         if let stage {
-            help.show(stage, document: inlineEditor?.document, roundActive: session != nil, on: helpScreen)
+            help.show(stage, document: inlineEditor?.document, roundActive: round != nil, on: helpScreen)
         } else {
             help.hide()
         }
@@ -617,12 +617,12 @@ final class FeedbackController {
                 self?.saveFromInlineEditor(rendered, result: result)
             },
             onCopy: { [weak self] rendered in
-                // In a session, Copy also keeps the capture.
+                // In a round, Copy also keeps the capture.
                 ImageUtilities.copyToPasteboard(rendered, format: .png)
                 self?.saveFromInlineEditor(rendered, result: result)
             },
             onPin: { [weak self] rendered, _ in
-                // In a session, Pin keeps the capture instead of pinning it.
+                // In a round, Pin keeps the capture instead of pinning it.
                 self?.saveFromInlineEditor(rendered, result: result)
             },
             onClose: { [weak self] in
@@ -808,7 +808,7 @@ final class FeedbackController {
             capturedAt: result.timestamp,
             timeZone: store.timeZone
         )
-        // Read now, not inside the task: End Session waits for the saves that
+        // Read now, not inside the task: End Round waits for the saves that
         // exist when it starts, so a save that started before it must not
         // wait for it in turn.
         let endingAtSave = ending
@@ -822,10 +822,10 @@ final class FeedbackController {
                       let cleanPNG = FeedbackImageExport.png(clean, size: target) else {
                     throw CocoaError(.fileWriteUnknown)
                 }
-                // A capture saved while End Session runs waits for it and then
-                // goes into a new session, so its answers have a session to go to.
+                // A capture saved while End Round runs waits for it and then
+                // goes into a new round, so its answers have a round to go to.
                 _ = try? await endingAtSave?.value
-                // A session can end while the editor is open. Start a new one
+                // A round can end while the editor is open. Start a new one
                 // rather than lose the capture.
                 try await store.startIfNeeded(name: FeedbackNaming.defaultSlug)
                 let capture = try await store.addCapture(FeedbackCaptureInput(
@@ -849,7 +849,7 @@ final class FeedbackController {
                 return capture.index
             } catch {
                 report(error, context: "Feedback capture was not saved")
-                // The session may have started before the failure, so the
+                // The round may have started before the failure, so the
                 // menu must show it.
                 await refresh()
                 return nil
@@ -874,7 +874,7 @@ final class FeedbackController {
         )
         updateHelp()
 
-        // End Session waits for this task, so it never ends a session before
+        // End Round waits for this task, so it never ends a round before
         // the screen text is in.
         let saveID = UUID()
         saveTasks[saveID] = Task {
@@ -910,28 +910,28 @@ final class FeedbackController {
         for write in pending.writes {
             await write.value
         }
-        // One read of the session, so the capture and its folder always match.
-        guard let session = await store.activeSession,
-              let capture = session.captures.first(where: { $0.index == index }) else {
+        // One read of the round, so the capture and its folder always match.
+        guard let round = await store.activeRound,
+              let capture = round.captures.first(where: { $0.index == index }) else {
             NSSound.beep()
             return
         }
-        putOnClipboard(capture, in: session, screen: screen)
+        putOnClipboard(capture, in: round, screen: screen)
     }
 
     /// Copy Last Capture Prompt, from the menu row or its hotkey: the newest
     /// capture's prompt again, for when something else (such as a dictation
     /// tool) replaced the clipboard.
     func copyLastCapturePrompt() async {
-        guard let session = await store.activeSession, let capture = session.captures.last else {
+        guard let round = await store.activeRound, let capture = round.captures.last else {
             NSSound.beep()
             return
         }
-        putOnClipboard(capture, in: session, screen: nil)
+        putOnClipboard(capture, in: round, screen: nil)
     }
 
-    private func putOnClipboard(_ capture: FeedbackCapture, in session: FeedbackSession, screen: NSScreen?) {
-        let folder = store.rootURL.appendingPathComponent(session.folderName, isDirectory: true)
+    private func putOnClipboard(_ capture: FeedbackCapture, in round: FeedbackRound, screen: NSScreen?) {
+        let folder = store.rootURL.appendingPathComponent(round.folderName, isDirectory: true)
         let prompt = PromptBuilder.renderCapture(capture, folderPath: folder.path)
         copyToClipboard(prompt, toast: Self.promptCopiedToast, screen: screen)
         FeedbackLog.logger.notice("capture \(capture.index) prompt copied, \(prompt.count) characters")

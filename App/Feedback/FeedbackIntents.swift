@@ -2,12 +2,12 @@
 import AppIntents
 import FeedbackKit
 
-/// Fork: Shortcuts actions for feedback sessions. They run in-process and
+/// Fork: Shortcuts actions for feedback rounds. They run in-process and
 /// make no network calls.
 
-struct StartFeedbackSessionIntent: AppIntent {
-    static let title: LocalizedStringResource = "Start Feedback Session"
-    static let description = IntentDescription("Starts a Nextshot feedback session. Captures go into a new folder under ~/Library/Application Support/Nextshot.")
+struct StartFeedbackRoundIntent: AppIntent {
+    static let title: LocalizedStringResource = "Start Feedback Round"
+    static let description = IntentDescription("Starts a Nextshot feedback round. Captures go into a new folder under ~/Library/Application Support/Nextshot.")
 
     @Parameter(title: "Name")
     var name: String?
@@ -15,17 +15,17 @@ struct StartFeedbackSessionIntent: AppIntent {
     @MainActor
     func perform() async throws -> some IntentResult & ReturnsValue<String> {
         do {
-            let session = try await FeedbackController.shared.startSession(name: name)
-            return .result(value: session.folderName)
-        } catch FeedbackSessionStore.StoreError.sessionAlreadyActive {
-            throw FeedbackIntentError.sessionAlreadyActive
+            let round = try await FeedbackController.shared.startRound(name: name)
+            return .result(value: round.folderName)
+        } catch FeedbackRoundStore.StoreError.roundAlreadyActive {
+            throw FeedbackIntentError.roundAlreadyActive
         }
     }
 }
 
 struct CaptureFeedbackIntent: AppIntent {
     static let title: LocalizedStringResource = "Capture Feedback"
-    static let description = IntentDescription("Captures an area into the active feedback session. Saving the first capture starts a session when none is active.")
+    static let description = IntentDescription("Captures an area into the active feedback round. Saving the first capture starts a round when none is active.")
     // `openAppWhenRun` is deprecated only from macOS 26. The app targets macOS 15.
     static let openAppWhenRun = true
 
@@ -46,35 +46,35 @@ struct CopyFeedbackPromptIntent: AppIntent {
         do {
             let prompt = try await FeedbackController.shared.copyPromptAndEndRound()
             return .result(value: prompt)
-        } catch FeedbackSessionStore.StoreError.noActiveSession {
-            throw FeedbackIntentError.noActiveSession
+        } catch FeedbackRoundStore.StoreError.noActiveRound {
+            throw FeedbackIntentError.noActiveRound
         }
     }
 }
 
-struct EndFeedbackSessionIntent: AppIntent {
-    static let title: LocalizedStringResource = "End Feedback Session"
-    static let description = IntentDescription("Ends the active feedback session. The folder stays in ~/Library/Application Support/Nextshot.")
+struct EndFeedbackRoundIntent: AppIntent {
+    static let title: LocalizedStringResource = "End Feedback Round"
+    static let description = IntentDescription("Ends the active feedback round. The folder stays in ~/Library/Application Support/Nextshot.")
 
     @MainActor
     func perform() async throws -> some IntentResult & ReturnsValue<String> {
         do {
-            let session = try await FeedbackController.shared.endSession()
-            return .result(value: session.folderName)
-        } catch FeedbackSessionStore.StoreError.noActiveSession {
-            throw FeedbackIntentError.noActiveSession
+            let round = try await FeedbackController.shared.endRound()
+            return .result(value: round.folderName)
+        } catch FeedbackRoundStore.StoreError.noActiveRound {
+            throw FeedbackIntentError.noActiveRound
         }
     }
 }
 
 enum FeedbackIntentError: Error, CustomLocalizedStringResourceConvertible {
-    case noActiveSession
-    case sessionAlreadyActive
+    case noActiveRound
+    case roundAlreadyActive
 
     var localizedStringResource: LocalizedStringResource {
         switch self {
-        case .noActiveSession: "No feedback session is active."
-        case .sessionAlreadyActive: "A feedback session is already active. End it first."
+        case .noActiveRound: "No feedback round is active."
+        case .roundAlreadyActive: "A feedback round is already active. End it first."
         }
     }
 }
@@ -82,9 +82,9 @@ enum FeedbackIntentError: Error, CustomLocalizedStringResourceConvertible {
 struct FeedbackAppShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(
-            intent: StartFeedbackSessionIntent(),
-            phrases: ["Start a feedback session in \(.applicationName)"],
-            shortTitle: "Start Feedback Session",
+            intent: StartFeedbackRoundIntent(),
+            phrases: ["Start a feedback round in \(.applicationName)"],
+            shortTitle: "Start Feedback Round",
             systemImageName: "text.bubble"
         )
         AppShortcut(
@@ -100,9 +100,9 @@ struct FeedbackAppShortcuts: AppShortcutsProvider {
             systemImageName: "doc.on.clipboard"
         )
         AppShortcut(
-            intent: EndFeedbackSessionIntent(),
-            phrases: ["End the feedback session in \(.applicationName)"],
-            shortTitle: "End Feedback Session",
+            intent: EndFeedbackRoundIntent(),
+            phrases: ["End the feedback round in \(.applicationName)"],
+            shortTitle: "End Feedback Round",
             systemImageName: "stop.circle"
         )
     }

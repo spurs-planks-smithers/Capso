@@ -33,28 +33,28 @@ struct FeedbackLibraryTests {
 
     /// Writes `root/<folderName>/feedback.json`, the way the store does.
     @discardableResult
-    private func write(_ session: FeedbackSession) throws -> FeedbackSession {
-        let folder = root.appendingPathComponent(session.folderName, isDirectory: true)
+    private func write(_ round: FeedbackRound) throws -> FeedbackRound {
+        let folder = root.appendingPathComponent(round.folderName, isDirectory: true)
         try fileManager.createDirectory(at: folder, withIntermediateDirectories: true)
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
-        try encoder.encode(session).write(to: folder.appendingPathComponent("feedback.json"))
-        return session
+        try encoder.encode(round).write(to: folder.appendingPathComponent("feedback.json"))
+        return round
     }
 
-    /// An ended session with one capture. `day` is the day of its end.
-    private func ended(day: Int, name: String? = nil, startedDay: Int? = nil) -> FeedbackSession {
-        FeedbackSession(
-            name: name ?? "session \(day)",
-            slug: "session-\(day)",
-            folderName: "2026-10-\(day)-0900-session-\(day)",
+    /// An ended round with one capture. `day` is the day of its end.
+    private func ended(day: Int, name: String? = nil, startedDay: Int? = nil) -> FeedbackRound {
+        FeedbackRound(
+            name: name ?? "round \(day)",
+            slug: "round-\(day)",
+            folderName: "2026-10-\(day)-0900-round-\(day)",
             startedAt: date(startedDay ?? day, 9, 0),
             endedAt: date(day, 10, 0),
             captures: [capture(1)]
         )
     }
 
-    @Test("Lists ended sessions with captures, newest end first, at most 5")
+    @Test("Lists ended rounds with captures, newest end first, at most 5")
     func listsNewestFirstWithLimit() throws {
         defer { try? fileManager.removeItem(at: root) }
         for day in 10...16 {
@@ -62,26 +62,26 @@ struct FeedbackLibraryTests {
         }
 
         let listing = FeedbackLibrary.recent(in: root)
-        #expect(listing.sessions.map(\.folderName) == [
-            "2026-10-16-0900-session-16",
-            "2026-10-15-0900-session-15",
-            "2026-10-14-0900-session-14",
-            "2026-10-13-0900-session-13",
-            "2026-10-12-0900-session-12",
+        #expect(listing.rounds.map(\.folderName) == [
+            "2026-10-16-0900-round-16",
+            "2026-10-15-0900-round-15",
+            "2026-10-14-0900-round-14",
+            "2026-10-13-0900-round-13",
+            "2026-10-12-0900-round-12",
         ])
         #expect(listing.unreadable.isEmpty)
     }
 
-    @Test("Sorts by end time, so a resumed and ended old session comes first")
+    @Test("Sorts by end time, so a resumed and ended old round comes first")
     func sortsByEndTime() throws {
         defer { try? fileManager.removeItem(at: root) }
         let a = try write(ended(day: 20, name: "A", startedDay: 10))
         let b = try write(ended(day: 16, name: "B", startedDay: 15))
 
-        #expect(FeedbackLibrary.recent(in: root).sessions == [a, b])
+        #expect(FeedbackLibrary.recent(in: root).rounds == [a, b])
     }
 
-    @Test("Leaves out the active session and sessions with no captures")
+    @Test("Leaves out the active round and rounds with no captures")
     func leavesOutActiveAndEmpty() throws {
         defer { try? fileManager.removeItem(at: root) }
         let kept = try write(ended(day: 12))
@@ -92,7 +92,7 @@ struct FeedbackLibraryTests {
         empty.captures = []
         try write(empty)
 
-        #expect(FeedbackLibrary.recent(in: root).sessions == [kept])
+        #expect(FeedbackLibrary.recent(in: root).rounds == [kept])
     }
 
     @Test("Skips an unreadable folder and names it")
@@ -105,7 +105,7 @@ struct FeedbackLibraryTests {
 
         let listing = FeedbackLibrary.recent(in: root)
         #expect(listing.unreadable == ["2026-10-01-0900-broken"])
-        #expect(listing.sessions == [good])
+        #expect(listing.rounds == [good])
     }
 
     @Test("Ignores plain files and folders without feedback.json")
@@ -116,24 +116,24 @@ struct FeedbackLibraryTests {
 
         let listing = FeedbackLibrary.recent(in: root)
         #expect(listing.unreadable == [])
-        #expect(listing.sessions.isEmpty)
+        #expect(listing.rounds.isEmpty)
     }
 
     @Test("Returns an empty listing when the root folder does not exist")
     func missingRoot() {
         defer { try? fileManager.removeItem(at: root) }
         let listing = FeedbackLibrary.recent(in: root.appendingPathComponent("nope", isDirectory: true))
-        #expect(listing == FeedbackLibrary.Listing(sessions: [], unreadable: []))
+        #expect(listing == FeedbackLibrary.Listing(rounds: [], unreadable: []))
     }
 
-    @Test("Loads one session by folder name, nil when missing")
-    func loadsOneSession() throws {
+    @Test("Loads one round by folder name, nil when missing")
+    func loadsOneRound() throws {
         defer { try? fileManager.removeItem(at: root) }
-        let session = try write(ended(day: 12))
+        let round = try write(ended(day: 12))
 
-        #expect(FeedbackLibrary.session(named: session.folderName, in: root) == session)
-        #expect(FeedbackLibrary.session(named: "2026-10-01-0900-missing", in: root) == nil)
-        #expect(FeedbackLibrary.session(named: "../\(session.folderName)", in: root) == nil)
+        #expect(FeedbackLibrary.round(named: round.folderName, in: root) == round)
+        #expect(FeedbackLibrary.round(named: "2026-10-01-0900-missing", in: root) == nil)
+        #expect(FeedbackLibrary.round(named: "../\(round.folderName)", in: root) == nil)
     }
 
     @Test("Titles a row by relative day and start time")

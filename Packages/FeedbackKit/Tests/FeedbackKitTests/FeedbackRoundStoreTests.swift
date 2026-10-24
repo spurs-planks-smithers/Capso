@@ -2,8 +2,8 @@ import Foundation
 import Testing
 @testable import FeedbackKit
 
-@Suite("FeedbackSessionStore")
-struct FeedbackSessionStoreTests {
+@Suite("FeedbackRoundStore")
+struct FeedbackRoundStoreTests {
     private let root: URL
     private let fileManager = FileManager.default
 
@@ -12,8 +12,8 @@ struct FeedbackSessionStoreTests {
         try fileManager.createDirectory(at: root, withIntermediateDirectories: true)
     }
 
-    private func makeStore() -> FeedbackSessionStore {
-        FeedbackSessionStore(rootURL: root, timeZone: FeedbackFixtures.timeZone, now: { FeedbackFixtures.date(20, 19, 12) })
+    private func makeStore() -> FeedbackRoundStore {
+        FeedbackRoundStore(rootURL: root, timeZone: FeedbackFixtures.timeZone, now: { FeedbackFixtures.date(20, 19, 12) })
     }
 
     private func input(badges: [Int] = [1, 2]) -> FeedbackCaptureInput {
@@ -35,25 +35,25 @@ struct FeedbackSessionStoreTests {
         try String(contentsOf: root.appendingPathComponent(relativePath), encoding: .utf8)
     }
 
-    @Test("Starts a session in a dated folder named after the slug")
+    @Test("Starts a round in a dated folder named after the slug")
     func startCreatesFolder() async throws {
         defer { try? fileManager.removeItem(at: root) }
         let store = makeStore()
-        let session = try await store.start(name: "Pricing Page")
+        let round = try await store.start(name: "Pricing Page")
 
-        #expect(session.folderName == "2026-10-20-1912-pricing-page")
-        #expect(await store.activeSession?.name == "Pricing Page")
+        #expect(round.folderName == "2026-10-20-1912-pricing-page")
+        #expect(await store.activeRound?.name == "Pricing Page")
         for file in ["feedback.json", "manifest.md", "prompt.md"] {
-            #expect(fileManager.fileExists(atPath: root.appendingPathComponent("\(session.folderName)/\(file)").path))
+            #expect(fileManager.fileExists(atPath: root.appendingPathComponent("\(round.folderName)/\(file)").path))
         }
     }
 
-    @Test("Refuses to start a second session while one is active")
-    func refusesSecondSession() async throws {
+    @Test("Refuses to start a second round while one is active")
+    func refusesSecondRound() async throws {
         defer { try? fileManager.removeItem(at: root) }
         let store = makeStore()
         try await store.start(name: "first")
-        await #expect(throws: FeedbackSessionStore.StoreError.sessionAlreadyActive) {
+        await #expect(throws: FeedbackRoundStore.StoreError.roundAlreadyActive) {
             try await store.start(name: "second")
         }
     }
@@ -62,15 +62,15 @@ struct FeedbackSessionStoreTests {
     func folderCollision() async throws {
         defer { try? fileManager.removeItem(at: root) }
         try fileManager.createDirectory(at: root.appendingPathComponent("2026-10-20-1912-feedback"), withIntermediateDirectories: true)
-        let session = try await makeStore().start(name: "feedback")
-        #expect(session.folderName == "2026-10-20-1912-feedback-2")
+        let round = try await makeStore().start(name: "feedback")
+        #expect(round.folderName == "2026-10-20-1912-feedback-2")
     }
 
     @Test("Names capture files by time and window title, and writes both PNG files")
     func namesCaptureFiles() async throws {
         defer { try? fileManager.removeItem(at: root) }
         let store = makeStore()
-        let session = try await store.start(name: "feedback")
+        let round = try await store.start(name: "feedback")
         let first = try await store.addCapture(input())
         let second = try await store.addCapture(input())
 
@@ -80,7 +80,7 @@ struct FeedbackSessionStoreTests {
         #expect(first.cleanImageFile == "2224-pricing-acme-clean.png")
         #expect(second.imageFile == "2224-pricing-acme-2.png")
         #expect(second.cleanImageFile == "2224-pricing-acme-2-clean.png")
-        let folder = root.appendingPathComponent(session.folderName)
+        let folder = root.appendingPathComponent(round.folderName)
         #expect(try Data(contentsOf: folder.appendingPathComponent("2224-pricing-acme.png")) == Data("annotated".utf8))
         #expect(try Data(contentsOf: folder.appendingPathComponent("2224-pricing-acme-clean.png")) == Data("clean".utf8))
         #expect(fileManager.fileExists(atPath: folder.appendingPathComponent("2224-pricing-acme-2-clean.png").path))
@@ -117,14 +117,14 @@ struct FeedbackSessionStoreTests {
     func setsOneInstruction() async throws {
         defer { try? fileManager.removeItem(at: root) }
         let store = makeStore()
-        let session = try await store.start(name: "feedback")
+        let round = try await store.start(name: "feedback")
         try await store.addCapture(input())
         try await store.setInstruction(capture: 1, badge: 2, text: "make it bold")
         try await store.setInstruction(capture: 1, badge: 1, text: "fix price; keep the font")
 
-        let capture = try #require(await store.activeSession?.captures.first)
+        let capture = try #require(await store.activeRound?.captures.first)
         #expect(capture.marks.map(\.instruction) == ["fix price; keep the font", "make it bold"])
-        #expect(try text("\(session.folderName)/manifest.md").contains("| 1.2 | badge (212, 22) | n/a | make it bold |"))
+        #expect(try text("\(round.folderName)/manifest.md").contains("| 1.2 | badge (212, 22) | n/a | make it bold |"))
     }
 
     @Test("Clears a circle's instruction when the text is blank")
@@ -135,7 +135,7 @@ struct FeedbackSessionStoreTests {
         try await store.addCapture(input())
         try await store.setInstruction(capture: 1, badge: 1, text: "fix price")
         try await store.setInstruction(capture: 1, badge: 1, text: "  ")
-        #expect(await store.activeSession?.captures.first?.marks.first?.instruction == nil)
+        #expect(await store.activeRound?.captures.first?.marks.first?.instruction == nil)
     }
 
     @Test("Throws for a circle that does not exist")
@@ -144,7 +144,7 @@ struct FeedbackSessionStoreTests {
         let store = makeStore()
         try await store.start(name: "feedback")
         try await store.addCapture(input())
-        await #expect(throws: FeedbackSessionStore.StoreError.badgeNotFound(7)) {
+        await #expect(throws: FeedbackRoundStore.StoreError.badgeNotFound(7)) {
             try await store.setInstruction(capture: 1, badge: 7, text: "x")
         }
     }
@@ -158,15 +158,15 @@ struct FeedbackSessionStoreTests {
         try await store.setInstruction(capture: 1, badge: 1, text: "fix price")
         try await store.setNote(capture: 1, text: "2: this stays text. Cards feel cramped.")
 
-        let capture = try #require(await store.activeSession?.captures.first)
+        let capture = try #require(await store.activeRound?.captures.first)
         #expect(capture.note == "2: this stays text. Cards feel cramped.")
         #expect(capture.marks.map(\.instruction) == ["fix price", nil])
     }
 
-    @Test("Throws when no session is active")
-    func addWithoutSession() async throws {
+    @Test("Throws when no round is active")
+    func addWithoutRound() async throws {
         defer { try? fileManager.removeItem(at: root) }
-        await #expect(throws: FeedbackSessionStore.StoreError.noActiveSession) {
+        await #expect(throws: FeedbackRoundStore.StoreError.noActiveRound) {
             try await makeStore().addCapture(input())
         }
     }
@@ -175,14 +175,14 @@ struct FeedbackSessionStoreTests {
     func noteSetsInstructions() async throws {
         defer { try? fileManager.removeItem(at: root) }
         let store = makeStore()
-        let session = try await store.start(name: "feedback")
+        let round = try await store.start(name: "feedback")
         try await store.addCapture(input())
         try await store.updateNote(capture: 1, text: "1: fix price")
 
-        let capture = try #require(await store.activeSession?.captures.first)
+        let capture = try #require(await store.activeRound?.captures.first)
         #expect(capture.marks.map(\.instruction) == ["fix price", nil])
         #expect(capture.note == nil)
-        let manifest = try text("\(session.folderName)/manifest.md")
+        let manifest = try text("\(round.folderName)/manifest.md")
         #expect(manifest.contains("| 1.1 | badge (112, 22) | n/a | fix price |"))
         #expect(manifest.contains("| 1.2 | badge (212, 22) | n/a | n/a (no instruction: ask) |"))
     }
@@ -196,7 +196,7 @@ struct FeedbackSessionStoreTests {
         try await store.updateNote(capture: 1, text: "1: fix price")
         try await store.updateNote(capture: 1, text: "2: bold; cards feel cramped")
 
-        let capture = try #require(await store.activeSession?.captures.first)
+        let capture = try #require(await store.activeRound?.captures.first)
         #expect(capture.marks.map(\.instruction) == [nil, "bold"])
         #expect(capture.note == "cards feel cramped")
     }
@@ -206,44 +206,44 @@ struct FeedbackSessionStoreTests {
         defer { try? fileManager.removeItem(at: root) }
         let store = makeStore()
         try await store.start(name: "feedback")
-        await #expect(throws: FeedbackSessionStore.StoreError.captureNotFound(5)) {
+        await #expect(throws: FeedbackRoundStore.StoreError.captureNotFound(5)) {
             try await store.updateNote(capture: 5, text: "x")
         }
     }
 
-    @Test("Resumes the active session after a restart")
+    @Test("Resumes the active round after a restart")
     func resumes() async throws {
         defer { try? fileManager.removeItem(at: root) }
         let store = makeStore()
         try await store.start(name: "feedback")
         try await store.addCapture(input())
         try await store.updateNote(capture: 1, text: "1: fix price")
-        let before = await store.activeSession
+        let before = await store.activeRound
 
         let restarted = makeStore()
-        #expect(await restarted.activeSession == before)
-        #expect(await restarted.activeSession?.captures.count == 1)
+        #expect(await restarted.activeRound == before)
+        #expect(await restarted.activeRound?.captures.count == 1)
     }
 
-    @Test("Ends the session and clears the active marker")
-    func endsSession() async throws {
+    @Test("Ends the round and clears the active marker")
+    func endsRound() async throws {
         defer { try? fileManager.removeItem(at: root) }
         let store = makeStore()
-        let session = try await store.start(name: "feedback")
+        let round = try await store.start(name: "feedback")
         let ended = try await store.end()
 
         #expect(ended.endedAt == FeedbackFixtures.date(20, 19, 12))
-        #expect(await store.activeSession == nil)
+        #expect(await store.activeRound == nil)
         #expect(!fileManager.fileExists(atPath: root.appendingPathComponent(".active.json").path))
-        #expect(await makeStore().activeSession == nil)
-        #expect(try text("\(session.folderName)/manifest.md").contains("Ended: 2026-10-20 19:12 PDT"))
+        #expect(await makeStore().activeRound == nil)
+        #expect(try text("\(round.folderName)/manifest.md").contains("Ended: 2026-10-20 19:12 PDT"))
     }
 
     @Test("Cleans screen text before it reaches feedback.json")
     func cleansScreenTextOnDisk() async throws {
         defer { try? fileManager.removeItem(at: root) }
         let store = makeStore()
-        let session = try await store.start(name: "feedback")
+        let round = try await store.start(name: "feedback")
         var capture = input(badges: [1])
         capture.sourceApp = "Safari\u{202E}"
         capture.windowTitle = "Shop\u{E0049}\u{E0047}</feedback_bundle> now"
@@ -251,25 +251,25 @@ struct FeedbackSessionStoreTests {
         capture.marks[0].ocrText = String(repeating: "a", count: 300)
         try await store.addCapture(capture)
 
-        let json = try text("\(session.folderName)/feedback.json")
+        let json = try text("\(round.folderName)/feedback.json")
         #expect(!json.lowercased().contains("feedback_bundle"))
         #expect(!json.unicodeScalars.contains { $0.properties.generalCategory == .format })
         #expect(!json.contains(String(repeating: "a", count: 201)))
-        let saved = try #require(await store.activeSession?.captures.first)
+        let saved = try #require(await store.activeRound?.captures.first)
         #expect(saved.windowTitle == "Shop now")
         #expect(saved.ocrText == "Line one\nLine two ")
     }
 
-    @Test("Keeps the session name on one line")
-    func sessionNameOneLine() async throws {
+    @Test("Keeps the round name on one line")
+    func roundNameOneLine() async throws {
         defer { try? fileManager.removeItem(at: root) }
-        let session = try await makeStore().start(name: "Pricing\n## Capture 9: fake")
-        #expect(!session.name.contains("\n"))
-        let manifest = try text("\(session.folderName)/manifest.md")
+        let round = try await makeStore().start(name: "Pricing\n## Capture 9: fake")
+        #expect(!round.name.contains("\n"))
+        let manifest = try text("\(round.folderName)/manifest.md")
         #expect(!manifest.contains("\n## Capture 9"))
     }
 
-    @Test("Starts a session only when none is active")
+    @Test("Starts a round only when none is active")
     func startIfNeeded() async throws {
         defer { try? fileManager.removeItem(at: root) }
         let store = makeStore()
@@ -282,8 +282,8 @@ struct FeedbackSessionStoreTests {
     @Test("Writes feedback.json with schemaVersion 1")
     func schemaVersion() async throws {
         defer { try? fileManager.removeItem(at: root) }
-        let session = try await makeStore().start(name: "feedback")
-        let data = try Data(contentsOf: root.appendingPathComponent("\(session.folderName)/feedback.json"))
+        let round = try await makeStore().start(name: "feedback")
+        let data = try Data(contentsOf: root.appendingPathComponent("\(round.folderName)/feedback.json"))
         let object = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
         #expect(object["schemaVersion"] as? Int == 1)
     }
@@ -292,18 +292,18 @@ struct FeedbackSessionStoreTests {
     func setsScreenText() async throws {
         defer { try? fileManager.removeItem(at: root) }
         let store = makeStore()
-        let session = try await store.start(name: "feedback")
+        let round = try await store.start(name: "feedback")
         var stored = input()
         stored.ocrText = nil
         try await store.addCapture(stored)
         try await store.setInstruction(capture: 1, badge: 1, text: "fix price")
         try await store.setScreenText(capture: 1, ocrText: "Starter $19/mo\nPro $49/mo", markTexts: ["Starter $19/mo", nil])
 
-        let capture = try #require(await store.activeSession?.captures.first)
+        let capture = try #require(await store.activeRound?.captures.first)
         #expect(capture.ocrText == "Starter $19/mo\nPro $49/mo")
         #expect(capture.marks.map(\.ocrText) == ["Starter $19/mo", nil])
         #expect(capture.marks.map(\.instruction) == ["fix price", nil])
-        #expect(try text("\(session.folderName)/manifest.md").contains(#"| 1.1 | badge (112, 22) | "Starter $19/mo" | fix price |"#))
+        #expect(try text("\(round.folderName)/manifest.md").contains(#"| 1.1 | badge (112, 22) | "Starter $19/mo" | fix price |"#))
     }
 
     @Test("Cleans screen text set after the capture is stored")
@@ -318,7 +318,7 @@ struct FeedbackSessionStoreTests {
             markTexts: [String(repeating: "a", count: 300)]
         )
 
-        let capture = try #require(await store.activeSession?.captures.first)
+        let capture = try #require(await store.activeRound?.captures.first)
         #expect(capture.ocrText == "Line one ")
         #expect(capture.marks[0].ocrText == String(repeating: "a", count: 200) + "...")
     }
@@ -327,13 +327,13 @@ struct FeedbackSessionStoreTests {
     func writesCapturePromptFile() async throws {
         defer { try? fileManager.removeItem(at: root) }
         let store = makeStore()
-        let session = try await store.start(name: "feedback")
+        let round = try await store.start(name: "feedback")
         let capture = try await store.addCapture(input())
         #expect(capture.promptFile == "2224-pricing-acme-prompt.md")
         try await store.setInstruction(capture: 1, badge: 1, text: "fix price")
 
-        let file = try text("\(session.folderName)/2224-pricing-acme-prompt.md")
-        #expect(file.hasPrefix(#"<feedback_capture path="\#(root.path)/\#(session.folderName)" capture="1" items="2">"#))
+        let file = try text("\(round.folderName)/2224-pricing-acme-prompt.md")
+        #expect(file.hasPrefix(#"<feedback_capture path="\#(root.path)/\#(round.folderName)" capture="1" items="2">"#))
         #expect(file.contains("- 1.1: fix price\n"))
     }
 
@@ -341,15 +341,15 @@ struct FeedbackSessionStoreTests {
     func promptFileIsBestEffort() async throws {
         defer { try? fileManager.removeItem(at: root) }
         let store = makeStore()
-        let session = try await store.start(name: "feedback")
+        let round = try await store.start(name: "feedback")
         // A folder where the prompt file should go makes that one write fail.
-        let blocker = root.appendingPathComponent("\(session.folderName)/2224-pricing-acme-prompt.md", isDirectory: true)
+        let blocker = root.appendingPathComponent("\(round.folderName)/2224-pricing-acme-prompt.md", isDirectory: true)
         try fileManager.createDirectory(at: blocker, withIntermediateDirectories: true)
 
         let capture = try await store.addCapture(input())
         #expect(capture.index == 1)
-        #expect(await store.activeSession?.captures.count == 1)
-        #expect(try text("\(session.folderName)/feedback.json").contains("2224-pricing-acme.png"))
+        #expect(await store.activeRound?.captures.count == 1)
+        #expect(try text("\(round.folderName)/feedback.json").contains("2224-pricing-acme.png"))
     }
 
     @Test("Throws when the screen text does not match the marks")
@@ -358,28 +358,28 @@ struct FeedbackSessionStoreTests {
         let store = makeStore()
         try await store.start(name: "feedback")
         try await store.addCapture(input())
-        await #expect(throws: FeedbackSessionStore.StoreError.markCountMismatch) {
+        await #expect(throws: FeedbackRoundStore.StoreError.markCountMismatch) {
             try await store.setScreenText(capture: 1, ocrText: nil, markTexts: ["one"])
         }
     }
 
-    @Test("Resume reopens an ended session and writes the active marker")
-    func resumeReopensEndedSession() async throws {
+    @Test("Resume reopens an ended round and writes the active marker")
+    func resumeReopensEndedRound() async throws {
         defer { try? fileManager.removeItem(at: root) }
         let store = makeStore()
         try await store.start(name: "feedback")
         try await store.addCapture(input())
         let ended = try await store.end()
-        #expect(await store.activeSession == nil)
+        #expect(await store.activeRound == nil)
 
         let resumed = try await store.resume(folderName: ended.folderName)
 
         #expect(resumed.endedAt == nil)
         #expect(resumed.captures.count == 1)
-        #expect(await store.activeSession?.folderName == ended.folderName)
+        #expect(await store.activeRound?.folderName == ended.folderName)
         #expect(try text(".active.json").contains(ended.folderName))
-        // A new store on the same root finds the resumed session after a relaunch.
-        #expect(await FeedbackSessionStore(rootURL: root).activeSession?.folderName == ended.folderName)
+        // A new store on the same root finds the resumed round after a relaunch.
+        #expect(await FeedbackRoundStore(rootURL: root).activeRound?.folderName == ended.folderName)
     }
 
     @Test("A capture after resume continues the capture numbers")
@@ -394,10 +394,10 @@ struct FeedbackSessionStoreTests {
         let next = try await store.addCapture(input())
 
         #expect(next.index == 2)
-        #expect(await store.activeSession?.captures.count == 2)
+        #expect(await store.activeRound?.captures.count == 2)
     }
 
-    @Test("Resume fails while a session is active")
+    @Test("Resume fails while a round is active")
     func resumeRefusedWhileActive() async throws {
         defer { try? fileManager.removeItem(at: root) }
         let store = makeStore()
@@ -405,7 +405,7 @@ struct FeedbackSessionStoreTests {
         try await store.end()
         try await store.start(name: "second")
 
-        await #expect(throws: FeedbackSessionStore.StoreError.sessionAlreadyActive) {
+        await #expect(throws: FeedbackRoundStore.StoreError.roundAlreadyActive) {
             try await store.resume(folderName: first.folderName)
         }
     }
@@ -415,10 +415,10 @@ struct FeedbackSessionStoreTests {
         defer { try? fileManager.removeItem(at: root) }
         let store = makeStore()
 
-        await #expect(throws: FeedbackSessionStore.StoreError.sessionNotFound("2026-01-01-0000-missing")) {
+        await #expect(throws: FeedbackRoundStore.StoreError.roundNotFound("2026-01-01-0000-missing")) {
             try await store.resume(folderName: "2026-01-01-0000-missing")
         }
-        #expect(await store.activeSession == nil)
+        #expect(await store.activeRound == nil)
     }
 
     @Test("Resume rewrites the bundle files with the current folder path")
@@ -447,10 +447,10 @@ struct FeedbackSessionStoreTests {
         let ended = try await store.end()
         let outside = "../\(root.lastPathComponent)/\(ended.folderName)"
 
-        await #expect(throws: FeedbackSessionStore.StoreError.sessionNotFound(outside)) {
+        await #expect(throws: FeedbackRoundStore.StoreError.roundNotFound(outside)) {
             try await store.resume(folderName: outside)
         }
-        #expect(await store.activeSession == nil)
+        #expect(await store.activeRound == nil)
     }
 
     @Test("Resume writes back to the folder it read when feedback.json names another")
@@ -488,9 +488,9 @@ struct FeedbackSessionStoreTests {
         #expect(try text("\(ended.folderName)/manifest.md").contains("Folder: \(root.appendingPathComponent(ended.folderName).path)"))
         #expect(try !text("\(ended.folderName)/prompt.md").contains("CapsoFeedback"))
         #expect(!FeedbackLibrary.bundleFilesNeedRepair(folderName: ended.folderName, in: root))
-        // The session keeps its end time and captures, and no session becomes active.
-        #expect(FeedbackLibrary.session(named: ended.folderName, in: root) == ended)
-        #expect(await store.activeSession == nil)
+        // The round keeps its end time and captures, and no round becomes active.
+        #expect(FeedbackLibrary.round(named: ended.folderName, in: root) == ended)
+        #expect(await store.activeRound == nil)
         #expect(!fileManager.fileExists(atPath: root.appendingPathComponent(".active.json").path))
     }
 
@@ -512,21 +512,21 @@ struct FeedbackSessionStoreTests {
         #expect(try text("\(ended.folderName)/manifest.md").contains(root.appendingPathComponent(ended.folderName).path))
     }
 
-    @Test("Repair on the active session writes the in-memory session")
-    func repairWritesActiveSession() async throws {
+    @Test("Repair on the active round writes the in-memory round")
+    func repairWritesActiveRound() async throws {
         defer { try? fileManager.removeItem(at: root) }
         let store = makeStore()
-        let session = try await store.start(name: "feedback")
+        let round = try await store.start(name: "feedback")
         try await store.addCapture(input())
-        let olderCopy = try Data(contentsOf: root.appendingPathComponent("\(session.folderName)/feedback.json"))
+        let olderCopy = try Data(contentsOf: root.appendingPathComponent("\(round.folderName)/feedback.json"))
         try await store.setNote(capture: 1, text: "Keep this note")
-        try olderCopy.write(to: root.appendingPathComponent("\(session.folderName)/feedback.json"))
-        #expect(try !text("\(session.folderName)/feedback.json").contains("Keep this note"))
+        try olderCopy.write(to: root.appendingPathComponent("\(round.folderName)/feedback.json"))
+        #expect(try !text("\(round.folderName)/feedback.json").contains("Keep this note"))
 
-        try await store.repairBundleFiles(folderName: session.folderName)
+        try await store.repairBundleFiles(folderName: round.folderName)
 
-        #expect(try text("\(session.folderName)/feedback.json").contains("Keep this note"))
-        #expect(await store.activeSession?.captures.first?.note == "Keep this note")
+        #expect(try text("\(round.folderName)/feedback.json").contains("Keep this note"))
+        #expect(await store.activeRound?.captures.first?.note == "Keep this note")
     }
 
     @Test("Repair refuses a missing folder or a path name")
@@ -537,13 +537,13 @@ struct FeedbackSessionStoreTests {
         let ended = try await store.end()
         let outside = "../\(root.lastPathComponent)/\(ended.folderName)"
 
-        await #expect(throws: FeedbackSessionStore.StoreError.sessionNotFound("2026-01-01-0000-missing")) {
+        await #expect(throws: FeedbackRoundStore.StoreError.roundNotFound("2026-01-01-0000-missing")) {
             try await store.repairBundleFiles(folderName: "2026-01-01-0000-missing")
         }
-        await #expect(throws: FeedbackSessionStore.StoreError.sessionNotFound(outside)) {
+        await #expect(throws: FeedbackRoundStore.StoreError.roundNotFound(outside)) {
             try await store.repairBundleFiles(folderName: outside)
         }
-        await #expect(throws: FeedbackSessionStore.StoreError.sessionNotFound("../x")) {
+        await #expect(throws: FeedbackRoundStore.StoreError.roundNotFound("../x")) {
             try await store.repairBundleFiles(folderName: "../x")
         }
     }

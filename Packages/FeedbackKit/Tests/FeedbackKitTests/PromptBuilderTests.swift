@@ -7,7 +7,7 @@ struct PromptBuilderTests {
     private let folder = "/Users/test/Feedback/2026-10-20-1912-pricing-page"
 
     private var prompt: String {
-        PromptBuilder.render(FeedbackFixtures.session(captures: [FeedbackFixtures.pricingCapture()]), folderPath: folder)
+        PromptBuilder.render(FeedbackFixtures.round(captures: [FeedbackFixtures.pricingCapture()]), folderPath: folder)
     }
 
     @Test("Wraps the prompt in a bundle tag with the path and counts")

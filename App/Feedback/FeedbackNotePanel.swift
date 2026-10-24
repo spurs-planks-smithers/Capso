@@ -13,7 +13,7 @@ enum FeedbackNoteStep: Hashable {
 /// skips the current step. The arrow keys move back and forward between
 /// steps, and a step shows its saved answer again. After the last step the
 /// panel closes and calls `onFinish`. A panel closed early (close button,
-/// End Session) does not.
+/// End Round) does not.
 ///
 /// The panel takes keyboard focus without making the app active, the same
 /// setup as `InlineAnnotationEditorWindow`. macOS 27 refuses to activate a

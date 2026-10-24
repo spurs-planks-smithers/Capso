@@ -4,7 +4,7 @@ import Testing
 
 @Suite("FeedbackNaming")
 struct FeedbackNamingTests {
-    @Test("Builds a lowercase hyphenated slug from the session name")
+    @Test("Builds a lowercase hyphenated slug from the round name")
     func slugFromName() {
         #expect(FeedbackNaming.slug(from: "Pricing Page!") == "pricing-page")
         #expect(FeedbackNaming.slug(from: "  Café   Menu ") == "cafe-menu")

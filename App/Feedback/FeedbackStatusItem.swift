@@ -4,14 +4,14 @@ import FeedbackKit
 import KeyboardShortcuts
 
 /// Fork: what the menu shows. The controller builds a fresh value each time
-/// the menu opens, so the status item holds no session data of its own.
+/// the menu opens, so the status item holds no round data of its own.
 struct FeedbackMenuState {
-    /// The session now being captured into, or nil.
-    var active: FeedbackSession?
-    /// Ended sessions, newest first.
-    var recent: [FeedbackSession]
+    /// The round now being captured into, or nil.
+    var active: FeedbackRound?
+    /// Ended rounds, newest first.
+    var recent: [FeedbackRound]
     var basket: FeedbackBasket
-    /// The folder that holds every session folder.
+    /// The folder that holds every round folder.
     var rootURL: URL
 
     /// What the menu shows when no provider is set.
@@ -24,15 +24,15 @@ struct FeedbackMenuState {
 }
 
 /// Fork: a second menu bar item. It stays in the menu bar at all times.
-/// With no session it shows the icon only. During a session its title is the
+/// With no round it shows the icon only. During a round its title is the
 /// short product name and the capture count, for example "Nshot (2)".
 ///
-/// The menu is rebuilt each time it opens. It lists the active session's
-/// actions, the last ended sessions under "Recent", and a basket of checked
+/// The menu is rebuilt each time it opens. It lists the active round's
+/// actions, the last ended rounds under "Recent", and a basket of checked
 /// captures. The basket lines sit below the Recent rows, so checking a box
 /// never moves a row above it and an open submenu stays lined up with its
-/// parent row. Each session row opens a submenu. A submenu fills when it
-/// opens, so thumbnails decode only for the session being looked at.
+/// parent row. Each round row opens a submenu. A submenu fills when it
+/// opens, so thumbnails decode only for the round being looked at.
 @MainActor
 final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     var stateProvider: (() -> FeedbackMenuState)?
@@ -40,40 +40,40 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     var onCopyPromptAndEndRound: (() -> Void)?
     var onCopyLastCapture: (() -> Void)?
     var onOpenFolder: (() -> Void)?
-    var onEndSession: (() -> Void)?
+    var onEndRound: (() -> Void)?
     var onShowShortcut: (() -> Void)?
     var onShowSettings: (() -> Void)?
 
-    var onStartSession: (() -> Void)?
-    var onOpenAllSessions: (() -> Void)?
+    var onStartRound: (() -> Void)?
+    var onOpenAllRounds: (() -> Void)?
     var onCopySelected: (() -> Void)?
     var onClearSelection: (() -> Void)?
     var onToggleCapture: ((FeedbackBasketKey) -> Void)?
     var onQuickLook: ((FeedbackBasketKey) -> Void)?
-    var onCopyRecentSession: ((FeedbackSession) -> Void)?
-    var onOpenRecentFolder: ((FeedbackSession) -> Void)?
-    var onResumeSession: ((FeedbackSession) -> Void)?
+    var onCopyRecentRound: ((FeedbackRound) -> Void)?
+    var onOpenRecentFolder: ((FeedbackRound) -> Void)?
+    var onResumeRound: ((FeedbackRound) -> Void)?
 
-    /// One session line in the open menu.
-    private struct SessionRow {
+    /// One round line in the open menu.
+    private struct RoundRow {
         var item: NSMenuItem
         var menu: NSMenu
-        var session: FeedbackSession
+        var round: FeedbackRound
     }
 
     private var item: NSStatusItem?
     private var topMenu: NSMenu?
-    private var sessionRows: [SessionRow] = []
+    private var roundRows: [RoundRow] = []
     private var copySelectedItem: NSMenuItem?
     private var clearSelectionItem: NSMenuItem?
     private var basketSeparator: NSMenuItem?
-    private var allSessionsItem: NSMenuItem?
+    private var allRoundsItem: NSMenuItem?
 
     /// Made once and added again on each rebuild. `setShortcut(for:)` adds a
     /// notification observer that nothing removes, so a new item on every menu
     /// open would leave one more observer and one more item behind.
-    private lazy var startSessionItem: NSMenuItem = shortcutItem(
-        "Start Session", action: #selector(startSession), name: .feedbackCapture
+    private lazy var startRoundItem: NSMenuItem = shortcutItem(
+        "Start Round", action: #selector(startRound), name: .feedbackCapture
     )
 
     /// The active round's rows, made once for the same reason. Each shows its
@@ -88,17 +88,17 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         "Open Round Folder", action: #selector(openFolder), name: .feedbackOpenRoundFolder
     )
     private lazy var endRoundItem: NSMenuItem = shortcutItem(
-        "End Round", action: #selector(endSession), name: .feedbackEndRound
+        "End Round", action: #selector(endRound), name: .feedbackEndRound
     )
 
     /// Never removes the item. The title and the green dot on the mark show
-    /// only during a session, and both go in the same update.
-    func update(session: FeedbackSession?) {
+    /// only during a round, and both go in the same update.
+    func update(round: FeedbackRound?) {
         let item = self.item ?? makeItem()
         self.item = item
         guard let button = item.button else { return }
-        if let session {
-            let count = session.captures.count
+        if let round {
+            let count = round.captures.count
             button.title = " \(ForkBranding.shortName) (\(count))"
             button.imagePosition = .imageLeading
             // The dot is a picture, so say in words that a round is active.
@@ -110,7 +110,7 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
             button.imagePosition = .imageOnly
             button.setAccessibilityLabel(nil)
         }
-        FeedbackRoundDot.setActive(session != nil, on: button)
+        FeedbackRoundDot.setActive(round != nil, on: button)
     }
 
     /// The basket changed while the menu may be open. Adds, retitles, or
@@ -127,10 +127,10 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         } else {
             insertBasketItems(into: menu, count: count)
         }
-        for row in sessionRows {
+        for row in roundRows {
             row.item.subtitle = FeedbackLibrary.subtitle(
-                for: row.session,
-                selectedCount: basket.count(inFolder: row.session.folderName)
+                for: row.round,
+                selectedCount: basket.count(inFolder: row.round.folderName)
             )
         }
     }
@@ -142,7 +142,7 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     private func makeItem() -> NSStatusItem {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         item.button?.image = ForkBranding.menuBarMark(
-            description: "\(ForkBranding.name) feedback session",
+            description: "\(ForkBranding.name) feedback round",
             fallbackSymbol: "text.bubble"
         )
 
@@ -163,53 +163,53 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     func menuNeedsUpdate(_ menu: NSMenu) {
         if menu === topMenu {
             rebuildMenu(menu)
-        } else if let row = sessionRows.first(where: { $0.menu === menu }) {
-            fillSubmenu(row.menu, for: row.session)
+        } else if let row = roundRows.first(where: { $0.menu === menu }) {
+            fillSubmenu(row.menu, for: row.round)
         }
     }
 
     private func rebuildMenu(_ menu: NSMenu) {
         let state = currentState()
         menu.removeAllItems()
-        sessionRows = []
+        roundRows = []
         copySelectedItem = nil
         clearSelectionItem = nil
         basketSeparator = nil
-        allSessionsItem = nil
+        allRoundsItem = nil
 
         // The running build comes first, so anyone can tell builds apart.
         menu.addItem(grayLine(ForkBranding.versionLine))
         menu.addItem(.separator())
 
         if let active = state.active {
-            menu.addItem(grayLine("Session: \(active.slug)"))
+            menu.addItem(grayLine("Round: \(active.slug)"))
             menu.addItem(.separator())
             for item in [copyLastCaptureItem, copyPromptAndEndRoundItem, openRoundFolderItem, endRoundItem] {
                 addReused(item, to: menu)
             }
         } else {
-            menu.addItem(grayLine("No active session"))
-            addReused(startSessionItem, to: menu)
+            menu.addItem(grayLine("No active round"))
+            addReused(startRoundItem, to: menu)
         }
         menu.addItem(.separator())
 
-        // The active session has no end time, so Recent should never hold it.
+        // The active round has no end time, so Recent should never hold it.
         // The check keeps it out if the provider ever lists it.
         let recent = state.recent.filter { $0.folderName != state.active?.folderName }
         if !recent.isEmpty {
             menu.addItem(.sectionHeader(title: "Recent"))
             let now = Date()
-            for session in recent {
-                let row = makeSessionRow(session, now: now, basket: state.basket)
-                sessionRows.append(row)
+            for round in recent {
+                let row = makeRoundRow(round, now: now, basket: state.basket)
+                roundRows.append(row)
                 menu.addItem(row.item)
             }
             menu.addItem(.separator())
         }
 
-        let allSessions = menuItem("All Sessions...", action: #selector(openAllSessions))
-        allSessionsItem = allSessions
-        menu.addItem(allSessions)
+        let allRounds = menuItem("All Rounds...", action: #selector(openAllRounds))
+        allRoundsItem = allRounds
+        menu.addItem(allRounds)
         menu.addItem(menuItem("Change Start Round Shortcut...", action: #selector(showShortcut)))
         // The capture menu's icon is hidden by default (`ForkDefaults`), so
         // this menu carries Settings and Quit.
@@ -223,12 +223,12 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         }
     }
 
-    private func makeSessionRow(_ session: FeedbackSession, now: Date, basket: FeedbackBasket) -> SessionRow {
-        let title = FeedbackLibrary.title(startedAt: session.startedAt, now: now, timeZone: .current)
+    private func makeRoundRow(_ round: FeedbackRound, now: Date, basket: FeedbackBasket) -> RoundRow {
+        let title = FeedbackLibrary.title(startedAt: round.startedAt, now: now, timeZone: .current)
         let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
         item.subtitle = FeedbackLibrary.subtitle(
-            for: session,
-            selectedCount: basket.count(inFolder: session.folderName)
+            for: round,
+            selectedCount: basket.count(inFolder: round.folderName)
         )
 
         let submenu = NSMenu()
@@ -238,7 +238,7 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         // menuNeedsUpdate replaces it before anything shows.
         submenu.addItem(grayLine("Loading..."))
         item.submenu = submenu
-        return SessionRow(item: item, menu: submenu, session: session)
+        return RoundRow(item: item, menu: submenu, round: round)
     }
 
     // MARK: - Basket lines
@@ -249,13 +249,13 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
 
     /// The basket lines sit below the Recent rows: a separator, Copy N
     /// Selected, and Clear Selection, in front of the separator that comes
-    /// before "All Sessions...". Nothing above that point moves, so a session
+    /// before "All Rounds...". Nothing above that point moves, so a round
     /// submenu that is open stays lined up with its parent row. With no Recent
     /// rows (a basket entry can outlive the Recent list), the lines sit in
-    /// front of that same separator, under the session actions.
+    /// front of that same separator, under the round actions.
     private func insertBasketItems(into menu: NSMenu, count: Int) {
-        guard let allSessionsItem, allSessionsItem.menu === menu else { return }
-        let anchor = menu.index(of: allSessionsItem) - 1
+        guard let allRoundsItem, allRoundsItem.menu === menu else { return }
+        let anchor = menu.index(of: allRoundsItem) - 1
         guard anchor >= 0 else { return }
         let copy = menuItem(Self.copySelectedTitle(count), action: #selector(copySelected))
         let clear = menuItem("Clear Selection", action: #selector(clearSelection))
@@ -279,22 +279,22 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         basketSeparator = nil
     }
 
-    // MARK: - Session submenu
+    // MARK: - Round submenu
 
     /// Runs each time the submenu opens. Rows are new each time, so a row
     /// always starts with the current basket state.
-    private func fillSubmenu(_ menu: NSMenu, for listed: FeedbackSession) {
+    private func fillSubmenu(_ menu: NSMenu, for listed: FeedbackRound) {
         let state = currentState()
-        // Prefer the freshly read session. Fall back to the one the row was built from.
-        let session = state.recent.first { $0.folderName == listed.folderName } ?? listed
-        let folderURL = state.rootURL.appendingPathComponent(session.folderName, isDirectory: true)
+        // Prefer the freshly read round. Fall back to the one the row was built from.
+        let round = state.recent.first { $0.folderName == listed.folderName } ?? listed
+        let folderURL = state.rootURL.appendingPathComponent(round.folderName, isDirectory: true)
 
         menu.removeAllItems()
-        menu.addItem(menuItem("Copy Session Prompt", action: #selector(copyRecentSession(_:)), session: session))
+        menu.addItem(menuItem("Copy Round Prompt", action: #selector(copyRecentRound(_:)), round: round))
         menu.addItem(.separator())
 
-        for capture in session.captures {
-            let key = FeedbackBasketKey(folderName: session.folderName, captureIndex: capture.index)
+        for capture in round.captures {
+            let key = FeedbackBasketKey(folderName: round.folderName, captureIndex: capture.index)
             let title = FeedbackLibrary.captureRowTitle(capture, timeZone: .current)
             let rowView = FeedbackCaptureRowView(
                 key: key,
@@ -311,10 +311,10 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         }
 
         menu.addItem(.separator())
-        menu.addItem(menuItem("Open Folder", action: #selector(openRecentFolder(_:)), session: session))
-        // Only one session can be active, so Resume waits until it ends.
+        menu.addItem(menuItem("Open Folder", action: #selector(openRecentFolder(_:)), round: round))
+        // Only one round can be active, so Resume waits until it ends.
         if state.active == nil {
-            menu.addItem(menuItem("Resume Session", action: #selector(resumeSession(_:)), session: session))
+            menu.addItem(menuItem("Resume Round", action: #selector(resumeRound(_:)), round: round))
         }
     }
 
@@ -331,10 +331,10 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
 
     // MARK: - Items
 
-    private func menuItem(_ title: String, action: Selector, session: FeedbackSession? = nil) -> NSMenuItem {
+    private func menuItem(_ title: String, action: Selector, round: FeedbackRound? = nil) -> NSMenuItem {
         let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
         item.target = self
-        item.representedObject = session
+        item.representedObject = round
         return item
     }
 
@@ -363,24 +363,24 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     @objc private func copyPromptAndEndRound() { onCopyPromptAndEndRound?() }
     @objc private func copyLastCapture() { onCopyLastCapture?() }
     @objc private func openFolder() { onOpenFolder?() }
-    @objc private func endSession() { onEndSession?() }
+    @objc private func endRound() { onEndRound?() }
     @objc private func showShortcut() { onShowShortcut?() }
     @objc private func showSettings() { onShowSettings?() }
     @objc private func quit() { NSApp.terminate(nil) }
-    @objc private func startSession() { onStartSession?() }
-    @objc private func openAllSessions() { onOpenAllSessions?() }
+    @objc private func startRound() { onStartRound?() }
+    @objc private func openAllRounds() { onOpenAllRounds?() }
     @objc private func copySelected() { onCopySelected?() }
     @objc private func clearSelection() { onClearSelection?() }
 
-    @objc private func copyRecentSession(_ sender: NSMenuItem) {
-        if let session = sender.representedObject as? FeedbackSession { onCopyRecentSession?(session) }
+    @objc private func copyRecentRound(_ sender: NSMenuItem) {
+        if let round = sender.representedObject as? FeedbackRound { onCopyRecentRound?(round) }
     }
 
     @objc private func openRecentFolder(_ sender: NSMenuItem) {
-        if let session = sender.representedObject as? FeedbackSession { onOpenRecentFolder?(session) }
+        if let round = sender.representedObject as? FeedbackRound { onOpenRecentFolder?(round) }
     }
 
-    @objc private func resumeSession(_ sender: NSMenuItem) {
-        if let session = sender.representedObject as? FeedbackSession { onResumeSession?(session) }
+    @objc private func resumeRound(_ sender: NSMenuItem) {
+        if let round = sender.representedObject as? FeedbackRound { onResumeRound?(round) }
     }
 }

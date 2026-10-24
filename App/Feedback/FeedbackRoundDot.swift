@@ -2,7 +2,7 @@
 import AppKit
 
 /// Fork: a small green dot over the top right corner of the menu bar mark. It
-/// shows that a round (an active feedback session) exists, like the camera-in-use
+/// shows that a round (an active feedback round) exists, like the camera-in-use
 /// light.
 ///
 /// The mark is a template image, so macOS tints it for the menu bar and for the
