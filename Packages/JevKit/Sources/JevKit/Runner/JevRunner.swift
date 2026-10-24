@@ -208,7 +208,10 @@ public actor JevRunner {
 
         for result in finished {
             let record = result.record
-            log("capture \(key.capture) \(record.job): \(record.status.rawValue)\(record.reason.map { " (\($0.rawValue))" } ?? ""), \(record.requests) requests, \(record.durationMs) ms, \(record.inputTokens) input tokens")
+            // Check names and question ids are code constants, so they are public.
+            let check = record.failedCheck.map { " [\($0)]" } ?? ""
+            let dropped = record.dropped.map { ", dropped \($0.joined(separator: "; "))" } ?? ""
+            log("capture \(key.capture) \(record.job): \(record.status.rawValue)\(record.reason.map { " (\($0.rawValue))" } ?? "")\(check), \(record.requests) requests, \(record.durationMs) ms, \(record.inputTokens) input tokens\(dropped)")
         }
         do {
             try await writer.record(folderName: key.folderName, round: round, capture: capture, jobs: finished)
@@ -267,7 +270,8 @@ public actor JevRunner {
             requestIDs: stats.requestIDs,
             answers: stats.answers,
             lines: [],
-            files: []
+            files: [],
+            dropped: stats.dropped.isEmpty ? nil : stats.dropped
         )
         switch outcome {
         case .success(let output):
@@ -283,6 +287,7 @@ public actor JevRunner {
         case .failure(let error):
             record.status = .notRefined
             record.reason = error.reason
+            record.failedCheck = error.check
             return .init(record: record, output: nil)
         }
     }
@@ -444,6 +449,7 @@ actor AnswerRecorder {
         var inputTokens = 0
         var requestIDs: [String] = []
         var answers: [JevAnswerRecord] = []
+        var dropped: [String] = []
     }
 
     private var current = Snapshot()
@@ -460,6 +466,8 @@ actor AnswerRecorder {
         for id in questionOrder {
             if let answer = result.response.answers[id] {
                 current.answers.append(JevAnswerRecord(id: id, answer: answer))
+            } else if let check = result.response.dropped[id] {
+                current.dropped.append("\(id): \(check)")
             }
         }
     }

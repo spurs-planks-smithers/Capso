@@ -121,6 +121,40 @@ struct ReviewFixTests {
     }
 }
 
+@Suite("Dropped answers in jev.json")
+struct DroppedAnswerRecordTests {
+    @Test("A dropped Box is recorded with its check, and the job still runs")
+    func droppedRecorded() async throws {
+        let bundle = try await Bundle.make()
+        let body = #"{"model":"jev-1.14.0","answers":{"1.1.target":{"type":"box","box":{"top":0.2,"bottom":0.3,"left":0.43,"right":0.43},"confidence":0.5},"1.1.seen":{"type":"noul","noul":0.8}},"usage":{"input_tokens":10,"output_tokens":1}}"#
+        let transport = StubTransport(fallback: jsonResponse(body))
+        let job = TestJob(id: "cropsAnchors", flag: .cropsAnchors, requires: .images) { context in
+            let shot = try context.images.image(of: 1)
+            let response = try await context.jev.ask(JevRequest(state: .fields(["shot": .image(shot)]), questions: [
+                "1.1.target": .box("item 1 in `shot`"),
+                "1.1.seen": .noul("Is item 1 in `shot`?"),
+            ]))
+            return JevJobOutput(summary: [JevSummaryField(key: "hasBox", value: .bool(response.box("1.1.target") != nil))])
+        }
+        await runCapture(makeRunner(bundle, jobs: [job], flags: [.jevBase: .on, .cropsAnchors: .shadow, .jevSendImages: .on], transport: transport), bundle)
+        let record = try #require(try bundle.record(1))
+        #expect(record.status == .done)
+        #expect(record.dropped == ["1.1.target: boxOrder"])
+        #expect(record.answers.map(\.id) == ["1.1.seen"])
+        #expect(record.summary == .object([JevSummaryField(key: "hasBox", value: false)]))
+    }
+
+    @Test("A refused response names its check in jev.json")
+    func refusedRecorded() async throws {
+        let bundle = try await Bundle.make()
+        let transport = StubTransport(fallback: jsonResponse(noulBody("1.1.names_change", model: "jev-1.15.0")))
+        await runCapture(makeRunner(bundle, jobs: [askingJob()], flags: [.jevBase: .on, .noteCoach: .shadow], transport: transport), bundle)
+        let record = try #require(try bundle.record(1))
+        #expect(record.reason == .modelMismatch)
+        #expect(record.failedCheck == "model")
+    }
+}
+
 @Suite("Hooks for the feature sessions")
 struct FeatureHookTests {
     @Test("Shadow writes the summary to jev.json and the review file, and no refined file")

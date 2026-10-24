@@ -234,7 +234,14 @@ Jev's answers are untrusted data. The client checks each response as a whole:
 | Box | Each edge is from 0 to 1, `top` < `bottom`, `left` < `right`. `confidence` is from 0 to 1, or null. |
 | Usage | `input_tokens` and `output_tokens` are integers of 0 or more. |
 
-One failed check rejects the whole response as "invalid response". Unknown extra fields are ignored, as TypeSafe's SDKs do.
+Two outcomes when a check fails (changed 2026-10-24, after the crops live test lost a whole request to one Box):
+
+| Fault | Examples | Outcome |
+| --- | --- | --- |
+| Structural | not JSON, another model, bad usage, a missing or extra answer, a wrong answer type, a missing field, a Choice option or Score level that was never sent | The whole response is refused as "invalid response". |
+| Value | a probability or edge outside 0 to 1, a Box with equal or reversed edges, a distribution that does not sum to about 1, a Score outside its levels | Only that answer is dropped. `JevResponse.dropped` names it with its check, its accessor returns nil, and the job treats it as missing. |
+
+A dropped answer can never be used, so the type and range rules still hold. The check name and the question id go to the log and to `jev.json` (`dropped`, `failedCheck`). Both are code constants, never response text. Unknown extra fields are ignored, as TypeSafe's SDKs do.
 
 ## Typed content and consent
 

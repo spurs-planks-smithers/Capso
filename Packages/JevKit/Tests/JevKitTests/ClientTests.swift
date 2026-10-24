@@ -131,38 +131,63 @@ struct AnswerCheckTests {
         #expect(response.inputTokens == 12)
     }
 
-    @Test("Each broken answer rejects the whole response")
-    func invalidAnswers() async {
+    @Test("A structural fault refuses the whole response")
+    func refusedResponses() async {
         let usage = #""usage":{"input_tokens":1,"output_tokens":1}"#
-        let cases: [(String, KeyValuePairs<JevCodeText, JevQuestion>, JevFailureReason)] = [
-            (noulBody("q", probability: 1.5), ["q": .noul("?")], .invalidResponse),
-            (noulBody("other"), ["q": .noul("?")], .invalidResponse),
-            (#"{"model":"jev-1.14.0","answers":{"q":{"type":"noul","noul":0.5},"extra":{"type":"noul","noul":0.5}},\#(usage)}"#, ["q": .noul("?")], .invalidResponse),
-            (#"{"model":"jev-1.14.0","answers":{"q":{"type":"choice","choice":"a","confidence":0.9,"probabilities":{"a":0.9,"b":0.1}}},\#(usage)}"#, ["q": .noul("?")], .invalidResponse),
-            (#"{"model":"jev-1.14.0","answers":{"q":{"type":"choice","choice":"z","confidence":0.9,"probabilities":{"a":0.9,"b":0.1}}},\#(usage)}"#, ["q": .choice("?", options: ["a": "", "b": ""])], .invalidResponse),
-            (#"{"model":"jev-1.14.0","answers":{"q":{"type":"choice","choice":"a","confidence":0.9,"probabilities":{"a":0.5,"b":0.1}}},\#(usage)}"#, ["q": .choice("?", options: ["a": "", "b": ""])], .invalidResponse),
-            (#"{"model":"jev-1.14.0","answers":{"q":{"type":"score","score":3.5,"confidence":0.9,"probabilities":{"0":0.5,"1":0.5}}},\#(usage)}"#, ["q": .score("?", levels: ["a", "b"])], .invalidResponse),
-            (#"{"model":"jev-1.14.0","answers":{"q":{"type":"score","score":0.5,"confidence":0.9,"probabilities":{"0":0.5,"2":0.5}}},\#(usage)}"#, ["q": .score("?", levels: ["a", "b"])], .invalidResponse),
-            (#"{"model":"jev-1.14.0","answers":{"q":{"type":"noul","noul":0.5}},"usage":{"input_tokens":-1,"output_tokens":1}}"#, ["q": .noul("?")], .invalidResponse),
-            (#"not json"#, ["q": .noul("?")], .invalidResponse),
-            (noulBody("q", model: "jev-1.15.0"), ["q": .noul("?")], .modelMismatch),
+        let cases: [(String, KeyValuePairs<JevCodeText, JevQuestion>, JevFailureReason, String)] = [
+            (noulBody("other"), ["q": .noul("?")], .invalidResponse, "answerSet"),
+            (#"{"model":"jev-1.14.0","answers":{"q":{"type":"noul","noul":0.5},"extra":{"type":"noul","noul":0.5}},\#(usage)}"#, ["q": .noul("?")], .invalidResponse, "answerSet"),
+            (#"{"model":"jev-1.14.0","answers":{"q":{"type":"choice","choice":"a","confidence":0.9,"probabilities":{"a":0.9,"b":0.1}}},\#(usage)}"#, ["q": .noul("?")], .invalidResponse, "noulType q"),
+            (#"{"model":"jev-1.14.0","answers":{"q":{"type":"choice","choice":"z","confidence":0.9,"probabilities":{"a":0.9,"b":0.1}}},\#(usage)}"#, ["q": .choice("?", options: ["a": "", "b": ""])], .invalidResponse, "choiceOptions q"),
+            (#"{"model":"jev-1.14.0","answers":{"q":{"type":"score","score":0.5,"confidence":0.9,"probabilities":{"0":0.5,"2":0.5}}},\#(usage)}"#, ["q": .score("?", levels: ["a", "b"])], .invalidResponse, "scoreLevels q"),
+            (#"{"model":"jev-1.14.0","answers":{"q":{"type":"noul","noul":0.5}},"usage":{"input_tokens":-1,"output_tokens":1}}"#, ["q": .noul("?")], .invalidResponse, "usage"),
+            (#"not json"#, ["q": .noul("?")], .invalidResponse, "json"),
+            (noulBody("q", model: "jev-1.15.0"), ["q": .noul("?")], .modelMismatch, "model"),
         ]
-        for (json, questions, reason) in cases {
-            await #expect(throws: JevError(reason, status: 200), "\(json)") {
+        for (json, questions, reason, check) in cases {
+            do {
                 _ = try await send(json, questions)
+                Issue.record("accepted: \(json)")
+            } catch let error as JevError {
+                #expect(error == JevError(reason, status: 200), "\(json)")
+                #expect(error.check == check, "\(json)")
+            } catch {
+                Issue.record("unexpected \(error)")
             }
         }
     }
 
-    @Test("A Box with top past bottom, or an edge outside 0 to 1, is rejected")
-    func invalidBoxes() async throws {
+    @Test("A typed answer with a bad value is dropped alone, and the others stay")
+    func droppedAnswers() async throws {
+        let usage = #""usage":{"input_tokens":1,"output_tokens":1}"#
+        let cases: [(String, KeyValuePairs<JevCodeText, JevQuestion>, String)] = [
+            (#"{"model":"jev-1.14.0","answers":{"q":{"type":"noul","noul":1.5},"ok":{"type":"noul","noul":0.5}},\#(usage)}"#, ["q": .noul("?"), "ok": .noul("?")], "noulRange"),
+            (#"{"model":"jev-1.14.0","answers":{"q":{"type":"choice","choice":"a","confidence":0.9,"probabilities":{"a":0.5,"b":0.1}},"ok":{"type":"noul","noul":0.5}},\#(usage)}"#, ["q": .choice("?", options: ["a": "", "b": ""]), "ok": .noul("?")], "choiceSum"),
+            (#"{"model":"jev-1.14.0","answers":{"q":{"type":"score","score":3.5,"confidence":0.9,"probabilities":{"0":0.5,"1":0.5}},"ok":{"type":"noul","noul":0.5}},\#(usage)}"#, ["q": .score("?", levels: ["a", "b"]), "ok": .noul("?")], "scoreRange"),
+        ]
+        for (json, questions, check) in cases {
+            let response = try await send(json, questions)
+            #expect(response.dropped == ["q": check], "\(json)")
+            #expect(response.answers["q"] == nil)
+            #expect(response.noul("ok") == 0.5)
+        }
+    }
+
+    @Test("A Box with equal or reversed edges, or an edge outside 0 to 1, is dropped alone")
+    func badBoxesDropped() async throws {
         let image = try preparedImage()
-        for box in [#"{"top":0.6,"bottom":0.5,"left":0.1,"right":0.2}"#, #"{"top":0.1,"bottom":0.5,"left":-0.1,"right":0.2}"#] {
-            let transport = StubTransport([jsonResponse(#"{"model":"jev-1.14.0","answers":{"b":{"type":"box","box":\#(box),"confidence":0.4}},"usage":{"input_tokens":1,"output_tokens":1}}"#)])
-            let request = JevRequest(state: .image(image), questions: ["b": .box("it")])
-            await #expect(throws: JevError(.invalidResponse, status: 200)) {
-                _ = try await makeClient(transport).send(request, deadline: soon)
-            }
+        let cases = [
+            (#"{"top":0.6,"bottom":0.5,"left":0.1,"right":0.2}"#, "boxOrder"),
+            (#"{"top":0.1,"bottom":0.5,"left":0.43,"right":0.43}"#, "boxOrder"),
+            (#"{"top":0.1,"bottom":0.5,"left":-0.1,"right":0.2}"#, "boxRange"),
+        ]
+        for (box, check) in cases {
+            let transport = StubTransport([jsonResponse(#"{"model":"jev-1.14.0","answers":{"b":{"type":"box","box":\#(box),"confidence":0.4},"seen":{"type":"noul","noul":0.9}},"usage":{"input_tokens":1,"output_tokens":1}}"#)])
+            let request = JevRequest(state: .image(image), questions: ["b": .box("it"), "seen": .noul("Is it there?")])
+            let response = try await makeClient(transport).send(request, deadline: soon).response
+            #expect(response.box("b") == nil)
+            #expect(response.dropped == ["b": check])
+            #expect(response.noul("seen") == 0.9)
         }
     }
 
