@@ -88,6 +88,9 @@ extension JevImageLoader {
         JevImageLoader { index, variant, region in
             guard let capture = round.captures.first(where: { $0.index == index }) else { throw JevError(.jobError) }
             let file = variant == .annotated ? capture.imageFile : capture.cleanImageFile
+            // A tampered or imported feedback.json could name a file outside
+            // the bundle, and that file could then be sent.
+            guard !file.isEmpty, !file.contains("/"), !file.contains("..") else { throw JevError(.jobError) }
             let url = folderURL.appendingPathComponent(file)
             guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
                   let image = CGImageSourceCreateImageAtIndex(source, 0, nil)
