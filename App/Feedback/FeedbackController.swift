@@ -32,6 +32,8 @@ final class FeedbackController {
     private var inlineEditor: InlineAnnotationEditorWindow?
     private var fullEditor: AnnotationEditorWindow?
     private var keyMonitor: Any?
+    private let captureBackdrop = FeedbackCaptureBackdrop()
+    private let firstDotHint = FeedbackFirstDotHint()
     /// Saves in progress, so `endRound()` can wait for them.
     private var saveTasks: [UUID: Task<Void, Never>] = [:]
     private let statusItem = FeedbackStatusItem()
@@ -124,7 +126,7 @@ final class FeedbackController {
         }
         statusItem.onEndRound = { [weak self] in
             FeedbackLog.logger.notice("menu: End Round")
-            self?.endRoundFromMenuOrKey()
+            self?.copyPromptAndEndRoundFromMenuOrKey()
         }
         statusItem.onShowShortcut = { [weak self] in
             self?.showShortcutPanel()
@@ -225,7 +227,9 @@ final class FeedbackController {
 
     /// Copy Prompt and End Round. The menu row, its hotkey, and the Copy
     /// Feedback Prompt Shortcuts action all come here. Copying the active
-    /// round's whole prompt ends the round (Drew, 2026-10-24). The round ends
+    /// round's whole prompt ends the round (Drew, 2026-10-24). End Round, its
+    /// menu row and Option+Shift+E, comes here too: an ended round's prompt
+    /// is on the clipboard and the same toast says so (Drew, 2026-10-24). The round ends
     /// first, so the prompt holds each capture whose save was in progress.
     /// The prompt comes from the ended round, so it matches the `prompt.md`
     /// that `end()` writes. Resume in Recent reopens the round. With a Jev
@@ -263,27 +267,6 @@ final class FeedbackController {
                     FeedbackLog.logger.notice("copy prompt and end round: the joined end failed")
                 } else {
                     report(error, context: "Round prompt was not copied")
-                }
-            }
-        }
-    }
-
-    /// End Round from the menu row or the hotkey. During an end, a press
-    /// joins that end (`endRound()`). No active round means nothing to
-    /// end: no beep (#26). Other failures beep and are logged by the press
-    /// that started the end only.
-    private func endRoundFromMenuOrKey() {
-        Task {
-            let joining = ending != nil
-            do {
-                try await endRound()
-            } catch FeedbackRoundStore.StoreError.noActiveRound {
-                FeedbackLog.logger.notice("end round: no active round")
-            } catch {
-                if joining {
-                    FeedbackLog.logger.notice("end round: the joined end failed")
-                } else {
-                    report(error, context: "Feedback round did not end")
                 }
             }
         }
@@ -366,7 +349,7 @@ final class FeedbackController {
         KeyboardShortcuts.onKeyDown(for: .feedbackEndRound) { [weak self] in
             FeedbackLog.logger.notice("hotkey: End Round")
             guard let self, self.roundEndKeyAllowed() else { return }
-            self.endRoundFromMenuOrKey()
+            self.copyPromptAndEndRoundFromMenuOrKey()
         }
         updateRoundShortcuts()
     }
@@ -649,6 +632,7 @@ final class FeedbackController {
         }
 
         inlineEditor?.close()
+        let defaultTool = FeedbackDefaultTool.begin()
         inlineEditor = InlineAnnotationEditorWindow(
             image: result.image,
             screen: screen,
@@ -666,12 +650,20 @@ final class FeedbackController {
                 self?.saveFromInlineEditor(rendered, result: result)
             },
             onClose: { [weak self] in
+                defaultTool.restore()
+                self?.captureBackdrop.hide()
+                self?.firstDotHint.cancel()
                 self?.inlineEditor = nil
                 self?.removeKeyMonitor()
                 self?.updateHelp()
             }
         )
         inlineEditor?.show()
+        if let editor = inlineEditor {
+            captureBackdrop.show(on: screen, captureFrame: screenLocalRect, below: editor)
+            let globalFrame = screenLocalRect.offsetBy(dx: screen.frame.minX, dy: screen.frame.minY)
+            firstDotHint.schedule(for: editor.document, captureFrame: globalFrame, above: editor)
+        }
         installKeyMonitor(image: result.image, screen: screen)
         helpScreen = screen
         updateHelp()
@@ -687,8 +679,10 @@ final class FeedbackController {
     ///   With marks present, upstream's step-back behavior stays, so Esc never
     ///   throws away work.
     /// - Left and Right arrows undo and redo marks (Drew, 2026-10-21). They
-    ///   become Command+Z and Shift+Command+Z, so they take the editor's own
-    ///   undo path.
+    ///   step the document's history directly. They once became Command+Z and
+    ///   Shift+Command+Z key events for the toolbar buttons, but a synthetic
+    ///   Shift+Command+Z never reached the Redo button: "Z" matched no button,
+    ///   and "z" matched Undo (Drew, 2026-10-24).
     ///
     /// Text being typed keeps upstream's keys: Esc commits it, and arrows
     /// move the cursor.
@@ -710,9 +704,9 @@ final class FeedbackController {
                 }
                 switch keyCode {
                 case 123:
-                    return .undo
+                    return Self.stepHistory(of: editor, redo: false) ? .handled : .pass
                 case 124:
-                    return .redo
+                    return Self.stepHistory(of: editor, redo: true) ? .handled : .pass
                 default:
                     guard editor.document.objects.isEmpty else { return .pass }
                     self.copyScreenshotAndClose(editor, image: image, screen: screen)
@@ -722,14 +716,37 @@ final class FeedbackController {
             switch action {
             case .pass: return event
             case .handled: return nil
-            case .undo: return Self.undoKeyEvent(replacing: event, redo: false)
-            case .redo: return Self.undoKeyEvent(replacing: event, redo: true)
             }
         }
     }
 
     private enum EditorKeyAction: Sendable {
-        case pass, handled, undo, redo
+        case pass, handled
+    }
+
+    /// One undo or redo on the editor's document, then a canvas redraw.
+    /// Returns false when there is nothing to step through, so the key passes
+    /// on and beeps, as before.
+    static func stepHistory(of editor: InlineAnnotationEditorWindow, redo: Bool) -> Bool {
+        let document = editor.document
+        guard redo ? document.canRedo : document.canUndo else { return false }
+        if redo {
+            document.redo()
+        } else {
+            document.undo()
+        }
+        redrawCanvas(in: editor.contentView)
+        return true
+    }
+
+    private static func redrawCanvas(in view: NSView?) {
+        guard let view else { return }
+        if view is AnnotationCanvasNSView {
+            view.needsDisplay = true
+        }
+        for subview in view.subviews {
+            redrawCanvas(in: subview)
+        }
     }
 
     /// The image itself, in the user's clipboard format, so it pastes into an
@@ -743,22 +760,6 @@ final class FeedbackController {
         }
         editor.close()
         showToast("Screenshot copied", screen: screen)
-    }
-
-    /// Command+Z, or Shift+Command+Z for redo, in place of an arrow key.
-    private nonisolated static func undoKeyEvent(replacing event: NSEvent, redo: Bool) -> NSEvent? {
-        NSEvent.keyEvent(
-            with: .keyDown,
-            location: event.locationInWindow,
-            modifierFlags: redo ? [.command, .shift] : [.command],
-            timestamp: event.timestamp,
-            windowNumber: event.windowNumber,
-            context: nil,
-            characters: redo ? "Z" : "z",
-            charactersIgnoringModifiers: redo ? "Z" : "z",
-            isARepeat: event.isARepeat,
-            keyCode: 6
-        ) ?? event
     }
 
     private func removeKeyMonitor() {
@@ -778,6 +779,7 @@ final class FeedbackController {
     private func openFullEditor(for result: CaptureResult) {
         guard let settings else { return }
         fullEditor?.close()
+        let defaultTool = FeedbackDefaultTool.begin()
         fullEditor = AnnotationEditorWindow(
             image: result.image,
             anchorScreen: NSScreen.screens.first { $0.displayID == result.displayID },
@@ -798,6 +800,7 @@ final class FeedbackController {
             },
             onPin: { _, _ in },
             onClose: { [weak self] in
+                defaultTool.restore()
                 self?.fullEditor = nil
                 self?.updateHelp()
             }
@@ -1009,7 +1012,8 @@ final class FeedbackController {
     private func showToast(_ message: String, screen: NSScreen?) {
         toast?.orderOut(nil)
         toast = ToastWindow(message: message, screen: screen)
-        toast?.show(autoDismissAfter: 2.5)
+        // 3x the old 2.5 s, as for every toast (Drew, 2026-10-24).
+        toast?.show(autoDismissAfter: 7.5)
     }
 
     /// One crop of the annotated capture per circle, in the capture's own
