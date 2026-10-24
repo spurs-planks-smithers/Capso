@@ -1,6 +1,6 @@
 # Note coach: design (draft)
 
-Date: 2026-10-24. Status: draft with Drew's answers and the builder check done, waiting for Drew's approval. Issue: #37 (parent #34). Flag: `noteCoach` (off, shadow, on). Related docs: `docs/superpowers/specs/2026-10-24-jev-handoff-design.md` (Jev design), `docs/superpowers/specs/2026-10-24-feature-flags-design.md` (flags), `docs/plans/2026-10-24-jev-image-ideas.md` (idea 1).
+Date: 2026-10-24. Status: approved (Drew, 2026-10-24). Code waits for the Jev base (#36) job interface. Sub-issues: #61 (job, rule, and tests), #62 (accuracy test), #63 (shadow run, paste test, and on decision). Issue: #37 (parent #34). Flag: `noteCoach` (off, shadow, on). Related docs: `docs/superpowers/specs/2026-10-24-jev-handoff-design.md` (Jev design), `docs/superpowers/specs/2026-10-24-feature-flags-design.md` (flags), `docs/plans/2026-10-24-jev-image-ideas.md` (idea 1).
 
 ## Intent
 
