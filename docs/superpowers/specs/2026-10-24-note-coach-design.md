@@ -65,24 +65,25 @@ State (named JSON fields):
 - `general_note`: the capture's general note, exact, or empty.
 - `items`: one entry per item with a note, in badge order. Each entry has `item` (code text, for example "1.2") and `note` (the note, exact).
 
-Question ids start with the item id, as the base requires: `1.2.clarity`, `1.2.names_change`, `1.2.asks_answer`.
+Question ids start with the item id, as the base requires: `1.2.clarity`, `1.2.names_change`, `1.2.asks_answer`, `1.2.reports_problem`.
 
 The first build sends text only, even with `jev.sendImages` on (Drew, 2026-10-24). The circle crop comes later as its own step, after the text accuracy test. That step adds `crop` to the state, names it in the `clarity` instructions, and runs the accuracy test again with images.
 
 Never in the state: window titles, OCR text, file names, or paths. They are screen text and can hold an injection. They also add nothing to a clarity judgment.
 
-Questions (three, the simplest that answer the rule):
+Questions (four, the simplest that answer the rule). Job version 2: Drew added `reports_problem` on 2026-10-24 after the first accuracy run.
 
 | Id | Type | Instructions | Criteria |
 | --- | --- | --- | --- |
 | `clarity` | Score | How clearly does `items[i].note` tell a developer what to do about the marked item? `general_note` is context from the same reviewer. Words like "this" or "here" refer to the marked item. | 0: names no problem, names no change, and asks no question ("fix this", "hmm", "look at this", "asdf"). 1: names a problem with the item but not the change ("this is cut off", "this number is wrong"). 2: names the change, or asks a clear question ("make this 50% wider", "rename this to Invoice Detail", "what does this setting do?"). |
 | `names_change` | Noul | Does `items[i].note` ask for a change to the marked item? | true: names something to add, remove, move, resize, rename, recolor, reword, or fix. false: only describes, praises, or asks a question. |
 | `asks_answer` | Noul | Does `items[i].note` ask for information, an explanation, advice, or text to write? | true: the reviewer wants an answer or a draft. false: the reviewer wants only a change, or nothing. |
+| `reports_problem` | Noul | Does `items[i].note` report that something is broken, wrong, or not available? | true: the note says something does not work, shows a wrong value, or is missing when it should be there. false: the note only asks about something, or asks for a change, and says nothing is broken. |
 
-The code rule (thresholds start at TypeSafe's suggested 0.7 and 0.3; the accuracy test sets the final values):
+The code rule (thresholds set by the accuracy test on 2026-10-24 for `jev-1.14.0`; see Accuracy test results):
 
-- vague: `clarity` level 0 probability ≥ 0.7, `names_change` < 0.3, and `asks_answer` < 0.3.
-- question: `asks_answer` ≥ 0.7 and `names_change` < 0.3.
+- vague: `clarity` level 0 probability ≥ 0.7 and `asks_answer` < 0.5. `names_change` is not used: Jev reads "fix this" as naming a change.
+- question: `asks_answer` ≥ 0.7, `names_change` < 0.8, and `reports_problem` < 0.5. A request for text to write ("tell me what to put here") scores up to 0.76 on `names_change`. Real change requests scored 0.94 or more.
 - Any other answer: no line. The label comes from the most likely `clarity` level: unsure (level 0), partial (level 1), or clear (level 2, or a tie). `jev.json` records it with every probability. My call.
 
 The code checks each answer's type and range before use. An answer outside 0 to 1, or a missing answer, makes the item not checked.
@@ -144,7 +145,29 @@ Drew approved this on 2026-10-24: send note text to Jev, text only, no images, n
 - TypeSafe keeps each request. It does not train on them. Drew confirmed the text send with this fact on 2026-10-24.
 - Pass: no real note labeled vague, at least 80% of the made-up and test vague notes labeled vague, and at least 7 of the 9 real question items labeled question.
 - The labeled set and the results stay out of this public repository, in `build/jev-eval/` of the main checkout (git ignores `build/`). The spec records counts only. My call.
-- The harness is a later step (sub-issue B). It needs the base's client and key.
+- The harness: `scripts/note-coach-eval.sh <set file>` runs the opt-in suite `NoteCoachAccuracyTests` with Nextshot's key. It writes `note-coach-results.json` (labels and numbers, no note text) next to the set file.
+
+## Accuracy test results (2026-10-24)
+
+Model `jev-1.14.0`. 42 requests per run, about 4 s in total, about 73,000 input tokens (about $0.003). No errors and no retries.
+
+First run (job version 1, start thresholds): no real note labeled vague, and 44 of 49 vague notes caught. Only 3 of 9 real questions were caught. Six questions scored 0.37 to 0.74 on `names_change` because they ask for text to write. The LM Studio bug note was labeled question.
+
+Final run (job version 2, the rule above):
+
+| Set | Items | Result |
+| --- | --- | --- |
+| Real | 66 | 2 empty, 9 of 9 questions labeled question, 54 of 54 clear notes labeled clear. The bug note (labeled partial by Drew) got no line: `reports_problem` 0.95. No real note labeled vague. |
+| Tests of Nextshot | 41 | 19 empty, 18 of 19 vague notes labeled vague, 3 of 3 clear. |
+| Made-up | 50 | 29 of 30 vague labeled vague (1 unsure), 8 of 8 partial, 4 of 6 questions, 6 of 6 clear. |
+
+| Check | Bar | Result |
+| --- | --- | --- |
+| Real notes labeled vague | 0 | 0 of 66 (pass) |
+| Vague recall, test and made-up | at least 80% | 47 of 49, 96% (pass) |
+| Real question recall | at least 7 of 9 | 9 of 9 (pass) |
+
+The two missed made-up questions get no line, which costs little: one asks why a value is empty (`reports_problem` 0.67), and one asks for draft text (`names_change` 0.95). No real change request got the question line. The thresholds sit on 49 vague notes and 9 real questions, so shadow data checks them again before the on state.
 
 ## Rollout and kill rule
 
@@ -176,6 +199,9 @@ None open. Drew answered every question that changes what gets built on 2026-10-
 - 2026-10-24: one request per capture, not per item, because the base caps a capture at 16 requests across all jobs (my call).
 - 2026-10-24: the base's scoped Authority line landed in `a7fda59` (Jev base session).
 - 2026-10-24: shadow writes each item's label to the `jev.json` summary and a review file for Drew (my call).
+- 2026-10-24: Drew labeled the LM Studio "why is this not available?" note a bug to fix (partial), not a question (Drew).
+- 2026-10-24: a fourth question, `reports_problem`, keeps bug reports from the question line (Drew). Job version 2.
+- 2026-10-24: thresholds set from the accuracy test: vague drops `names_change`, and the question cut on `names_change` moves to 0.8 (my call, as the spec left thresholds to the test).
 
 ## Left to the builder
 
