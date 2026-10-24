@@ -79,17 +79,26 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         return item
     }()
 
-    /// Never removes the item. The title shows only during a session.
+    /// Never removes the item. The title and the green dot on the mark show
+    /// only during a session, and both go in the same update.
     func update(session: FeedbackSession?) {
         let item = self.item ?? makeItem()
         self.item = item
+        guard let button = item.button else { return }
         if let session {
-            item.button?.title = " \(ForkBranding.shortName) (\(session.captures.count))"
-            item.button?.imagePosition = .imageLeading
+            let count = session.captures.count
+            button.title = " \(ForkBranding.shortName) (\(count))"
+            button.imagePosition = .imageLeading
+            // The dot is a picture, so say in words that a round is active.
+            button.setAccessibilityLabel(
+                "\(ForkBranding.name) feedback, round active, \(count) \(count == 1 ? "capture" : "captures")"
+            )
         } else {
-            item.button?.title = ""
-            item.button?.imagePosition = .imageOnly
+            button.title = ""
+            button.imagePosition = .imageOnly
+            button.setAccessibilityLabel(nil)
         }
+        FeedbackRoundDot.setActive(session != nil, on: button)
     }
 
     /// The basket changed while the menu may be open. Adds, retitles, or
