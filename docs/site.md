@@ -55,6 +55,17 @@ The script stops when the DMG has no stapled notarization ticket, when a file is
 - Revoke or roll it in the Cloudflare dashboard under Manage Account, Account API Tokens, `nextshot-site deploy`.
 - `wrangler` itself stays signed out.
 
+## Corporate web filters
+
+On 2026-10-23, a few hours after launch, Nextiva-managed devices (m4max and a Windows PC) showed `NET::ERR_CERT_AUTHORITY_INVALID` with no way past it. The browser showed the issuer "Cisco Umbrella Secondary SubCA lax-SG". The real certificate (Google Trust Services WE1, chained to GTS Root R4 and cross-signed by GlobalSign Root CA) was valid from every other network tested.
+
+- Cisco Umbrella on Nextiva devices stepped in for the new domain and served its own certificate. Every .dev domain is HSTS-preloaded, so Chrome shows a hard certificate error where Umbrella's block page would appear. Cisco documents this in [Troubleshoot HSTS and pinning](https://www.cisco.com/c/en/us/support/docs/security/umbrella/224686-troubleshoot-hsts-and-pinning.html).
+- Umbrella's "Newly Seen Domains" category holds a domain for 24 hours after its first query ([Cisco](https://www.cisco.com/c/en/us/support/docs/security/umbrella/224735-enable-newly-seen-domains-security.html)). Other gateways treat a new domain as risky for longer: Palo Alto PAN-DB keeps "newly-registered-domain" for about 32 days.
+- Check the reason on an affected device with `dig +short nextshot.dev`. Cloudflare addresses (104.21.92.146, 172.67.195.52) mean no DNS block. Umbrella block page addresses ([Cisco list](https://docs.umbrella.com/deployment-umbrella/docs/block-page-ip-addresses)): 146.112.61.110 is newly seen or a security block, .106 is a content category, .104 is a domain list.
+- The lasting fix is an allow list entry for nextshot.dev in the organization's Umbrella policy. An admin can also dispute the category from Umbrella Activity Search, which sends it to Cisco Talos.
+- Before sharing the link with another organization, ask its IT team to allow nextshot.dev, or wait until the domain is about 30 days old.
+- The zone publishes "no mail" records: null MX (`0 .`), SPF `v=spf1 -all`, and DMARC `p=reject`. Nobody can send mail that passes as nextshot.dev.
+
 ## Read the counts
 
 Open `https://nextshot.dev/stats`, or query D1:
