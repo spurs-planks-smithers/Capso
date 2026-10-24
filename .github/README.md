@@ -19,7 +19,7 @@ Nextshot is built on [Capso](https://github.com/lzhgus/Capso), an open-source sc
 
 The agent gets your marked-up screenshot, your numbered answers, and the text under each mark. The prompt asks it to write a short plan before it edits anything.
 
-Keep capturing to add more screens to the same round. The **Nshot** item in the menu bar shows how many captures the round holds, for example "Nshot (2)".
+Keep capturing to add more screens to the same round. The **Nshot** item in the menu bar shows how many captures the round holds, for example "Nshot (2)". While a round is active, a small green dot sits on the top right corner of the Nshot mark, and the help box that lists the keys shows a matching dot. Both dots show only while a round is active.
 
 When the round is done, press **Option+Shift+R**. Nextshot copies one prompt for every capture in the round and ends the round.
 
