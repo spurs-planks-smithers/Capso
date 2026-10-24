@@ -122,6 +122,20 @@ struct AnchorCandidatesTests {
         #expect(set.lines.map(\.text) == ["Visible label"])
     }
 
+    @Test("A line's source stays its position in the input when a Redact mark drops an earlier line")
+    func sourceCountsRedactedLines() {
+        let marks = [
+            badge(1, x: 500, y: 400),
+            FeedbackMark(kind: .pixelate, box: FeedbackBox(x1: 300, y1: 440, x2: 700, y2: 480)),
+        ]
+        let lines = [
+            line("Account 4417 1234", x: 400, y: 450),
+            line("Visible label", x: 400, y: 360),
+        ]
+        let set = AnchorCandidates.build(capture: capture(marks: marks), lines: lines)
+        #expect(set.lines == [AnchorLine(id: "L001", text: "Visible label", source: 1, box: lines[1].box)])
+    }
+
     @Test("Drops the partial last line of a stored block that was cut")
     func dropsCutLastLine() {
         let filler = String(repeating: "Settings row label\n", count: 280)
@@ -190,14 +204,22 @@ struct AnchorCandidatesTests {
         ]
         let marks = [badge(1, x: 500, y: 400)]
         let set = AnchorCandidates.build(capture: capture(marks: marks), lines: lines)
+        // Each line keeps its position in the input and its box.
         #expect(set.lines == [
-            AnchorLine(id: "L001", text: "First line"),
-            AnchorLine(id: "L002", text: "Second line"),
-            AnchorLine(id: "L003", text: "Third line"),
-            AnchorLine(id: "L004", text: "Fourth line"),
+            AnchorLine(id: "L001", text: "First line", source: 1, box: lines[1].box),
+            AnchorLine(id: "L002", text: "Second line", source: 3, box: lines[3].box),
+            AnchorLine(id: "L003", text: "Third line", source: 0, box: lines[0].box),
+            AnchorLine(id: "L004", text: "Fourth line", source: 2, box: lines[2].box),
         ])
         #expect(AnchorCandidates.build(capture: capture(marks: marks), lines: lines) == set)
-        #expect(AnchorCandidates.build(capture: capture(marks: marks), lines: lines.reversed()) == set)
+
+        // The same lines in another order get the same ids, texts, boxes, and lists. Only the sources differ.
+        let reversed = AnchorCandidates.build(capture: capture(marks: marks), lines: lines.reversed())
+        #expect(reversed.lines.map(\.id) == set.lines.map(\.id))
+        #expect(reversed.lines.map(\.text) == set.lines.map(\.text))
+        #expect(reversed.lines.map(\.box) == set.lines.map(\.box))
+        #expect(reversed.lines.map(\.source) == [2, 0, 3, 1])
+        #expect(reversed.itemCandidates == set.itemCandidates)
     }
 
     @Test("A line near two items has one id and appears in both lists")
@@ -238,10 +260,11 @@ struct AnchorCandidatesTests {
         let marks = [badge(1, x: 500, y: 400), badge(2, x: 900, y: 600)]
         for lines in [nil, []] as [[FeedbackTextLine]?] {
             let set = AnchorCandidates.build(capture: capture(marks: marks, ocrText: ocr), lines: lines)
+            // The source is the row in the stored block, counting the dropped rows. There is no box.
             #expect(set.lines == [
-                AnchorLine(id: "L001", text: "Save changes"),
-                AnchorLine(id: "L002", text: "Cancel"),
-                AnchorLine(id: "L003", text: "Open Round Folder"),
+                AnchorLine(id: "L001", text: "Save changes", source: 0),
+                AnchorLine(id: "L002", text: "Cancel", source: 3),
+                AnchorLine(id: "L003", text: "Open Round Folder", source: 5),
             ])
             #expect(set.itemCandidates[1] == ["L001", "L002", "L003"])
             #expect(set.itemCandidates[2] == ["L001", "L002", "L003"])
@@ -257,8 +280,8 @@ struct AnchorCandidatesTests {
             lines: nil
         )
         #expect(set.lines.count == 120)
-        #expect(set.lines.first == AnchorLine(id: "L001", text: "Line 000"))
-        #expect(set.lines.last == AnchorLine(id: "L120", text: "Line 119"))
+        #expect(set.lines.first == AnchorLine(id: "L001", text: "Line 000", source: 0))
+        #expect(set.lines.last == AnchorLine(id: "L120", text: "Line 119", source: 119))
         #expect(set.itemCandidates[1]?.count == 120)
     }
 
@@ -288,7 +311,10 @@ struct AnchorCandidatesTests {
             line("Alpha text", x: 300, y: 100),
         ]
         let set = AnchorCandidates.build(capture: capture(note: "The header is wrong"), lines: lines)
-        #expect(set.lines == [AnchorLine(id: "L001", text: "Alpha text"), AnchorLine(id: "L002", text: "Beta text")])
+        #expect(set.lines == [
+            AnchorLine(id: "L001", text: "Alpha text", source: 2, box: lines[2].box),
+            AnchorLine(id: "L002", text: "Beta text", source: 0, box: lines[0].box),
+        ])
         #expect(set.captureCandidates == ["L001", "L002"])
         #expect(set.itemCandidates.isEmpty)
     }
@@ -336,9 +362,9 @@ struct AnchorCandidatesTests {
 
     private let offered = ["L001", "L002"]
     private let lines = [
-        AnchorLine(id: "L001", text: "Copy  Last Capture"),
-        AnchorLine(id: "L002", text: "Open Round Folder"),
-        AnchorLine(id: "L003", text: "Not offered"),
+        AnchorLine(id: "L001", text: "Copy  Last Capture", source: 0),
+        AnchorLine(id: "L002", text: "Open Round Folder", source: 1),
+        AnchorLine(id: "L003", text: "Not offered", source: 2),
     ]
 
     private func pick(

@@ -6,10 +6,18 @@ import Foundation
 public struct AnchorLine: Equatable, Sendable {
     public var id: String
     public var text: String
+    /// Where the line came from: its position in the `lines` array given to
+    /// `AnchorCandidates.build`, or its row in the stored OCR block when there
+    /// are no line boxes. A review script can find the line again with it.
+    public var source: Int
+    /// The line's box in export pixels. Nil when the line comes from the stored OCR block.
+    public var box: FeedbackBox?
 
-    public init(id: String, text: String) {
+    public init(id: String, text: String, source: Int, box: FeedbackBox? = nil) {
         self.id = id
         self.text = text
+        self.source = source
+        self.box = box
     }
 }
 
@@ -80,9 +88,11 @@ public enum AnchorCandidates {
 
         // The save task already drops lines under Redact marks. Dropping them
         // here again keeps redacted text out of a request if a caller forgets.
-        let visible = lines.map { OCRMatcher.removingRedacted($0, marks: capture.marks) } ?? []
-        if !visible.isEmpty {
-            return fromBoxes(capture: capture, items: items, wantsCaptureLevel: wantsCaptureLevel, lines: visible)
+        // `sources` keeps each line's position in the input.
+        let input = lines ?? []
+        let sources = input.indices.filter { !OCRMatcher.removingRedacted([input[$0]], marks: capture.marks).isEmpty }
+        if !sources.isEmpty {
+            return fromBoxes(capture: capture, items: items, wantsCaptureLevel: wantsCaptureLevel, lines: sources.map { input[$0] }, sources: sources)
         }
         return fromStoredText(capture: capture, items: items, wantsCaptureLevel: wantsCaptureLevel)
     }
@@ -117,7 +127,8 @@ public enum AnchorCandidates {
         capture: FeedbackCapture,
         items: [FeedbackItem],
         wantsCaptureLevel: Bool,
-        lines: [FeedbackTextLine]
+        lines: [FeedbackTextLine],
+        sources: [Int]
     ) -> AnchorCandidateSet {
         // The lines that pass the filters, by position in `lines`.
         var kept: [Int: String] = [:]
@@ -165,7 +176,7 @@ public enum AnchorCandidates {
         var idByPosition: [Int: String] = [:]
         var anchors: [AnchorLine] = []
         for (index, entry) in ordered.enumerated() {
-            let anchor = AnchorLine(id: id(index + 1), text: entry.text)
+            let anchor = AnchorLine(id: id(index + 1), text: entry.text, source: sources[entry.position], box: lines[entry.position].box)
             idByPosition[entry.position] = anchor.id
             anchors.append(anchor)
         }
@@ -187,10 +198,10 @@ public enum AnchorCandidates {
         if block.unicodeScalars.count > ScreenText.maxBlockLength {
             rows.removeLast()
         }
-        let texts = rows
-            .compactMap(candidateText)
+        let texts = rows.enumerated()
+            .compactMap { row, raw in candidateText(raw).map { (row: row, text: $0) } }
             .prefix(fallbackLimit)
-        let anchors = texts.enumerated().map { AnchorLine(id: id($0.offset + 1), text: $0.element) }
+        let anchors = texts.enumerated().map { AnchorLine(id: id($0.offset + 1), text: $0.element.text, source: $0.element.row) }
         let ids = anchors.map(\.id)
 
         var itemCandidates: [Int: [String]] = [:]

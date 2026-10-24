@@ -62,8 +62,12 @@ struct CropsScript: Sendable {
     /// The option a Choice picks, by full id or short id. The default is the first option.
     var choice: [String: String] = [:]
     var choiceConfidence = 0.9
-    /// Makes every request throw a timeout.
-    var fails = false
+    /// Makes every request throw this error.
+    var failure: JevError?
+    /// Makes a request that holds screen text throw this error, when `failure` is nil.
+    var failureOnText: JevError?
+    /// Makes a request that holds an image throw this error, when `failure` is nil.
+    var failureOnImages: JevError?
     /// Makes every request wait this long before it answers.
     var delay: Duration?
 
@@ -74,23 +78,24 @@ struct CropsScript: Sendable {
     func answer(_ request: JevRequest) -> JevResponse {
         var answers: [String: JevAnswer] = [:]
         for (id, question) in request.questions {
-            let short = Self.shortID(id)
+            let key = id.text
+            let short = Self.shortID(key)
             switch question.kind {
             case .noul:
-                answers[id] = .noul(noul[id] ?? noul[short] ?? 0.1)
+                answers[key] = .noul(noul[key] ?? noul[short] ?? 0.1)
             case .box:
-                answers[id] = .box(box)
+                answers[key] = .box(box)
             case .choice(let options):
-                let names = options.map(\.name)
-                let picked = (choice[id] ?? choice[short]).flatMap { names.contains($0) ? $0 : nil } ?? names[0]
+                let names = options.map(\.name.text)
+                let picked = (choice[key] ?? choice[short]).flatMap { names.contains($0) ? $0 : nil } ?? names[0]
                 let share = 1.0 / Double(names.count)
-                answers[id] = .choice(JevChoiceAnswer(
+                answers[key] = .choice(JevChoiceAnswer(
                     option: picked,
                     confidence: choiceConfidence,
                     probabilities: Dictionary(uniqueKeysWithValues: names.map { ($0, share) })
                 ))
             case .score:
-                answers[id] = .score(JevScoreAnswer(score: 0, confidence: 0.9, probabilities: [1]))
+                answers[key] = .score(JevScoreAnswer(score: 0, confidence: 0.9, probabilities: [1]))
             }
         }
         return JevResponse(model: JevEndpoint.model, answers: answers, inputTokens: 10, outputTokens: 1)
@@ -116,6 +121,7 @@ final class CropsCounter: Sendable {
 struct CropsRun {
     var output: JevJobOutput
     var requests: [JevRequest]
+    var round: FeedbackRound
     /// How many times the job asked the image loader for a region.
     var loads: Int
     var deadline: ContinuousClock.Instant
@@ -188,6 +194,7 @@ func runCropsJob(
     budget: Duration = .seconds(5),
     pngSize: PixelSize? = nil,
     highlights: [FeedbackBox] = [],
+    screenLines: [FeedbackTextLine]? = nil,
     loadHook: (@Sendable (Int) throws -> Void)? = nil
 ) async throws -> CropsRun {
     let folder = FileManager.default.temporaryDirectory.appendingPathComponent("jev-crops-\(UUID().uuidString)", isDirectory: true)
@@ -224,24 +231,27 @@ func runCropsJob(
             if let delay = script.delay {
                 try await Task.sleep(for: delay)
             }
-            if script.fails { throw JevError(.timeout) }
+            if let failure = script.failure { throw failure }
+            if let failure = script.failureOnText, request.kinds.contains(.screenText) { throw failure }
+            if let failure = script.failureOnImages, request.kinds.contains(.images) { throw failure }
             return script.answer(request)
         },
         images: JevImageLoader { index, variant, region in
             let call = loads.next()
             try loadHook?(call)
             return try bundleLoader.image(of: index, variant, region: region)
-        }
+        },
+        screenLines: screenLines
     )
     let output = try await CropsAnchorsJob().run(context)
     let finishedAt = ContinuousClock.now
-    try JevBundleWriter.check(output, for: capture)
+    try JevBundleWriter.check(output, for: capture, in: round)
     // The client's own checks: ids, option counts, image count and sizes.
     let requests = await log.requests
     for request in requests {
         _ = try JevRequestEncoder.encode(request)
     }
-    return CropsRun(output: output, requests: requests, loads: loads.count, deadline: deadline, finishedAt: finishedAt)
+    return CropsRun(output: output, requests: requests, round: round, loads: loads.count, deadline: deadline, finishedAt: finishedAt)
 }
 
 let cropsRuleLine = JevRefinedLine(
@@ -249,7 +259,7 @@ let cropsRuleLine = JevRefinedLine(
     label: "Open each item's crop before the full image. Open the full image only for layout, or when a crop line says unsure or not checked."
 )
 
-func cropLine(_ badge: Int, _ words: String, _ box: FeedbackBox, file: String) -> JevRefinedLine {
+func cropLine(_ badge: Int, _ words: JevCodeText, _ box: FeedbackBox, file: String) -> JevRefinedLine {
     JevRefinedLine(
         scope: .item(badge: badge),
         label: "Crop of this item (\(words); px \(box.x1) \(box.y1) \(box.x2) \(box.y2) of the full image):",
@@ -282,22 +292,22 @@ func decodedSize(_ data: Data) -> PixelSize? {
 
 func stateField(_ request: JevRequest, _ key: String) -> JevValue? {
     guard case .object(let fields) = request.state else { return nil }
-    return fields.first { $0.0 == key }?.1
+    return fields.first { $0.0.text == key }?.1
 }
 
 /// The key each `.screen` value sits under. An array's items sit under the array's key.
 func screenKeys(in value: JevValue, key: String? = nil) -> [String?] {
     switch value {
     case .screen: [key]
-    case .object(let fields): fields.flatMap { screenKeys(in: $0.1, key: $0.0) }
+    case .object(let fields): fields.flatMap { screenKeys(in: $0.1, key: $0.0.text) }
     case .array(let items): items.flatMap { screenKeys(in: $0, key: key) }
     case .reviewer, .code, .number, .bool, .image: []
     }
 }
 
 extension JevJobOutput {
-    var cropLabels: [String] { lines.map(\.label).filter { $0.hasPrefix("Crop of this item") } }
-    var searchLines: [JevRefinedLine] { lines.filter { $0.label.hasPrefix("Search the repository") } }
+    var cropLabels: [String] { lines.map(\.label.text).filter { $0.hasPrefix("Crop of this item") } }
+    var searchLines: [JevRefinedLine] { lines.filter { $0.label.text.hasPrefix("Search the repository") } }
 }
 
 private let allKinds: JevDataKinds = [.reviewerText, .screenText, .images]
@@ -325,7 +335,7 @@ struct CropsAnchorsJobTests {
             // Annotated crops come from the annotated PNG, clean crops from the clean PNG.
             #expect(allPixels(file.data, near: file.name.hasSuffix("-clean.png") ? [255, 255, 255] : [0, 255, 0]), "\(file.name)")
         }
-        let words = "cut around the marks, not checked"
+        let words: JevCodeText = "cut around the marks, not checked"
         let expected = [
             cropsRuleLine,
             cropLine(1, words, FeedbackBox(x1: 360, y1: 260, x2: 630, y2: 530), file: names[0]),
@@ -342,7 +352,7 @@ struct CropsAnchorsJobTests {
         let run = try await runCropsJob(
             cropsCapture(marks: marks),
             allowed: [.reviewerText, .screenText],
-            script: CropsScript(noul: ["anchor_fits": 0.9], choice: ["anchor": "L002"])
+            script: CropsScript(noul: ["anchor_fits": 0.9], choice: ["anchor": "line_2"])
         )
 
         #expect(run.requests.count == 1)
@@ -359,14 +369,15 @@ struct CropsAnchorsJobTests {
         for (id, question) in request.questions {
             #expect(!question.kinds.contains(.screenText), "\(id) holds screen text")
             if case .code(let text) = question.instructions {
-                #expect(text.hasPrefix(JevPrompting.screenTextNotice), "\(id)")
+                #expect(text.text.hasPrefix(JevPrompting.screenTextNotice), "\(id)")
             } else {
                 Issue.record("\(id) instructions are not code text")
             }
             if case .choice(let options) = question.kind {
                 #expect(options.count == 4)
                 for option in options {
-                    #expect(option.name.hasPrefix("L") && option.name.count > 1 && option.name.dropFirst().allSatisfy(\.isNumber), "\(option.name)")
+                    let name = option.name.text
+                    #expect(name.hasPrefix("line_") && name.count > 5 && name.dropFirst(5).allSatisfy(\.isNumber), "\(name)")
                 }
             }
         }
@@ -457,7 +468,7 @@ struct CropsAnchorsJobTests {
     @Test("When every request fails the job does not throw, and the crops say not checked")
     func requestsFail() async throws {
         var script = CropsScript()
-        script.fails = true
+        script.failure = JevError(.timeout)
         let run = try await runCropsJob(cropsCapture(), allowed: allKinds, script: script)
 
         #expect(run.requests.count == 2)
@@ -498,7 +509,7 @@ struct CropsAnchorsJobTests {
     @Test("A capture with no badges and a note gets one whole-capture Search line, and no crop")
     func noBadges() async throws {
         let capture = cropsCapture(marks: [], note: "the title is wrong")
-        let run = try await runCropsJob(capture, allowed: allKinds, script: CropsScript(noul: ["anchor_fits": 0.9], choice: ["anchor": "L003"]))
+        let run = try await runCropsJob(capture, allowed: allKinds, script: CropsScript(noul: ["anchor_fits": 0.9], choice: ["anchor": "line_3"]))
 
         #expect(run.requests.count == 1)
         let request = try #require(run.requests.first)
@@ -520,7 +531,11 @@ struct CropsAnchorsJobTests {
     func noBadgesNoNote() async throws {
         let run = try await runCropsJob(cropsCapture(marks: [], note: nil), allowed: allKinds)
         #expect(run.requests.isEmpty)
-        #expect(run.output == .empty)
+        #expect(run.output.lines.isEmpty && run.output.files.isEmpty)
+        // The summary still has one object for the capture.
+        let object = try #require(summaryItem(run.output, "1"))
+        #expect(summaryCode(object["anchorStatus"]) == "noScreenText")
+        #expect(object["cropStatus"] == nil)
     }
 
     @Test("A crop over half the full image's tokens gives no crop lines and no files")
@@ -582,7 +597,9 @@ struct CropsAnchorsJobTests {
         let run = try await runCropsJob(cropsCapture(), allowed: allKinds, budget: .seconds(-1))
         #expect(run.requests.isEmpty)
         #expect(run.loads == 0)
-        #expect(run.output == .empty)
+        #expect(run.output.lines.isEmpty && run.output.files.isEmpty)
+        #expect(run.output.failure == nil)
+        #expect(summaryCode(summaryItem(run.output, "1.1")?["cropStatus"]) == "notChecked")
     }
 
     @Test("Past the request cutoff but before the crop stop: no load and no request, and the crops say not checked")
@@ -605,7 +622,7 @@ struct CropsAnchorsJobTests {
             let script = CropsScript(noul: ["target_shown": 0.9])
             // runCropsJob calls JevBundleWriter.check; this repeats it with the output in hand.
             let run = try await runCropsJob(capture, allowed: allowed, script: script)
-            try JevBundleWriter.check(run.output, for: capture)
+            try JevBundleWriter.check(run.output, for: capture, in: run.round)
             #expect(run.requests.allSatisfy { $0.kinds.isSubset(of: allowed) }, "\(allowed)")
         }
     }
@@ -642,7 +659,8 @@ struct CropsAnchorsJobTests {
     @Test("A capture PNG with another size than the stored one gives no crop files and no crop lines")
     func pngSizeMismatch() async throws {
         let run = try await runCropsJob(cropsCapture(), allowed: .reviewerText, pngSize: PixelSize(width: 500, height: 400))
-        #expect(run.output == .empty)
+        #expect(run.output.lines.isEmpty && run.output.files.isEmpty)
+        #expect(summaryCode(summaryItem(run.output, "1.1")?["cropStatus"]) == "marksOnly")
     }
 }
 
@@ -750,7 +768,8 @@ struct CropsAnchorsStateTests {
             script: CropsScript(noul: ["target_shown": 0.9])
         )
         #expect(run.requests.count == 1)
-        #expect(run.output == .empty)
+        #expect(run.output.lines.isEmpty && run.output.files.isEmpty)
+        #expect(summaryCode(summaryItem(run.output, "1.1")?["cropStatus"]) == "tooSmall")
     }
 
     @Test("A crop that an edge yes makes too wide to reshape is too small in round 2, and gets no crop")
@@ -760,7 +779,8 @@ struct CropsAnchorsStateTests {
         let run = try await runCropsJob(thinCapture(seedWidth: 402), allowed: [.reviewerText, .images], script: script)
 
         #expect(run.requests.count == 2)
-        #expect(run.output == .empty)
+        #expect(run.output.lines.isEmpty && run.output.files.isEmpty)
+        #expect(summaryCode(summaryItem(run.output, "1.1")?["cropStatus"]) == "tooSmall")
     }
 
     @Test("In the last round the moved crop is reshaped, and the item says edges unsure")
@@ -799,7 +819,8 @@ struct CropsAnchorsStateTests {
         let run = try await runCropsJob(capture, allowed: [.reviewerText, .images], script: script)
 
         #expect(run.requests.count == 2)
-        #expect(run.output == .empty)
+        #expect(run.output.lines.isEmpty && run.output.files.isEmpty)
+        #expect(summaryCode(summaryItem(run.output, "1.1")?["cropStatus"]) == "notWorthIt")
     }
 
     @Test("An image that fails to load leaves that item not checked, and the others go on")
@@ -816,7 +837,7 @@ struct CropsAnchorsStateTests {
         #expect(run.requests.count == 2)
         #expect(try run.request(0).questions.map(\.id) == ["1.1.target", "1.1.target_shown"])
         #expect(try run.request(1).questions.count == 4)
-        let notChecked = "not checked: open the full image if the crop cuts something off"
+        let notChecked: JevCodeText = "not checked: open the full image if the crop cuts something off"
         #expect(run.output.lines == [
             cropsRuleLine,
             cropLine(1, "edges checked", FeedbackBox(x1: 364, y1: 264, x2: 627, y2: 527), file: "1028-claude-item-1.png"),
@@ -945,6 +966,11 @@ struct CropsAnchorsStateTests {
             if allowed == .reviewerText {
                 #expect(run.requests.isEmpty)
             }
+            // The summary holds numbers and code text only: no screen text, title, or note.
+            let summary = String(decoding: try JSONEncoder().encode(JevSummaryValue.object(run.output.summary)), as: UTF8.self)
+            for text in secrets + titles + ["make it brighter", "general note"] {
+                #expect(!summary.contains(text), "\(text) in the summary with \(allowed)")
+            }
             var inScreenText = Set<String>()
             for request in run.requests {
                 let body = try JevRequestEncoder.encode(request).body
@@ -978,6 +1004,229 @@ struct CropsAnchorsStateTests {
                 #expect(inScreenText.isEmpty)
             }
         }
+    }
+}
+
+// MARK: - Summary helpers
+
+/// The summary objects, one per item (or one for a capture with no badges), by key.
+func summaryObjects(_ output: JevJobOutput) -> [[String: JevSummaryValue]] {
+    guard let field = output.summary.first(where: { $0.key.text == "items" }), case .array(let objects) = field.value else { return [] }
+    return objects.compactMap { value in
+        guard case .object(let fields) = value else { return nil }
+        return Dictionary(fields.map { ($0.key.text, $0.value) }, uniquingKeysWith: { first, _ in first })
+    }
+}
+
+/// The summary object whose "item" is `id`, for example "1.2".
+func summaryItem(_ output: JevJobOutput, _ id: String) -> [String: JevSummaryValue]? {
+    summaryObjects(output).first { summaryCode($0["item"]) == id }
+}
+
+/// The keys of the summary object whose "item" is `id`, in order.
+func summaryKeys(_ output: JevJobOutput, _ id: String) -> [String] {
+    guard let field = output.summary.first(where: { $0.key.text == "items" }), case .array(let objects) = field.value else { return [] }
+    for value in objects {
+        if case .object(let fields) = value, fields.contains(where: { $0.key.text == "item" && summaryCode($0.value) == id }) {
+            return fields.map { $0.key.text }
+        }
+    }
+    return []
+}
+
+func summaryCode(_ value: JevSummaryValue?) -> String? {
+    if case .code(let text)? = value { return text.text }
+    return nil
+}
+
+func summaryNumbers(_ value: JevSummaryValue?) -> [Int]? {
+    guard case .array(let items)? = value else { return nil }
+    let numbers = items.compactMap { item -> Int? in
+        if case .number(let number) = item { return Int(number) }
+        return nil
+    }
+    return numbers.count == items.count ? numbers : nil
+}
+
+func boxNumbers(_ box: FeedbackBox) -> [Int] {
+    [box.x1, box.y1, box.x2, box.y2]
+}
+
+// MARK: - Summary, failure, and search lines
+
+@Suite("Crops and anchors: summary, failure, and search lines")
+struct CropsAnchorsSummaryTests {
+    @Test("The notice in the job is the base's screen text notice")
+    func noticeMatchesTheBase() {
+        #expect(CropsAnchorsJob.screenTextNotice.text == JevPrompting.screenTextNotice)
+    }
+
+    @Test("The summary holds one object per item with the crop, window, target, and anchor facts")
+    func summaryRecordsFacts() async throws {
+        let marks = [CropsMark(number: 1, box: centerBadge), CropsMark(number: 2, box: cornerBadge)]
+        var script = CropsScript(noul: ["target_shown": 0.9, "anchor_fits": 0.9], choice: ["1.2.anchor": "line_3"])
+        script.box = JevBoxAnswer(box: JevBox(top: 0.1, bottom: 0.4, left: 0.6, right: 0.9), confidence: 0.9)
+        let run = try await runCropsJob(cropsCapture(marks: marks), allowed: allKinds, script: script)
+
+        // Requests A and C run together, so find A by its first question.
+        let requestA = try #require(run.requests.first { $0.questions.first?.id.text == "1.1.target" })
+        let images = requestA.images
+        #expect(summaryObjects(run.output).count == 2)
+        for (offset, id) in ["1.1", "1.2"].enumerated() {
+            let object = try #require(summaryItem(run.output, id))
+            let label = try #require(run.output.lines.first {
+                $0.scope == .item(badge: offset + 1) && $0.label.text.hasPrefix("Crop of this item")
+            }?.label.text)
+            // The crop in the summary is the crop in the label.
+            #expect(summaryNumbers(object["crop"]) == boxNumbers(try #require(cropPixelBox(label))))
+            #expect(summaryCode(object["cropStatus"]) == "checked")
+            #expect(summaryCode(object["cropSource"]) == "target")
+            // The window is the region request A sent. The target is Jev's Box in capture pixels.
+            #expect(summaryNumbers(object["window"]) == boxNumbers(images[offset].sourceRegion))
+            #expect(summaryNumbers(object["target"]) == boxNumbers(images[offset].sourceBox(for: script.box.box)))
+            #expect(summaryCode(object["anchorStatus"]) == "picked")
+        }
+        // The fallback has no line boxes. Item 1 picks the first row, item 2 the third.
+        let first = try #require(summaryItem(run.output, "1.1"))
+        let second = try #require(summaryItem(run.output, "1.2"))
+        #expect(first["anchorSource"] == .number(0) && first["anchorBox"] == nil)
+        #expect(second["anchorSource"] == .number(2) && second["anchorBox"] == nil)
+        #expect(summaryKeys(run.output, "1.1") == ["item", "cropStatus", "cropSource", "crop", "window", "target", "anchorStatus", "anchorSource"])
+    }
+
+    @Test("Without images the summary has the marks crop and no window or target, and without screen text no anchor")
+    func summaryWithoutImagesOrText() async throws {
+        let run = try await runCropsJob(cropsCapture(), allowed: .reviewerText)
+        let object = try #require(summaryItem(run.output, "1.1"))
+        #expect(summaryCode(object["cropStatus"]) == "marksOnly")
+        #expect(summaryCode(object["cropSource"]) == "marks")
+        #expect(summaryNumbers(object["crop"]) == [360, 260, 630, 530])
+        #expect(object["window"] == nil && object["target"] == nil)
+        #expect(summaryCode(object["anchorStatus"]) == "noScreenText")
+        #expect(object["anchorSource"] == nil && object["anchorBox"] == nil)
+        #expect(summaryKeys(run.output, "1.1") == ["item", "cropStatus", "cropSource", "crop", "anchorStatus"])
+    }
+
+    @Test("Anchor statuses: noneFit for a low fit, notChecked for a failed request")
+    func anchorStatuses() async throws {
+        let lowFit = try await runCropsJob(cropsCapture(), allowed: [.reviewerText, .screenText], script: CropsScript(noul: ["anchor_fits": 0.1]))
+        #expect(summaryCode(summaryItem(lowFit.output, "1.1")?["anchorStatus"]) == "noneFit")
+
+        var failing = CropsScript()
+        failing.failure = JevError(.server, status: 503)
+        let failed = try await runCropsJob(cropsCapture(), allowed: [.reviewerText, .screenText], script: failing)
+        #expect(summaryCode(summaryItem(failed.output, "1.1")?["anchorStatus"]) == "notChecked")
+
+        // A capture with no screen text has nothing to offer.
+        let none = try await runCropsJob(cropsCapture(ocr: nil), allowed: [.reviewerText, .screenText])
+        #expect(none.requests.isEmpty)
+        #expect(summaryCode(summaryItem(none.output, "1.1")?["anchorStatus"]) == "noScreenText")
+    }
+
+    @Test("A capture with no badges has one summary object with its anchor facts")
+    func summaryForCaptureLevel() async throws {
+        let capture = cropsCapture(marks: [], note: "the title is wrong")
+        let script = CropsScript(noul: ["anchor_fits": 0.9], choice: ["anchor": "line_3"])
+        let run = try await runCropsJob(capture, allowed: allKinds, script: script)
+
+        #expect(summaryObjects(run.output).count == 1)
+        let object = try #require(summaryItem(run.output, "1"))
+        #expect(summaryCode(object["anchorStatus"]) == "picked")
+        #expect(object["anchorSource"] == .number(2))
+        #expect(object["cropStatus"] == nil)
+    }
+
+    @Test("Lines with boxes: candidates come nearest first, and the summary records the line's source and box")
+    func screenLinesWithBoxes() async throws {
+        func box(_ x: Int, _ y: Int) -> FeedbackBox { FeedbackBox(x1: x, y1: y, x2: x + 100, y2: y + 20) }
+        let lines = [
+            FeedbackTextLine(text: "Outside Label", box: box(10, 10)),
+            FeedbackTextLine(text: "Middle Label", box: box(600, 385)),
+            FeedbackTextLine(text: "Far Label", box: box(300, 200)),
+            FeedbackTextLine(text: "Nearest Label", box: box(520, 385)),
+        ]
+        // Ids follow reading order: Far, Nearest, Middle. The item's list is nearest first: Nearest, Middle, Far.
+        let script = CropsScript(noul: ["anchor_fits": 0.9], choice: ["anchor": "line_3"])
+        let run = try await runCropsJob(cropsCapture(), allowed: [.reviewerText, .screenText], script: script, screenLines: lines)
+
+        let request = try run.request(0)
+        let anchor = try #require(request.questions.first { $0.id.text == "1.1.anchor" })
+        guard case .choice(let options) = anchor.question.kind else {
+            Issue.record("the anchor question is not a Choice")
+            return
+        }
+        #expect(options.map(\.name.text) == ["line_2", "line_3", "line_1"])
+        guard case .array(let sent)? = stateField(request, "screen_text") else {
+            Issue.record("screen_text is not an array")
+            return
+        }
+        let texts = sent.compactMap { value -> String? in
+            if case .screen(let text) = value { return text }
+            return nil
+        }
+        #expect(texts == ["line_1| Far Label", "line_2| Nearest Label", "line_3| Middle Label"])
+
+        // line_3 is "Middle Label", the second line of the input.
+        #expect(run.output.searchLines == [searchLine(1, "Middle Label")])
+        let object = try #require(summaryItem(run.output, "1.1"))
+        #expect(summaryCode(object["anchorStatus"]) == "picked")
+        #expect(object["anchorSource"] == .number(1))
+        #expect(summaryNumbers(object["anchorBox"]) == boxNumbers(box(600, 385)))
+    }
+
+    @Test("A failed request sets the failure, and the lines, files, and summary still return")
+    func failureIsSet() async throws {
+        var script = CropsScript()
+        script.failure = JevError(.timeout)
+        let run = try await runCropsJob(cropsCapture(), allowed: allKinds, script: script)
+
+        #expect(run.output.failure == JevError(.timeout))
+        #expect(run.output.files.count == 2)
+        #expect(!run.output.lines.isEmpty)
+        #expect(summaryCode(summaryItem(run.output, "1.1")?["cropStatus"]) == "notChecked")
+        #expect(summaryCode(summaryItem(run.output, "1.1")?["anchorStatus"]) == "notChecked")
+    }
+
+    @Test("The first failure is reported: a crop request before the search request")
+    func firstFailure() async throws {
+        let mixed = CropsScript(noul: ["target_shown": 0.9], failureOnText: JevError(.server, status: 503))
+        let searchOnly = try await runCropsJob(cropsCapture(), allowed: allKinds, script: mixed)
+        #expect(searchOnly.output.failure == JevError(.server, status: 503))
+        // The crops went through.
+        #expect(summaryCode(summaryItem(searchOnly.output, "1.1")?["cropStatus"]) == "checked")
+
+        // Only the crop requests fail: their error is reported, and the search line still comes.
+        let cropsOnly = CropsScript(noul: ["anchor_fits": 0.9], failureOnImages: JevError(.timeout))
+        let cropsFail = try await runCropsJob(cropsCapture(), allowed: allKinds, script: cropsOnly)
+        #expect(cropsFail.output.failure == JevError(.timeout))
+        #expect(cropsFail.output.searchLines == [searchLine(1, "Copy Last Capture Prompt")])
+
+        // Both fail: the crop error comes first, whichever request ends first.
+        let both = CropsScript(failureOnText: JevError(.server, status: 503), failureOnImages: JevError(.timeout))
+        let bothFail = try await runCropsJob(cropsCapture(), allowed: allKinds, script: both)
+        #expect(bothFail.output.failure == JevError(.timeout))
+    }
+
+    @Test("No failure when every request succeeds, or when a request is skipped at the cutoff")
+    func noFailure() async throws {
+        let ok = try await runCropsJob(cropsCapture(), allowed: allKinds, script: CropsScript(noul: ["target_shown": 0.9, "anchor_fits": 0.9]))
+        #expect(ok.requests.count == 3)
+        #expect(ok.output.failure == nil)
+
+        let skipped = try await runCropsJob(cropsCapture(), allowed: allKinds, budget: .milliseconds(450))
+        #expect(skipped.requests.isEmpty)
+        #expect(skipped.output.failure == nil)
+
+        var slow = CropsScript()
+        slow.delay = .seconds(30)
+        let late = try await runCropsJob(cropsCapture(), allowed: allKinds, script: slow, budget: .milliseconds(1500))
+        #expect(late.output.failure == nil)
+    }
+
+    @Test("The job leaves the review file empty")
+    func noReview() async throws {
+        let run = try await runCropsJob(cropsCapture(), allowed: allKinds)
+        #expect(run.output.review == nil)
     }
 }
 
