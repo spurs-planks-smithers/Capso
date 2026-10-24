@@ -31,6 +31,9 @@ JOB_NAME = "cropsAnchors"
 OUTPUT_NAME = "jev-review.html"
 STORE = Path.home() / "Library" / "Application Support" / "Nextshot"
 MAX_IMAGE_WIDTH = 900
+# The crop preview in each item row, in CSS pixels.
+PREVIEW_WIDTH = 220
+PREVIEW_HEIGHT = 160
 
 # Final crop color by status. Statuses without a color use the fallback.
 CROP_COLORS = {
@@ -62,6 +65,7 @@ th { color: #14213d; font-weight: 600; border-bottom: 1px solid #c3c9d0; white-s
 .screen { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12.5px; overflow-wrap: anywhere; }
 .shot { position: relative; margin: 10px 0 4px; border: 1px solid #d5d9de; line-height: 0; }
 .shot img { display: block; width: 100%; height: auto; }
+.preview { border: 1px solid #c3c9d0; background-repeat: no-repeat; margin-bottom: 6px; }
 .box { position: absolute; box-sizing: border-box; }
 .window { border: 1px dashed """ + WINDOW_COLOR + """; }
 .target { border: 1px solid """ + TARGET_COLOR + """; }
@@ -182,6 +186,24 @@ def overlay(css_class, box, width, height, color=None, tag=None):
     return f'<div class="box {css_class}" style="{style}">{inner}</div>'
 
 
+def crop_preview(value, image_name, width, height):
+    """The final crop as the agent would see it, cut from the annotated image
+    with CSS, at most PREVIEW_WIDTH by PREVIEW_HEIGHT pixels. Empty when the
+    box or the image is missing."""
+    box = box_of(value, width, height)
+    if not box or not image_name:
+        return ""
+    x1, y1, x2, y2 = box
+    scale = min(PREVIEW_WIDTH / (x2 - x1), PREVIEW_HEIGHT / (y2 - y1), 1)
+    style = (
+        f"width:{(x2 - x1) * scale:.0f}px;height:{(y2 - y1) * scale:.0f}px;"
+        f"background-image:url('{esc(quote(image_name))}');"
+        f"background-size:{width * scale:.0f}px {height * scale:.0f}px;"
+        f"background-position:{-x1 * scale:.0f}px {-y1 * scale:.0f}px"
+    )
+    return f'<div class="preview" style="{style}"></div>'
+
+
 def answers_by_id(job):
     """Map answer id to its fields. Handles flat records and an `answer` object."""
     result = {}
@@ -228,7 +250,7 @@ def note_for(item_id, capture):
     return note.strip() if isinstance(note, str) and note.strip() else None
 
 
-def render_item_row(item, answers, capture, ocr_lines):
+def render_item_row(item, answers, capture, ocr_lines, image_name, width, height):
     item_id = item["item"]
     prefix = item_id + "."
 
@@ -251,7 +273,8 @@ def render_item_row(item, answers, capture, ocr_lines):
     else:
         status_html = NA
     crop_cell = (
-        f"{status_html}<br><span class=\"k\">source</span> {text_or_na(item.get('cropSource'))}"
+        crop_preview(item.get("crop"), image_name, width, height)
+        + f"{status_html}<br><span class=\"k\">source</span> {text_or_na(item.get('cropSource'))}"
         f"<br>{px_text(item.get('crop'))}"
     )
 
@@ -379,7 +402,11 @@ def render_capture(capture, record, folder):
         head = ["Item", "Drew's note", "Final crop", "Target", "Edges, round 1", "Edges, round 2",
                 "Search line", "Anchor answers", "Anchor status"]
         out.append("<table><thead><tr>" + "".join(f"<th>{esc(h)}</th>" for h in head) + "</tr></thead><tbody>")
-        out.extend(render_item_row(item, answers, capture, ocr_lines) for item in items)
+        has_image = bool(image_name) and (folder / image_name).is_file()
+        out.extend(
+            render_item_row(item, answers, capture, ocr_lines, image_name if has_image else "", width, height)
+            for item in items
+        )
         out.append("</tbody></table>")
     else:
         out.append("<p>The record holds no items.</p>")
