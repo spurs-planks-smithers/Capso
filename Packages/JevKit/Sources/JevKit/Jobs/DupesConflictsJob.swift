@@ -326,6 +326,7 @@ enum DupesConflicts {
                 }
                 var hasCrop = false
                 if sendImages,
+                   newHasCrop.filter({ $0 }).count < JevRequestEncoder.maxImages,
                    earlier.contains(where: { entry.sharesSource(with: $0) }),
                    let crop = image(of: entry) {
                     fields.append(("crop", .image(crop)))
@@ -350,9 +351,13 @@ enum DupesConflicts {
 
             var cropKeys = Set<String>()
             if sendImages {
+                // The encoder refuses a request with more images than its
+                // limit, so the new crops come first and the earlier crops
+                // fill what is left.
+                let limit = min(maxEarlierCrops, JevRequestEncoder.maxImages - newHasCrop.filter { $0 }.count)
                 var crops: [(String, JevValue)] = []
                 for entry in earlier.reversed() where chunk.contains(where: { $0.sharesSource(with: entry) }) {
-                    guard crops.count < maxEarlierCrops else { break }
+                    guard crops.count < limit else { break }
                     if let crop = image(of: entry) {
                         crops.append((entry.key, .image(crop)))
                     }

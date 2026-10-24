@@ -83,14 +83,22 @@ def outcome(same_ask, opposite):
     return "different"
 
 
+class Unreadable(Exception):
+    """A file exists but is not a JSON object."""
+
+
 def load(path):
+    """The JSON object in `path`, or None when the file does not exist.
+    Raises Unreadable for a file that exists but is not a JSON object."""
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        value = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError:
         return None
     except (OSError, ValueError) as error:
-        print(f"Skipped {path.name} in {path.parent.name}: {error}", file=sys.stderr)
-        return None
+        raise Unreadable(f"{path.name} in {path.parent.name}: {error}")
+    if not isinstance(value, dict):
+        raise Unreadable(f"{path.name} in {path.parent.name}: not a JSON object")
+    return value
 
 
 def entry_key(entry_id):
@@ -194,21 +202,44 @@ def ask(prompt):
 
 
 folders = sorted(path.parent for path in root.glob("*/jev.json"))
+
+# First pass: read every round. A round with a file that cannot be read is
+# skipped as a whole, so its labels are never overwritten.
+rounds = []
+for folder in folders:
+    try:
+        calls = flagged_calls(load(folder / "jev.json"))
+        stored = load(folder / "jev-labels.json") or {}
+        notes = notes_by_id(load(folder / "feedback.json"))
+    except Unreadable as error:
+        print(f"Skipped round {folder.name}: {error}. Fix or move the file, then run again.", file=sys.stderr)
+        continue
+    stored_labels = stored.get("labels", [])
+    if not isinstance(stored_labels, list) or not all(isinstance(item, dict) for item in stored_labels):
+        print(f"Skipped round {folder.name}: jev-labels.json has no list of labels. Fix or move the file, then run again.", file=sys.stderr)
+        continue
+    if calls:
+        rounds.append((folder, calls, stored_labels, notes))
+
+# The bar counts only the newest job version: a new version means new
+# questions, and old answers must never mix with new ones.
+versions = [call["jobVersion"] for _, calls, _, _ in rounds for call in calls if isinstance(call["jobVersion"], int)]
+current = max(versions) if versions else None
+
 counts = {call: {"labeled": 0, "right": 0} for call in FLAGGED}
 unlabeled = 0
+older = 0
 stopped = False
 
-for folder in folders:
-    calls = flagged_calls(load(folder / "jev.json"))
-    if not calls:
-        continue
-    stored = (load(folder / "jev-labels.json") or {}).get("labels", [])
-    labels = {label_key(item): item for item in stored}
-    notes = notes_by_id(load(folder / "feedback.json"))
+for folder, calls, stored_labels, notes in rounds:
+    labels = {label_key(item): item for item in stored_labels}
     changed = False
 
     for call in calls:
         key = (JOB, call["jobVersion"], call["pair"], call["outcome"])
+        if call["jobVersion"] != current:
+            older += 1 if key in labels else 0
+            continue
         if key not in labels and mode == "label" and not stopped:
             print()
             print(f"Round {folder.name}, pair {call['new']} and {call['earlier']}")
@@ -238,7 +269,7 @@ for folder in folders:
         save_labels(folder, list(labels.values()))
 
 print()
-print(f"Duplicates and conflicts: labels across {len(folders)} {'round' if len(folders) == 1 else 'rounds'} with jev.json")
+print(f"Duplicates and conflicts, job version {current if current is not None else 'n/a'}: labels across {len(rounds)} {'round' if len(rounds) == 1 else 'rounds'} with flagged calls")
 print(f"{'Call':<12}{'Labeled':>8}{'Right':>7}{'Wrong':>7}  Share right")
 for call in FLAGGED:
     labeled = counts[call]["labeled"]
@@ -246,6 +277,8 @@ for call in FLAGGED:
     share = f"{100 * right / labeled:.0f}%" if labeled else "n/a"
     print(f"{call:<12}{labeled:>8}{right:>7}{labeled - right:>7}  {share}")
 print(f"Flagged calls with no label: {unlabeled}")
+if older:
+    print(f"Labels for older job versions, not counted: {older}")
 print()
 print(f"Bar for on: at least {BAR_MIN} labeled calls with at most {BAR_MAX_WRONG} wrong, for duplicates and for conflicts.")
 for call, name in (("duplicate", "Duplicates"), ("conflict", "Conflicts")):

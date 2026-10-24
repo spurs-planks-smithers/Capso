@@ -591,9 +591,12 @@ struct DupesConflictsJobTests {
             dupesCapture(1, marks: [dupesItem(1, "make the title bigger")]),
             dupesCapture(2, marks: [dupesItem(1, "make the title smaller")]),
         ]
-        let output = try await DupesConflictsJob().run(dupesContext(captures, current: 2) { _ in
-            JevResponse(model: JevEndpoint.model, answers: [:], inputTokens: 0, outputTokens: 0)
+        let log = RequestLog()
+        let output = try await DupesConflictsJob().run(dupesContext(captures, current: 2) { request in
+            await log.append(request)
+            return JevResponse(model: JevEndpoint.model, answers: [:], inputTokens: 0, outputTokens: 0)
         })
+        #expect(await log.count == 1, "the job must send its request before it reads the answers")
         #expect(output == .empty)
     }
 
@@ -808,6 +811,57 @@ struct DupesConflictsJobTests {
         let ask = failing(["2.1": CancellationError()], otherwise: canned())
         await #expect(throws: CancellationError.self) {
             try await DupesConflictsJob().run(dupesContext(captures, current: 2, ask: ask))
+        }
+    }
+
+    @Test("A fixed round gives a stored copy of the encoded request")
+    func storedRequest() async throws {
+        let captures = [
+            dupesCapture(1, note: "rename session to round", marks: [dupesItem(1, "make the title bigger")]),
+            dupesCapture(2, marks: [dupesItem(1, "make the heading larger")]),
+        ]
+        let log = RequestLog()
+        _ = try await DupesConflictsJob().run(dupesContext(captures, current: 2, ask: canned(log: log)))
+        let request = try #require(await log.requests.first)
+        let json = String(decoding: try JevRequestEncoder.encode(request).body, as: UTF8.self)
+
+        let sameAsk = #""question":"Compare the review note of `new[0]` with earlier_note in this question. Both are a reviewer's change requests for an app's interface. How do the two notes relate as change requests?""#
+        let opposite = #""question":"Compare the review note of `new[0]` with earlier_note in this question. Do the two notes ask for changes to the same element that cannot both be done?""#
+        let levels = #""criteria":["They ask for different changes, or for changes to different elements. This includes the same kind of change on a different element, page, or screen.","They overlap. Part of one ask is in the other, or they may be about the same element. A person should check.","They ask for the same change to the same element."]"#
+        let yesNo = #""criteria":{"true":"For example: larger and smaller, remove it and rename it, or two different values for the same setting.","false":"Different elements, changes that can both be done, or one note adds detail to the other."}"#
+        let expected = #"{"model":"jev-1.14.0","state":{"new":[{"id":"2.1","note":"make the heading larger"}]},"questions":{"#
+            + #""2.1.vs.1.1.sameAsk":{"type":"score","instructions":{"# + sameAsk + #","earlier_id":"1.1","earlier_note":"make the title bigger"},"# + levels + "},"
+            + #""2.1.vs.1.1.opposite":{"type":"noul","instructions":{"# + opposite + #","earlier_id":"1.1","earlier_note":"make the title bigger"},"# + yesNo + "},"
+            + #""2.1.vs.1.note.sameAsk":{"type":"score","instructions":{"# + sameAsk + #","earlier_id":"1.note","earlier_note":"rename session to round"},"# + levels + "},"
+            + #""2.1.vs.1.note.opposite":{"type":"noul","instructions":{"# + opposite + #","earlier_id":"1.note","earlier_note":"rename session to round"},"# + yesNo + "}"
+            + "}}"
+        #expect(json == expected)
+    }
+
+    @Test("A request never holds more images than the encoder allows")
+    func imageLimit() async throws {
+        // 40 new entries make 16 requests of 2 or 3 entries, each with a crop,
+        // plus up to 6 earlier crops.
+        let captures = [
+            dupesCapture(1, marks: (1...8).map { dupesItem($0, "earlier ask \($0)") }),
+            dupesCapture(2, marks: (1...40).map { dupesItem($0, "new ask \($0)") }),
+        ]
+        // The encoder refuses an empty PNG, so this loader returns one byte.
+        let images = JevImageLoader { _, _, region in
+            JevImage(
+                png: Data([1]),
+                size: PixelSize(width: 400, height: 300),
+                sourceRegion: region ?? FeedbackBox(x1: 0, y1: 0, x2: 800, y2: 600),
+                contentRect: FeedbackBox(x1: 0, y1: 0, x2: 400, y2: 300)
+            )
+        }
+        let log = RequestLog()
+        _ = try await DupesConflictsJob().run(dupesContext(captures, current: 2, allowed: [.reviewerText, .images], images: images, ask: canned(log: log)))
+        let requests = await log.requests
+        #expect(requests.count == 16)
+        for request in requests {
+            #expect(request.images.count <= JevRequestEncoder.maxImages)
+            _ = try JevRequestEncoder.encode(request)
         }
     }
 
