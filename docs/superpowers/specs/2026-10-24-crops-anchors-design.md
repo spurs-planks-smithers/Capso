@@ -99,7 +99,7 @@ Code reads the answer:
 
 - The base's client rejects a box with an edge outside 0 to 1 or out of order.
 - `JevImage.sourceBox` maps the fractions back to capture pixels.
-- Proposed crop: the target box joined with the seed box, so the badge stays in the crop, plus a pad of 24 export pixels. (My call.)
+- Proposed crop: the target box joined with the seed box, so the badge stays in the crop, plus a pad of 24 export pixels. (My call.) It is then joined with the marks crop, so it is never smaller than the marks crop (Drew, 2026-10-24).
 - If `target_shown` is below its threshold, or the box confidence is below its threshold, use the marks crop (below). Request B still checks it.
 - A Box answer with no confidence counts as below the threshold. TypeSafe's Box docs always return a confidence, so a missing one means an incomplete answer.
 
@@ -339,6 +339,26 @@ Light research on 2026-10-24 (four searches), with the TypeSafe docs.
 - 2026-10-24: a capture with no badges gets one capture-level search line from its general note, and no crop (Drew).
 - 2026-10-24: build the pure crop geometry (#41) and anchor candidates (#42) before the Jev base publishes its job interface. The Jev request job (#43) still waits for the base. The Jev sizing rule lives in `ItemCrop` for now, and the base can take it over (Drew).
 - My calls, open to Drew's change: anchor text is text only in every state; the window margin is 200 export pixels, the target crop pad is 24, and the marks crop pad is 120; at most two edge checks per item; a crop over half the full image's tokens is skipped; 40 candidates per item, each one OCR line; the job starts after OCR and after the note panel closes; the search line can be screen text from outside the marks; the review page saves no verdicts.
+
+- 2026-10-24: keep the 25% edge growth until about 20 shadow items show a pattern (Drew, after the live test).
+- 2026-10-24: a Jev target crop is never smaller than the marks crop (Drew, after a live crop showed only two words).
+
+## Live test (2026-10-24, build 561)
+
+Signed build from this branch. `jevBase` on, `cropsAnchors` shadow then on, images and screen text allowed. Drew made 3 captures of the Claude app, 8 items in all.
+
+| Check | Result |
+| --- | --- |
+| Time per capture | 0.4, 0.7, and 0.7 s, inside the 2 s budget |
+| Requests per capture | 2, 4, and 4, under the cap of 16 |
+| Shadow output | `jev.json` only, with the summary |
+| On output | 2 crop PNGs per item, `<stem>-refined.md` and `refined.md` with the crops-first line and the crop lines. The copied prompt lists the refined file first. |
+| Jev target | 2 of 5 Box answers passed the 0.3 confidence threshold. One whole Box request came back `invalidResponse` (likely one Box with equal edges). Asked the base to drop only a bad answer. |
+| Edge checks | 6 of 6 checked items ended "edges unsure". On a long sidebar row the answers were right: the row continued past the crop. 25% growth per check was too small. |
+| Search lines | 1 picked, and it was right. Most test notes were about the test, not a screen element, so "no line" was the right answer for them. |
+| Tight crop | One target crop was 119 by 92 pixels and showed only two words. Fixed by the rule above. |
+
+Real feedback notes on Drew's own apps are the next test of the search lines.
 
 ## Open questions
 
