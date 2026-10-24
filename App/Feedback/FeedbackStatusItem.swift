@@ -37,7 +37,7 @@ struct FeedbackMenuState {
 final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     var stateProvider: (() -> FeedbackMenuState)?
 
-    var onCopyPrompt: (() -> Void)?
+    var onCopyPromptAndEndRound: (() -> Void)?
     var onCopyLastCapture: (() -> Void)?
     var onOpenFolder: (() -> Void)?
     var onEndSession: (() -> Void)?
@@ -72,12 +72,24 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     /// Made once and added again on each rebuild. `setShortcut(for:)` adds a
     /// notification observer that nothing removes, so a new item on every menu
     /// open would leave one more observer and one more item behind.
-    private lazy var startSessionItem: NSMenuItem = {
-        let item = menuItem("Start Session", action: #selector(startSession))
-        // The same call the main menu uses, so a changed shortcut shows here.
-        item.setShortcut(for: .feedbackCapture)
-        return item
-    }()
+    private lazy var startSessionItem: NSMenuItem = shortcutItem(
+        "Start Session", action: #selector(startSession), name: .feedbackCapture
+    )
+
+    /// The active round's rows, made once for the same reason. Each shows its
+    /// hotkey on the right (Drew, 2026-10-24).
+    private lazy var copyLastCaptureItem: NSMenuItem = shortcutItem(
+        "Copy Last Capture Prompt", action: #selector(copyLastCapture), name: .feedbackCopyLastCapture
+    )
+    private lazy var copyPromptAndEndRoundItem: NSMenuItem = shortcutItem(
+        "Copy Prompt and End Round", action: #selector(copyPromptAndEndRound), name: .feedbackCopyPromptAndEndRound
+    )
+    private lazy var openRoundFolderItem: NSMenuItem = shortcutItem(
+        "Open Round Folder", action: #selector(openFolder), name: .feedbackOpenRoundFolder
+    )
+    private lazy var endRoundItem: NSMenuItem = shortcutItem(
+        "End Round", action: #selector(endSession), name: .feedbackEndRound
+    )
 
     /// Never removes the item. The title shows only during a session.
     func update(session: FeedbackSession?) {
@@ -163,15 +175,12 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         if let active = state.active {
             menu.addItem(grayLine("Session: \(active.slug)"))
             menu.addItem(.separator())
-            menu.addItem(menuItem("Copy Last Capture", action: #selector(copyLastCapture)))
-            menu.addItem(menuItem("Copy Session Prompt", action: #selector(copyPrompt)))
-            menu.addItem(menuItem("Open Folder", action: #selector(openFolder)))
-            menu.addItem(menuItem("End Session", action: #selector(endSession)))
+            for item in [copyLastCaptureItem, copyPromptAndEndRoundItem, openRoundFolderItem, endRoundItem] {
+                addReused(item, to: menu)
+            }
         } else {
             menu.addItem(grayLine("No active session"))
-            // An item can sit in one menu only, so take it out of the old one.
-            startSessionItem.menu?.removeItem(startSessionItem)
-            menu.addItem(startSessionItem)
+            addReused(startSessionItem, to: menu)
         }
         menu.addItem(.separator())
 
@@ -192,7 +201,7 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         let allSessions = menuItem("All Sessions...", action: #selector(openAllSessions))
         allSessionsItem = allSessions
         menu.addItem(allSessions)
-        menu.addItem(menuItem("Feedback Shortcut...", action: #selector(showShortcut)))
+        menu.addItem(menuItem("Change Start Round Shortcut...", action: #selector(showShortcut)))
         // The capture menu's icon is hidden by default (`ForkDefaults`), so
         // this menu carries Settings and Quit.
         menu.addItem(.separator())
@@ -327,7 +336,22 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         return item
     }
 
-    @objc private func copyPrompt() { onCopyPrompt?() }
+    /// A row that shows its hotkey on the right, in the standard gray. It is
+    /// the same call the main menu uses, so a changed shortcut shows here.
+    private func shortcutItem(_ title: String, action: Selector, name: KeyboardShortcuts.Name) -> NSMenuItem {
+        let item = menuItem(title, action: action)
+        item.setShortcut(for: name)
+        return item
+    }
+
+    /// Adds an item that is made once. An item can sit in one menu only, so
+    /// take it out of the old one.
+    private func addReused(_ item: NSMenuItem, to menu: NSMenu) {
+        item.menu?.removeItem(item)
+        menu.addItem(item)
+    }
+
+    @objc private func copyPromptAndEndRound() { onCopyPromptAndEndRound?() }
     @objc private func copyLastCapture() { onCopyLastCapture?() }
     @objc private func openFolder() { onOpenFolder?() }
     @objc private func endSession() { onEndSession?() }
