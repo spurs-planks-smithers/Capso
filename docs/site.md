@@ -36,7 +36,7 @@ The bot flag comes from a user-agent pattern in `site/src/worker.js`: bots, craw
 site/deploy.sh
 ```
 
-The script picks the newest `build/releases/Nextshot-20*.dmg` and the newest `build/releases/Nextshot-onboarding-20*.mp4`. It takes the video poster from the video itself, 3.5 seconds before the end. The repo poster PNG shows the email line "Get the DMG in this message", so the script does not use it. Flags override each input:
+The script picks the newest `build/releases/Nextshot-20*.dmg` and the newest `build/releases/Nextshot-onboarding-20*.mp4`, and skips the music option cuts (`-musicB.mp4`, `-musicC.mp4`). It takes the video poster from the video itself, 1 second before the end, where the end card is complete. Flags override each input:
 
 ```bash
 site/deploy.sh --video build/releases/<new cut>.mp4 --poster <image>

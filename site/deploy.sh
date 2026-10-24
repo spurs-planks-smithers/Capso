@@ -35,9 +35,10 @@ fail() { echo "deploy: $*" >&2; exit 1; }
 newest() { ls -t $1 2>/dev/null | head -1 || true; }
 
 # Default inputs: the newest dated DMG and video. The 1.2.5 DMGs and the Codex
-# video drafts do not match these globs.
+# video drafts do not match these globs. Music option cuts (-musicB.mp4) are
+# skipped: they are newer than the main cut but are not the published choice.
 [[ -n "$dmg" ]] || dmg="$(newest "$releases/Nextshot-20*.dmg")"
-[[ -n "$video" ]] || video="$(newest "$releases/Nextshot-onboarding-20*.mp4")"
+[[ -n "$video" ]] || video="$(ls -t "$releases"/Nextshot-onboarding-20*.mp4 2>/dev/null | grep -v -- '-music' | head -1 || true)"
 
 for f in "$dmg" "$video" ${poster:+"$poster"} "$repo/LICENSE"; do
   [[ -n "$f" && -f "$f" ]] || fail "missing input file: ${f:-(none found)}"
@@ -68,10 +69,10 @@ cp "$video" "$stage/media/$video_name"
 if [[ -n "$poster" ]]; then
   cp "$poster" "$stage/media/$poster_name"
 else
-  # No --poster: use the end card, 3.5 s before the video ends. The repo's
-  # poster PNG shows the email line "Get the DMG in this message".
+  # No --poster: use the finished end card, 1 s before the video ends. The v3.1
+  # end card builds until about 3 s before the end.
   duration="$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$video")"
-  poster_at="$(awk -v d="$duration" 'BEGIN { printf "%.2f", d - 3.5 }')"
+  poster_at="$(awk -v d="$duration" 'BEGIN { printf "%.2f", d - 1.0 }')"
   ffmpeg -loglevel error -y -ss "$poster_at" -i "$video" -frames:v 1 -q:v 3 "$stage/media/$poster_name"
 fi
 cp "$repo/.github/assets/nextshot-icon.png" "$stage/nextshot-icon.png"

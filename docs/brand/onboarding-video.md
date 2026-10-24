@@ -6,8 +6,8 @@ Three cuts exist:
 
 | Cut | File | What it is |
 |---|---|---|
-| v3.1 (2026-10-24) | `build/releases/Nextshot-onboarding-2026.10.24.mp4`, poster `Nextshot-onboarding-poster.png` | Drew's v3.1 notes: the round concept, new lines 4 to 6 and 8 to 13, a package screen with research, licensed stock music, and the call to action "Get it at nextshot.dev". Then two creative director review rounds. 82.4 seconds. |
-| v3 (2026-10-23) | `build/releases/Nextshot-onboarding-2026.10.23.mp4`, poster `Nextshot-onboarding-poster-v3.png` | Drew's storyboard notes on v2: his script, the OpenAI voice sage, and a style that moves from a rough yellow sketch to the brand look. 70.4 seconds. nextshot.dev still serves this cut. |
+| v3.1 (2026-10-24) | `build/releases/Nextshot-onboarding-2026.10.24.mp4`, poster `Nextshot-onboarding-poster.png` | Drew's v3.1 notes: the round concept, new lines 4 to 6 and 8 to 13, a package screen with research, licensed stock music, and the call to action "Get it at nextshot.dev". Then two creative director review rounds. 82.4 seconds. nextshot.dev serves it since 2026-10-24. |
+| v3 (2026-10-23) | `build/releases/Nextshot-onboarding-2026.10.23.mp4`, poster `Nextshot-onboarding-poster-v3.png` | Drew's storyboard notes on v2: his script, the OpenAI voice sage, and a style that moves from a rough yellow sketch to the brand look. 70.4 seconds. |
 | v2 (2026-10-22) | `build/releases/Nextshot-onboarding-2026.10.22.mp4`, poster `Nextshot-onboarding-poster-v2.png` | The 36-second cut with Ava (Premium). It went out with the launch email and the email GIF. |
 
 Beside v3.1 sit two music options on the same picture, `Nextshot-onboarding-2026.10.24-musicB.mp4` and `-musicC.mp4`, and a sheet of six tagline options, `Nextshot-onboarding-tagline-options.png`.
@@ -56,7 +56,8 @@ Git ignores `build/`. The render names each file by the date of the HEAD commit,
 
 - The bed is "Curiosity" by Diego Nava, from Mixkit, under the Mixkit Stock Music Free License (mixkit.co/license/#musicFree). Drew chose licensed stock music on 2026-10-24, after he called the old plucked-string bed "terrible".
 - The license allows the track inside a video. It does not allow sharing the file by itself, so the MP3s stay out of git. Download them again into `assets/music/` from the `source` links in `script.json`.
-- Options B ("Pop Track 03" by Lily J) and C ("Lo-Fi 04" by Lily J) are in `music.options`. `make_audio.py --music <file> --out final-musicB.wav` mixes an option on the current timing and leaves `timing.json` alone.
+- Options B ("Pop Track 03" by Lily J) and C ("Lo-Fi 04" by Lily J) are in `music.options`. Drew kept A on 2026-10-24.
+- `site/deploy.sh` publishes the newest main cut and skips the music option cuts. `make_audio.py --music <file> --out final-musicB.wav` mixes an option on the current timing and leaves `timing.json` alone.
 - The mix backtimes the track, so it ends with the video. The track fades in over 1 second and out over 2.5 seconds. It sits 17 LU under the voice and effects, and it ducks (drops) while the voice speaks. A limiter and two-pass loudness normalization finish the mix.
 
 ## Rebuild it
@@ -152,7 +153,7 @@ python3 scripts/video/nextshot-onboarding/storyboard/build_storyboard.py --pdf
 - **Research on the package screen.** The four rows follow published work: Set-of-Mark prompting (Microsoft Research, 2023) for numbered marks, FronTalk (arXiv 2601.04203, ICML 2026) and MT-Web2Code (arXiv 2608.03474) for visual feedback to coding agents. Both 2026 papers were checked on 2026-10-24. The screen names them in one footnote.
 - **The proof shot.** After line 13, the agent's plan table (item, file, planned change) builds and checks three items with no voice, for 2.6 seconds. It shows the plan-first rule that all three prompts carry.
 - **The bookend.** The opening sketch of the stand returns at the close and wipes into the clean page, so the start and the end match.
-- **End card (Drew, 2026-10-24).** "Get it at nextshot.dev" as a teal button. "Feedback stays on your Mac until you paste it." is gone. The tagline is "Show AI what you mean." until Drew picks from the options sheet.
+- **End card (Drew, 2026-10-24).** "Get it at nextshot.dev" as a teal button. "Feedback stays on your Mac until you paste it." is gone. Drew kept the tagline "Show AI what you mean." from six options, and music option A.
 - **Two creative director rounds (2026-10-24).** A reviewer agent scored each cut and listed fixes. Round 1 scored 6 of 10 overall and round 2 scored 7. Both rounds' Must fixes and Should fixes shipped, apart from four declined items: a 0.5 s opening (Drew asked for the pause), "One click copies the whole round" (Drew's wording), the badges flying on into the close, and a voice line for the proof shot.
 - **"Lemonaid" stays a typo (Drew).** It is mistake 1, and the clean close says "Lemonade".
 - **"any AI agent", not "any AI tool".** The prompt names image files on the Mac by path. A web chat cannot open them. Claude Code, Codex, and other agents can.
