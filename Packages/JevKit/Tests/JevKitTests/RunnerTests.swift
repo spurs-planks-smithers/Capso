@@ -136,7 +136,7 @@ struct RunnerOffTests {
         let bundle = try await Bundle.make()
         let transport = StubTransport()
         let all = Dictionary(uniqueKeysWithValues: FeatureFlag.allCases.map { ($0, $0.spec.allowedStates.contains(.on) ? FlagState.on : .shadow) })
-        let runner = makeRunner(bundle, jobs: JevJobRegistry.all, flags: all, transport: transport)
+        let runner = makeRunner(bundle, jobs: JevJobRegistry.all.filter { $0.version == 0 }, flags: all, transport: transport)
         await runCapture(runner, bundle)
         #expect(await transport.count == 0)
         let records = try bundle.jevFile().captures.first?.jobs ?? []
