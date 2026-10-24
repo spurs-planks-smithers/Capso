@@ -100,7 +100,8 @@ Code reads the answer:
 - The base's client rejects a box with an edge outside 0 to 1 or out of order.
 - `JevImage.sourceBox` maps the fractions back to capture pixels.
 - Proposed crop: the target box joined with the seed box, so the badge stays in the crop, plus a pad of 24 export pixels. (My call.)
-- If `target_shown` is below its threshold, or the box confidence is below its threshold, use the marks crop (below). Record the reason. Request B still checks it.
+- If `target_shown` is below its threshold, or the box confidence is below its threshold, use the marks crop (below). Request B still checks it.
+- A Box answer with no confidence counts as below the threshold. TypeSafe's Box docs always return a confidence, so a missing one means an incomplete answer.
 
 Marks crop: the seed box plus a pad of 120 export pixels, clamped to the image. A badge alone is about 30 pixels wide, so a small pad would give a crop with no context. (My call.) The marks crop is the whole crop when `jev.sendImages` is off (Drew, 2026-10-24).
 
@@ -110,6 +111,7 @@ TypeSafe's test caught 30 of 36 cut-off crops with one Noul per edge. One reques
 
 - Each edge with a yes above its threshold moves out by 25% of the crop's size on that axis, clamped to the image.
 - If any edge moved, ask once more on the new crop, for those items only. The question ids end in `_2`. At most two checks per item. (My call.)
+- If every edge with a yes is already at the image border, the crop cannot grow. The item is done, with status `checked`, and gets no second check.
 - If an edge still says yes after the second check, move it out once more and record "edges unsure".
 - If a request fails (timeout, error, cap), the item keeps the best crop so far and records "not checked". Nothing waits on Jev.
 
@@ -279,6 +281,8 @@ Requests for a capture with k items, all after OCR:
 
 - Longest path: A, then B, then B again. At 0.22 seconds per request (measured 2026-10-24 with one 514 by 584 image), that is under 1 second. Requests with several images take longer. Shadow data will show the real time against the 2-second budget.
 - At most 4 requests per capture, under the base's cap of 16 for all jobs.
+- The base's client sends at most 8 images per request. Items after the eighth get the marks crop with status `notChecked`. Captures with more than 8 numbered badges are rare. If shadow data shows them, split A and B into two requests each.
+- The runner cancels a job at the capture's deadline and drops all of its output. So this job sends no request after the deadline minus 500 ms, and races each request against that time. The 500 ms leaves time to cut and encode the crop PNGs. The job decodes the two capture PNGs while Jev answers, checks the time before each image load and each crop, and returns what it has, with `notChecked` where a check did not finish.
 - On a timeout or an error, the item keeps what is done, with status `notChecked`. Nothing waits on Jev.
 - Jev cost: about 1,500 input tokens per image request, at $0.042 per million tokens, so about $0.00006 per request. A round of 20 captures with 3 items each makes about 200 requests, about $0.012.
 - Agent saving: the full annotated image costs up to 4,784 visual tokens (one token per 28 by 28 pixel patch). A 600 by 400 pixel crop costs 330.
@@ -344,6 +348,6 @@ None left for Drew. The builder check on 2026-10-24 raised five points. Two were
 
 - Package layout (settled 2026-10-24). Pure geometry and candidates are in `FeedbackKit` (`ItemCrop.swift`, `AnchorCandidates.swift`). The job is `Packages/JevKit/Sources/JevKit/Jobs/CropsAnchorsJob.swift`, the one file the base gave this feature, with its own test file. JevKit depends on FeedbackKit (the base's choice). The app glue belongs to the base.
 - The shared focus helper: move the focus box code out of `PreviewCrop` into an internal helper that both use. The note panel preview must not change. Its tests prove it.
-- Thresholds (`target_shown`, Box confidence, edge yes, `anchor_fits`, Choice confidence). Start at 0.5 and tune each on shadow data.
+- Thresholds, set 2026-10-24 in the job file, to tune on shadow data: `target_shown` 0.5; Box confidence 0.3 (a correct Box in the 2026-10-24 test had 0.45); edge yes 0.5; `anchor_fits` 0.5; Choice confidence 0.2 (a Choice over many lines spreads its probability).
 - Crop from the full-resolution capture in memory, in place of the exported PNG. It is sharper for full-screen Retina captures. Build it only if shadow data shows blurry crops.
 - Retry policy, timeouts, and the parallel request cap come from the base.
