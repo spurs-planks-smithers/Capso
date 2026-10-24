@@ -21,14 +21,18 @@ final class FeedbackShortcutPanel {
     }()
     private var centered = false
 
-    /// A new view each time, so a reason from an earlier refusal does not
-    /// show again. With `.preferredContentSize`, the panel takes the view's
-    /// size and grows when the refusal line shows.
+    /// A new view each time the panel opens, so a reason from an earlier
+    /// refusal does not show again. An open panel keeps its view, so a
+    /// recording in progress and a visible reason stay. With
+    /// `.preferredContentSize`, the panel takes the view's size and grows
+    /// when the refusal line shows.
     func show() {
-        let controller = NSHostingController(rootView: FeedbackShortcutView())
-        controller.sizingOptions = .preferredContentSize
-        panel.contentViewController = controller
-        panel.setContentSize(controller.view.fittingSize)
+        if !panel.isVisible {
+            let controller = NSHostingController(rootView: FeedbackShortcutView())
+            controller.sizingOptions = .preferredContentSize
+            panel.contentViewController = controller
+            panel.setContentSize(controller.view.fittingSize)
+        }
         if !centered {
             panel.center()
             centered = true
