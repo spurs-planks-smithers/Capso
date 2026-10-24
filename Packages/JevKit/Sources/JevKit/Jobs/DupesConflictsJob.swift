@@ -60,11 +60,10 @@ public struct DupesConflictsJob: JevJob {
         }
 
         for failure in failures {
-            let names = DupesConflicts.list(failure.entries.map(\.name))
-            lines.append(JevRefinedLine(
-                scope: .capture,
-                label: "Not checked for repeats (\(failure.reason.rawValue)): \(names)."
-            ))
+            let labels = DupesConflicts.packed(failure.entries) { group in
+                "Not checked for repeats (\(failure.reason.rawValue)): \(DupesConflicts.list(group.map(\.name)))."
+            }
+            lines += labels.map { JevRefinedLine(scope: .capture, label: $0) }
         }
         return JevJobOutput(lines: lines)
     }
@@ -421,45 +420,61 @@ enum DupesConflicts {
     /// reads the same alone, in a capture section, and in the round section.
     /// No line holds screen text, a file name, or a quoted note, and no line
     /// says to skip a change.
+    ///
+    /// Duplicates and conflicts get round lines only: the writer puts a
+    /// capture's round lines at the top of its own refined file and of
+    /// refined.md, so a second line per item would repeat them. Overlaps stay
+    /// in the item's section.
     static func lines(for entry: Entry, outcomes: [(earlier: Entry, outcome: Outcome)]) -> [JevRefinedLine] {
         let scope: JevRefinedLine.Scope = entry.badge.map { .item(badge: $0) } ?? .capture
         var lines: [JevRefinedLine] = []
 
         let duplicates = outcomes.filter { $0.outcome == .duplicate }.map(\.earlier)
-        if !duplicates.isEmpty {
-            let names = list(duplicates.map(\.name))
-            let earlierCaptures = captures(duplicates.map(\.captureIndex))
-            let allCaptures = captures(duplicates.map(\.captureIndex) + [entry.captureIndex])
-            lines.append(JevRefinedLine(
-                scope: scope,
-                label: "\(entry.sentenceName) repeats \(names) (\(earlierCaptures)). An earlier paste may have made this change. Check the code, and make the change once."
-            ))
-            lines.append(JevRefinedLine(
-                scope: .round,
-                label: "Same ask: \(entry.name) repeats \(names) (\(allCaptures)). Make the change once. Each note is in manifest.md."
-            ))
+        for group in packed(duplicates, label: { group in
+            let allCaptures = captures(group.map(\.captureIndex) + [entry.captureIndex])
+            return "Same ask: \(entry.name) repeats \(list(group.map(\.name))) (\(allCaptures)). An earlier paste may have made this change. Check the code, and make the change once. Each note is in manifest.md."
+        }) {
+            lines.append(JevRefinedLine(scope: .round, label: group))
         }
 
         let overlaps = outcomes.filter { $0.outcome == .overlap }.map(\.earlier)
-        if !overlaps.isEmpty {
-            let read = overlaps.count == 1 ? overlaps[0].name : "them"
-            lines.append(JevRefinedLine(
-                scope: scope,
-                label: "\(entry.sentenceName) may overlap with \(list(overlaps.map(\.name))). Read \(read) in manifest.md. An earlier paste may have done part of it. Check the code before you edit twice."
-            ))
+        for group in packed(overlaps, label: { group in
+            let read = group.count == 1 ? group[0].name : "them"
+            return "\(entry.sentenceName) may overlap with \(list(group.map(\.name))). Read \(read) in manifest.md. An earlier paste may have done part of it. Check the code before you edit twice."
+        }) {
+            lines.append(JevRefinedLine(scope: scope, label: group))
         }
 
         for other in outcomes.filter({ $0.outcome == .conflict }).map(\.earlier) {
             lines.append(JevRefinedLine(
                 scope: .round,
-                label: "Ask first: \(entry.name) and \(other.name) ask for opposite changes to the same element. Ask the user which one wins before you edit either. \(entry.sentenceName) is newer."
-            ))
-            lines.append(JevRefinedLine(
-                scope: scope,
-                label: "Ask the user first: \(entry.name) and \(other.name) ask for opposite changes to the same element. Read \(other.name) in manifest.md. \(entry.sentenceName) is newer."
+                label: "Ask first: \(entry.name) and \(other.name) ask for opposite changes to the same element. Read both in manifest.md. Ask the user which one wins before you edit either. \(entry.sentenceName) is newer."
             ))
         }
         return lines
+    }
+
+    /// The writer cuts a label at this length, so a long list splits into
+    /// several lines instead.
+    static let maxLabelLength = JevRefinedRenderer.maxLabelLength
+
+    /// Packs entries into as few labels as possible, each at most
+    /// `maxLabelLength` scalars. A label for one entry always goes out, even
+    /// when it is longer, so no entry is lost.
+    static func packed(_ entries: [Entry], label: ([Entry]) -> String) -> [String] {
+        var labels: [String] = []
+        var group: [Entry] = []
+        for entry in entries {
+            if !group.isEmpty, label(group + [entry]).unicodeScalars.count > maxLabelLength {
+                labels.append(label(group))
+                group = []
+            }
+            group.append(entry)
+        }
+        if !group.isEmpty {
+            labels.append(label(group))
+        }
+        return labels
     }
 
     /// "A", "A and B", "A, B, and C".

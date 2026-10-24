@@ -614,15 +614,14 @@ struct DupesConflictsJobTests {
         return try await DupesConflictsJob().run(dupesContext(captures, current: 3, ask: canned(table))).lines
     }
 
-    @Test("A duplicate of two earlier entries gives an item line and a round line")
+    @Test("A duplicate of two earlier entries gives one round line")
     func duplicateLines() async throws {
         let lines = try await runLines(
             ["3.1.vs.1.1": PairScore(sameAsk: 1.8, opposite: 0), "3.1.vs.2.2": PairScore(sameAsk: 1.6, opposite: 0.3)],
             marks: [dupesItem(1, "make the heading larger")]
         )
         #expect(lines == [
-            itemLine(1, "3.1 repeats 1.1 and 2.2 (captures 1 and 2). An earlier paste may have made this change. Check the code, and make the change once."),
-            scopedLine(.round, "Same ask: 3.1 repeats 1.1 and 2.2 (captures 1, 2, and 3). Make the change once. Each note is in manifest.md."),
+            scopedLine(.round, "Same ask: 3.1 repeats 1.1 and 2.2 (captures 1, 2, and 3). An earlier paste may have made this change. Check the code, and make the change once. Each note is in manifest.md."),
         ])
     }
 
@@ -633,8 +632,7 @@ struct DupesConflictsJobTests {
             marks: [dupesItem(2, "make the heading larger")]
         )
         #expect(lines == [
-            itemLine(2, "3.2 repeats 1.1, 1.2, and the general note of capture 1 (capture 1). An earlier paste may have made this change. Check the code, and make the change once."),
-            scopedLine(.round, "Same ask: 3.2 repeats 1.1, 1.2, and the general note of capture 1 (captures 1 and 3). Make the change once. Each note is in manifest.md."),
+            scopedLine(.round, "Same ask: 3.2 repeats 1.1, 1.2, and the general note of capture 1 (captures 1 and 3). An earlier paste may have made this change. Check the code, and make the change once. Each note is in manifest.md."),
         ])
     }
 
@@ -657,15 +655,14 @@ struct DupesConflictsJobTests {
         ])
     }
 
-    @Test("A conflict gives a round line and an item line, and it wins over a duplicate")
+    @Test("A conflict gives one round line, and it wins over a duplicate")
     func conflictLines() async throws {
         let lines = try await runLines(
             ["3.2.vs.2.1": PairScore(sameAsk: 1.9, opposite: 0.8)],
             marks: [dupesItem(1, "make the heading larger"), dupesItem(2, "make the heading smaller")]
         )
         #expect(lines == [
-            scopedLine(.round, "Ask first: 3.2 and 2.1 ask for opposite changes to the same element. Ask the user which one wins before you edit either. 3.2 is newer."),
-            itemLine(2, "Ask the user first: 3.2 and 2.1 ask for opposite changes to the same element. Read 2.1 in manifest.md. 3.2 is newer."),
+            scopedLine(.round, "Ask first: 3.2 and 2.1 ask for opposite changes to the same element. Read both in manifest.md. Ask the user which one wins before you edit either. 3.2 is newer."),
         ])
     }
 
@@ -680,11 +677,9 @@ struct DupesConflictsJobTests {
             note: "keep the old wording"
         )
         #expect(lines == [
-            scopedLine(.capture, "The general note of capture 3 repeats 1.1 (capture 1). An earlier paste may have made this change. Check the code, and make the change once."),
-            scopedLine(.round, "Same ask: the general note of capture 3 repeats 1.1 (captures 1 and 3). Make the change once. Each note is in manifest.md."),
+            scopedLine(.round, "Same ask: the general note of capture 3 repeats 1.1 (captures 1 and 3). An earlier paste may have made this change. Check the code, and make the change once. Each note is in manifest.md."),
             scopedLine(.capture, "The general note of capture 3 may overlap with the general note of capture 1. Read the general note of capture 1 in manifest.md. An earlier paste may have done part of it. Check the code before you edit twice."),
-            scopedLine(.round, "Ask first: the general note of capture 3 and the general note of capture 2 ask for opposite changes to the same element. Ask the user which one wins before you edit either. The general note of capture 3 is newer."),
-            scopedLine(.capture, "Ask the user first: the general note of capture 3 and the general note of capture 2 ask for opposite changes to the same element. Read the general note of capture 2 in manifest.md. The general note of capture 3 is newer."),
+            scopedLine(.round, "Ask first: the general note of capture 3 and the general note of capture 2 ask for opposite changes to the same element. Read both in manifest.md. Ask the user which one wins before you edit either. The general note of capture 3 is newer."),
         ])
     }
 
@@ -709,15 +704,9 @@ struct DupesConflictsJobTests {
             marks: [dupesItem(1, "make the heading larger", ocr: "Heading"), dupesItem(2, "drop the border")],
             note: "keep the old wording"
         )
-        #expect(lines.map(\.scope) == [
-            .round, .item(badge: 1),
-            .item(badge: 2), .round,
-            .capture,
-        ])
+        #expect(lines.map(\.scope) == [.round, .round, .capture])
         let prefixes = [
             "Ask first: 3.1 and 2.1",
-            "Ask the user first: 3.1 and 2.1",
-            "3.2 repeats 1.2",
             "Same ask: 3.2 repeats 1.2",
             "The general note of capture 3 may overlap with 1.1",
         ]
@@ -740,10 +729,28 @@ struct DupesConflictsJobTests {
         let ask = failing(["2.1": JevError(.timeout)], otherwise: canned(["2.2.vs.1.1": PairScore(sameAsk: 1.9, opposite: 0)]))
         let output = try await DupesConflictsJob().run(dupesContext(captures, current: 2, ask: ask))
         #expect(output.lines == [
-            itemLine(2, "2.2 repeats 1.1 (capture 1). An earlier paste may have made this change. Check the code, and make the change once."),
-            scopedLine(.round, "Same ask: 2.2 repeats 1.1 (captures 1 and 2). Make the change once. Each note is in manifest.md."),
+            scopedLine(.round, "Same ask: 2.2 repeats 1.1 (captures 1 and 2). An earlier paste may have made this change. Check the code, and make the change once. Each note is in manifest.md."),
             scopedLine(.capture, "Not checked for repeats (timeout): 2.1."),
         ])
+    }
+
+    @Test("A long list splits into labels the writer does not cut, and names every entry")
+    func longListsSplit() throws {
+        let entry = DupesConflicts.Entry(id: "9.1", captureIndex: 9, badge: 1, note: "make it bigger")
+        let earlier: [DupesConflicts.Entry] = (1...8).flatMap { capture -> [DupesConflicts.Entry] in
+            (1...6).map { (badge: Int) in
+                DupesConflicts.Entry(id: "\(capture).\(badge)", captureIndex: capture, badge: badge, note: "ask")
+            }
+        }
+        for outcome in [DupesConflicts.Outcome.duplicate, .overlap] {
+            let lines = DupesConflicts.lines(for: entry, outcomes: earlier.map { ($0, outcome) })
+            try #require(lines.count > 1, "48 entries must not fit one label")
+            #expect(lines.allSatisfy { $0.label.unicodeScalars.count <= DupesConflicts.maxLabelLength })
+            let named = earlier.map(\.id).filter { id in
+                lines.contains { $0.label.contains(" \(id),") || $0.label.contains(" \(id) ") || $0.label.contains(" \(id).") }
+            }
+            #expect(named.count == earlier.count, "every earlier entry is named")
+        }
     }
 
     @Test("Failure lines group the entries by reason, in the order the reasons first appear")
@@ -802,5 +809,102 @@ struct DupesConflictsJobTests {
         await #expect(throws: CancellationError.self) {
             try await DupesConflictsJob().run(dupesContext(captures, current: 2, ask: ask))
         }
+    }
+
+    @Test("scripts/nextshot-jev-review.sh uses the job's thresholds")
+    func reviewScriptThresholds() throws {
+        // .../Packages/JevKit/Tests/JevKitTests/DupesConflictsJobTests.swift
+        var root = URL(fileURLWithPath: #filePath)
+        for _ in 0..<5 { root.deleteLastPathComponent() }
+        let script = try String(contentsOf: root.appendingPathComponent("scripts/nextshot-jev-review.sh"), encoding: .utf8)
+
+        let lines = script.split(separator: "\n").filter { $0.hasPrefix("THRESHOLDS=") }
+        #expect(lines.count == 1, "the script needs exactly one THRESHOLDS= line")
+        let value = lines.first?.dropFirst("THRESHOLDS=".count).trimmingCharacters(in: CharacterSet(charactersIn: "\"")) ?? ""
+        var listed: [String: Double] = [:]
+        for entry in value.split(separator: " ") {
+            let parts = entry.split(separator: "=", maxSplits: 1)
+            if parts.count == 2, let number = Double(parts[1]) {
+                listed[String(parts[0])] = number
+            }
+        }
+        // A parser that reads nothing must fail, not pass.
+        try #require(!listed.isEmpty, "the parser read nothing from the THRESHOLDS= line")
+        #expect(listed == [
+            "conflictAt": DupesConflicts.conflictAt,
+            "duplicateAt": DupesConflicts.duplicateAt,
+            "overlapAt": DupesConflicts.overlapAt,
+        ])
+    }
+}
+
+/// The job inside the real runner, client, and writer, with a stubbed transport.
+@Suite("Duplicates and conflicts in the runner")
+struct DupesConflictsRunnerTests {
+    /// A 200 body that answers the one pair of a two-capture bundle: 2.1 and 1.1.
+    private func pairBody(sameAsk: Double, opposite: Double) -> String {
+        #"{"model":"\#(JevEndpoint.model)","answers":{"2.1.vs.1.1.sameAsk":{"type":"score","score":\#(sameAsk),"confidence":0.9,"probabilities":{"0":0.0,"1":0.2,"2":0.8}},"2.1.vs.1.1.opposite":{"type":"noul","noul":\#(opposite)}},"usage":{"input_tokens":40,"output_tokens":2}}"#
+    }
+
+    @Test("With dupesConflicts or jevBase off, nothing is sent and no Jev file is written")
+    func offSendsNothing() async throws {
+        let cases: [[FeatureFlag: FlagState]] = [
+            [:],
+            [.jevBase: .on],
+            [.jevBase: .on, .jevSendImages: .on, .jevSendScreenText: .on],
+            [.dupesConflicts: .on, .jevSendImages: .on, .jevSendScreenText: .on],
+        ]
+        for flags in cases {
+            let bundle = try await Bundle.make(captures: 2)
+            let transport = StubTransport(fallback: jsonResponse(pairBody(sameAsk: 1.8, opposite: 0.05)))
+            let key = StubKeyProvider()
+            let runner = makeRunner(bundle, jobs: [DupesConflictsJob()], flags: flags, transport: transport, key: key)
+            await runCapture(runner, bundle, capture: 2)
+            #expect(await transport.count == 0, "\(flags) sent a request")
+            #expect(await key.reads == 0, "\(flags) read the key")
+            #expect(!bundle.exists("jev.json"), "\(flags) wrote jev.json")
+            #expect(!bundle.exists("refined.md"), "\(flags) wrote refined.md")
+        }
+    }
+
+    @Test("Shadow records both answers in jev.json and writes no refined file")
+    func shadowRecordsAnswers() async throws {
+        let bundle = try await Bundle.make(captures: 2)
+        let transport = StubTransport(fallback: jsonResponse(pairBody(sameAsk: 1.8, opposite: 0.05)))
+        let runner = makeRunner(bundle, jobs: [DupesConflictsJob()], flags: [.jevBase: .on, .dupesConflicts: .shadow], transport: transport)
+        await runCapture(runner, bundle, capture: 2)
+
+        #expect(await transport.count == 1)
+        let record = try #require(try bundle.record(2))
+        #expect(record.job == "dupesConflicts" && record.jobVersion == 1 && record.mode == "shadow" && record.status == .done)
+        #expect(Set(record.answers.map(\.id)) == ["2.1.vs.1.1.sameAsk", "2.1.vs.1.1.opposite"])
+        #expect(record.lines.isEmpty)
+        #expect(!bundle.exists("refined.md"))
+    }
+
+    @Test("On puts a duplicate's round line once in refined.md and once in the capture's file")
+    func onWritesRoundLine() async throws {
+        let bundle = try await Bundle.make(captures: 2)
+        let transport = StubTransport(fallback: jsonResponse(pairBody(sameAsk: 1.8, opposite: 0.05)))
+        let runner = makeRunner(bundle, jobs: [DupesConflictsJob()], flags: [.jevBase: .on, .dupesConflicts: .on], transport: transport)
+        await runCapture(runner, bundle, capture: 2)
+
+        let line = "- Same ask: 2.1 repeats 1.1 (captures 1 and 2). An earlier paste may have made this change. Check the code, and make the change once. Each note is in manifest.md."
+        let round = try bundle.text("refined.md")
+        #expect(round.components(separatedBy: line).count == 2, "refined.md shows the line once")
+        #expect(round.contains("Round:\n\(line)\n"))
+
+        let refinedFiles = try FileManager.default.contentsOfDirectory(atPath: bundle.folder.path)
+            .filter { $0.hasSuffix("-refined.md") }
+            .map { try bundle.text($0) }
+        let captureText = try #require(refinedFiles.first { $0.hasPrefix(#"<feedback_refined capture="2""#) })
+        #expect(captureText.components(separatedBy: line).count == 2, "the capture file shows the line once")
+
+        // Only Drew's notes go out by default: no app name, window title, or screen text.
+        let body = try #require(await transport.requests.first?.httpBody)
+        let sent = String(decoding: body, as: UTF8.self)
+        #expect(sent.contains("make it brighter"))
+        #expect(!sent.contains("Claude"))
+        #expect(!sent.contains("Copy Last Capture Prompt"))
     }
 }

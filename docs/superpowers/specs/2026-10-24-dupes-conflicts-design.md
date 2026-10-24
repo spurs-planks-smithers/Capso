@@ -130,9 +130,11 @@ Code applies these rules. The thresholds live in the job file, next to the quest
 
 A job never reads another job's output, and it sees only its own capture's answers. So it cannot join pairs from earlier captures into groups. Each new entry gets its own lines instead:
 
-- At most one duplicate line. It names every earlier entry that the new entry repeats, and the captures they come from.
-- At most one overlap line. It names every earlier entry that may overlap.
-- One conflict line per conflict pair.
+- At most one duplicate line, in the round scope. It names every earlier entry that the new entry repeats, and the captures they come from.
+- At most one overlap line, in the entry's own scope (the item, or the capture for a K.note). It names every earlier entry that may overlap.
+- One conflict line per conflict pair, in the round scope.
+- The base writer puts a capture's round lines at the top of its own refined file and at the top of `refined.md`. So a duplicate or a conflict needs no second line in the item's section.
+- The writer cuts a label at 300 characters. A long list splits into several lines of at most 300 characters, so no entry is cut off.
 
 A chain still shows. If 5.3 repeats 2.1, the job of capture 5 says so. If 7.2 repeats 2.1 and 5.3, the job of capture 7 names both.
 
@@ -155,19 +157,16 @@ These examples use the real 3.2 and 4.2 pair, rated as an overlap, and a made-up
 The round section at the top of `refined.md` (on only) holds the conflicts and the duplicates. Drew chose this place on 2026-10-24. The round prompt points to `refined.md`, and the agent reads it before its plan table:
 
 ```text
-- Ask first: 4.5 and 2.1 ask for opposite changes to the same element. Ask the user which one wins before you edit either. 4.5 is newer.
-- Same ask: 4.3 repeats 1.4 (captures 1 and 4). Make the change once. Each note is in manifest.md.
+Round:
+- Same ask: 4.3 repeats 1.4 (captures 1 and 4). An earlier paste may have made this change. Check the code, and make the change once. Each note is in manifest.md.
+- Ask first: 4.5 and 2.1 ask for opposite changes to the same element. Read both in manifest.md. Ask the user which one wins before you edit either. 4.5 is newer.
 ```
 
-The section of capture 4, in `1839-...-refined.md` and in `refined.md`, holds every line for its entries. A single capture paste reads only this file, so the conflict and the duplicate show here too:
+The refined file of capture 4 (`<stem>-refined.md`) starts with the same two round lines, because the writer puts each capture's round lines at the top of its own file. A single capture paste reads only this file. The section of capture 4 then holds the overlap line, in that file and in `refined.md`:
 
 ```text
 Item 4.2:
 - 4.2 may overlap with 3.2. Read 3.2 in manifest.md. An earlier paste may have done part of it. Check the code before you edit twice.
-Item 4.3:
-- 4.3 repeats 1.4 (capture 1). An earlier paste may have made this change. Check the code, and make the change once.
-Item 4.5:
-- Ask the user first: 4.5 and 2.1 ask for opposite changes to the same element. Read 2.1 in manifest.md. 4.5 is newer.
 ```
 
 - Every line names its own entry first, so it reads the same in the round section, in a capture section, and alone.
@@ -214,6 +213,8 @@ This is Drew's personal fork, so tests cover the business logic only. The base's
 - Decision rules: the edges at 0.49, 0.5, 1.49, 1.5, and 0.7. A conflict wins over a duplicate.
 - Lines: a duplicate that names two earlier entries, an overlap, a conflict, a K.note entry, and an entry with nothing to say. The lines for a fixed round match stored copies.
 - Thresholds: the script's `THRESHOLDS=` line matches the job's constants, as `FeatureFlagsTests` does for `FLAGS=`.
+- Long lists: 48 earlier entries split into lines of at most 300 characters, and every entry is named.
+- In the real runner with a stubbed transport: with `dupesConflicts` or `jevBase` off, no request goes out, no key is read, and no Jev file is written. Shadow records both answers and writes no refined file. On shows a duplicate's round line once in `refined.md` and once in the capture's file. By default the request body holds Drew's note and no app name, window title, or screen text.
 
 ## Shadow review and the bar for on
 
@@ -254,7 +255,8 @@ My calls (Drew can change any of them):
 - No capture note as context for an item. A general note is an entry of its own.
 - The cut points 0.5, 1.5, and 0.7, and a conflict wins over a duplicate.
 - Lines per new entry in place of groups across captures. A job cannot read earlier captures' answers.
-- Overlaps only in the capture section. Conflicts and duplicates in both sections.
+- Overlaps in the entry's section only. Conflicts and duplicates in the round scope only, which the writer shows at the top of both files.
+- A list longer than 300 characters splits into several lines.
 - Lines hold ids only. The agent reads each note in `manifest.md`. This keeps screen text and file names out of the labels.
 - No pairs inside one capture, and no pairs across rounds.
 - A failed request is named in a "Not checked" line and does not retry inside the job.
