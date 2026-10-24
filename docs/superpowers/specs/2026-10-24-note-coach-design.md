@@ -12,17 +12,17 @@ Measured on 2026-10-24 from the 9 bundles in `~/Library/Application Support/Next
 
 A capture counts as a test when its notes or image show a test of Nextshot itself: placeholder text ("asdf", "this is my first note"), a demo pricing page, or a capture made while a session walked Drew through a live check. Drew confirms or corrects this split (see Open questions).
 
-| Set | Items | Empty note | Vague note | Asks the agent for an answer | Names a change | Median words |
-| --- | --- | --- | --- | --- | --- | --- |
-| Real feedback | 66 | 2 (3.0%) | 0 (0%) | 10 (15.2%) | 54 (81.8%) | 34 |
-| Tests of Nextshot | 35 | 15 (42.9%) | 17 (48.6%) | 0 | 3 (8.6%) | 5 |
+| Set | Items | Empty note | Vague note | Problem only (partial) | Asks the agent for an answer | Names a change | Median words |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Real feedback | 66 | 2 (3.0%) | 0 (0%) | 1 (1.5%) | 9 (13.6%) | 54 (81.8%) | 34 |
+| Tests of Nextshot | 35 | 15 (42.9%) | 17 (48.6%) | 0 | 0 | 3 (8.6%) | 5 |
 
 Findings:
 
 1. Drew's real notes are long and specific. The shortest real note has 7 words. None is vague.
 2. The real gap is the empty note: 2 of 66 items. Code finds an empty note with no model. The prompt already handles it: it prints "(no instruction)", lists the item under "Items with no instruction", and tells the agent to ask before it changes the item (`PromptBuilder.rules`).
 3. The capture from 2026-10-24 10:28 that issue #37 cites ("two items with no instruction") was a test. Its image shows a session's live-check steps ("Drag over any small area", "Press Return at each note question, or Esc to skip it").
-4. 10 of 66 real items ask the agent for an answer, not a change: "What does this setting mean?", "Tell me what to put in this field." A check for "names a change" says no to each of them. The line "Ask Drew first: the note names no change" would then be wrong on 15% of real items. The design must keep questions apart from vague notes.
+4. 9 of 66 real items ask the agent for an answer, not a change: "What does this setting mean?", "Tell me what to put in this field." A check for "names a change" says no to each of them. The line "Ask Drew first: the note names no change" would then be wrong on 14% of real items. Drew labeled a tenth note, a "why is this not available?" bug report, as partial on 2026-10-24: it names a problem for the agent to fix. The design must keep questions apart from vague notes.
 5. Test captures hold almost all vague and empty notes. They make a good labeled test set for the Jev job: placeholder text must score vague.
 
 ## Research
@@ -139,10 +139,10 @@ Test fixtures use made-up notes only. The repository is public.
 Drew approved this on 2026-10-24: send note text to Jev, text only, no images, no window titles.
 
 - Set: the 66 real notes, the 20 filled test notes, and 50 made-up notes: 30 vague, 8 partial, 6 question, and 6 clear, written in Drew's dictation style.
-- Labels: the note-coach session labeled the real notes by reading them. Drew confirms the 10 question labels before the run, so the test does not only compare one model with another. My call.
+- Labels: the note-coach session labeled the real notes by reading them. Drew confirmed the question labels on 2026-10-24: 9 questions, and one bug report relabeled as partial. So the test does not only compare one model with another.
 - Key: Nextshot's own TypeSafe key, which the base session adds. The `jev` lab key may carry only made-up or public data, so it is not used.
 - TypeSafe keeps each request. It does not train on them. Drew confirmed the text send with this fact on 2026-10-24.
-- Pass: no real note labeled vague, at least 80% of the made-up and test vague notes labeled vague, and at least 8 of the 10 real question items labeled question.
+- Pass: no real note labeled vague, at least 80% of the made-up and test vague notes labeled vague, and at least 7 of the 9 real question items labeled question.
 - The labeled set and the results stay out of this public repository, in `build/jev-eval/` of the main checkout (git ignores `build/`). The spec records counts only. My call.
 - The harness is a later step (sub-issue B). It needs the base's client and key.
 
