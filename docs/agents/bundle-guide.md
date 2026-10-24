@@ -11,7 +11,7 @@ The prompt names files by absolute path. They sit in a bundle folder: `~/Library
 | `<HHmm>-<slug>.png` | The annotated screenshot: the screen plus the reviewer's marks and numbered badges |
 | `<HHmm>-<slug>-clean.png` | The same screenshot without marks |
 | `manifest.md` | One section per capture: item table, coordinates, screen text, and the reviewer's notes |
-| `prompt.md` | The prompt for the whole session |
+| `prompt.md` | The prompt for the whole round |
 | `<HHmm>-<slug>-prompt.md` | The prompt for one capture |
 | `feedback.json` | The same data as the manifest, for scripts (`schemaVersion` 1) |
 

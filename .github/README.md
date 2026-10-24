@@ -8,7 +8,7 @@
 
 Nextshot is a screenshot app for macOS. You select part of the screen, circle what should change, and say what you want in a few words. Nextshot then copies a prompt that Claude Code, Codex, or another AI coding agent can act on.
 
-Nextshot is built on [Capso](https://github.com/lzhgus/Capso), an open-source screenshot and screen recording app. It keeps all of Capso's tools and adds feedback sessions.
+Nextshot is built on [Capso](https://github.com/lzhgus/Capso), an open-source screenshot and screen recording app. It keeps all of Capso's tools and adds feedback rounds. A round is one run of capturing, marking, and noting, from your first capture to the prompt you copy.
 
 ## How it works
 
@@ -19,7 +19,7 @@ Nextshot is built on [Capso](https://github.com/lzhgus/Capso), an open-source sc
 
 The agent gets your marked-up screenshot, your numbered answers, and the text under each mark. The prompt asks it to write a short plan before it edits anything.
 
-Keep capturing to add more screens to the same session. The **Nshot** item in the menu bar shows how many captures the session holds, for example "Nshot (2)".
+Keep capturing to add more screens to the same round. The **Nshot** item in the menu bar shows how many captures the round holds, for example "Nshot (2)".
 
 When the round is done, press **Option+Shift+R**. Nextshot copies one prompt for every capture in the round and ends the round.
 
@@ -29,10 +29,10 @@ Click **Nshot** in the menu bar to:
 
 - See which build you run. The top row shows it, for example **Nextshot 2026.10.22 (497)**.
 - **Copy Last Capture Prompt** (**Option+Shift+C**) again, for example after dictation replaced your clipboard.
-- **Copy Prompt and End Round** (**Option+Shift+R**). Copying the whole prompt ends the round. **Resume Session** in **Recent** reopens it.
+- **Copy Prompt and End Round** (**Option+Shift+R**). Copying the whole prompt ends the round. **Resume Round** in **Recent** reopens it.
 - **Open Round Folder** (**Option+Shift+O**) to see the round's files.
 - **End Round** (**Option+Shift+E**) when you are done.
-- Pick from **Recent** sessions. Check single captures to copy one combined prompt, or **Resume Session** to keep adding to an old session.
+- Pick from **Recent** rounds. Check single captures to copy one combined prompt, or **Resume Round** to keep adding to an old round.
 - **Change Start Round Shortcut...** to pick a key other than **Option+Shift+F**.
 - Open **Settings...**, or **Quit Nextshot**.
 
@@ -56,7 +56,9 @@ Nextshot does not update itself. When you get a new DMG:
 2. Open the new DMG and drag **Nextshot** to **Applications**. Choose **Replace**.
 3. Open Nextshot again.
 
-Your sessions, settings, and permissions stay.
+Your rounds, settings, and permissions stay.
+
+The Shortcuts actions **Start Feedback Session** and **End Feedback Session** are now **Start Feedback Round** and **End Feedback Round**. A saved Shortcut that uses an old action needs the new action added again.
 
 To see which build you have, open the **Nshot** menu. The top row shows the build date and a build number, for example **Nextshot 2026.10.22 (497)**. A newer date or a higher number is a newer build. The DMG's file name starts with the same date.
 
@@ -64,7 +66,7 @@ The **Check for Updates** button in Preferences does not apply to Nextshot. It f
 
 ## Your feedback stays on your Mac
 
-- Each session is a folder in `~/Library/Application Support/Nextshot`.
+- Each round is a folder in `~/Library/Application Support/Nextshot`.
 - The feedback code makes no network requests. Nothing leaves your Mac unless you paste it somewhere.
 - Text that Nextshot reads from the screen goes to the agent marked as screen text. The agent uses it to find the right code, never as instructions.
 
