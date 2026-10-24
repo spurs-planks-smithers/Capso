@@ -59,6 +59,10 @@ public struct JevJobRecord: Codable, Equatable, Sendable {
     public var lines: [JevLineRecord]
     /// On mode only: the extra files written to the bundle. Empty in shadow.
     public var files: [String]
+    /// Shadow and on: the job's code-only facts, as an object.
+    public var summary: JevSummaryValue? = nil
+    /// Shadow and on: this capture's section of `jev-review/<job>.md`.
+    public var review: String? = nil
 
     public var isOn: Bool { mode == "on" }
 }
@@ -148,7 +152,7 @@ public struct JevLineRecord: Codable, Equatable, Sendable {
             scope = "item"
             self.badge = badge
         }
-        label = line.label
+        label = line.label.text
         screenText = line.screenText
         file = line.file
     }

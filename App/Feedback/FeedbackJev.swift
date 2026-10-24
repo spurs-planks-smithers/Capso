@@ -49,8 +49,10 @@ final class FeedbackJev {
     }
 
     /// The capture's notes are final and its screen text is stored.
-    func captureReady(folderName: String, capture: Int) {
-        Task { await runner.start(folderName: folderName, capture: capture) }
+    /// `screenLines` are the OCR lines with boxes, which feedback.json does
+    /// not keep.
+    func captureReady(folderName: String, capture: Int, screenLines: [FeedbackTextLine]?) {
+        Task { await runner.start(folderName: folderName, capture: capture, screenLines: screenLines) }
     }
 
     /// Round end, before the round prompt is copied. Returns at once when no

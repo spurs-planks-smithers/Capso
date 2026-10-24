@@ -71,6 +71,26 @@ struct NetworkSourceScanTests {
         #expect(findings.isEmpty, "network code outside JevKit's client:\n\(findings.joined(separator: "\n"))")
     }
 
+    @Test("No job builds code text from a String, so screen text cannot skip consent")
+    func jobsUseLiteralCodeText() throws {
+        let folder = "Packages/JevKit/Sources/JevKit/Jobs"
+        let base: Set<String> = ["\(folder)/JevJob.swift", "\(folder)/JevJobRegistry.swift"]
+        let files = Self.swiftFiles().filter { $0.hasPrefix(folder + "/") && !base.contains($0) }
+        try #require(!files.isEmpty, "the scan found no job files")
+
+        // These would turn any String into code text, which needs no consent.
+        let pattern = #"stringLiteral:|stringInterpolation:|JevCodeText\(|\.code\(JevCodeText"#
+        var findings: [String] = []
+        for file in files {
+            let text = try String(contentsOf: Self.repositoryRoot.appendingPathComponent(file), encoding: .utf8)
+            for (number, line) in text.components(separatedBy: .newlines).enumerated()
+                where !line.trimmingCharacters(in: .whitespaces).hasPrefix("//") && line.range(of: pattern, options: .regularExpression) != nil {
+                findings.append("\(file):\(number + 1)")
+            }
+        }
+        #expect(findings.isEmpty, "a job builds code text from a String:\n\(findings.joined(separator: "\n"))")
+    }
+
     @Test("The rules catch what they guard")
     func rulesMatch() {
         func matches(_ line: String) -> [String] {

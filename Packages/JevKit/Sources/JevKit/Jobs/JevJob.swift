@@ -81,6 +81,12 @@ public struct JevJobContext: Sendable {
     public let deadline: ContinuousClock.Instant
     public let jev: JevAsker
     public let images: JevImageLoader
+    /// The capture's OCR lines with their boxes, in the capture's pixels,
+    /// with redacted lines removed and each text cleaned. feedback.json keeps
+    /// only the joined text, so this comes from memory: nil when unknown, for
+    /// example when the editor changed the capture's size. Screen text: send
+    /// it only as `.screen`.
+    public let screenLines: [FeedbackTextLine]?
 
     public init(
         round: FeedbackRound,
@@ -89,7 +95,8 @@ public struct JevJobContext: Sendable {
         allowed: JevDataKinds,
         deadline: ContinuousClock.Instant,
         jev: JevAsker,
-        images: JevImageLoader
+        images: JevImageLoader,
+        screenLines: [FeedbackTextLine]? = nil
     ) {
         self.round = round
         self.capture = capture
@@ -98,6 +105,7 @@ public struct JevJobContext: Sendable {
         self.deadline = deadline
         self.jev = jev
         self.images = images
+        self.screenLines = screenLines
     }
 }
 
@@ -116,14 +124,15 @@ public struct JevRefinedLine: Equatable, Sendable {
     }
 
     public var scope: Scope
-    /// Written by code. One line: the writer joins line breaks.
-    public var label: String
+    /// Written by code, so screen text can reach a refined file only in
+    /// quotes, through `screenText`. One line: the writer joins line breaks.
+    public var label: JevCodeText
     /// Screen text to show after the label, in quotes, marked as screen text.
     public var screenText: String?
     /// A file name from the output's `files`. Shown as an absolute path.
     public var file: String?
 
-    public init(scope: Scope, label: String, screenText: String? = nil, file: String? = nil) {
+    public init(scope: Scope, label: JevCodeText, screenText: String? = nil, file: String? = nil) {
         self.scope = scope
         self.label = label
         self.screenText = screenText
@@ -132,7 +141,9 @@ public struct JevRefinedLine: Equatable, Sendable {
 }
 
 /// An extra file for the bundle, for example an item crop. The name must
-/// start with the capture's file stem and end in `.png` or `.md`.
+/// start with the capture's file stem and a hyphen, use only `a-z`, `0-9`,
+/// `-`, and `.`, end in `.png` or `.md`, and name no file of any capture in
+/// the round.
 public struct JevRefinedFile: Equatable, Sendable {
     public var name: String
     public var data: Data
@@ -143,15 +154,39 @@ public struct JevRefinedFile: Equatable, Sendable {
     }
 }
 
-/// What a job returns. The runner writes it only when the job's flag is on.
-/// Answers need no field here: the runner records every answer itself.
+/// What a job returns. Answers need no field here: the runner records every
+/// answer itself.
+///
+/// | Field | Written in | Where |
+/// | --- | --- | --- |
+/// | `lines`, `files` | on only | the refined files and the bundle |
+/// | `summary` | shadow and on | the job's record in jev.json |
+/// | `review` | shadow and on | `jev-review/<job id>.md`, for Drew only |
 public struct JevJobOutput: Equatable, Sendable {
     public var lines: [JevRefinedLine]
     public var files: [JevRefinedFile]
+    /// Code-only facts for a review script, for example a final crop box.
+    public var summary: [JevSummaryField]
+    /// This capture's section of the job's review file, in Markdown. No
+    /// prompt names the file, and its first line tells agents not to act on
+    /// it. It may hold reviewer text and numbers. Keep screen text out.
+    public var review: String?
+    /// A Jev failure that the job handled. The record says "not refined"
+    /// with this reason, and the rest of the output is still written.
+    public var failure: JevError?
 
-    public init(lines: [JevRefinedLine] = [], files: [JevRefinedFile] = []) {
+    public init(
+        lines: [JevRefinedLine] = [],
+        files: [JevRefinedFile] = [],
+        summary: [JevSummaryField] = [],
+        review: String? = nil,
+        failure: JevError? = nil
+    ) {
         self.lines = lines
         self.files = files
+        self.summary = summary
+        self.review = review
+        self.failure = failure
     }
 
     public static let empty = JevJobOutput()

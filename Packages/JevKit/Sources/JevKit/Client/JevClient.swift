@@ -44,20 +44,42 @@ public actor JevClient {
         await currentKey() != nil
     }
 
+    /// The Keychain read in progress. Callers during the read (for example
+    /// while the macOS access dialog is open) share it, so a second capture
+    /// is never told "no key" while the first read waits.
+    private var keyRead: Task<String?, Never>?
+
     private func currentKey() async -> String? {
         if let key { return key }
-        let now = ContinuousClock.now
-        if let last = lastMissingKeyCheck, now - last < Self.missingKeyRecheck {
+        if let keyRead { return await keyRead.value }
+        if let last = lastMissingKeyCheck, ContinuousClock.now - last < Self.missingKeyRecheck {
             return nil
         }
-        lastMissingKeyCheck = now
-        guard let read = await keyProvider.key(), JevKey.isUsable(read) else { return nil }
-        key = read
-        return read
+        let provider = keyProvider
+        let read = Task { () -> String? in
+            guard let value = await provider.key(), JevKey.isUsable(value) else { return nil }
+            return value
+        }
+        keyRead = read
+        let value = await read.value
+        keyRead = nil
+        if let value {
+            key = value
+        } else {
+            // Only a finished, failed read starts the 5-minute wait.
+            lastMissingKeyCheck = .now
+        }
+        return value
     }
 
-    /// Sends one request. Throws `JevError` only.
-    public func send(_ request: JevRequest, deadline: ContinuousClock.Instant) async throws -> JevSendResult {
+    /// Sends one request. Throws `JevError` only. `beforeAttempt` runs before
+    /// each HTTP attempt, retries included; the runner checks its pauses and
+    /// caps there. An error it throws ends the send.
+    public func send(
+        _ request: JevRequest,
+        deadline: ContinuousClock.Instant,
+        beforeAttempt: @Sendable () async throws -> Void = {}
+    ) async throws -> JevSendResult {
         let encoded = try JevRequestEncoder.encode(request)
         guard let key = await currentKey() else { throw JevError(.noKey) }
 
@@ -76,6 +98,13 @@ public actor JevClient {
             if Task.isCancelled { throw JevError(.timeout) }
             let remaining = deadline - .now
             guard remaining > .zero else { throw JevError(.timeout) }
+            do {
+                try await beforeAttempt()
+            } catch let error as JevError {
+                throw error
+            } catch {
+                throw JevError(.timeout)
+            }
 
             let failure: JevError
             var retryAfter: Duration?
@@ -110,6 +139,12 @@ public actor JevClient {
 enum JevResponseDecoder {
     /// Probabilities may round. A sum outside this range is not a distribution.
     static let probabilitySum: ClosedRange<Double> = 0.95...1.05
+    /// A request holds at most 262k tokens even with long context. A larger
+    /// count is not real, and summing huge counts could overflow.
+    static let tokenCount: ClosedRange<Int> = 0...10_000_000
+    /// TypeSafe's request id is a header that a proxy can change. It goes
+    /// into jev.json, which an agent reads, so only plain ids are kept.
+    static let requestIDPattern = "^[A-Za-z0-9_.:-]{1,128}$"
 
     private struct RawResponse: Decodable {
         var model: String
@@ -139,20 +174,22 @@ enum JevResponseDecoder {
         }
         guard let raw = try? JSONDecoder().decode(RawResponse.self, from: http.body) else { throw invalid }
         guard raw.model == JevEndpoint.model else { throw JevError(.modelMismatch, status: http.status) }
-        guard raw.usage.input_tokens >= 0, raw.usage.output_tokens >= 0 else { throw invalid }
-        guard Set(raw.answers.keys) == Set(request.questions.map(\.id)) else { throw invalid }
+        guard tokenCount.contains(raw.usage.input_tokens), tokenCount.contains(raw.usage.output_tokens) else { throw invalid }
+        guard Set(raw.answers.keys) == Set(request.questions.map(\.id.text)) else { throw invalid }
 
         var answers: [String: JevAnswer] = [:]
         for entry in request.questions {
-            guard let answer = raw.answers[entry.id], let checked = check(answer, against: entry.question) else { throw invalid }
-            answers[entry.id] = checked
+            guard let answer = raw.answers[entry.id.text], let checked = check(answer, against: entry.question) else { throw invalid }
+            answers[entry.id.text] = checked
         }
         return JevResponse(
             model: raw.model,
             answers: answers,
             inputTokens: raw.usage.input_tokens,
             outputTokens: raw.usage.output_tokens,
-            requestID: http.headers[JevEndpoint.requestIDHeader]
+            requestID: http.headers[JevEndpoint.requestIDHeader].flatMap {
+                $0.range(of: requestIDPattern, options: .regularExpression) != nil ? $0 : nil
+            }
         )
     }
 
@@ -172,7 +209,7 @@ enum JevResponseDecoder {
                   let option = raw.choice,
                   let confidence = unit(raw.confidence),
                   let probabilities = raw.probabilities,
-                  Set(probabilities.keys) == Set(options.map(\.name)),
+                  Set(probabilities.keys) == Set(options.map(\.name.text)),
                   probabilities.keys.contains(option),
                   probabilities.values.allSatisfy({ unit($0) != nil }),
                   probabilitySum.contains(probabilities.values.reduce(0, +))

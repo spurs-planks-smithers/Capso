@@ -937,6 +937,9 @@ final class FeedbackController {
                 )
                 : []
             let ocrText = (sameGeometry ? lines.map(\.text) : regions.map(\.text)).joined(separator: "\n")
+            // Jev jobs get the line boxes from memory: feedback.json keeps
+            // only the joined text.
+            pending.screenLines = sameGeometry ? lines : nil
             do {
                 try await store.setScreenText(
                     capture: index,
@@ -960,7 +963,7 @@ final class FeedbackController {
             await write.value
         }
         await pending.screenText?.value
-        jev.captureReady(folderName: folderName, capture: index)
+        jev.captureReady(folderName: folderName, capture: index, screenLines: pending.screenLines)
     }
 
     /// Waits until the capture and every answer are stored, then puts the
@@ -1054,6 +1057,8 @@ final class FeedbackController {
         var folderName: String?
         /// OCR and the screen-text save. Jev starts after it.
         var screenText: Task<Void, Never>?
+        /// The OCR lines with boxes in export pixels, redacted lines removed.
+        var screenLines: [FeedbackTextLine]?
     }
 
     private func report(_ error: Error, context: String) {

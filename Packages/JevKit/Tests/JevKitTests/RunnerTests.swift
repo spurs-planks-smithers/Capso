@@ -219,9 +219,10 @@ struct RunnerModeTests {
             JevJobOutput(lines: [JevRefinedLine(scope: .item(badge: 9), label: "no such badge")]),
             JevJobOutput(lines: [JevRefinedLine(scope: .capture, label: "x", file: "\(stem)-missing.png")]),
         ]
+        let round = try #require(FeedbackLibrary.round(named: bundle.folderName, in: bundle.root))
         for output in bad {
             #expect(throws: JevError(.jobError)) {
-                try JevBundleWriter.check(output, for: bundle.capture)
+                try JevBundleWriter.check(output, for: bundle.capture, in: round)
             }
         }
         let manifest = try bundle.text("manifest.md")

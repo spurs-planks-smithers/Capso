@@ -22,7 +22,7 @@ actor JevBundleWriter {
     }
 
     /// Stores one capture's jobs, writes any extra files, and renders the
-    /// capture's refined file and refined.md.
+    /// capture's refined file, refined.md, and the review files.
     func record(folderName: String, round: FeedbackRound, capture: FeedbackCapture, jobs: [Finished]) throws {
         let folder = rootURL.appendingPathComponent(folderName, isDirectory: true)
         var file = load(folder)
@@ -32,7 +32,7 @@ actor JevBundleWriter {
             var record = finished.record
             if let output = finished.output {
                 do {
-                    try Self.check(output, for: capture)
+                    try Self.check(output, for: capture, in: round)
                     for extra in output.files {
                         try extra.data.write(to: folder.appendingPathComponent(extra.name), options: .atomic)
                     }
@@ -67,6 +67,23 @@ actor JevBundleWriter {
             try Data(text.utf8).write(to: folder.appendingPathComponent(JevRefinedRenderer.captureFileName(for: capture)), options: .atomic)
         }
         try writeRound(round, file: file, folder: folder, running: [])
+        for job in Set(records.filter { $0.review != nil }.map(\.job)) {
+            try writeReview(job: job, round: round, file: file, folder: folder)
+        }
+    }
+
+    static let reviewFolderName = "jev-review"
+
+    /// `jev-review/<job>.md`: every capture's review section for one job,
+    /// rendered from jev.json in capture order.
+    private func writeReview(job: String, round: FeedbackRound, file: JevRecordFile, folder: URL) throws {
+        // The job id becomes a file name, so only plain ids are used.
+        guard !job.isEmpty, job.count <= 64, job.unicodeScalars.allSatisfy({ $0.isASCII && CharacterSet.alphanumerics.contains($0) }),
+              let text = JevRefinedRenderer.review(job: job, round: round, file: file)
+        else { return }
+        let reviewFolder = folder.appendingPathComponent(Self.reviewFolderName, isDirectory: true)
+        try FileManager.default.createDirectory(at: reviewFolder, withIntermediateDirectories: true)
+        try Data(text.utf8).write(to: reviewFolder.appendingPathComponent("\(job).md"), options: .atomic)
     }
 
     /// Renders refined.md with the captures still running marked, when the
@@ -101,21 +118,32 @@ actor JevBundleWriter {
         try encoder.encode(file).write(to: folder.appendingPathComponent(JevRecordFile.fileName), options: .atomic)
     }
 
-    /// The bundle's own files. No job may write over one.
-    static func reservedNames(for capture: FeedbackCapture) -> Set<String> {
-        [
+    /// The bundle's own files, for every capture of the round. No job may
+    /// write over one: two captures of one window in the same minute have
+    /// stems like `1046-claude` and `1046-claude-2`.
+    static func reservedNames(in round: FeedbackRound) -> Set<String> {
+        var names: Set<String> = [
             "feedback.json", "manifest.md", "prompt.md", ".active.json",
             JevRecordFile.fileName, JevRefinedRenderer.refinedRoundFileName,
-            capture.imageFile, capture.cleanImageFile, capture.promptFile,
-            JevRefinedRenderer.captureFileName(for: capture),
         ]
+        for capture in round.captures {
+            names.formUnion([
+                capture.imageFile, capture.cleanImageFile, capture.promptFile,
+                JevRefinedRenderer.captureFileName(for: capture),
+            ])
+        }
+        return names
     }
 
     /// A job's output must name only its own new files, and refer only to
     /// badges the capture has. Anything else is a bug in the job.
-    static func check(_ output: JevJobOutput, for capture: FeedbackCapture) throws {
+    static func check(_ output: JevJobOutput, for capture: FeedbackCapture, in round: FeedbackRound) throws {
         let stem = JevRefinedRenderer.stem(of: capture)
-        let reserved = reservedNames(for: capture)
+        var withCapture = round
+        if !withCapture.captures.contains(where: { $0.index == capture.index }) {
+            withCapture.captures.append(capture)
+        }
+        let reserved = reservedNames(in: withCapture)
         let allowed = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyz0123456789-.")
         var names = Set<String>()
         for file in output.files {
