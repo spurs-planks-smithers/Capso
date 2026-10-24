@@ -128,6 +128,7 @@ Agent access:
 - A feature session edits only its own job file in `Packages/JevKit/Sources/JevKit/Jobs/`. The registry already has one line per planned feature.
 - Logs: `/usr/bin/log show --last 10m --predicate 'subsystem == "com.drewschulz.nextshot" AND category == "Jev"'`. They hold job ids, capture numbers, statuses, times, and token counts only.
 - Failures are silent: the prompt stays plain, and `jev.json` records the reason.
+- Crops and search lines (`cropsAnchors`, #38): each item gets two crop PNGs (`<stem>-item-<N>.png` and `-clean.png`) and at most one search line in the refined file. Without `jevSendImages`, crops are cut around the marks with no Jev check. Search lines need `jevSendScreenText`. In shadow, `scripts/jev-review-crops-anchors.py` draws each crop over its capture. Design: `docs/superpowers/specs/2026-10-24-crops-anchors-design.md`.
 
 ## Brand and README
 
