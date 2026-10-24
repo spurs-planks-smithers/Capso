@@ -105,9 +105,8 @@ struct OneBreathRequestTests {
         let with = try #require(plan.request(allowed: [.reviewerText, .screenText]) { _ in nil })
         #expect(with.request.kinds == [.reviewerText, .screenText])
         for entry in with.request.questions where entry.id.text.hasSuffix(".badge") {
-            #expect(instructions(entry.question).hasPrefix(JevPrompting.screenTextNotice))
+            #expect(instructions(entry.question).hasPrefix(JevPrompting.screenTextNotice.text))
         }
-        #expect(OneBreathPlan.screenTextNotice.text == JevPrompting.screenTextNotice)
     }
 
     @Test("A part that corrects itself gets a Choice over its clauses, in Drew's words")
