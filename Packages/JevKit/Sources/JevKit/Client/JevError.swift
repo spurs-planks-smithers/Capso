@@ -40,14 +40,25 @@ public enum JevFailureReason: String, Codable, Sendable, CaseIterable {
 public struct JevError: Error, Equatable, Sendable, CustomStringConvertible {
     public var reason: JevFailureReason
     public var status: Int?
+    /// For a refused response: the failed check and the question id, for
+    /// example "boxType 3.1.target". Both are code constants, never response
+    /// text, so the log and jev.json may hold them. Not part of equality.
+    public var check: String?
 
-    public init(_ reason: JevFailureReason, status: Int? = nil) {
+    public init(_ reason: JevFailureReason, status: Int? = nil, check: String? = nil) {
         self.reason = reason
         self.status = status
+        self.check = check
+    }
+
+    public static func == (lhs: JevError, rhs: JevError) -> Bool {
+        lhs.reason == rhs.reason && lhs.status == rhs.status
     }
 
     public var description: String {
-        status.map { "\(reason.rawValue) (HTTP \($0))" } ?? reason.rawValue
+        var text = status.map { "\(reason.rawValue) (HTTP \($0))" } ?? reason.rawValue
+        if let check { text += " [\(check)]" }
+        return text
     }
 
     /// A retry can help only for these. Every other reason is final.
