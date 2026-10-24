@@ -157,7 +157,7 @@ enum JevResponseDecoder {
         var output_tokens: Int
     }
 
-    private struct RawAnswer: Decodable {
+    struct RawAnswer: Decodable {
         var type: String
         var noul: Double?
         var choice: String?
@@ -167,20 +167,43 @@ enum JevResponseDecoder {
         var box: JevBox?
     }
 
+    /// The outcome of one answer's checks.
+    enum Check {
+        case accepted(JevAnswer)
+        /// The answer has the right type, but a value fails a range or order
+        /// check, for example a Box whose left edge equals its right edge.
+        /// Only this answer is dropped. Its accessor returns nil.
+        case dropped(String)
+        /// The answer breaks the request's structure: wrong type, a missing
+        /// field, or an option or level that was never sent. The whole
+        /// response is refused.
+        case refused(String)
+    }
+
     static func decode(_ http: JevHTTPResponse, for request: JevRequest) throws -> JevResponse {
-        let invalid = JevError(.invalidResponse, status: http.status)
-        guard let contentType = http.headers["content-type"], contentType.lowercased().hasPrefix("application/json") else {
-            throw invalid
+        func invalid(_ check: String) -> JevError {
+            JevError(.invalidResponse, status: http.status, check: check)
         }
-        guard let raw = try? JSONDecoder().decode(RawResponse.self, from: http.body) else { throw invalid }
-        guard raw.model == JevEndpoint.model else { throw JevError(.modelMismatch, status: http.status) }
-        guard tokenCount.contains(raw.usage.input_tokens), tokenCount.contains(raw.usage.output_tokens) else { throw invalid }
-        guard Set(raw.answers.keys) == Set(request.questions.map(\.id.text)) else { throw invalid }
+        guard let contentType = http.headers["content-type"], contentType.lowercased().hasPrefix("application/json") else {
+            throw invalid("contentType")
+        }
+        guard let raw = try? JSONDecoder().decode(RawResponse.self, from: http.body) else { throw invalid("json") }
+        guard raw.model == JevEndpoint.model else { throw JevError(.modelMismatch, status: http.status, check: "model") }
+        guard tokenCount.contains(raw.usage.input_tokens), tokenCount.contains(raw.usage.output_tokens) else { throw invalid("usage") }
+        guard Set(raw.answers.keys) == Set(request.questions.map(\.id.text)) else { throw invalid("answerSet") }
 
         var answers: [String: JevAnswer] = [:]
+        var dropped: [String: String] = [:]
         for entry in request.questions {
-            guard let answer = raw.answers[entry.id.text], let checked = check(answer, against: entry.question) else { throw invalid }
-            answers[entry.id.text] = checked
+            guard let answer = raw.answers[entry.id.text] else { throw invalid("answerSet") }
+            switch check(answer, against: entry.question) {
+            case .accepted(let checked):
+                answers[entry.id.text] = checked
+            case .dropped(let name):
+                dropped[entry.id.text] = name
+            case .refused(let name):
+                throw invalid("\(name) \(entry.id.text)")
+            }
         }
         return JevResponse(
             model: raw.model,
@@ -189,53 +212,53 @@ enum JevResponseDecoder {
             outputTokens: raw.usage.output_tokens,
             requestID: http.headers[JevEndpoint.requestIDHeader].flatMap {
                 $0.range(of: requestIDPattern, options: .regularExpression) != nil ? $0 : nil
-            }
+            },
+            dropped: dropped
         )
     }
 
-    private static func check(_ raw: RawAnswer, against question: JevQuestion) -> JevAnswer? {
-        func unit(_ value: Double?) -> Double? {
-            guard let value, value.isFinite, (0...1).contains(value) else { return nil }
-            return value
+    static func check(_ raw: RawAnswer, against question: JevQuestion) -> Check {
+        func unit(_ value: Double) -> Bool {
+            value.isFinite && (0...1).contains(value)
         }
 
         switch question.kind {
         case .noul:
-            guard raw.type == "noul", let probability = unit(raw.noul) else { return nil }
-            return .noul(probability)
+            guard raw.type == "noul", let probability = raw.noul else { return .refused("noulType") }
+            guard unit(probability) else { return .dropped("noulRange") }
+            return .accepted(.noul(probability))
 
         case .choice(let options):
-            guard raw.type == "choice",
-                  let option = raw.choice,
-                  let confidence = unit(raw.confidence),
-                  let probabilities = raw.probabilities,
-                  Set(probabilities.keys) == Set(options.map(\.name.text)),
-                  probabilities.keys.contains(option),
-                  probabilities.values.allSatisfy({ unit($0) != nil }),
-                  probabilitySum.contains(probabilities.values.reduce(0, +))
-            else { return nil }
-            return .choice(JevChoiceAnswer(option: option, confidence: confidence, probabilities: probabilities))
+            guard raw.type == "choice", let option = raw.choice, let confidence = raw.confidence, let probabilities = raw.probabilities else {
+                return .refused("choiceType")
+            }
+            guard Set(probabilities.keys) == Set(options.map(\.name.text)), probabilities.keys.contains(option) else {
+                return .refused("choiceOptions")
+            }
+            guard unit(confidence), probabilities.values.allSatisfy(unit) else { return .dropped("choiceRange") }
+            guard probabilitySum.contains(probabilities.values.reduce(0, +)) else { return .dropped("choiceSum") }
+            return .accepted(.choice(JevChoiceAnswer(option: option, confidence: confidence, probabilities: probabilities)))
 
         case .score(let levels):
-            guard raw.type == "score",
-                  let score = raw.score, score.isFinite, (0...Double(levels.count - 1)).contains(score),
-                  let confidence = unit(raw.confidence),
-                  let probabilities = raw.probabilities,
-                  Set(probabilities.keys) == Set((0..<levels.count).map(String.init))
-            else { return nil }
-            let ordered = (0..<levels.count).compactMap { unit(probabilities[String($0)]) }
-            guard ordered.count == levels.count, probabilitySum.contains(ordered.reduce(0, +)) else { return nil }
-            return .score(JevScoreAnswer(score: score, confidence: confidence, probabilities: ordered))
+            guard raw.type == "score", let score = raw.score, let confidence = raw.confidence, let probabilities = raw.probabilities else {
+                return .refused("scoreType")
+            }
+            guard Set(probabilities.keys) == Set((0..<levels.count).map(String.init)) else { return .refused("scoreLevels") }
+            let ordered = (0..<levels.count).compactMap { probabilities[String($0)] }
+            guard score.isFinite, (0...Double(levels.count - 1)).contains(score), unit(confidence), ordered.allSatisfy(unit) else {
+                return .dropped("scoreRange")
+            }
+            guard probabilitySum.contains(ordered.reduce(0, +)) else { return .dropped("scoreSum") }
+            return .accepted(.score(JevScoreAnswer(score: score, confidence: confidence, probabilities: ordered)))
 
         case .box:
-            guard raw.type == "box", let box = raw.box,
-                  [box.top, box.bottom, box.left, box.right].allSatisfy({ unit($0) != nil }),
-                  box.top < box.bottom, box.left < box.right
-            else { return nil }
-            if let confidence = raw.confidence {
-                guard unit(confidence) != nil else { return nil }
+            guard raw.type == "box", let box = raw.box else { return .refused("boxType") }
+            guard [box.top, box.bottom, box.left, box.right].allSatisfy(unit) else { return .dropped("boxRange") }
+            guard box.top < box.bottom, box.left < box.right else { return .dropped("boxOrder") }
+            if let confidence = raw.confidence, !unit(confidence) {
+                return .dropped("boxConfidence")
             }
-            return .box(JevBoxAnswer(box: box, confidence: raw.confidence))
+            return .accepted(.box(JevBoxAnswer(box: box, confidence: raw.confidence)))
         }
     }
 }
