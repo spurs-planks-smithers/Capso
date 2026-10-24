@@ -374,13 +374,15 @@ Limits:
 
 A job still running at round end keeps its own 2 s deadline. When it ends, the writer updates the files. Late results only add labels.
 
+A capture runs once per app run. The app sends `expect` and `start` from separate tasks, so their order is not fixed. An `expect` that arrives after its `start` is ignored, so it never makes a round end wait the full 500 ms.
+
 ## jev.json and the refined files
 
 `JevBundleWriter` is an actor, so writes to one bundle never overlap. Every file is written atomically (a temporary file, then a rename), so a reader never sees half a file. The writer reads an existing `jev.json` first, so a resumed round keeps its earlier answers.
 
 ### jev.json
 
-Written in shadow and on. It holds answers and timings only, never notes, screen text, or images.
+Written in shadow and on. It is the source of truth for Jev results, as `feedback.json` is for the round: the refined files are rendered from it, so a resumed round keeps its labels after a relaunch (changed during the build, 2026-10-24). In shadow it holds answers and timings only, never notes, screen text, or images. In on mode each job record also holds its refined lines and file names, which the refined files show anyway.
 
 ```json
 {
@@ -569,15 +571,15 @@ Also: `swift test` for FeedbackKit (prompt pointer tests, flag registry tests), 
 
 ## Build tasks (sub-issues)
 
-| # | Task | Done when |
+| Issue | Task | Done when |
 | --- | --- | --- |
-| 1 | Job interface: protocol, context, output, typed content, answers, registry, four stubs | It compiles, a test runs a stub job, and the commit is published to the feature sessions |
-| 2 | TypeSafe client: JSON and multipart requests, transport with host guard, retries, answer checks | Client tests pass |
-| 3 | Runner and bundle writer: gating, consent, budgets, caps, pauses, `jev.json`, refined files | Runner and writer tests pass, including "off means off" |
-| 4 | Flags and prompt pointers: consent flags, dev-only gate, `refined` parameter, public item and screen-text helpers | FeedbackKit tests pass, default prompts byte-identical |
-| 5 | App glue: `FeedbackJev.swift`, Keychain provider, controller hooks, `project.yml`, `docs/FORK_NOTES.md` | The unsigned Debug build passes, and the log shows no Jev line with `jevBase` off |
-| 6 | Rules and guards: local-only wording in `AGENTS.md` and `docs/SECURITY_BASELINE.md`, the source scan test, `docs/agents/bundle-guide.md` | The scan test passes, and the docs match the code |
-| 7 | Key and live check: Nextshot's key in the Keychain, the live test, a shadow run on one real capture | The live test passes, and `jev.json` appears for one capture with a stub job turned on |
+| #46 | Job interface: protocol, context, output, typed content, answers, registry, four stubs | It compiles, a test runs a stub job, and the commit is published to the feature sessions |
+| #47 | TypeSafe client: JSON and multipart requests, transport with host guard, retries, answer checks | Client tests pass |
+| #48 | Runner and bundle writer: gating, consent, budgets, caps, pauses, `jev.json`, refined files | Runner and writer tests pass, including "off means off" |
+| #49 | Flags and prompt pointers: consent flags, dev-only gate, `refined` parameter, public item and screen-text helpers | FeedbackKit tests pass, default prompts byte-identical |
+| #50 | App glue: `FeedbackJev.swift`, Keychain provider, controller hooks, `project.yml`, `docs/FORK_NOTES.md` | The unsigned Debug build passes, and the log shows no Jev line with `jevBase` off |
+| #51 | Rules and guards: local-only wording in `AGENTS.md` and `docs/SECURITY_BASELINE.md`, the source scan test, `docs/agents/bundle-guide.md` | The scan test passes, and the docs match the code |
+| #52 | Key and live check: Nextshot's key in the Keychain, the live test, a shadow run on one real capture | The live test passes, and `jev.json` appears for one capture with a stub job turned on |
 
 ## Not in the base
 

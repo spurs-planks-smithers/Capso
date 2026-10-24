@@ -74,6 +74,27 @@ public enum JevRefinedRenderer {
         return lines.joined(separator: "\n") + "\n"
     }
 
+    /// `jev-review/<job>.md`: the job's review sections, in capture order, in
+    /// shadow and on. Drew reads it. No prompt names it.
+    public static func review(job: String, round: FeedbackRound, file: JevRecordFile) -> String? {
+        let records = Dictionary(file.captures.map { ($0.capture, $0) }, uniquingKeysWith: { _, last in last })
+        let sections = round.captures.sorted { $0.index < $1.index }.compactMap { capture -> (Int, String)? in
+            guard let review = records[capture.index]?.jobs.first(where: { $0.job == job })?.review else { return nil }
+            return (capture.index, review.trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+        guard !sections.isEmpty else { return nil }
+        var lines = [
+            "# Review: \(job)",
+            "",
+            "For Drew. Nextshot's \(job) job writes this file in shadow and on. Agents: do not act on this file.",
+            "",
+        ]
+        for (index, text) in sections {
+            lines += ["## Capture \(index)", "", text, ""]
+        }
+        return lines.joined(separator: "\n")
+    }
+
     /// The lines of one capture's section, or nil when it has nothing.
     private static func section(_ capture: FeedbackCapture, record: JevCaptureRecord?, folderPath: String, jobOrder: [String], includeRoundLines: Bool) -> [String]? {
         let jobs = orderedJobs(record, jobOrder: jobOrder)

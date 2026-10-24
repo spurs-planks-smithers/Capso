@@ -34,14 +34,17 @@ final class FeedbackNotePanel {
     var isOpen: Bool { panel != nil }
 
     /// `previews` holds one crop per circle number. `overview` is the whole
-    /// annotated capture, shown with the general note.
+    /// annotated capture, shown with the general note. `onEnd` runs once when
+    /// this panel closes by any path, before `onFinish`: the capture's notes
+    /// are then final.
     func show(
         title: String,
         badges: [Int],
         previews: [Int: CGImage],
         overview: CGImage?,
         onAnswer: @escaping (FeedbackNoteStep, String) -> Void,
-        onFinish: @escaping () -> Void
+        onFinish: @escaping () -> Void,
+        onEnd: @escaping () -> Void = {}
     ) {
         close()
 
@@ -73,6 +76,7 @@ final class FeedbackNotePanel {
         panel.onClose = { [weak self, weak panel] in
             guard let self, let panel, self.panel === panel else { return }
             self.panel = nil
+            onEnd()
             self.onClosed?()
         }
         let hostingView = NSHostingView(rootView: FeedbackNoteView(

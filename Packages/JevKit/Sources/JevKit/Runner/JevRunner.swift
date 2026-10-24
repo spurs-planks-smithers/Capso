@@ -1,6 +1,7 @@
 // Packages/JevKit/Sources/JevKit/Runner/JevRunner.swift
 import FeedbackKit
 import Foundation
+import Synchronization
 
 /// Limits and budgets for the runner. The defaults come from the Jev design.
 public struct JevRunnerSettings: Sendable {
@@ -92,7 +93,9 @@ public actor JevRunner {
 
     /// The capture's notes are final and its screen text is stored. Starts
     /// its jobs and returns at once. A capture runs once per app run.
-    public func start(folderName: String, capture: Int) {
+    /// `screenLines` are the OCR lines with boxes that the app holds in
+    /// memory; feedback.json keeps only their joined text.
+    public func start(folderName: String, capture: Int, screenLines: [FeedbackTextLine]? = nil) {
         let key = Key(folderName: folderName, capture: capture)
         guard started.insert(key).inserted else { return }
 
@@ -109,9 +112,12 @@ public actor JevRunner {
             return mode == .off ? nil : (job, mode)
         }
         let allowed = JevGate.allowedKinds(flags: state)
+        let lines = screenLines?.compactMap { line in
+            ScreenText.field(line.text).map { FeedbackTextLine(text: $0, box: line.box) }
+        }
 
         running[key] = Task {
-            await self.run(key: key, planned: planned, allowed: allowed)
+            await self.run(key: key, planned: planned, allowed: allowed, screenLines: lines)
             self.finish(key)
         }
     }
@@ -122,7 +128,12 @@ public actor JevRunner {
     public func settle(folderName: String, timeout: Duration) async {
         let deadline = ContinuousClock.now + timeout
         while hasWork(folderName), ContinuousClock.now < deadline {
-            try? await Task.sleep(for: .milliseconds(10))
+            do {
+                try await Task.sleep(for: .milliseconds(10))
+            } catch {
+                // A cancelled caller would make the sleep return at once.
+                break
+            }
         }
         let left = Set(expected.filter { $0.folderName == folderName }.map(\.capture))
             .union(running.keys.filter { $0.folderName == folderName }.map(\.capture))
@@ -149,7 +160,7 @@ public actor JevRunner {
 
     // MARK: - One capture
 
-    private func run(key: Key, planned: [(job: any JevJob, mode: FlagState)], allowed: JevDataKinds) async {
+    private func run(key: Key, planned: [(job: any JevJob, mode: FlagState)], allowed: JevDataKinds, screenLines: [FeedbackTextLine]?) async {
         let startedAt = now()
         var finished: [JevBundleWriter.Finished] = []
         var runnable: [(job: any JevJob, mode: FlagState)] = []
@@ -186,7 +197,8 @@ public actor JevRunner {
             for entry in runnable {
                 group.addTask {
                     await self.runJob(entry.job, mode: entry.mode, round: round, capture: capture, folderURL: folderURL,
-                                      allowed: allowed, deadline: deadline, budget: budget, images: images, startedAt: startedAt)
+                                      allowed: allowed, deadline: deadline, budget: budget, images: images,
+                                      screenLines: screenLines, startedAt: startedAt)
                 }
             }
             for await result in group {
@@ -215,6 +227,7 @@ public actor JevRunner {
         deadline: ContinuousClock.Instant,
         budget: RequestBudget,
         images: JevImageLoader,
+        screenLines: [FeedbackTextLine]?,
         startedAt: Date
     ) async -> JevBundleWriter.Finished {
         let clockStart = ContinuousClock.now
@@ -223,29 +236,18 @@ public actor JevRunner {
             try await self.send(request, allowed: allowed, deadline: deadline, budget: budget, recorder: recorder)
         }
         let context = JevJobContext(round: round, capture: capture, folderURL: folderURL, allowed: allowed,
-                                    deadline: deadline, jev: asker, images: images)
+                                    deadline: deadline, jev: asker, images: images, screenLines: screenLines)
 
-        // The job races the deadline. On a timeout the job's task is
-        // cancelled, which also cancels its open request.
-        let outcome: Result<JevJobOutput, JevError> = await withTaskGroup(of: Result<JevJobOutput, JevError>?.self) { group in
-            group.addTask {
-                do {
-                    return .success(try await job.run(context))
-                } catch let error as JevError {
-                    return .failure(error)
-                } catch is CancellationError {
-                    return .failure(JevError(.timeout))
-                } catch {
-                    return .failure(JevError(.jobError))
-                }
+        let outcome = await Self.race(deadline: deadline) {
+            do {
+                return .success(try await job.run(context))
+            } catch let error as JevError {
+                return .failure(error)
+            } catch is CancellationError {
+                return .failure(JevError(.timeout))
+            } catch {
+                return .failure(JevError(.jobError))
             }
-            group.addTask {
-                try? await Task.sleep(until: deadline, clock: .continuous)
-                return nil
-            }
-            let first = await group.next() ?? nil
-            group.cancelAll()
-            return first ?? .failure(JevError(.timeout))
         }
 
         let elapsed = ContinuousClock.now - clockStart
@@ -269,11 +271,45 @@ public actor JevRunner {
         )
         switch outcome {
         case .success(let output):
+            // Summary and review go to jev.json in shadow and on. Lines and
+            // files go to the bundle in on only.
+            record.summary = output.summary.isEmpty ? nil : .object(output.summary)
+            record.review = output.review
+            if let failure = output.failure {
+                record.status = .notRefined
+                record.reason = failure.reason
+            }
             return .init(record: record, output: mode == .on ? output : nil)
         case .failure(let error):
             record.status = .notRefined
             record.reason = error.reason
             return .init(record: record, output: nil)
+        }
+    }
+
+    /// The job's result, or a timeout at the deadline, whichever comes first.
+    /// At the deadline the job's task is cancelled, which also cancels its
+    /// open request. The caller never waits for a job that ignores
+    /// cancellation: its late result is dropped.
+    static func race(
+        deadline: ContinuousClock.Instant,
+        _ work: @escaping @Sendable () async -> Result<JevJobOutput, JevError>
+    ) async -> Result<JevJobOutput, JevError> {
+        let gate = OnceGate()
+        return await withCheckedContinuation { continuation in
+            let job = Task {
+                let result = await work()
+                if gate.claim() {
+                    continuation.resume(returning: result)
+                }
+            }
+            Task {
+                try? await Task.sleep(until: deadline, clock: .continuous)
+                if gate.claim() {
+                    job.cancel()
+                    continuation.resume(returning: .failure(JevError(.timeout)))
+                }
+            }
         }
     }
 
@@ -285,8 +321,6 @@ public actor JevRunner {
         // Consent sits under every job: a job bug cannot send data without it.
         guard request.kinds.isSubset(of: allowed) else { throw JevError(.consent) }
         if let reason = pauseReason() { throw JevError(reason) }
-        guard await budget.take() else { throw JevError(.capReached) }
-        guard takeDailyRequest() else { throw JevError(.capReached) }
 
         do {
             try await limiter.acquire()
@@ -294,10 +328,15 @@ public actor JevRunner {
             throw JevError(.timeout)
         }
         do {
-            let result = try await client.send(request, deadline: deadline)
+            // Checked again before each HTTP attempt, after the wait for a
+            // slot: a pause that began meanwhile stops this request, and
+            // retries count toward the caps.
+            let result = try await client.send(request, deadline: deadline) {
+                try await self.admitAttempt(budget: budget)
+            }
             await limiter.release()
             noteSuccess()
-            await recorder.add(result, questionOrder: request.questions.map(\.id))
+            await recorder.add(result, questionOrder: request.questions.map(\.id.text))
             return result.response
         } catch let error as JevError {
             await limiter.release()
@@ -308,6 +347,13 @@ public actor JevRunner {
             await limiter.release()
             throw JevError(.offline)
         }
+    }
+
+    /// One HTTP attempt may go out: no pause, and room under both caps.
+    private func admitAttempt(budget: RequestBudget) async throws {
+        if let reason = pauseReason() { throw JevError(reason) }
+        guard await budget.take() else { throw JevError(.capReached) }
+        guard takeDailyRequest() else { throw JevError(.capReached) }
     }
 
     private func pauseReason() -> JevFailureReason? {
@@ -333,12 +379,14 @@ public actor JevRunner {
 
     private func noteFailure(_ error: JevError) {
         switch error.reason {
-        case .unauthorized:
+        case .unauthorized where error.status == 401:
             if !unauthorized {
-                log("TypeSafe rejected the key (HTTP \(error.status ?? 0)). Jev requests pause until the next launch.")
+                log("TypeSafe rejected the key (HTTP 401). Jev requests pause until the next launch.")
             }
             unauthorized = true
-        case .timeout, .server, .rateLimited, .overloaded:
+        case .unauthorized, .timeout, .server, .rateLimited, .overloaded:
+            // A 403 can be a proxy's block page (Cisco Umbrella on m4max),
+            // not a bad key, so it counts as a slow failure instead.
             slowFailures += 1
             if slowFailures >= settings.failuresBeforePause {
                 slowFailures = 0
@@ -359,7 +407,21 @@ public actor JevRunner {
     }
 }
 
-/// The per-capture request cap, shared by the capture's jobs.
+/// Lets exactly one of several callers win, so a continuation resumes once.
+final class OnceGate: Sendable {
+    private let claimed = Mutex(false)
+
+    func claim() -> Bool {
+        claimed.withLock { claimed in
+            if claimed { return false }
+            claimed = true
+            return true
+        }
+    }
+}
+
+/// The per-capture request cap, shared by the capture's jobs. It counts
+/// HTTP attempts, so retries count too.
 actor RequestBudget {
     private var left: Int
 
@@ -389,6 +451,8 @@ actor AnswerRecorder {
     func add(_ result: JevSendResult, questionOrder: [String]) {
         current.requests += 1
         current.retries += result.retries
+        // Each count is at most 10 million (the decoder checks it) and a job
+        // makes at most 16 attempts, so the sum cannot overflow.
         current.inputTokens += result.response.inputTokens
         if let id = result.response.requestID {
             current.requestIDs.append(id)

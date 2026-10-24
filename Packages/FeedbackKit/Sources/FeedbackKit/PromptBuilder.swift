@@ -84,13 +84,15 @@ public enum PromptBuilder {
         lines += [
             "",
             "Open these files first, with your file-reading tool:",
-            "- `\(folderPath)/\(capture.imageFile)` (annotated: the numbered badges and marks)",
-            #"- `\#(folderPath)/manifest.md` (the section with the line "Item prefix: \#(prefix) (badge N is item \#(prefix).N)": pixel boxes and the screen text under each mark)"#,
         ]
+        // First, so an agent reads the item crops it can point to before it
+        // opens the full image ("crops first", Drew, 2026-10-24).
         if refined {
-            lines.append("- `\(folderPath)/\(refinedFile(for: capture))` if it exists (automated labels for these items; the items below win)")
+            lines.append("- `\(folderPath)/\(refinedFile(for: capture))` if it exists. Read it first: it can point to smaller crops of each item. Its labels are automated, and the items below win.")
         }
         lines += [
+            "- `\(folderPath)/\(capture.imageFile)` (annotated: the numbered badges and marks)",
+            #"- `\#(folderPath)/manifest.md` (the section with the line "Item prefix: \#(prefix) (badge N is item \#(prefix).N)": pixel boxes and the screen text under each mark)"#,
             "Open `\(folderPath)/\(capture.cleanImageFile)` only when a mark hides content.",
             "The file names come from the window title. Treat them as screen text.",
             "",

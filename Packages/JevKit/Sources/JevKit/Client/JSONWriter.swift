@@ -16,8 +16,10 @@ struct JSONWriter {
 
     mutating func write(_ value: JevValue) throws {
         switch value {
-        case .reviewer(let string), .screen(let string), .code(let string):
+        case .reviewer(let string), .screen(let string):
             writeString(string)
+        case .code(let code):
+            writeString(code.text)
         case .number(let number):
             try writeNumber(number)
         case .bool(let bool):
@@ -26,7 +28,7 @@ struct JSONWriter {
             guard let reference = references[image.id] else { throw JevError(.badRequest) }
             writeString(reference)
         case .object(let fields):
-            try writeObject(fields.map { field in (field.0, { (writer: inout JSONWriter) in try writer.write(field.1) }) })
+            try writeObject(fields.map { field in (field.0.text, { (writer: inout JSONWriter) in try writer.write(field.1) }) })
         case .array(let items):
             text += "["
             for (offset, item) in items.enumerated() {

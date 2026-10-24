@@ -74,7 +74,7 @@ struct ClientRequestTests {
         let transport = StubTransport()
         let client = makeClient(transport)
         let bad: [JevRequest] = [
-            JevRequest(state: "x", questions: [(id: String, question: JevQuestion)]()),
+            JevRequest(state: "x", questions: [(id: JevCodeText, question: JevQuestion)]()),
             JevRequest(state: "x", questions: ["has space": .noul("?")]),
             JevRequest(state: "x", questions: ["where": .box("the button")]),
             JevRequest(state: "x", questions: ["s": .score("?", levels: [])]),
@@ -119,7 +119,7 @@ struct HostGuardTests {
 
 @Suite("Client: answer checks")
 struct AnswerCheckTests {
-    private func send(_ json: String, _ questions: KeyValuePairs<String, JevQuestion>, contentType: String = "application/json") async throws -> JevResponse {
+    private func send(_ json: String, _ questions: KeyValuePairs<JevCodeText, JevQuestion>, contentType: String = "application/json") async throws -> JevResponse {
         let transport = StubTransport([.success(JevHTTPResponse(status: 200, headers: ["Content-Type": contentType], body: Data(json.utf8)))])
         return try await makeClient(transport).send(JevRequest(state: "x", questions: questions), deadline: soon).response
     }
@@ -134,7 +134,7 @@ struct AnswerCheckTests {
     @Test("Each broken answer rejects the whole response")
     func invalidAnswers() async {
         let usage = #""usage":{"input_tokens":1,"output_tokens":1}"#
-        let cases: [(String, KeyValuePairs<String, JevQuestion>, JevFailureReason)] = [
+        let cases: [(String, KeyValuePairs<JevCodeText, JevQuestion>, JevFailureReason)] = [
             (noulBody("q", probability: 1.5), ["q": .noul("?")], .invalidResponse),
             (noulBody("other"), ["q": .noul("?")], .invalidResponse),
             (#"{"model":"jev-1.14.0","answers":{"q":{"type":"noul","noul":0.5},"extra":{"type":"noul","noul":0.5}},\#(usage)}"#, ["q": .noul("?")], .invalidResponse),

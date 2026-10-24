@@ -3,10 +3,13 @@
 - Date: 2026-10-20
 - Code: upstream `8f07fb6` (v1.2.5), the fork base
 - Status: Drew approved the recommendations on 2026-10-20. Applied: 1 (Sparkle off), 2 as "hide now" (the picker lists only Apple; full removal of the provider code moves to its own branch after Phase 1), 3 (Cloud Share tab hidden), 4 (nettop check at verification), 5 (no change).
+- Update 2026-10-24: the Jev base (#36) adds the fork's only network code, in `Packages/JevKit`. Drew confirmed the new local-only rule on 2026-10-24. The threat model is in `docs/superpowers/specs/2026-10-24-jev-base-design.md`.
 
 ## Summary
 
-Capso has one outbound network call that needs no user setup: Sparkle's daily update check. Translation and cloud sharing make network calls only after the user picks a cloud provider or sets up a share destination. There is no analytics SDK, telemetry, crash reporter, socket server, or web view. The feedback round work adds no network code.
+Capso has one outbound network call that needs no user setup: Sparkle's daily update check. Translation and cloud sharing make network calls only after the user picks a cloud provider or sets up a share destination. There is no analytics SDK, telemetry, crash reporter, socket server, or web view.
+
+The fork's feedback code has one network path, the Jev package (JevKit). It calls only `https://api.typesafe.ai`, only when `jevBase` and a Jev feature flag are on, and only in a dev build. Every Jev flag starts off, and a release build ignores every Jev override. All other feedback code makes no network call.
 
 ## Outbound network code
 
@@ -16,6 +19,22 @@ Capso has one outbound network call that needs no user setup: Sparkle's daily up
 | Cloud translation | `Packages/TranslationKit/Sources/TranslationKit/ProviderTranslationService.swift` | OpenAI-compatible, DeepSeek, OpenRouter, custom endpoint, DeepL, or Google Cloud | Only when the user picks a cloud provider and enters a key. |
 | Apple translation | same file, provider `.apple` (the default) | On-device Apple Translation | The OS can download language packs. |
 | Cloud Share | `Packages/ShareKit/Sources/ShareKit/` (S3, R2, Aliyun OSS, Tencent COS) | SigV4-signed uploads to the configured bucket | Only when Cloud Share is set up. `R2Destination` and `ShareDestinationFactory` also make a check request in `validateConfig()`. |
+| Jev (fork, #36) | `Packages/JevKit/Sources/JevKit/Client/URLSessionTransport.swift`, the only fork file that opens a connection | `POST https://api.typesafe.ai/v1/systemone`, model `jev-1.14.0` | Only in a dev build, with `jevBase` and a Jev feature flag on, after a capture's notes are final. All flags start off. |
+
+### Jev requests
+
+| Item | Value |
+|---|---|
+| Data sent by default | Reviewer text (instructions and notes) and item geometry |
+| Screen text (OCR, window titles, app names) | Only with `jevSendScreenText` on |
+| Images (capture PNGs or crops) | Only with `jevSendImages` on. Redact marks stay applied. |
+| Consent check | Every request value carries its kind. The runner refuses a request with a kind that has no consent. |
+| Key | Keychain item `TYPESAFE_API_KEY_NEXTSHOT`, read in memory only, sent only in the `Authorization` header |
+| TLS | App Transport Security defaults (no exception in `Info.plist`). No certificate pinning: Nextshot has no automatic update, so a pin change would stop every installed copy. |
+| Session | Ephemeral: no URL cache, cookies, or credential store. Redirects refused. Responses over 1 MiB refused. |
+| Retention at TypeSafe | TypeSafe keeps each request, with no fixed retention period in its Data Processing Agreement. No training on inputs. Drew's account has no zero data retention. |
+| Logs | Job ids, capture numbers, statuses, times, and token counts only. Never the key, bodies, notes, screen text, or file names. |
+| Guard | `NetworkSourceScanTests` (JevKit) fails on network code anywhere else in fork code. |
 
 ### Other checks
 
@@ -48,13 +67,14 @@ Capso has one outbound network call that needs no user setup: Sparkle's daily up
 | Sparkle | 2.9.1 | `project.yml` exactVersion |
 | GRDB.swift | 7.4.1 | `Packages/HistoryKit/Package.swift` exact |
 
-The feedback work adds no dependency.
+The feedback work adds no dependency. JevKit uses only Apple frameworks (Foundation, CoreGraphics, ImageIO, Security) and no TypeSafe SDK.
 
 ## Feedback bundle data
 
 - Bundles hold screenshots of work documents.
 - They stay on disk in `~/Library/Application Support/Nextshot` (before 2026-10-21: `CapsoFeedback`). Only an agent that Drew starts reads them.
-- FeedbackKit and `App/Feedback/` make no network call.
+- FeedbackKit and `App/Feedback/` make no network call. JevKit makes the only one, under the rules in "Jev requests".
+- With a Jev feature in shadow or on, a bundle also holds `jev.json` (answers and timings). With a feature on, it also holds the refined files, which can quote screen text.
 
 ## Recommendations (none applied until Drew approves)
 
