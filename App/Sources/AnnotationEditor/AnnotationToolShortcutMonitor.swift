@@ -36,7 +36,10 @@ private struct AnnotationToolShortcutMonitor: NSViewRepresentable {
         func install() {
             guard monitor == nil else { return }
             monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-                self?.handle(event) ?? event
+                // Fork: `handle` returns nil to consume the key. `?? event` undid
+                // that, and the canvas beeped at the tool letter.
+                guard let self else { return event }
+                return self.handle(event)
             }
         }
 

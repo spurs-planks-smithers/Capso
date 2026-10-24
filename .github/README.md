@@ -13,7 +13,7 @@ Nextshot is built on [Capso](https://github.com/lzhgus/Capso), an open-source sc
 ## How it works
 
 1. Press **Option+Shift+F** and drag over the part of the screen you want to change.
-2. Mark it up. Press **C** or **N** to drop numbered badges on each problem. Boxes, arrows, and text work too.
+2. Mark it up. Click each problem to drop a numbered red dot. No key is needed first. For an arrow, a box, or text, press **A**, **R**, or **T**. Press **C** to go back to dots.
 3. Press **Command+S**. Nextshot asks one short question per badge: what should change? Type or dictate each answer. Press **Return** to go to the next one.
 4. When you finish, the prompt is on your clipboard. Paste it into your agent.
 
