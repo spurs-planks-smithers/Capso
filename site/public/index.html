@@ -4,34 +4,72 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Nextshot</title>
-<meta name="description" content="Mark up your screen. Hand the fix to your AI coding agent.">
-<meta property="og:title" content="Nextshot">
-<meta property="og:description" content="Mark up your screen. Hand the fix to your AI coding agent.">
+<meta name="theme-color" content="#15191c">
+<title>Nextshot: Show AI what you mean.</title>
+<meta name="description" content="Show AI what you mean. Visual feedback for AI coding agents, on your Mac.">
+<meta property="og:title" content="Nextshot: Show AI what you mean.">
+<meta property="og:description" content="Visual feedback for AI coding agents, on your Mac. One round of screens, dots, and notes becomes one prompt.">
 <meta property="og:image" content="https://nextshot.dev/media/{{POSTER}}">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/nextshot-icon.png">
 <link rel="preload" href="/fonts/Inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/site.css">
 </head>
-<body>
+<body class="home">
+<canvas id="dots" aria-hidden="true"></canvas>
 <main class="page">
-  <header class="brand"><img src="/nextshot-icon.png" alt="" width="36" height="36"><span>Nextshot</span></header>
-  <div class="hero">
-    <section class="copy">
-      <h1>Mark up your screen. Hand the fix to your AI coding agent.</h1>
-      <p class="lead">Circle each problem on the screen and say what should change. Nextshot copies one prompt that Claude Code, Codex, or any agent can act on.</p>
+  <header class="top">
+    <span class="brand"><img src="/nextshot-icon.png" alt="" width="34" height="34"><span>Nextshot</span></span>
+    <a class="download small" href="/download">Download for Mac</a>
+  </header>
+
+  <section class="hero">
+    <h1>Show AI what you mean.</h1>
+    <p class="lead">Visual feedback for AI coding agents, on your Mac.</p>
+    <div class="frame">
+      <video class="video" controls playsinline preload="metadata" poster="/media/{{POSTER}}" src="/media/{{VIDEO}}"></video>
+      <button class="play" type="button" hidden><span class="tri" aria-hidden="true"></span>Watch the intro</button>
+    </div>
+  </section>
+
+  <section class="below">
+    <div class="get">
       <a class="download" href="/download">Download for Mac</a>
-      <p class="meta">Version {{VERSION}}, {{SIZE}}, macOS 15 or later. Notarized by Apple.</p>
-      <ol class="steps">
-        <li>Open the DMG and drag Nextshot to Applications.</li>
-        <li>Open Nextshot and allow Screen Recording.</li>
-        <li>Press <kbd>Option</kbd> <kbd>Shift</kbd> <kbd>F</kbd> and drag over what to fix.</li>
+      <p class="meta">Version {{VERSION}}, {{SIZE}}<br>macOS 15 or later. Notarized by Apple.</p>
+    </div>
+    <div class="round">
+      <h2>One round, one prompt</h2>
+      <ol class="flow">
+        <li><b>Grab</b><span>Press <kbd>⌥ Option</kbd> <kbd>⇧ Shift</kbd> <kbd>F</kbd>. Drag over the screen.</span></li>
+        <li><b>Mark</b><span>Press <kbd>C</kbd>, click each issue, and say the fix.</span></li>
+        <li><b>Repeat</b><span>Grab the next screen. One round holds them all.</span></li>
+        <li><b>Hand off</b><span>Copy one prompt from the Nshot menu. Paste it into any AI agent.</span></li>
       </ol>
-    </section>
-    <video class="video" controls playsinline preload="metadata" poster="/media/{{POSTER}}" src="/media/{{VIDEO}}"></video>
-  </div>
+    </div>
+    <div class="setup">
+      <h2>Set up</h2>
+      <ol class="steps">
+        <li>Drag Nextshot from the DMG to Applications.</li>
+        <li>Open Nextshot and allow Screen Recording.</li>
+        <li>Press Option Shift F to start a round.</li>
+      </ol>
+    </div>
+  </section>
   <footer class="footer">Free for personal use and internal use only.</footer>
 </main>
+<script>
+  // The poster stays clear until someone presses play. Without JavaScript the
+  // video keeps its normal controls.
+  (() => {
+    const video = document.querySelector(".video");
+    const play = document.querySelector(".play");
+    const start = () => { video.controls = true; play.hidden = true; };
+    video.controls = false;
+    play.hidden = false;
+    play.addEventListener("click", () => { start(); video.play(); });
+    video.addEventListener("play", start);
+  })();
+</script>
+<script src="/dots.js" defer></script>
 </body>
 </html>

@@ -6,7 +6,7 @@ nextshot.dev is the one-page download site for Nextshot. People in internal orga
 
 | Path | What it does |
 |---|---|
-| `/` | The landing page: headline, video, Download button, install steps, and the footer "Free for personal use and internal use only." |
+| `/` | The landing page: the tagline "Show AI what you mean.", the intro video, the Download button, the round steps (Grab, Mark, Repeat, Hand off), install steps, and the footer "Free for personal use and internal use only." A slow gradient and an interactive dot field sit behind it (see "Page design"). |
 | `/download` | Stores one row in D1 (time, version, country, bot flag; no IP address), then redirects to the DMG |
 | `/releases/<dmg>` | The notarized DMG under its versioned name |
 | `/media/<video>.mp4` | The intro video. The Worker answers Range requests with 206, which Safari needs. It streams only the asked-for bytes and never holds a file in memory. |
@@ -25,7 +25,7 @@ The bot flag comes from a user-agent pattern in `site/src/worker.js`: bots, craw
 | `site/wrangler.jsonc` | Worker `nextshot-site`: account, assets folder `../build/site`, D1 binding `DB`, custom domains |
 | `site/src/worker.js` | The Worker. Plain JavaScript, no build step. |
 | `site/schema.sql` | The `downloads` table |
-| `site/public/` | `index.html` (with `{{...}}` placeholders) and `site.css` |
+| `site/public/` | `index.html` (with `{{...}}` placeholders), `site.css`, and `dots.js` (the background dot field). The deploy copies every file in this folder. |
 | `site/deploy.sh` | Stages `build/site`, deploys, and runs the smoke test |
 
 `build/site` is generated and git-ignored, so the DMG and the video never reach git.
@@ -47,6 +47,27 @@ The script stops when the DMG has no stapled notarization ticket, when a file is
 - New app build: run `scripts/release-notarized.sh`, then `site/deploy.sh`.
 - New video cut: render it, then run `site/deploy.sh`.
 - Local check: `site/deploy.sh --stage-only`, then start the `nextshot-site` entry in `.claude/launch.json` (`wrangler dev` on port 8787 with a local D1).
+
+## Page design
+
+Redesigned 2026-10-24 for the v3.1 video, in the video's words: round, dot, one prompt.
+
+- **Video first.** The video sits under the tagline, as wide as the window height allows, so the whole page fits a 1440 by 900 screen with no scroll. A "Watch the intro" button covers the poster, and the native controls appear once the video plays. Without JavaScript, the video keeps its controls.
+- **Poster.** The site poster is the frame at 46.6 seconds: numbered dots on the stand page and the note panel asking "Circle 1 (1 of 3): what should change?". The deploy's default poster is the end card, so pass this frame:
+
+```bash
+ffmpeg -v error -y -ss 46.6 -i build/releases/Nextshot-onboarding-2026.10.24.mp4 -frames:v 1 -q:v 3 build/site-poster.jpg
+```
+
+```bash
+site/deploy.sh --video build/releases/Nextshot-onboarding-2026.10.24.mp4 --poster build/site-poster.jpg
+```
+
+- **Gradient.** Teal light at the top left, indigo at the top right, and mint under the video, over graphite. It drifts over 48 seconds. All of it is CSS on `body::before`.
+- **Dot field.** `dots.js` draws a 24-pixel grid of faint mint dots on one canvas. At rest the dots undulate in two slow, crossing waves. Under the pointer they brighten and part by up to 7 pixels. A moving pointer leaves a soft ripple about every 110 pixels, and a click or tap sends a ring outward at 560 pixels per second for 2.2 seconds. Drew asked for the effect after he saw a dot background in the Claude desktop app. Anthropic has published no description of that effect, so this one follows his description.
+- **Cost.** The canvas draws at the display's frame rate only while something moves. At rest it draws 20 frames per second, and it stops while the tab is hidden. People who set Reduce Motion get a still grid and a still gradient.
+- **Checks.** Run the `pdf-polish` wrap check on a local copy of the staged page at 1600, 1440, 1280, 1180, 1024, 768, and 390 pixels. All passed on 2026-10-24.
+- **Test the motion in Playwright.** The Claude app's browser pane runs only about 2 animation frames per second while the pane is hidden, so a ripple never shows there.
 
 ## Cloudflare access
 
