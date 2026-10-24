@@ -41,6 +41,7 @@ Compile risk: `PostCaptureAction.feedback` is a new enum case. An upstream chang
 | `Packages/SharedKit/Sources/SharedKit/Utilities/FileNaming.swift` | Default and fallback file names say "Nextshot Screenshot" and "Nextshot Recording" | 56 (added), 57-58, 252, 254 (changed) | none |
 | `Packages/SharedKit/Tests/SharedKitTests/FileNamingTests.swift` | The default-name tests expect Nextshot | 28, 31, 34, 37, 52, 65, 138 (changed) | none |
 | `App/Sources/Preferences/Tabs/GeneralSettingsView.swift` | Report a Bug, Request a Feature, and Source Code open the fork's GitHub page | 133, 138, 143 (changed) | [#348](https://github.com/lzhgus/Capso/pull/348) |
+| `App/Sources/Preferences/Tabs/ShortcutSettingsView.swift` | Settings > Shortcuts lists the five Nextshot keys (Drew, 2026-10-24). One call to `FeedbackShortcutSettingsSection()` (`App/Feedback/`) after the "Customizable Shortcuts" group. Neither open PR edits upstream lines 96 to 163, where this point sits (checked 2026-10-24). | 131-133 (added) | [#349](https://github.com/lzhgus/Capso/pull/349), [#348](https://github.com/lzhgus/Capso/pull/348) |
 
 ### Why the coordinator hook is smaller than the plan's estimate
 
@@ -56,7 +57,7 @@ The plan estimated about 35 lines in `CaptureCoordinator.swift`, with the coordi
 | `docs/decisions/2026-10-20-feedback-bundle-format.md` | Why the bundle has its format |
 | `docs/SECURITY_BASELINE.md` | Network code, entitlements, dependencies, and recommendations |
 | `Packages/FeedbackKit/` | Session model, store, image sizing, naming, screen-text cleaning, window picker, preview crop, note parser, OCR matcher, manifest and prompt writers, session library and cache, basket, tests |
-| `App/Feedback/` | Feedback controller (editor, Esc and arrow keys, save pipeline), mark mapper, window-title lookup, PNG export, note panel with circle previews and arrow-key steps, help box, status item with the Recent section, capture row view, thumbnails, Quick Look, shortcut panel, App Intents, `ForkBranding` (product name and `menuBarMark`), `FeedbackAssets.xcassets` (the `NextshotMark` menu bar image), `SingleInstanceGuard` (one running copy), `ForkDefaults` (fork defaults for upstream settings) |
+| `App/Feedback/` | Feedback controller (editor, Esc and arrow keys, save pipeline), mark mapper, window-title lookup, PNG export, note panel with circle previews and arrow-key steps, help box, status item with the Recent section, capture row view, thumbnails, Quick Look, shortcut panel, Nextshot section of Settings > Shortcuts (`FeedbackShortcutSettingsSection`), App Intents, `ForkBranding` (product name and `menuBarMark`), `FeedbackAssets.xcassets` (the `NextshotMark` menu bar image), `SingleInstanceGuard` (one running copy), `ForkDefaults` (fork defaults for upstream settings) |
 | `Branding/Nextshot.icon` | Nextshot's app icon (Icon Composer). Only `scripts/local-project.yml` adds it, so `Capso.app` keeps Capso's icon. |
 | `scripts/brand/rename-capso-strings.py` | Makes the string catalogs say Nextshot. Run it again after each upstream sync. Force-added. |
 | `scripts/brand/make_nextshot_icon.py` | Writes the app icon and the menu bar image from the spec values. Force-added. |
@@ -88,5 +89,5 @@ Checked 2026-10-20.
 | [#348](https://github.com/lzhgus/Capso/pull/348) | `ShortcutSettingsView.swift`, `project.yml` |
 | [#291](https://github.com/lzhgus/Capso/pull/291) | `AppDelegate.swift` |
 
-- PR #349 checks shortcut conflicts over `KeyboardShortcuts.Name.allCapso`. The fork's `feedbackCapture` name is not in that list, so that check does not see it.
+- PR #349 checks shortcut conflicts over `KeyboardShortcuts.Name.allCapso`. The fork's `feedbackCapture` name and its four round keys (`feedbackRoundKeys`) are not in that list, so that check does not see them.
 - No open upstream PR edits `CaptureCoordinator.swift`.

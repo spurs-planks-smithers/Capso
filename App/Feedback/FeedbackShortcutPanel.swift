@@ -3,8 +3,8 @@ import AppKit
 import KeyboardShortcuts
 import SwiftUI
 
-/// Fork: records the feedback capture shortcut. It lives here so the upstream
-/// Shortcuts settings tab stays unchanged.
+/// Fork: records the start round shortcut (Option+Shift+F) only. Settings >
+/// Shortcuts lists all the Nextshot keys (Drew, 2026-10-24).
 @MainActor
 final class FeedbackShortcutPanel {
     private lazy var panel: NSPanel = {
@@ -14,7 +14,7 @@ final class FeedbackShortcutPanel {
             backing: .buffered,
             defer: false
         )
-        panel.title = "Feedback Shortcut"
+        panel.title = "Change Start Round Shortcut"
         panel.isReleasedWhenClosed = false
         panel.hidesOnDeactivate = false
         panel.contentView = NSHostingView(rootView: FeedbackShortcutView())
@@ -31,7 +31,7 @@ final class FeedbackShortcutPanel {
 private struct FeedbackShortcutView: View {
     var body: some View {
         HStack {
-            Text(verbatim: "Capture into feedback session:")
+            Text(verbatim: "Start round or capture area:")
             KeyboardShortcuts.Recorder(for: .feedbackCapture)
         }
         .padding(16)

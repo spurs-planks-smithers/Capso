@@ -27,25 +27,30 @@ final class FeedbackHelpOverlay {
     /// Box width, padding, and spacing grow with the text, so no line wraps.
     static let scale = textSize / 14
     static let width: CGFloat = (320 * scale).rounded()
-    /// The box and its text draw at half opacity, so the screen shows
-    /// through (Drew, 2026-10-22).
-    static let opacity: CGFloat = 0.5
+    /// The box and its text draw at 75% opacity, up from 50%, so the screen
+    /// still shows through (Drew, 2026-10-24).
+    static let opacity: CGFloat = 0.75
     /// Space between the box and the screen's top and right edges.
     static let margin: CGFloat = 12
+    /// The green dot in the box's top right corner, in points. It shows
+    /// while a round is active, as the menu bar dot does (Drew, 2026-10-24).
+    static let dotSize: CGFloat = 8
+    static let dotInset: CGFloat = 10
 
     private var panel: NSPanel?
     private var hostingView: NSHostingView<FeedbackHelpView>?
 
     /// `document` is the inline editor's marks, so the Esc line can follow
     /// them. It is nil in the full editor, which has no arrow or Esc keys
-    /// from the fork.
-    func show(_ stage: FeedbackHelpStage, document: AnnotationDocument?, on screen: NSScreen?) {
+    /// from the fork. `roundActive` shows the green dot.
+    func show(_ stage: FeedbackHelpStage, document: AnnotationDocument?, roundActive: Bool, on screen: NSScreen?) {
         guard let screen = screen ?? NSScreen.main else { return }
         let panel = self.panel ?? makePanel()
         let view = FeedbackHelpView(
             stage: stage,
             document: document,
-            captureShortcut: KeyboardShortcuts.getShortcut(for: .feedbackCapture)?.description
+            shortcuts: Self.currentShortcuts(),
+            roundActive: roundActive
         )
         hostingView?.rootView = view
         let size = hostingView?.fittingSize ?? .zero
@@ -61,6 +66,16 @@ final class FeedbackHelpOverlay {
 
     func hide() {
         panel?.orderOut(nil)
+    }
+
+    /// Each Nextshot key's current value, read each time the box shows, so a
+    /// changed key shows. A key with no shortcut is left out.
+    static func currentShortcuts() -> [KeyboardShortcuts.Name: String] {
+        var shortcuts: [KeyboardShortcuts.Name: String] = [:]
+        for name in [KeyboardShortcuts.Name.feedbackCapture] + KeyboardShortcuts.Name.feedbackRoundKeys {
+            shortcuts[name] = KeyboardShortcuts.getShortcut(for: name)?.description
+        }
+        return shortcuts
     }
 
     private func makePanel() -> NSPanel {
@@ -97,7 +112,7 @@ final class FeedbackHelpOverlay {
         glass.layer?.borderWidth = 0.5
         glass.layer?.borderColor = NSColor.white.withAlphaComponent(0.2).cgColor
 
-        let hostingView = NSHostingView(rootView: FeedbackHelpView(stage: .between, document: nil, captureShortcut: nil))
+        let hostingView = NSHostingView(rootView: FeedbackHelpView(stage: .between, document: nil, shortcuts: [:], roundActive: false))
         hostingView.translatesAutoresizingMaskIntoConstraints = false
         glass.addSubview(hostingView)
         NSLayoutConstraint.activate([
@@ -116,12 +131,16 @@ final class FeedbackHelpOverlay {
 struct FeedbackHelpView: View {
     let stage: FeedbackHelpStage
     let document: AnnotationDocument?
-    let captureShortcut: String?
+    /// The Nextshot keys' current values (`FeedbackHelpOverlay.currentShortcuts()`).
+    let shortcuts: [KeyboardShortcuts.Name: String]
+    let roundActive: Bool
 
     private struct Line: Identifiable {
         let key: String
         let action: String
-        var id: String { key }
+        /// Two keys can read the same, for example "No shortcut", so the
+        /// action names the line.
+        var id: String { action }
     }
 
     private var title: String {
@@ -129,8 +148,12 @@ struct FeedbackHelpView: View {
         case .selecting: "Select an area"
         case .marking: "Mark the capture"
         case .notes: "Add notes"
-        case .between: "Session active"
+        case .between: "Round active"
         }
+    }
+
+    private func key(_ name: KeyboardShortcuts.Name) -> String {
+        shortcuts[name] ?? "No shortcut"
     }
 
     private var lines: [Line] {
@@ -164,8 +187,11 @@ struct FeedbackHelpView: View {
             ]
         case .between:
             return [
-                Line(key: captureShortcut ?? "No shortcut", action: "Capture another area"),
-                Line(key: "\(ForkBranding.shortName) menu", action: "Copy prompt, end session"),
+                Line(key: key(.feedbackCapture), action: "Capture another area"),
+                Line(key: key(.feedbackCopyLastCapture), action: "Copy last capture prompt"),
+                Line(key: key(.feedbackCopyPromptAndEndRound), action: "Copy prompt and end round"),
+                Line(key: key(.feedbackOpenRoundFolder), action: "Open round folder"),
+                Line(key: key(.feedbackEndRound), action: "End round"),
             ]
         }
     }
@@ -190,5 +216,13 @@ struct FeedbackHelpView: View {
         }
         .padding(14 * scale)
         .frame(width: FeedbackHelpOverlay.width, alignment: .leading)
+        .overlay(alignment: .topTrailing) {
+            if roundActive {
+                Circle()
+                    .fill(Color(nsColor: .systemGreen))
+                    .frame(width: FeedbackHelpOverlay.dotSize, height: FeedbackHelpOverlay.dotSize)
+                    .padding(FeedbackHelpOverlay.dotInset)
+            }
+        }
     }
 }

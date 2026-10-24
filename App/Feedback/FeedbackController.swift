@@ -54,6 +54,7 @@ final class FeedbackController {
     /// logs once, not on every menu open.
     private var loggedUnreadable: [String] = []
     private static let promptCopiedToast = "Prompt copied. Paste it into your agent."
+    private static let promptCopiedRoundEndedToast = "Prompt copied. Round ended.\nResume it from Recent in the \(ForkBranding.shortName) menu."
 
     /// `~/Library/Application Support/Nextshot`: the standard place for an
     /// app's data. It stays out of the home folder, and macOS privacy controls
@@ -99,8 +100,10 @@ final class FeedbackController {
             FeedbackLog.logger.notice("hotkey pressed")
             self?.capture()
         }
-        statusItem.onCopyPrompt = { [weak self] in
-            Task { await self?.copyPrompt() }
+        connectRoundKeys()
+        statusItem.onCopyPromptAndEndRound = { [weak self] in
+            FeedbackLog.logger.notice("menu: Copy Prompt and End Round")
+            self?.copyPromptAndEndRoundFromMenuOrKey()
         }
         statusItem.onCopyLastCapture = { [weak self] in
             Task { await self?.copyLastCapturePrompt() }
@@ -109,14 +112,8 @@ final class FeedbackController {
             self?.openFolder()
         }
         statusItem.onEndSession = { [weak self] in
-            FeedbackLog.logger.notice("menu: End Session")
-            Task {
-                do {
-                    try await self?.endSession()
-                } catch {
-                    self?.report(error, context: "Feedback session did not end")
-                }
-            }
+            FeedbackLog.logger.notice("menu: End Round")
+            self?.endRoundFromMenuOrKey()
         }
         statusItem.onShowShortcut = { [weak self] in
             self?.showShortcutPanel()
@@ -173,17 +170,42 @@ final class FeedbackController {
         captureCoordinator?.captureAreaForFeedback()
     }
 
-    /// Puts the active session's prompt on the clipboard and returns it.
+    /// Copy Prompt and End Round. The menu row, its hotkey, and the Copy
+    /// Feedback Prompt Shortcuts action all come here. Copying the active
+    /// round's whole prompt ends the round (Drew, 2026-10-24). The round ends
+    /// first, so the prompt holds each capture whose save was in progress.
+    /// The prompt comes from the ended round, so it matches the `prompt.md`
+    /// that `end()` writes. Resume in Recent reopens the round.
     @discardableResult
-    func copyPrompt() async -> String? {
-        guard let session = await store.activeSession, let folder = await store.activeFolderURL else {
-            NSSound.beep()
-            return nil
-        }
+    func copyPromptAndEndRound() async throws -> String {
+        let session = try await endSession()
+        let folder = store.rootURL.appendingPathComponent(session.folderName, isDirectory: true)
         let prompt = PromptBuilder.render(session, folderPath: folder.path)
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(prompt, forType: .string)
+        copyToClipboard(prompt, toast: Self.promptCopiedRoundEndedToast, screen: nil)
+        FeedbackLog.logger.notice("round prompt copied, round ended, \(prompt.count) characters")
         return prompt
+    }
+
+    /// The menu row and the hotkey. A failure beeps and is logged.
+    private func copyPromptAndEndRoundFromMenuOrKey() {
+        Task {
+            do {
+                try await copyPromptAndEndRound()
+            } catch {
+                report(error, context: "Round prompt was not copied")
+            }
+        }
+    }
+
+    /// End Round from the menu row or the hotkey. A failure beeps and is logged.
+    private func endRoundFromMenuOrKey() {
+        Task {
+            do {
+                try await endSession()
+            } catch {
+                report(error, context: "Feedback session did not end")
+            }
+        }
     }
 
     /// Waits for saves in progress first. OCR can take 30 s, and the note
@@ -228,7 +250,46 @@ final class FeedbackController {
         session = await store.activeSession
         folderURL = await store.activeFolderURL
         statusItem.update(session: session)
+        updateRoundShortcuts()
         updateHelp()
+    }
+
+    // MARK: - Round keys
+
+    /// The four round keys, each on the same path as its menu row. They start
+    /// off: no round is known until the first refresh.
+    private func connectRoundKeys() {
+        KeyboardShortcuts.onKeyDown(for: .feedbackCopyLastCapture) { [weak self] in
+            FeedbackLog.logger.notice("hotkey: Copy Last Capture Prompt")
+            Task { await self?.copyLastCapturePrompt() }
+        }
+        KeyboardShortcuts.onKeyDown(for: .feedbackCopyPromptAndEndRound) { [weak self] in
+            FeedbackLog.logger.notice("hotkey: Copy Prompt and End Round")
+            self?.copyPromptAndEndRoundFromMenuOrKey()
+        }
+        KeyboardShortcuts.onKeyDown(for: .feedbackOpenRoundFolder) { [weak self] in
+            FeedbackLog.logger.notice("hotkey: Open Round Folder")
+            self?.openFolder()
+        }
+        KeyboardShortcuts.onKeyDown(for: .feedbackEndRound) { [weak self] in
+            FeedbackLog.logger.notice("hotkey: End Round")
+            self?.endRoundFromMenuOrKey()
+        }
+        updateRoundShortcuts()
+    }
+
+    /// Registers the round keys while a round is active and removes them
+    /// otherwise (Drew, 2026-10-24). An Option+Shift+letter key types a
+    /// character in other apps, so a key that stays registered blocks it.
+    /// Both calls do nothing when the state is already right. Settings calls
+    /// this after a key change, because the library registers a changed key
+    /// at once, with or without a round.
+    func updateRoundShortcuts() {
+        if session != nil {
+            KeyboardShortcuts.enable(KeyboardShortcuts.Name.feedbackRoundKeys)
+        } else {
+            KeyboardShortcuts.disable(KeyboardShortcuts.Name.feedbackRoundKeys)
+        }
     }
 
     // MARK: - Session history (Recent menu)
@@ -414,7 +475,7 @@ final class FeedbackController {
             }
         }
         if let stage {
-            help.show(stage, document: inlineEditor?.document, on: helpScreen)
+            help.show(stage, document: inlineEditor?.document, roundActive: session != nil, on: helpScreen)
         } else {
             help.hide()
         }
@@ -773,8 +834,9 @@ final class FeedbackController {
         putOnClipboard(capture, in: session, screen: screen)
     }
 
-    /// Copy Last Capture in the menu: the newest capture's prompt again, for
-    /// when something else (such as a dictation tool) replaced the clipboard.
+    /// Copy Last Capture Prompt, from the menu row or its hotkey: the newest
+    /// capture's prompt again, for when something else (such as a dictation
+    /// tool) replaced the clipboard.
     func copyLastCapturePrompt() async {
         guard let session = await store.activeSession, let capture = session.captures.last else {
             NSSound.beep()

@@ -128,6 +128,9 @@ struct ShortcutSettingsView: View {
                 }
             }
 
+            // Fork: the Nextshot keys (docs/FORK_NOTES.md).
+            FeedbackShortcutSettingsSection()
+
             SettingGroup(title: "Contextual Shortcuts") {
                 SettingCard {
                     centerLockRow

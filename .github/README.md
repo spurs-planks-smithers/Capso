@@ -21,16 +21,22 @@ The agent gets your marked-up screenshot, your numbered answers, and the text un
 
 Keep capturing to add more screens to the same session. The **Nshot** item in the menu bar shows how many captures the session holds, for example "Nshot (2)".
 
+When the round is done, press **Option+Shift+R**. Nextshot copies one prompt for every capture in the round and ends the round.
+
 ## The Nshot menu
 
 Click **Nshot** in the menu bar to:
 
 - See which build you run. The top row shows it, for example **Nextshot 2026.10.22 (497)**.
-- **Copy Last Capture** or **Copy Session Prompt** again, for example after dictation replaced your clipboard.
-- **Open Folder** to see the session's files.
-- **End Session** when you are done.
+- **Copy Last Capture Prompt** (**Option+Shift+C**) again, for example after dictation replaced your clipboard.
+- **Copy Prompt and End Round** (**Option+Shift+R**). Copying the whole prompt ends the round. **Resume Session** in **Recent** reopens it.
+- **Open Round Folder** (**Option+Shift+O**) to see the round's files.
+- **End Round** (**Option+Shift+E**) when you are done.
 - Pick from **Recent** sessions. Check single captures to copy one combined prompt, or **Resume Session** to keep adding to an old session.
+- **Change Start Round Shortcut...** to pick a key other than **Option+Shift+F**.
 - Open **Settings...**, or **Quit Nextshot**.
+
+The four round keys work only while a round is active. At other times each key types its character as usual. **Settings**, **Shortcuts** lists all five Nextshot keys, and each row in the menu shows its key.
 
 Nextshot shows one item in the menu bar. The menu for other captures (window, fullscreen, recording, history) is hidden. To show it, turn on **Show menu bar icon** in **Settings**, **General**. The capture shortcuts work either way.
 

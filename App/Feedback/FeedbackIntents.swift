@@ -38,14 +38,17 @@ struct CaptureFeedbackIntent: AppIntent {
 
 struct CopyFeedbackPromptIntent: AppIntent {
     static let title: LocalizedStringResource = "Copy Feedback Prompt"
-    static let description = IntentDescription("Copies the active feedback session's prompt to the clipboard and returns it.")
+    static let description = IntentDescription("Copies the active round's prompt to the clipboard, ends the round, and returns the prompt. Resume in the Nshot menu's Recent list reopens the round.")
 
+    /// The same path as Copy Prompt and End Round in the Nshot menu.
     @MainActor
     func perform() async throws -> some IntentResult & ReturnsValue<String> {
-        guard let prompt = await FeedbackController.shared.copyPrompt() else {
+        do {
+            let prompt = try await FeedbackController.shared.copyPromptAndEndRound()
+            return .result(value: prompt)
+        } catch FeedbackSessionStore.StoreError.noActiveSession {
             throw FeedbackIntentError.noActiveSession
         }
-        return .result(value: prompt)
     }
 }
 
