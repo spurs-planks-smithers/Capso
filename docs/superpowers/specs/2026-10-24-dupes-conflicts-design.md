@@ -93,19 +93,21 @@ The base gives every value a kind, and the client refuses a request with a kind 
 
 ### The Jev questions
 
-- One request per new entry. A capture with more entries than the base's cap (16 requests per capture) puts two entries in one request.
-- The state holds every entry: `new_entry`, and `earlier` (an array, in capture order). Each entry has its id, its `note`, and, with consent, its `screen_text` and `app`, and its `crop`. Screen text sits only in the state, under fields named `screen_text`, as the base requires.
-- The state holds `new_capture_note` too, as context, when the new entry is an item.
-- Each earlier entry gets two questions. Each question names its pair by path, for example `earlier[3]`. When screen text is in the state, each question starts with `JevPrompting.screenTextNotice`.
+- One request per new entry. A capture with more entries than the base's cap (16 requests per capture) puts two or more entries in one request.
+- The state stays small: `new`, an array with the new entry (or entries). Each entry has its `note` (reviewer text) and, with consent, its `screen_text` and `app` (screen text) and its `crop` (image).
+- Each earlier entry gets two questions. The earlier note sits in the question's instructions object, next to the question text. This is the "Structured instructions" pattern of the TypeSafe Noul page, which checks a record against possible duplicates. TypeSafe notes that accuracy shifts as the state grows, so the state holds only the new entry.
+- The base forbids screen text in instructions. So the earlier entries' screen text and crops go in the state, under `earlier_screen_text` and `earlier_crops`, keyed by a code-built key such as `e3_2` (from the numbers 3 and 2, never from screen text). The question names its key by path.
+- When screen text is in the state, each question starts with `JevPrompting.screenTextNotice`.
+- Images: at most 6 earlier crops per request, newest first. Other same-app pairs go text only.
 - Question ids are `<new id>.vs.<earlier id>.sameAsk` and `<new id>.vs.<earlier id>.opposite`, for example `4.2.vs.3.2.sameAsk`. They start with the item id, as the base asks. The review script reads the pair from the id.
 
 The two questions:
 
-1. `sameAsk` (Score, three levels). "How do the review notes in `new_entry` and `earlier[i]` relate as change requests?"
+1. `sameAsk` (Score, three levels). "How do the review note in `new[0]` and the earlier review note relate as change requests?"
    - Level 0: "They ask for different changes, or for changes to different elements. This includes the same kind of change on a different element, page, or screen."
    - Level 1: "They overlap. Part of one ask is in the other, or they may be about the same element. A person should check."
    - Level 2: "They ask for the same change to the same element."
-2. `opposite` (Noul). "Do `new_entry` and `earlier[i]` ask for changes to the same element that cannot both be done?" Criteria true: "for example, larger and smaller, remove it and rename it, or two different values for the same setting." Criteria false: "different elements, changes that can both be done, or one note adds detail to the other."
+2. `opposite` (Noul). "Do the review note in `new[0]` and the earlier review note ask for changes to the same element that cannot both be done?" Criteria true: "for example, larger and smaller, remove it and rename it, or two different values for the same setting." Criteria false: "different elements, changes that can both be done, or one note adds detail to the other."
 
 The TypeSafe entity alignment cookbook uses this shape: a three-level Score whose middle level goes to a person, so no threshold has to be fitted. The issue text said "a Noul per pair". The Score is my call. It gives the overlap level that Drew chose for the check line. Both questions ride in one request, so the request count stays the same.
 
@@ -161,14 +163,15 @@ The section of capture 4, in `1839-...-refined.md` and in `refined.md`, holds ev
 
 ```text
 Item 4.2:
-- May overlap with 3.2. Read 3.2 in manifest.md. An earlier paste may have done part of it. Check the code before you edit twice.
+- 4.2 may overlap with 3.2. Read 3.2 in manifest.md. An earlier paste may have done part of it. Check the code before you edit twice.
 Item 4.3:
-- Repeats 1.4 (capture 1). An earlier paste may have made this change. Check the code, and make the change once.
+- 4.3 repeats 1.4 (capture 1). An earlier paste may have made this change. Check the code, and make the change once.
 Item 4.5:
 - Ask the user first: 4.5 and 2.1 ask for opposite changes to the same element. Read 2.1 in manifest.md. 4.5 is newer.
 ```
 
-- K.note entries use the capture scope, for example "The general note of capture 4 may overlap with 2.1."
+- Every line names its own entry first, so it reads the same in the round section, in a capture section, and alone.
+- K.note entries use the capture scope. A line names a note as "the general note of capture 4", for example "The general note of capture 4 may overlap with 2.1."
 - Overlaps show only in the capture section. A round line for each overlap would add noise.
 - When a request fails, a capture line says "Not checked for repeats: 4.2 and 4.3 (timeout)."
 - The base writes "Not refined: duplicates and conflicts (timeout)" when the whole job fails.
@@ -246,7 +249,9 @@ Light research on 2026-10-24 (four searches). The findings that shape this desig
 My calls (Drew can change any of them):
 
 - A three-level Score plus a Noul per pair, in place of two Nouls.
-- One request per new entry, with every entry in the state and the pair named by path.
+- One request per new entry. The new entry sits in the state, and each earlier note sits in its own questions' instructions.
+- At most 6 earlier crops per request.
+- No capture note as context for an item. A general note is an entry of its own.
 - The cut points 0.5, 1.5, and 0.7, and a conflict wins over a duplicate.
 - Lines per new entry in place of groups across captures. A job cannot read earlier captures' answers.
 - Overlaps only in the capture section. Conflicts and duplicates in both sections.
