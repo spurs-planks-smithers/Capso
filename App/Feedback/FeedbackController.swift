@@ -42,6 +42,9 @@ final class FeedbackController {
     private var helpScreen: NSScreen?
     /// End Session while it waits for saves and ends the session.
     private var ending: Task<FeedbackSession, Error>?
+    /// True while Copy Prompt and End Round from the menu or its key runs, so
+    /// a second press copies nothing more.
+    private var copyingRoundPrompt = false
     /// The captures checked in the Recent menu.
     private var basket = FeedbackBasket()
     private let quickLook = FeedbackQuickLook()
@@ -186,22 +189,35 @@ final class FeedbackController {
         return prompt
     }
 
-    /// The menu row and the hotkey. A failure beeps and is logged.
+    /// The menu row and the hotkey. A second press while the first one runs
+    /// does nothing, so one round gives one copy (#26). The check and the
+    /// flag come before the first `await`, so two presses cannot both pass.
+    /// No active round means nothing to copy: no beep. Other failures beep
+    /// and are logged.
     private func copyPromptAndEndRoundFromMenuOrKey() {
         Task {
+            guard !copyingRoundPrompt else { return }
+            copyingRoundPrompt = true
+            defer { copyingRoundPrompt = false }
             do {
                 try await copyPromptAndEndRound()
+            } catch FeedbackSessionStore.StoreError.noActiveSession {
+                FeedbackLog.logger.notice("copy prompt and end round: no active round")
             } catch {
                 report(error, context: "Round prompt was not copied")
             }
         }
     }
 
-    /// End Round from the menu row or the hotkey. A failure beeps and is logged.
+    /// End Round from the menu row or the hotkey. During an end, a press
+    /// joins that end (`endSession()`). No active round means nothing to
+    /// end: no beep (#26). Other failures beep and are logged.
     private func endRoundFromMenuOrKey() {
         Task {
             do {
                 try await endSession()
+            } catch FeedbackSessionStore.StoreError.noActiveSession {
+                FeedbackLog.logger.notice("end round: no active round")
             } catch {
                 report(error, context: "Feedback session did not end")
             }
@@ -214,6 +230,12 @@ final class FeedbackController {
     /// for `ending` and then goes into a new session.
     @discardableResult
     func endSession() async throws -> FeedbackSession {
+        // One end at a time (#26). A call during an end gets that end's
+        // result. A second end would beep after a good end, or end the round
+        // that a capture saved during the wait starts.
+        if let ending {
+            return try await ending.value
+        }
         defer { Task { await refresh() } }
         notePanel.close()
         let saves = Array(saveTasks.values)
@@ -261,11 +283,16 @@ final class FeedbackController {
     private func connectRoundKeys() {
         KeyboardShortcuts.onKeyDown(for: .feedbackCopyLastCapture) { [weak self] in
             FeedbackLog.logger.notice("hotkey: Copy Last Capture Prompt")
-            Task { await self?.copyLastCapturePrompt() }
+            Task {
+                // No active round: nothing to copy, and no beep (#26).
+                guard let self, await self.store.activeSession != nil else { return }
+                await self.copyLastCapturePrompt()
+            }
         }
         KeyboardShortcuts.onKeyDown(for: .feedbackCopyPromptAndEndRound) { [weak self] in
             FeedbackLog.logger.notice("hotkey: Copy Prompt and End Round")
-            self?.copyPromptAndEndRoundFromMenuOrKey()
+            guard let self, self.roundEndKeyAllowed() else { return }
+            self.copyPromptAndEndRoundFromMenuOrKey()
         }
         KeyboardShortcuts.onKeyDown(for: .feedbackOpenRoundFolder) { [weak self] in
             FeedbackLog.logger.notice("hotkey: Open Round Folder")
@@ -273,9 +300,25 @@ final class FeedbackController {
         }
         KeyboardShortcuts.onKeyDown(for: .feedbackEndRound) { [weak self] in
             FeedbackLog.logger.notice("hotkey: End Round")
-            self?.endRoundFromMenuOrKey()
+            guard let self, self.roundEndKeyAllowed() else { return }
+            self.endRoundFromMenuOrKey()
         }
         updateRoundShortcuts()
+    }
+
+    /// Option+Shift+R and E beep and do nothing while a capture is open:
+    /// being selected, in an editor, or in the note panel (#25). Ending the
+    /// round then would save that capture into a new round and close the
+    /// note panel before its last answer is saved. The menu rows still end
+    /// the round, because a click is deliberate. C and O change nothing, so
+    /// they stay active.
+    private func roundEndKeyAllowed() -> Bool {
+        let captureOpen = selectionPhase != .none || inlineEditor != nil || fullEditor != nil || notePanel.isOpen
+        if captureOpen {
+            FeedbackLog.logger.notice("round end key refused: a capture is open")
+            NSSound.beep()
+        }
+        return !captureOpen
     }
 
     /// Registers the round keys while a round is active and removes them
@@ -284,11 +327,22 @@ final class FeedbackController {
     /// Both calls do nothing when the state is already right. Settings calls
     /// this after a key change, because the library registers a changed key
     /// at once, with or without a round.
+    ///
+    /// The library removes a hotkey by its key combination, for every action
+    /// that uses it. A round key that shares a combination with an action
+    /// that is always on stays registered, so that action keeps working
+    /// (#24). Settings refuses such a key, but an upstream recorder can still
+    /// set one.
     func updateRoundShortcuts() {
         if session != nil {
             KeyboardShortcuts.enable(KeyboardShortcuts.Name.feedbackRoundKeys)
         } else {
-            KeyboardShortcuts.disable(KeyboardShortcuts.Name.feedbackRoundKeys)
+            let alwaysOn = Set(
+                (KeyboardShortcuts.Name.allCapso + [.feedbackCapture]).compactMap { KeyboardShortcuts.getShortcut(for: $0) }
+            )
+            KeyboardShortcuts.disable(KeyboardShortcuts.Name.feedbackRoundKeys.filter { name in
+                KeyboardShortcuts.getShortcut(for: name).map { !alwaysOn.contains($0) } ?? false
+            })
         }
     }
 

@@ -1,4 +1,5 @@
 // App/Feedback/FeedbackShortcuts.swift
+import AppKit
 import KeyboardShortcuts
 
 extension KeyboardShortcuts.Name {
@@ -22,4 +23,34 @@ extension KeyboardShortcuts.Name {
     static let feedbackRoundKeys: [Self] = [
         .feedbackCopyLastCapture, .feedbackCopyPromptAndEndRound, .feedbackOpenRoundFolder, .feedbackEndRound,
     ]
+
+    /// The fork's five keys: the start key and the round keys.
+    static let nextshotKeys: [Self] = [.feedbackCapture] + feedbackRoundKeys
+}
+
+/// Fork: keeps each Nextshot key apart from every other action's key (#24).
+/// The library removes a hotkey by its key combination, so a round key that
+/// shared a combination with another action would turn that action off
+/// between rounds.
+@MainActor
+enum FeedbackShortcutGuard {
+    /// Call from a recorder's `onChange`. The library stores the new key
+    /// before it calls back, so a key that another action uses is set back to
+    /// `previous`, with a beep. Returns the reason to show, or nil when the
+    /// new key stays. `label` names the key in the reason.
+    static func check(
+        _ shortcut: KeyboardShortcuts.Shortcut?,
+        for name: KeyboardShortcuts.Name,
+        previous: KeyboardShortcuts.Shortcut?,
+        label: String
+    ) -> String? {
+        defer { FeedbackController.shared.updateRoundShortcuts() }
+        let others = (KeyboardShortcuts.Name.allCapso + KeyboardShortcuts.Name.nextshotKeys).filter { $0 != name }
+        guard let shortcut, others.contains(where: { KeyboardShortcuts.getShortcut(for: $0) == shortcut }) else {
+            return nil
+        }
+        KeyboardShortcuts.setShortcut(previous, for: name)
+        NSSound.beep()
+        return "\(shortcut) is in use by another action. \(label) stays \(previous?.description ?? "off")."
+    }
 }

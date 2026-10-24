@@ -29,11 +29,31 @@ final class FeedbackShortcutPanel {
 }
 
 private struct FeedbackShortcutView: View {
+    /// The start key, so a refused key can be set back (#24).
+    @State private var accepted = KeyboardShortcuts.getShortcut(for: .feedbackCapture)
+    @State private var refusal: String?
+
     var body: some View {
-        HStack {
-            Text(verbatim: "Start round or capture area:")
-            KeyboardShortcuts.Recorder(for: .feedbackCapture)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(verbatim: "Start round or capture area:")
+                KeyboardShortcuts.Recorder(for: .feedbackCapture) { shortcut in
+                    refusal = FeedbackShortcutGuard.check(
+                        shortcut, for: .feedbackCapture, previous: accepted, label: "The start key"
+                    )
+                    accepted = KeyboardShortcuts.getShortcut(for: .feedbackCapture)
+                }
+            }
+            if let refusal {
+                Text(verbatim: refusal)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.orange)
+                    .frame(maxWidth: 328, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .padding(16)
+        // Settings can change the key while the panel is closed.
+        .onAppear { accepted = KeyboardShortcuts.getShortcut(for: .feedbackCapture) }
     }
 }

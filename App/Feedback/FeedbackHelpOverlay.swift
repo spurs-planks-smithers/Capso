@@ -72,7 +72,7 @@ final class FeedbackHelpOverlay {
     /// changed key shows. A key with no shortcut is left out.
     static func currentShortcuts() -> [KeyboardShortcuts.Name: String] {
         var shortcuts: [KeyboardShortcuts.Name: String] = [:]
-        for name in [KeyboardShortcuts.Name.feedbackCapture] + KeyboardShortcuts.Name.feedbackRoundKeys {
+        for name in KeyboardShortcuts.Name.nextshotKeys {
             shortcuts[name] = KeyboardShortcuts.getShortcut(for: name)?.description
         }
         return shortcuts
