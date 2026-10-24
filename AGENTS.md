@@ -124,7 +124,7 @@ Agent access:
 
 - The base (#36) runs each feature's job in the background after a capture's notes are final and its screen text is stored. It never delays a copy, except Copy Prompt and End Round, which waits at most 500 ms and only with a feature on.
 - Turn it on: `scripts/nextshot-flags.sh set jevBase on`, then a feature, for example `set noteCoach shadow`. Consent flags: `jevSendScreenText` and `jevSendImages`. Reset each flag after a test.
-- Shadow writes only `jev.json` in the bundle. On also writes `<stem>-refined.md` and `refined.md`, and the copied prompts point to them. The files on disk (`prompt.md`, `<stem>-prompt.md`) never change.
+- Shadow writes `jev.json` in the bundle, and a job may also write its review file `jev-review/<job>.md` for Drew (Drew, 2026-10-24). On also writes `<stem>-refined.md` and `refined.md`, and the copied prompts point to them, refined file first. No prompt names a review file. The files on disk (`prompt.md`, `<stem>-prompt.md`) never change.
 - A feature session edits only its own job file in `Packages/JevKit/Sources/JevKit/Jobs/`. The registry already has one line per planned feature.
 - Logs: `/usr/bin/log show --last 10m --predicate 'subsystem == "com.drewschulz.nextshot" AND category == "Jev"'`. They hold job ids, capture numbers, statuses, times, and token counts only.
 - Failures are silent: the prompt stays plain, and `jev.json` records the reason.

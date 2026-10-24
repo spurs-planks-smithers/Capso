@@ -65,7 +65,7 @@ public enum JevAnswer: Equatable, Sendable {
     case box(JevBoxAnswer)
 }
 
-/// A checked response. Every question sent has exactly one answer here.
+/// A checked response. Every question sent is in `answers` or in `dropped`.
 public struct JevResponse: Equatable, Sendable {
     /// The model that answered. The client accepts only the pinned model.
     public var model: String
@@ -74,13 +74,18 @@ public struct JevResponse: Equatable, Sendable {
     public var outputTokens: Int
     /// TypeSafe's `x-typesafe-request-id`, for a support question.
     public var requestID: String?
+    /// Answers dropped for a value check, by question id, with the check's
+    /// name (for example "boxOrder"). They are not in `answers`, so every
+    /// accessor returns nil for them. Treat each as missing.
+    public var dropped: [String: String]
 
-    public init(model: String, answers: [String: JevAnswer], inputTokens: Int, outputTokens: Int, requestID: String? = nil) {
+    public init(model: String, answers: [String: JevAnswer], inputTokens: Int, outputTokens: Int, requestID: String? = nil, dropped: [String: String] = [:]) {
         self.model = model
         self.answers = answers
         self.inputTokens = inputTokens
         self.outputTokens = outputTokens
         self.requestID = requestID
+        self.dropped = dropped
     }
 
     public func noul(_ id: String) -> Double? {
