@@ -1,0 +1,410 @@
+// Packages/JevKit/Sources/JevKit/Runner/JevRunner.swift
+import FeedbackKit
+import Foundation
+
+/// Limits and budgets for the runner. The defaults come from the Jev design.
+public struct JevRunnerSettings: Sendable {
+    /// One capture's jobs share this budget, from `start`.
+    public var captureBudget: Duration = .seconds(2)
+    public var maxConcurrentRequests = 4
+    public var maxRequestsPerCapture = 16
+    public var maxRequestsPerDay = 1000
+    /// This many slow failures in a row (timeout, 5xx, 429, 529) pause
+    /// every request for `failurePause`.
+    public var failuresBeforePause = 3
+    public var failurePause: Duration = .seconds(60)
+
+    public init() {}
+}
+
+/// Runs the Jev jobs for each capture, in the background.
+///
+/// The main actor only starts calls here and never waits for one, except
+/// the round-end `settle`, which has its own short timeout. With `jevBase`
+/// off, or every job's flag off, nothing is stored, no key is read, and no
+/// request is sent.
+public actor JevRunner {
+    private struct Key: Hashable {
+        var folderName: String
+        var capture: Int
+    }
+
+    private let rootURL: URL
+    private let client: JevClient
+    private let jobs: [any JevJob]
+    private let flags: @Sendable (FeatureFlag) -> FlagState
+    private let settings: JevRunnerSettings
+    private let log: @Sendable (String) -> Void
+    private let now: @Sendable () -> Date
+    private let writer: JevBundleWriter
+    private let limiter: AsyncLimiter
+
+    /// Captures stored but not started yet. Settle waits for them too.
+    private var expected: Set<Key> = []
+    private var running: [Key: Task<Void, Never>] = [:]
+    /// Every capture started in this app run. The app sends `expect` and
+    /// `start` from separate tasks, so an `expect` can arrive after its
+    /// `start`. It must not leave the capture expected forever.
+    private var started: Set<Key> = []
+
+    private var unauthorized = false
+    private var slowFailures = 0
+    private var pausedUntil: ContinuousClock.Instant?
+    private var requestsByDay: [String: Int] = [:]
+
+    /// - Parameter flags: the resolved state of a flag. It must apply the
+    ///   dev-only rule, as `FlagResolver` does.
+    /// - Parameter log: receives public text only: job ids, capture numbers,
+    ///   statuses, reasons, times, and token counts.
+    public init(
+        rootURL: URL,
+        client: JevClient,
+        jobs: [any JevJob] = JevJobRegistry.all,
+        flags: @escaping @Sendable (FeatureFlag) -> FlagState,
+        settings: JevRunnerSettings = JevRunnerSettings(),
+        log: @escaping @Sendable (String) -> Void = { _ in },
+        now: @escaping @Sendable () -> Date = { Date() }
+    ) {
+        self.rootURL = rootURL
+        self.client = client
+        self.jobs = jobs
+        self.flags = flags
+        self.settings = settings
+        self.log = log
+        self.now = now
+        writer = JevBundleWriter(rootURL: rootURL, jobOrder: jobs.map(\.id))
+        limiter = AsyncLimiter(limit: settings.maxConcurrentRequests)
+    }
+
+    /// Reads the key once, at launch, when Jev may run. The one macOS access
+    /// dialog then shows at launch, not in the middle of a capture.
+    public func warmUp() async {
+        guard JevGate.mayRun(jobs: jobs, flags: flags) else { return }
+        _ = await client.hasKey()
+    }
+
+    /// A capture was stored. Settle waits for it. Sends nothing.
+    public func expect(folderName: String, capture: Int) {
+        let key = Key(folderName: folderName, capture: capture)
+        guard !started.contains(key), JevGate.mayRun(jobs: jobs, flags: flags) else { return }
+        expected.insert(key)
+    }
+
+    /// The capture's notes are final and its screen text is stored. Starts
+    /// its jobs and returns at once. A capture runs once per app run.
+    public func start(folderName: String, capture: Int) {
+        let key = Key(folderName: folderName, capture: capture)
+        guard started.insert(key).inserted else { return }
+
+        // Flags are read once, so a change during a capture has effect at
+        // the next one.
+        let states = Dictionary(uniqueKeysWithValues: FeatureFlag.allCases.map { ($0, flags($0)) })
+        let state: @Sendable (FeatureFlag) -> FlagState = { states[$0] ?? .off }
+        guard JevGate.mayRun(jobs: jobs, flags: state) else {
+            expected.remove(key)
+            return
+        }
+        let planned = jobs.compactMap { job -> (job: any JevJob, mode: FlagState)? in
+            let mode = state(job.flag)
+            return mode == .off ? nil : (job, mode)
+        }
+        let allowed = JevGate.allowedKinds(flags: state)
+
+        running[key] = Task {
+            await self.run(key: key, planned: planned, allowed: allowed)
+            self.finish(key)
+        }
+    }
+
+    /// Waits at most `timeout` for the round's expected and running
+    /// captures, then writes refined.md with any capture still running
+    /// marked. Returns at once when the round has none.
+    public func settle(folderName: String, timeout: Duration) async {
+        let deadline = ContinuousClock.now + timeout
+        while hasWork(folderName), ContinuousClock.now < deadline {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        let left = Set(expected.filter { $0.folderName == folderName }.map(\.capture))
+            .union(running.keys.filter { $0.folderName == folderName }.map(\.capture))
+        if !left.isEmpty {
+            log("settle: \(left.count) captures still running at round end")
+        }
+        guard JevGate.pointsToRefinedFiles(jobs: jobs, flags: flags) else { return }
+        do {
+            try await writer.settle(folderName: folderName, running: left)
+        } catch {
+            log("settle: refined.md not written")
+        }
+    }
+
+    /// True while the folder has a capture expected or running. For tests.
+    func hasWork(_ folderName: String) -> Bool {
+        expected.contains { $0.folderName == folderName } || running.keys.contains { $0.folderName == folderName }
+    }
+
+    private func finish(_ key: Key) {
+        running[key] = nil
+        expected.remove(key)
+    }
+
+    // MARK: - One capture
+
+    private func run(key: Key, planned: [(job: any JevJob, mode: FlagState)], allowed: JevDataKinds) async {
+        let startedAt = now()
+        var finished: [JevBundleWriter.Finished] = []
+        var runnable: [(job: any JevJob, mode: FlagState)] = []
+
+        // Jobs that cannot run are recorded first, and need no key.
+        for entry in planned {
+            if entry.job.requires.isSubset(of: allowed) {
+                runnable.append(entry)
+            } else {
+                finished.append(.init(record: Self.skipped(entry.job, mode: entry.mode, reason: .consent, at: startedAt), output: nil))
+            }
+        }
+        if let reason = pauseReason() {
+            finished += runnable.map { .init(record: Self.skipped($0.job, mode: $0.mode, reason: reason, at: startedAt), output: nil) }
+            runnable = []
+        } else if !runnable.isEmpty, !(await client.hasKey()) {
+            finished += runnable.map { .init(record: Self.skipped($0.job, mode: $0.mode, reason: .noKey, at: startedAt), output: nil) }
+            runnable = []
+        }
+
+        guard let round = FeedbackLibrary.round(named: key.folderName, in: rootURL),
+              let capture = round.captures.first(where: { $0.index == key.capture })
+        else {
+            log("capture \(key.capture): not found in feedback.json, nothing recorded")
+            return
+        }
+
+        let folderURL = rootURL.appendingPathComponent(key.folderName, isDirectory: true)
+        let deadline = ContinuousClock.now + settings.captureBudget
+        let budget = RequestBudget(limit: settings.maxRequestsPerCapture)
+        let images = JevImageLoader.bundle(folderURL: folderURL, round: round)
+
+        await withTaskGroup(of: JevBundleWriter.Finished.self) { group in
+            for entry in runnable {
+                group.addTask {
+                    await self.runJob(entry.job, mode: entry.mode, round: round, capture: capture, folderURL: folderURL,
+                                      allowed: allowed, deadline: deadline, budget: budget, images: images, startedAt: startedAt)
+                }
+            }
+            for await result in group {
+                finished.append(result)
+            }
+        }
+
+        for result in finished {
+            let record = result.record
+            log("capture \(key.capture) \(record.job): \(record.status.rawValue)\(record.reason.map { " (\($0.rawValue))" } ?? ""), \(record.requests) requests, \(record.durationMs) ms, \(record.inputTokens) input tokens")
+        }
+        do {
+            try await writer.record(folderName: key.folderName, round: round, capture: capture, jobs: finished)
+        } catch {
+            log("capture \(key.capture): jev.json not written")
+        }
+    }
+
+    private func runJob(
+        _ job: any JevJob,
+        mode: FlagState,
+        round: FeedbackRound,
+        capture: FeedbackCapture,
+        folderURL: URL,
+        allowed: JevDataKinds,
+        deadline: ContinuousClock.Instant,
+        budget: RequestBudget,
+        images: JevImageLoader,
+        startedAt: Date
+    ) async -> JevBundleWriter.Finished {
+        let clockStart = ContinuousClock.now
+        let recorder = AnswerRecorder()
+        let asker = JevAsker { request in
+            try await self.send(request, allowed: allowed, deadline: deadline, budget: budget, recorder: recorder)
+        }
+        let context = JevJobContext(round: round, capture: capture, folderURL: folderURL, allowed: allowed,
+                                    deadline: deadline, jev: asker, images: images)
+
+        // The job races the deadline. On a timeout the job's task is
+        // cancelled, which also cancels its open request.
+        let outcome: Result<JevJobOutput, JevError> = await withTaskGroup(of: Result<JevJobOutput, JevError>?.self) { group in
+            group.addTask {
+                do {
+                    return .success(try await job.run(context))
+                } catch let error as JevError {
+                    return .failure(error)
+                } catch is CancellationError {
+                    return .failure(JevError(.timeout))
+                } catch {
+                    return .failure(JevError(.jobError))
+                }
+            }
+            group.addTask {
+                try? await Task.sleep(until: deadline, clock: .continuous)
+                return nil
+            }
+            let first = await group.next() ?? nil
+            group.cancelAll()
+            return first ?? .failure(JevError(.timeout))
+        }
+
+        let elapsed = ContinuousClock.now - clockStart
+        let stats = await recorder.snapshot()
+        var record = JevJobRecord(
+            job: job.id,
+            jobVersion: job.version,
+            mode: mode.rawValue,
+            status: .done,
+            reason: nil,
+            model: JevEndpoint.model,
+            startedAt: startedAt,
+            durationMs: Int(elapsed.components.seconds * 1000 + elapsed.components.attoseconds / 1_000_000_000_000_000),
+            requests: stats.requests,
+            retries: stats.retries,
+            inputTokens: stats.inputTokens,
+            requestIDs: stats.requestIDs,
+            answers: stats.answers,
+            lines: [],
+            files: []
+        )
+        switch outcome {
+        case .success(let output):
+            return .init(record: record, output: mode == .on ? output : nil)
+        case .failure(let error):
+            record.status = .notRefined
+            record.reason = error.reason
+            return .init(record: record, output: nil)
+        }
+    }
+
+    // MARK: - One request
+
+    /// The asker's send: consent, pauses, caps, and the concurrency limit,
+    /// then the client. Every answer goes to the recorder.
+    private func send(_ request: JevRequest, allowed: JevDataKinds, deadline: ContinuousClock.Instant, budget: RequestBudget, recorder: AnswerRecorder) async throws -> JevResponse {
+        // Consent sits under every job: a job bug cannot send data without it.
+        guard request.kinds.isSubset(of: allowed) else { throw JevError(.consent) }
+        if let reason = pauseReason() { throw JevError(reason) }
+        guard await budget.take() else { throw JevError(.capReached) }
+        guard takeDailyRequest() else { throw JevError(.capReached) }
+
+        do {
+            try await limiter.acquire()
+        } catch {
+            throw JevError(.timeout)
+        }
+        do {
+            let result = try await client.send(request, deadline: deadline)
+            await limiter.release()
+            noteSuccess()
+            await recorder.add(result, questionOrder: request.questions.map(\.id))
+            return result.response
+        } catch let error as JevError {
+            await limiter.release()
+            noteFailure(error)
+            await recorder.addFailure()
+            throw error
+        } catch {
+            await limiter.release()
+            throw JevError(.offline)
+        }
+    }
+
+    private func pauseReason() -> JevFailureReason? {
+        if unauthorized { return .paused }
+        if let pausedUntil, ContinuousClock.now < pausedUntil { return .paused }
+        return nil
+    }
+
+    private func takeDailyRequest() -> Bool {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        let day = formatter.string(from: now())
+        let count = requestsByDay[day, default: 0]
+        guard count < settings.maxRequestsPerDay else { return false }
+        requestsByDay = [day: count + 1]
+        return true
+    }
+
+    private func noteSuccess() {
+        slowFailures = 0
+    }
+
+    private func noteFailure(_ error: JevError) {
+        switch error.reason {
+        case .unauthorized:
+            if !unauthorized {
+                log("TypeSafe rejected the key (HTTP \(error.status ?? 0)). Jev requests pause until the next launch.")
+            }
+            unauthorized = true
+        case .timeout, .server, .rateLimited, .overloaded:
+            slowFailures += 1
+            if slowFailures >= settings.failuresBeforePause {
+                slowFailures = 0
+                pausedUntil = ContinuousClock.now + settings.failurePause
+                log("\(settings.failuresBeforePause) slow failures in a row: Jev requests pause for \(settings.failurePause)")
+            }
+        default:
+            break
+        }
+    }
+
+    private static func skipped(_ job: any JevJob, mode: FlagState, reason: JevFailureReason, at date: Date) -> JevJobRecord {
+        JevJobRecord(
+            job: job.id, jobVersion: job.version, mode: mode.rawValue, status: .skipped, reason: reason,
+            model: JevEndpoint.model, startedAt: date, durationMs: 0, requests: 0, retries: 0, inputTokens: 0,
+            requestIDs: [], answers: [], lines: [], files: []
+        )
+    }
+}
+
+/// The per-capture request cap, shared by the capture's jobs.
+actor RequestBudget {
+    private var left: Int
+
+    init(limit: Int) {
+        left = limit
+    }
+
+    func take() -> Bool {
+        guard left > 0 else { return false }
+        left -= 1
+        return true
+    }
+}
+
+/// Collects what jev.json records about one job's requests.
+actor AnswerRecorder {
+    struct Snapshot: Sendable {
+        var requests = 0
+        var retries = 0
+        var inputTokens = 0
+        var requestIDs: [String] = []
+        var answers: [JevAnswerRecord] = []
+    }
+
+    private var current = Snapshot()
+
+    func add(_ result: JevSendResult, questionOrder: [String]) {
+        current.requests += 1
+        current.retries += result.retries
+        current.inputTokens += result.response.inputTokens
+        if let id = result.response.requestID {
+            current.requestIDs.append(id)
+        }
+        for id in questionOrder {
+            if let answer = result.response.answers[id] {
+                current.answers.append(JevAnswerRecord(id: id, answer: answer))
+            }
+        }
+    }
+
+    func addFailure() {
+        current.requests += 1
+    }
+
+    func snapshot() -> Snapshot {
+        current
+    }
+}
