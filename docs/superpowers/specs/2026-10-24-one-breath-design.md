@@ -115,10 +115,11 @@ One request per capture holds all of the job's questions.
 
 | Question | Type | Asked for | Data sent |
 | --- | --- | --- | --- |
-| Does this answer give separate instructions for two or more numbered circles? | Noul | every answer of the capture | reviewer text, and the list of circle numbers |
+| Does this answer give separate instructions for two or more numbered circles? | Noul | every answer of a capture with two or more circles | reviewer text, and the list of circle numbers |
 | Which circle does this part give an instruction for? Options: one per circle, plus "none: a general remark". | Choice | every part of an answer that code split | reviewer text; the circle crops with `jevSendImages` on; each circle's OCR text with screen-text consent |
 
 - The per-answer Noul gives a second opinion on the code's detection. It also finds one-breath answers that code missed.
+- A capture with fewer than two circles cannot hold a one-breath answer, so it gets no request (my call, 2026-10-24, during the build). This also sends less of Drew's text.
 - Without images or screen text, Jev knows only Drew's words. The Choice then mostly checks the number in the part. The review file says which data Jev had.
 - A crop that several questions use goes in the state once, as a named field. Each extra reference in an instruction adds another copy of the image to the tokens (TypeSafe's image guidance).
 - My call: Jev's pick counts when its top probability is 0.8 or more. Below that, the review file shows "unsure". The threshold lives in the job file and changes after the trial data.
