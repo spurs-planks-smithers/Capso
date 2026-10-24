@@ -17,20 +17,29 @@ final class FeedbackShortcutPanel {
         panel.title = "Change Start Round Shortcut"
         panel.isReleasedWhenClosed = false
         panel.hidesOnDeactivate = false
-        panel.contentView = NSHostingView(rootView: FeedbackShortcutView())
-        panel.center()
         return panel
     }()
+    private var centered = false
 
+    /// A new view each time, so a reason from an earlier refusal does not
+    /// show again. With `.preferredContentSize`, the panel takes the view's
+    /// size and grows when the refusal line shows.
     func show() {
+        let controller = NSHostingController(rootView: FeedbackShortcutView())
+        controller.sizingOptions = .preferredContentSize
+        panel.contentViewController = controller
+        panel.setContentSize(controller.view.fittingSize)
+        if !centered {
+            panel.center()
+            centered = true
+        }
         NSApp.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
     }
 }
 
 private struct FeedbackShortcutView: View {
-    /// The start key, so a refused key can be set back (#24).
-    @State private var accepted = KeyboardShortcuts.getShortcut(for: .feedbackCapture)
+    /// Why the last key was refused (#24).
     @State private var refusal: String?
 
     var body: some View {
@@ -38,10 +47,7 @@ private struct FeedbackShortcutView: View {
             HStack {
                 Text(verbatim: "Start round or capture area:")
                 KeyboardShortcuts.Recorder(for: .feedbackCapture) { shortcut in
-                    refusal = FeedbackShortcutGuard.check(
-                        shortcut, for: .feedbackCapture, previous: accepted, label: "The start key"
-                    )
-                    accepted = KeyboardShortcuts.getShortcut(for: .feedbackCapture)
+                    refusal = FeedbackShortcutGuard.check(shortcut, for: .feedbackCapture, label: "The start key")
                 }
             }
             if let refusal {
@@ -53,7 +59,5 @@ private struct FeedbackShortcutView: View {
             }
         }
         .padding(16)
-        // Settings can change the key while the panel is closed.
-        .onAppear { accepted = KeyboardShortcuts.getShortcut(for: .feedbackCapture) }
     }
 }

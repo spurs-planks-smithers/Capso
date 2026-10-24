@@ -34,21 +34,34 @@ extension KeyboardShortcuts.Name {
 /// between rounds.
 @MainActor
 enum FeedbackShortcutGuard {
-    /// Call from a recorder's `onChange`. The library stores the new key
-    /// before it calls back, so a key that another action uses is set back to
-    /// `previous`, with a beep. Returns the reason to show, or nil when the
-    /// new key stays. `label` names the key in the reason.
-    static func check(
-        _ shortcut: KeyboardShortcuts.Shortcut?,
-        for name: KeyboardShortcuts.Name,
-        previous: KeyboardShortcuts.Shortcut?,
-        label: String
-    ) -> String? {
-        defer { FeedbackController.shared.updateRoundShortcuts() }
+    /// Each Nextshot key as last accepted. The library stores a new key
+    /// before it calls back, so this is the only copy of the old key. One
+    /// copy serves Settings and the start key panel, so a change in one never
+    /// leaves the other with an old value. Only the fork's recorders change
+    /// these keys, and each goes through `check`.
+    private static var accepted: [KeyboardShortcuts.Name: KeyboardShortcuts.Shortcut] = [:]
+
+    /// Call once at launch, before any recorder can change a key.
+    static func rememberCurrentKeys() {
+        for name in KeyboardShortcuts.Name.nextshotKeys {
+            accepted[name] = KeyboardShortcuts.getShortcut(for: name)
+        }
+    }
+
+    /// Call from a recorder's `onChange`. A key that another action uses is
+    /// set back to the last accepted key, with a beep. Returns the reason to
+    /// show, or nil when the new key stays. `label` names the key in the
+    /// reason.
+    static func check(_ shortcut: KeyboardShortcuts.Shortcut?, for name: KeyboardShortcuts.Name, label: String) -> String? {
+        defer {
+            accepted[name] = KeyboardShortcuts.getShortcut(for: name)
+            FeedbackController.shared.updateRoundShortcuts()
+        }
         let others = (KeyboardShortcuts.Name.allCapso + KeyboardShortcuts.Name.nextshotKeys).filter { $0 != name }
         guard let shortcut, others.contains(where: { KeyboardShortcuts.getShortcut(for: $0) == shortcut }) else {
             return nil
         }
+        let previous = accepted[name]
         KeyboardShortcuts.setShortcut(previous, for: name)
         NSSound.beep()
         return "\(shortcut) is in use by another action. \(label) stays \(previous?.description ?? "off")."

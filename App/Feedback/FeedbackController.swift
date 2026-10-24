@@ -104,6 +104,8 @@ final class FeedbackController {
             self?.capture()
         }
         connectRoundKeys()
+        // Before any recorder can exist, so the guard holds each key's old value.
+        FeedbackShortcutGuard.rememberCurrentKeys()
         statusItem.onCopyPromptAndEndRound = { [weak self] in
             FeedbackLog.logger.notice("menu: Copy Prompt and End Round")
             self?.copyPromptAndEndRoundFromMenuOrKey()
@@ -193,33 +195,45 @@ final class FeedbackController {
     /// does nothing, so one round gives one copy (#26). The check and the
     /// flag come before the first `await`, so two presses cannot both pass.
     /// No active round means nothing to copy: no beep. Other failures beep
-    /// and are logged.
+    /// and are logged, except when this press joined an end that another
+    /// press started: that press reports it, so one failure beeps once.
     private func copyPromptAndEndRoundFromMenuOrKey() {
         Task {
             guard !copyingRoundPrompt else { return }
             copyingRoundPrompt = true
             defer { copyingRoundPrompt = false }
+            let joining = ending != nil
             do {
                 try await copyPromptAndEndRound()
             } catch FeedbackSessionStore.StoreError.noActiveSession {
                 FeedbackLog.logger.notice("copy prompt and end round: no active round")
             } catch {
-                report(error, context: "Round prompt was not copied")
+                if joining {
+                    FeedbackLog.logger.notice("copy prompt and end round: the joined end failed")
+                } else {
+                    report(error, context: "Round prompt was not copied")
+                }
             }
         }
     }
 
     /// End Round from the menu row or the hotkey. During an end, a press
     /// joins that end (`endSession()`). No active round means nothing to
-    /// end: no beep (#26). Other failures beep and are logged.
+    /// end: no beep (#26). Other failures beep and are logged by the press
+    /// that started the end only.
     private func endRoundFromMenuOrKey() {
         Task {
+            let joining = ending != nil
             do {
                 try await endSession()
             } catch FeedbackSessionStore.StoreError.noActiveSession {
                 FeedbackLog.logger.notice("end round: no active round")
             } catch {
-                report(error, context: "Feedback session did not end")
+                if joining {
+                    FeedbackLog.logger.notice("end round: the joined end failed")
+                } else {
+                    report(error, context: "Feedback session did not end")
+                }
             }
         }
     }
@@ -313,7 +327,11 @@ final class FeedbackController {
     /// the round, because a click is deliberate. C and O change nothing, so
     /// they stay active.
     private func roundEndKeyAllowed() -> Bool {
-        let captureOpen = selectionPhase != .none || inlineEditor != nil || fullEditor != nil || notePanel.isOpen
+        // `selectionPhase` stays `.starting` when the coordinator does not
+        // start the selection, and then no end notification comes. The
+        // coordinator's live state confirms that a selection is up.
+        let selecting = selectionPhase != .none && captureCoordinator?.isCaptureSelectionActive == true
+        let captureOpen = selecting || inlineEditor != nil || fullEditor != nil || notePanel.isOpen
         if captureOpen {
             FeedbackLog.logger.notice("round end key refused: a capture is open")
             NSSound.beep()

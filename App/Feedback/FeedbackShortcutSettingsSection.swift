@@ -11,9 +11,7 @@ import SwiftUI
 struct FeedbackShortcutSettingsSection: View {
     private static let roundOnlyNote = "While a round is active"
 
-    /// The key each row holds, so a refused key can be set back (#24).
-    @State private var accepted = Self.currentShortcuts()
-    /// Why the last key was refused, shown under the card.
+    /// Why the last key was refused (#24), shown under the card.
     @State private var refusal: String?
 
     var body: some View {
@@ -32,8 +30,8 @@ struct FeedbackShortcutSettingsSection: View {
                     .padding(.leading, 2)
             }
         }
-        // The start key panel can change a key while this tab is closed.
-        .onAppear { accepted = Self.currentShortcuts() }
+        // An old reason does not show again when the tab opens.
+        .onAppear { refusal = nil }
     }
 
     /// The round keys work only while a round is active, and the sublabel
@@ -47,18 +45,9 @@ struct FeedbackShortcutSettingsSection: View {
             showDivider: name != .feedbackCapture
         ) {
             KeyboardShortcuts.Recorder(for: name) { shortcut in
-                refusal = FeedbackShortcutGuard.check(shortcut, for: name, previous: accepted[name], label: label)
-                accepted[name] = KeyboardShortcuts.getShortcut(for: name)
+                refusal = FeedbackShortcutGuard.check(shortcut, for: name, label: label)
             }
             .controlSize(.small)
         }
-    }
-
-    private static func currentShortcuts() -> [KeyboardShortcuts.Name: KeyboardShortcuts.Shortcut] {
-        var shortcuts: [KeyboardShortcuts.Name: KeyboardShortcuts.Shortcut] = [:]
-        for name in KeyboardShortcuts.Name.nextshotKeys {
-            shortcuts[name] = KeyboardShortcuts.getShortcut(for: name)
-        }
-        return shortcuts
     }
 }
