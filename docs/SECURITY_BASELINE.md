@@ -6,7 +6,7 @@
 
 ## Summary
 
-Capso has one outbound network call that needs no user setup: Sparkle's daily update check. Translation and cloud sharing make network calls only after the user picks a cloud provider or sets up a share destination. There is no analytics SDK, telemetry, crash reporter, socket server, or web view. The feedback session work adds no network code.
+Capso has one outbound network call that needs no user setup: Sparkle's daily update check. Translation and cloud sharing make network calls only after the user picks a cloud provider or sets up a share destination. There is no analytics SDK, telemetry, crash reporter, socket server, or web view. The feedback round work adds no network code.
 
 ## Outbound network code
 
@@ -63,7 +63,7 @@ The feedback work adds no dependency.
 | 1 | Turn off Sparkle | Set `SUEnableAutomaticChecks` to false and remove `SUFeedURL` | 2 lines in `Info.plist` |
 | 2 | Hide or remove cloud translation providers. Keep `.apple`. | DeepSeek conflicts with Drew's rule against models from China-based companies. | Settings UI, or provider code (removal deletes upstream code) |
 | 3 | Leave Cloud Share unconfigured and hide its setup | Do not delete `ShareKit` | Settings UI |
-| 4 | Add a run-time network check | Run `nettop -p <pid>` during a feedback session | None (a manual check) |
+| 4 | Add a run-time network check | Run `nettop -p <pid>` during a feedback round | None (a manual check) |
 | 5 | Keep the existing `capso://` scheme | No change | None |
 
 ### Notes on recommendation 1
