@@ -28,10 +28,31 @@ private func resolve(_ channel: BuildChannel, override: String?) -> FlagState {
 
 @Suite("FeatureFlags")
 struct FeatureFlagsTests {
-    @Test("Lists the five flags with distinct issue numbers")
+    @Test("Lists the seven flags with their issue numbers")
     func registryContents() {
-        #expect(FeatureFlag.allCases.map(\.rawValue) == ["jevBase", "noteCoach", "cropsAnchors", "dupesConflicts", "oneBreath"])
-        #expect(FeatureFlag.allCases.map(\.spec.issue) == [36, 37, 38, 39, 40])
+        #expect(FeatureFlag.allCases.map(\.rawValue) == [
+            "jevBase", "noteCoach", "cropsAnchors", "dupesConflicts", "oneBreath", "jevSendImages", "jevSendScreenText",
+        ])
+        // The two consent flags belong to the Jev base, #36.
+        #expect(FeatureFlag.allCases.map(\.spec.issue) == [36, 37, 38, 39, 40, 36, 36])
+    }
+
+    @Test("Every Jev flag is dev-only, and a dev-only flag defaults to off in release")
+    func jevFlagsAreDevOnly() {
+        for flag in FeatureFlag.allCases {
+            #expect(flag.spec.devOnly, "\(flag) can turn on in a release build")
+            #expect(flag.spec.releaseDefault == .off, "\(flag) is dev-only but on in release")
+        }
+    }
+
+    @Test("A release build ignores every override of a dev-only flag")
+    func devOnlyIgnoresReleaseOverride() {
+        for flag in FeatureFlag.allCases {
+            for state in flag.spec.allowedStates {
+                #expect(FlagResolver.state(of: flag, channel: .release) { _ in state.rawValue } == .off, "\(flag) \(state) in release")
+                #expect(FlagResolver.state(of: flag, channel: .dev) { _ in state.rawValue } == state, "\(flag) \(state) in dev")
+            }
+        }
     }
 
     @Test("Names the override key flag.<name>")
@@ -91,7 +112,7 @@ struct FeatureFlagsTests {
         #expect(asked == ["flag.oneBreath"])
         #expect(state != .on, "oneBreath never allows on")
 
-        let noteCoach = FlagResolver.state(of: .noteCoach, channel: .release) { _ in "on" }
+        let noteCoach = FlagResolver.state(of: .noteCoach, channel: .dev) { _ in "on" }
         #expect(noteCoach == .on)
         let jevBase = FlagResolver.state(of: .jevBase, channel: .dev) { _ in "shadow" }
         #expect(jevBase != .shadow, "jevBase never allows shadow")

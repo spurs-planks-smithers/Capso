@@ -10,14 +10,14 @@ import Foundation
 /// closing tag whose name starts with `feedback_`, such as bundle, capture,
 /// and selection) until none can be rebuilt, and caps the length in Unicode
 /// scalars.
-enum ScreenText {
+public enum ScreenText {
     /// A field only needs to be long enough to search the code for.
-    static let maxFieldLength = 200
+    public static let maxFieldLength = 200
     /// The OCR text of a whole capture.
-    static let maxBlockLength = 5000
+    public static let maxBlockLength = 5000
     static let maxNameLength = 100
 
-    static func clean(_ text: String, singleLine: Bool, maxScalars: Int) -> String {
+    public static func clean(_ text: String, singleLine: Bool, maxScalars: Int) -> String {
         let visible = text.unicodeScalars.filter { $0.properties.generalCategory != .format }
         var text = String(String.UnicodeScalarView(visible))
         if singleLine {
@@ -42,7 +42,7 @@ enum ScreenText {
 
     /// Wraps screen text in double quotes. Straight and lookalike double quotes
     /// inside it become single quotes, so the text cannot close the quote.
-    static func quoted(_ text: String) -> String {
+    public static func quoted(_ text: String) -> String {
         var inner = text
         for mark in ["\"", "\u{201C}", "\u{201D}", "\u{FF02}"] {
             inner = inner.replacingOccurrences(of: mark, with: "'")
@@ -51,7 +51,7 @@ enum ScreenText {
     }
 
     /// `clean` for an optional field. Text that is empty after cleaning becomes nil.
-    static func field(_ text: String?, singleLine: Bool = true, maxScalars: Int = maxFieldLength) -> String? {
+    public static func field(_ text: String?, singleLine: Bool = true, maxScalars: Int = maxFieldLength) -> String? {
         guard let text else { return nil }
         let cleaned = clean(text, singleLine: singleLine, maxScalars: maxScalars)
         return cleaned.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : cleaned
