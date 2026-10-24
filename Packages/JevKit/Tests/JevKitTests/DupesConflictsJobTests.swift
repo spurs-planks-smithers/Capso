@@ -176,11 +176,6 @@ struct DupesConflictsJobTests {
         #expect(job.version == 1)
     }
 
-    @Test("The screen text notice says what JevPrompting's notice says")
-    func screenTextNoticeMatches() {
-        #expect(DupesConflicts.screenTextNotice.text == JevPrompting.screenTextNotice)
-    }
-
     @Test("Every failure reason has a code name equal to its raw value")
     func reasonCodes() {
         for reason in JevFailureReason.allCases {
@@ -321,7 +316,7 @@ struct DupesConflictsJobTests {
             }
             for entry in request.questions {
                 let text = questionText(entry.question) ?? ""
-                #expect(!text.contains(JevPrompting.screenTextNotice))
+                #expect(!text.contains(JevPrompting.screenTextNotice.text))
                 #expect(!text.contains("Screen text for"))
                 #expect(!text.contains("Crop for"))
             }
@@ -339,7 +334,7 @@ struct DupesConflictsJobTests {
             #expect(names(of: field("earlier_screen_text", in: request.state)) == ["e1_1"])
             for entry in request.questions {
                 let text = questionText(entry.question) ?? ""
-                #expect(text.hasPrefix(JevPrompting.screenTextNotice + " "))
+                #expect(text.hasPrefix(JevPrompting.screenTextNotice.text + " "))
                 #expect(text.contains(" Screen text for earlier_note: `earlier_screen_text.e1_1`."))
                 #expect(!text.contains("Crop for"))
             }
@@ -364,7 +359,7 @@ struct DupesConflictsJobTests {
             #expect(request.images.count == 2)
             for entry in request.questions {
                 let text = questionText(entry.question) ?? ""
-                #expect(!text.contains(JevPrompting.screenTextNotice))
+                #expect(!text.contains(JevPrompting.screenTextNotice.text))
                 #expect(text.hasSuffix(" Crop for earlier_note: `earlier_crops.e1_1`. Crop for the new note: `new[0].crop`."))
             }
         }
