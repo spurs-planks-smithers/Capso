@@ -30,7 +30,7 @@ enum JevRequestEncoder {
             ("state", { try $0.write(request.state) }),
             ("questions", { writer in
                 try writer.writeObject(request.questions.map { entry in
-                    (entry.id, { try writeQuestion(entry.question, into: &$0) })
+                    (entry.id.text, { try writeQuestion(entry.question, into: &$0) })
                 })
             }),
         ]
@@ -39,7 +39,12 @@ enum JevRequestEncoder {
                 try writer.writeObject(images.map { image in
                     let reference = references[image.id] ?? ""
                     let part = partNames[image.id] ?? ""
-                    return (reference, { try $0.write(.fields(["type": "image", "part": .code(part)])) })
+                    return (reference, { writer in
+                        try writer.writeObject([
+                            ("type", { $0.writeString("image") }),
+                            ("part", { $0.writeString(part) }),
+                        ])
+                    })
                 })
             }))
         }
@@ -67,12 +72,12 @@ enum JevRequestEncoder {
         guard !request.questions.isEmpty else { throw JevError(.badRequest) }
         var ids = Set<String>()
         for entry in request.questions {
-            guard isValidID(entry.id), ids.insert(entry.id).inserted else { throw JevError(.badRequest) }
+            guard isValidID(entry.id.text), ids.insert(entry.id.text).inserted else { throw JevError(.badRequest) }
             switch entry.question.kind {
             case .choice(let options):
                 guard (1...255).contains(options.count),
                       Set(options.map(\.name)).count == options.count,
-                      options.allSatisfy({ !$0.name.isEmpty })
+                      options.allSatisfy({ !$0.name.text.isEmpty })
                 else { throw JevError(.badRequest) }
             case .score(let levels):
                 guard (1...10).contains(levels.count) else { throw JevError(.badRequest) }
@@ -105,7 +110,7 @@ enum JevRequestEncoder {
                 ("instructions", { try $0.write(question.instructions) }),
             ]
             if yes != nil || no != nil {
-                var criteria: [(String, JevValue)] = []
+                var criteria: [(JevCodeText, JevValue)] = []
                 if let yes { criteria.append(("true", yes)) }
                 if let no { criteria.append(("false", no)) }
                 fields.append(("criteria", { try $0.write(.object(criteria)) }))

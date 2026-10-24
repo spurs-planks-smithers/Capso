@@ -9,7 +9,7 @@ public struct JevQuestion: Sendable {
         /// are optional criteria for what counts as each answer.
         case noul(yes: JevValue?, no: JevValue?)
         /// One option of a set. Option names are code and come back in the answer.
-        case choice(options: [(name: String, description: JevValue)])
+        case choice(options: [(name: JevCodeText, description: JevValue)])
         /// Ordered levels, lowest first. The answer is a level number.
         case score(levels: [JevValue])
         /// Where something is in an image. Needs an image in the request.
@@ -29,7 +29,7 @@ public struct JevQuestion: Sendable {
         JevQuestion(instructions: instructions, kind: .noul(yes: yes, no: no))
     }
 
-    public static func choice(_ instructions: JevValue, options: KeyValuePairs<String, JevValue>) -> JevQuestion {
+    public static func choice(_ instructions: JevValue, options: KeyValuePairs<JevCodeText, JevValue>) -> JevQuestion {
         JevQuestion(instructions: instructions, kind: .choice(options: options.map { (name: $0.key, description: $0.value) }))
     }
 
@@ -84,14 +84,14 @@ public struct JevQuestion: Sendable {
 public struct JevRequest: Sendable {
     public var state: JevValue
     /// In order. IDs are for code only: TypeSafe does not send them to the model.
-    public var questions: [(id: String, question: JevQuestion)]
+    public var questions: [(id: JevCodeText, question: JevQuestion)]
 
-    public init(state: JevValue, questions: [(id: String, question: JevQuestion)]) {
+    public init(state: JevValue, questions: [(id: JevCodeText, question: JevQuestion)]) {
         self.state = state
         self.questions = questions
     }
 
-    public init(state: JevValue, questions: KeyValuePairs<String, JevQuestion>) {
+    public init(state: JevValue, questions: KeyValuePairs<JevCodeText, JevQuestion>) {
         self.init(state: state, questions: questions.map { (id: $0.key, question: $0.value) })
     }
 
