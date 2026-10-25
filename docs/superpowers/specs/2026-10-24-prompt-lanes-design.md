@@ -1,6 +1,6 @@
 # Lanes and priority: design (draft)
 
-Date: 2026-10-24. Status: approved (Drew, 2026-10-24). Issue: #69 (parent #34). Flag: `promptLanes` (off, shadow, on). Related docs: `docs/plans/2026-10-24-jev-image-ideas.md` (ideas 11 and 12), `docs/superpowers/specs/2026-10-24-jev-handoff-design.md` (Jev design), `docs/superpowers/specs/2026-10-24-jev-base-design.md` (the base), `docs/superpowers/specs/2026-10-24-feature-flags-design.md` (flags).
+Date: 2026-10-24. Status: approved (Drew, 2026-10-24). Issue: #69 (parent #34). Flag: `promptLanes` (off, shadow, on), with the sub-flags `lanesOrder` and `lanesSplit` (#94, 2026-10-25). Related docs: `docs/superpowers/specs/2026-10-25-jev-sub-flags-design.md` (sub-flags), `docs/plans/2026-10-24-jev-image-ideas.md` (ideas 11 and 12), `docs/superpowers/specs/2026-10-24-jev-handoff-design.md` (Jev design), `docs/superpowers/specs/2026-10-24-jev-base-design.md` (the base), `docs/superpowers/specs/2026-10-24-feature-flags-design.md` (flags).
 
 ## Intent
 
@@ -10,6 +10,8 @@ Lanes and priority label each item after its capture is saved. At round end, the
 
 - Lane A, exact edits: the note gives every change as an exact value, and the change is small. The agent hands these to a subagent on a fast, low-cost model as one batch.
 - Lane B, needs judgment: everything else. The agent plans these itself, worst first.
+
+Since 2026-10-25 (#94), two sub-flags turn these two parts on one at a time, so Drew can judge each alone: `lanesOrder` gives the worst-first order, and `lanesSplit` gives the lane A and lane B split. The text above describes both on. See "Sub-flags" below.
 
 The feature never changes a note, never adds a keystroke, and never makes Drew wait. Drew still pastes one prompt.
 
@@ -94,7 +96,7 @@ The accuracy test set the threshold at 0.9 for `jev-1.14.0` (see Accuracy test r
 
 ## The Jev job
 
-`PromptLanesJob` (id `promptLanes`, version 3 after the accuracy test) runs on the base's trigger, after the note panel ends and OCR is stored. It sends one request per capture when at least one item has a note. A capture whose notes are all empty sends nothing.
+`PromptLanesJob` (id `promptLanes`, version 4) runs on the base's trigger, after the note panel ends and OCR is stored. It sends one request per capture when at least one item has a note and `lanesOrder` or `lanesSplit` is shadow or on after the cap. A capture whose notes are all empty sends nothing. With both sub-flags off, the job sends nothing and returns nothing. Version 3 came from the accuracy test. Version 4 (2026-10-25, #94) adds the sub-flags and leaves the questions as they were, so a record from version 3 is no longer used.
 
 The request holds reviewer text only, even with `jevSendImages` or `jevSendScreenText` on. `requires` is empty. Severity, size, and kind come from the words of the note. A picture adds little to them, and text keeps the data that leaves the Mac small. My call, as the note coach did.
 
@@ -145,7 +147,7 @@ Rules:
 6. Weights stay in code. Size does not change the order. It only gates lane A.
 7. The plan reads no network and sends nothing. It is a pure function of the two files, so a test can give it fixed files.
 
-The gate: `PromptLanesPlan.forPrompt(round:file:flags:)` returns nil unless `jevBase` is on and `promptLanes` is on. It also returns nil when no item of the round is rated, so a round where every request failed gets no lanes section. Shadow never changes a prompt.
+The gate: `PromptLanesPlan.forPrompt(round:file:flags:)` returns nil unless `jevBase` is on, `promptLanes` is on, and at least one of `lanesOrder` and `lanesSplit` is on. The app passes `Flags.effectiveState`, so a sub-flag counts at the lower of its own state and the state of `promptLanes`. The sub-flags pick the layout (see Sub-flags). The gate also returns nil when no item of the round is rated, so a round where every request failed gets no lanes section. Shadow never changes a prompt, and a sub-flag in shadow adds nothing to it.
 
 The base's own gate stays as it is. With `promptLanes` on, the base adds its refined pointer lines to the copied prompts and waits its 500 ms at round end, as it does for every feature in the on state. The round-end wait is needed: it lets the last capture's labels reach jev.json. This job writes no refined lines, so `-refined.md` and `refined.md` appear only when another feature writes lines, or when this job fails ("Not refined: promptLanes (timeout)"). Both pointers say "if it exists", so the agent loses nothing. My call, from the builder check: a lanes-only gate would change four base files for a small gain.
 
@@ -188,15 +190,56 @@ Which copies get the section:
 | Copy N Selected | no | none |
 | `prompt.md` on disk | never | n/a |
 
+## Sub-flags (#94)
+
+Drew asked for sub-flags on 2026-10-25. The design is `docs/superpowers/specs/2026-10-25-jev-sub-flags-design.md`.
+
+- `lanesOrder` gates the severity order, worst first.
+- `lanesSplit` gates the lane A and lane B split for a fast and a strong model.
+- Both are dev-only, start off in both channels, and allow off, shadow, and on. Each runs at the lower of its own state and the state of `promptLanes`. Alone, a sub-flag runs nothing.
+- One request per capture gives the ratings for both parts. So the job sends one request when either sub-flag is shadow or on, and none when both are off.
+- A sub-flag in shadow writes the same `jev.json` and `jev-review/promptLanes.md`. It never changes a prompt.
+
+The copied round prompt gets the section for the sub-flags that are on. The title says what the section holds:
+
+| `lanesOrder` | `lanesSplit` | Section | What it holds |
+| --- | --- | --- | --- |
+| on | on | Order and lanes | The section in the example above: lane A and lane B, each worst first. |
+| on | off | Order | One list of every rated item, worst first (severity, then capture, then badge). Not rated items come last. No lanes, no subagent sentence, and no start line. |
+| off | on | Lanes | Lane A and lane B, each in capture order (capture, then badge). Not rated items stay in lane B, in that order. The text makes no claim about order. |
+| off | off | none | The prompt is unchanged. |
+
+Example of the Order section for the same made-up round:
+
+```text
+Order:
+These labels come from an automated model. The reviewer's words win. Each item appears once.
+Plan and work these items in this order, worst first:
+- 4.1 bug, several files
+- 5.2 bug, one file
+- 2.1 polish, one file
+- 3.2 polish, one line
+- 9.6 polish, one line
+- 2.2 nit, one file
+- 7.1 not rated
+Ask first: 4.5 (no instruction).
+```
+
+- Every section shows the same entry lines (item id, severity name, size name) and the same Ask first line. Each item appears once.
+- The Lanes section differs from the example above in two lines. Lane B reads "Lane B, needs judgment. Plan these yourself:" with no "in this order". The last line reads "Start with lane A. Then work lane B." with no "from the top".
+- `PromptLanes` carries the layout (`orderAndLanes`, `order`, or `lanes`). In the `order` layout the one list is `laneB` and `laneA` is empty.
+- The app reads the sub-flags with `Flags.effectiveState`, and the runner applies the same cap before it gives the job its option modes.
+
 ## Behavior per flag state
 
-The job runs only when `jevBase` is on and `promptLanes` is shadow or on. `jevBase` off means no request, whatever `promptLanes` says.
+The job runs only when `jevBase` is on, `promptLanes` is shadow or on, and `lanesOrder` or `lanesSplit` is shadow or on after the cap. `jevBase` off means no request, whatever `promptLanes` says.
 
 | `promptLanes` | Requests | `jev.json` | Review file | Copied round prompt |
 | --- | --- | --- | --- | --- |
 | off | none | no promptLanes entry | none | unchanged, byte for byte |
+| shadow or on, both sub-flags off | none | a record with no answers | none | unchanged |
 | shadow | one per capture with a filled note | the runner's record with every answer, and the summary | `jev-review/promptLanes.md` | unchanged |
-| on | same as shadow | same as shadow | same as shadow | the Order and lanes section at the end |
+| on | same as shadow | same as shadow | same as shadow | the section for the sub-flags that are on, at the end |
 
 Failure: a timeout, an error, no key, or no network ends the job. The runner records it as not refined. The plan puts that capture's items in lane B as not rated. Nextshot never waits beyond the base's 500 ms at round end.
 
@@ -229,6 +272,8 @@ The base test `registryStubsSendNothing` runs only stub jobs (`version == 0`). T
 7. Section text: the exact lines for a made-up round, an empty lane A, an empty lane B, and a round with no rated item (no section).
 8. Failure: a transport error records the job as not refined, and the plan lists that capture's items as not rated.
 
+9. Sub-flags (#94): the registry rules for `lanesOrder` and `lanesSplit` (parent, issue, dev-only, off by default, allowed states). The job with each sub-flag on, in shadow, and off: one request when either is shadow or on, none when both are off, and an empty output. The cap: a sub-flag under a parent in shadow runs in shadow, and a sub-flag alone runs nothing. The plan and the section text for each of the four combinations: both on is today's section, order only is one list worst first, split only is two lanes in capture order, and neither gives no section. Every item appears once in every layout.
+
 Test fixtures use made-up notes only. The repository is public.
 
 ## Accuracy test (before the on state)
@@ -238,7 +283,7 @@ Drew approved this on 2026-10-24: send note text to Jev, text only, with Nextsho
 - Set: the about 66 real notes and about 40 made-up notes, written in Drew's dictation style, with a spread of severities, sizes, and kinds.
 - Labels: this session labels each real note for kind, size, and severity by reading it. Drew confirms the lane A labels and the bug and blocker labels, the two that change the prompt most.
 - The labeled set and the results stay out of this public repository, in `build/jev-eval/` of the main checkout (git ignores `build/`). The spec records counts only.
-- Harness: `scripts/prompt-lanes-eval.sh <set file>` runs the opt-in suite `PromptLanesAccuracyTests` with Nextshot's key. It writes `prompt-lanes-results.json` (labels and numbers, no note text) next to the set file.
+- Harness: `scripts/prompt-lanes-eval.sh <set file>` runs the opt-in suite `PromptLanesAccuracyTests` with Nextshot's key. It writes `prompt-lanes-results.json` (labels and numbers, no note text) next to the set file. The test gives the job both sub-flags as on, as a trial with `feature promptLanes on` does.
 
 Pass bars:
 
@@ -286,11 +331,11 @@ Limits:
 
 1. Build with `promptLanes` off in both channels. A test proves the off state changes nothing.
 2. Run the accuracy test. Set the threshold from it.
-3. Trial on the orchestration session's combined build. Shadow first: one real round of at least 6 items, then Drew reads `jev-review/promptLanes.md`.
-4. On: the same kind of round, copied with Option+Shift+R. The copied prompt must hold the section, and every item once.
+3. Trial on the orchestration session's combined build. Shadow first: `scripts/nextshot-flags.sh feature promptLanes shadow` sets `promptLanes` and both sub-flags. Run one real round of at least 6 items, then Drew reads `jev-review/promptLanes.md`.
+4. On: `scripts/nextshot-flags.sh feature promptLanes on`, then the same kind of round, copied with Option+Shift+R. The copied prompt must hold the "Order and lanes" section, and every item once. To judge one part, Drew runs `set promptLanes on` and sets one sub-flag to on, for example `set lanesOrder on`. The prompt then holds the "Order" or the "Lanes" section.
 5. Paste test: the copied prompt into Claude Code (a strong main model) in a scratch clone. Pass: the agent writes the plan table, starts one subagent with a smaller model for lane A, and plans lane B itself. Evidence: the transcript's subagent call and its model. On 2026-10-21 an agent skipped a softer rule, so file tests alone do not prove this.
 6. On for daily use only when the accuracy test and the paste test pass, and Drew agrees. The release default stays off. Jev features are dev-only.
-7. Kill rule: if Drew finds a wrong lane A item twice in real rounds, set the flag back to shadow and retune. If shadow puts fewer than 15% of real items in lane A over 5 real rounds, drop the lane split and keep the order only.
+7. Kill rule: if Drew finds a wrong lane A item twice in real rounds, set the flag back to shadow and retune. If shadow puts fewer than 15% of real items in lane A over 5 real rounds, drop the lane split and keep the order only: set `lanesSplit` off and `lanesOrder` on.
 
 Metrics, from jev.json and the copied prompts: the share of items in each lane per round, the share not rated, Jev time per capture, and Drew's verdict on lane A edits.
 
@@ -318,6 +363,10 @@ None open. Drew answered every question that changes what gets built on 2026-10-
 - 2026-10-24 (accuracy test): one tuning run (job version 2) with removal examples and no copied test notes (Drew).
 - 2026-10-24 (label review): Drew corrected 11 of Claude's 30 labels. His key replaces Claude's (Drew).
 - 2026-10-24 (label review): severity levels follow Drew's line. Blocker: a feature fails or shows wrong data. Bug: the screen says something false. Polish includes cut-off text, uneven sizes, and inconsistent terms. A mixed exact and vague note is judgment. Job version 3 (Drew).
+- 2026-10-25 (#94): `lanesOrder` and `lanesSplit` are sub-flags of `promptLanes` (Drew, in the sub-flags design). The section is named for the parts that are on: "Order and lanes", "Order", or "Lanes". Neither on gives no section (orchestration call).
+- 2026-10-25 (#94): one request still gives the ratings for both parts, and the job sends none when both are off. Job version 4 (orchestration call).
+- 2026-10-25 (#94): every section keeps the entry lines with severity and size names, so the sub-flags change only the order and the grouping (my call).
+- 2026-10-25 (#94): with `lanesOrder` alone, not rated items come last. With `lanesSplit` alone, they stay in lane B in capture order (my call).
 - 2026-10-24 (label review): lane A takes only polish and nit, with `exact` at 0.9 or more. This replaces "never a blocker" (Drew).
 
 ## Left to the builder
