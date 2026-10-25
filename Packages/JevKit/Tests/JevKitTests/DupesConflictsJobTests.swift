@@ -1332,8 +1332,13 @@ struct DupesConflictsSubFlagTests {
         let onlyOpposite = RequestLog()
         _ = try await Self.run([.dupesConflict: .on], log: onlyOpposite)
 
-        let fullRequests = await full.requests
-        let oppositeRequests = await onlyOpposite.requests
+        // The requests run at once, so the log order can change between runs
+        // (it did in Release). Compare them by their first question id.
+        func byFirstQuestion(_ requests: [JevRequest]) -> [JevRequest] {
+            requests.sorted { ($0.questions.first?.id.text ?? "") < ($1.questions.first?.id.text ?? "") }
+        }
+        let fullRequests = byFirstQuestion(await full.requests)
+        let oppositeRequests = byFirstQuestion(await onlyOpposite.requests)
         #expect(fullRequests.count == oppositeRequests.count)
         for (whole, part) in zip(fullRequests, oppositeRequests) {
             // JevValue is not Equatable, so compare the printed state.
