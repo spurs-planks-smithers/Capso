@@ -55,8 +55,8 @@ Anti-goals (a failure even if it works):
 | --- | --- |
 | Entry | One numbered item with a note (K.N), or one general note of a capture (K.note). An item with no instruction is not an entry. |
 | New entry | An entry of the capture whose job runs now. |
-| Earlier entry | An entry of a capture with a lower index in the same round. Captures of a resumed round count. |
-| Pair | One new entry and one earlier entry. Two entries of the same capture never form a pair. |
+| Earlier entry | An entry of a capture with a lower index in the same round, or an entry before the new entry in its own capture (items by badge, then the general note). Captures of a resumed round count. |
+| Pair | One new entry and one earlier entry. Each pair inside a capture runs once: 1.2 with 1.1, never 1.1 with 1.2. |
 | Duplicate | Both entries ask for the same change to the same element. |
 | Overlap | Jev cannot say that the pair is the same ask or a different ask, or one entry holds part of the other. |
 | Conflict | Both entries ask for changes to the same element that cannot both be done. |
@@ -68,8 +68,9 @@ Anti-goals (a failure even if it works):
 1. Drew finishes the note steps. Nextshot stores the capture and copies the capture prompt, as today.
 2. The base runner starts the jobs when the notes are final and the screen text is stored. The runner decides this for every job, also for a note panel closed early.
 3. This job builds the pairs of the new capture, sends its requests through `context.jev`, applies the decision rules, and returns its lines.
-4. Each pair runs once, in the job of its later capture. A capture's job compares only with captures of a lower index, so a pair never comes up again, also after Resume Round. The job needs no earlier results.
-5. One request can fail (timeout, offline, server). The job catches the error and keeps the answers of the other requests. It adds one capture line that names the entries it could not check. A failed request does not retry inside the job, except through the base's own retries.
+4. Each pair runs once, in the job of the capture that holds its later entry. A capture's job compares with captures of a lower index and with the earlier entries of its own capture, so a pair never comes up again, also after Resume Round. The job needs no earlier results.
+5. Pairs inside one capture count too (Drew, 2026-10-24). In the trial, Drew put "bigger", "smaller", and "larger" on three badges of one capture. A dictated note can contradict an earlier badge of the same capture. Two entries of one capture always count as the same source for images.
+6. One request can fail (timeout, offline, server). The job catches the error and keeps the answers of the other requests. It adds one capture line that names the entries it could not check. A failed request does not retry inside the job, except through the base's own retries.
 
 ### Which pairs go to Jev
 
@@ -249,6 +250,7 @@ Light research on 2026-10-24 (four searches). The findings that shape this desig
 - 2026-10-24: shadow results are reviewed with a script that saves y or n labels (Drew).
 - 2026-10-24: the bar for on is 10 labeled calls with at most 1 wrong, for duplicates and conflicts each (Drew).
 - 2026-10-24: general notes join the pairs as K.note entries (Drew).
+- 2026-10-24: items inside one capture are compared too, after the trial showed three asks about one element in one capture. This replaces the earlier call "no pairs inside one capture" (Drew).
 - 2026-10-24: Ask first and Same ask lines go in the round section at the top of `refined.md`, as the approved base spec says. The handoff design said "at the top of the round prompt". The base spec wins (Drew).
 
 My calls (Drew can change any of them):
@@ -262,7 +264,8 @@ My calls (Drew can change any of them):
 - Overlaps in the entry's section only. Conflicts and duplicates in the round scope only, which the writer shows at the top of both files.
 - A list longer than 300 characters splits into several lines.
 - Lines hold ids only. The agent reads each note in `manifest.md`. This keeps screen text and file names out of the labels.
-- No pairs inside one capture, and no pairs across rounds.
+- No pairs across rounds.
+- The "earlier paste" sentence shows only when a line names an entry from an earlier capture. Entries of one capture go out in one paste.
 - A failed request is named in a "Not checked" line and does not retry inside the job.
 - The duplicate line says "check the code, and make the change once". It never says "skip".
 

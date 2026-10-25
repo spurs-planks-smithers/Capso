@@ -20,15 +20,17 @@ public struct DupesConflictsJob: JevJob {
 
     public func run(_ context: JevJobContext) async throws -> JevJobOutput {
         let newEntries = DupesConflicts.entries(of: context.capture)
-        let earlier = context.round.captures
+        let earlierCaptures = context.round.captures
             .filter { $0.index < context.capture.index }
             .sorted { $0.index < $1.index }
             .flatMap { DupesConflicts.entries(of: $0) }
-        guard !newEntries.isEmpty, !earlier.isEmpty else { return .empty }
+        let candidates = DupesConflicts.candidates(earlierCaptures: earlierCaptures, new: newEntries)
+        let checked = newEntries.filter { !candidates($0).isEmpty }
+        guard !checked.isEmpty else { return .empty }
 
         let batches = DupesConflicts.batches(
-            new: newEntries,
-            earlier: earlier,
+            new: checked,
+            candidates: candidates,
             allowed: context.allowed,
             images: context.images
         )
@@ -44,7 +46,7 @@ public struct DupesConflictsJob: JevJob {
             case .success(let response):
                 anySucceeded = true
                 for entry in batch.entries {
-                    let outcomes = DupesConflicts.outcomes(of: entry, against: earlier, in: response)
+                    let outcomes = DupesConflicts.outcomes(of: entry, against: candidates(entry), in: response)
                     lines += DupesConflicts.lines(for: entry, outcomes: outcomes)
                     flagged += DupesConflicts.flaggedSummary(of: entry, outcomes: outcomes)
                 }
@@ -245,9 +247,11 @@ enum DupesConflicts {
             return "e\(captureIndex)_note"
         }
 
-        /// Same app name, or same window title. A missing name never matches.
-        /// Code decides this on the Mac, and it decides whether images go.
+        /// Same capture, same app name, or same window title. A missing name
+        /// never matches. Code decides this on the Mac, and it decides
+        /// whether images go.
         func sharesSource(with other: Entry) -> Bool {
+            if captureIndex == other.captureIndex { return true }
             if let app, app == other.app { return true }
             if let windowTitle, windowTitle == other.windowTitle { return true }
             return false
@@ -300,6 +304,17 @@ enum DupesConflicts {
         !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    /// The entries one new entry is compared with: every entry of the
+    /// earlier captures, then the entries before it in its own capture
+    /// (Drew, 2026-10-24). So each pair inside a capture runs once, and the
+    /// first entry of the round has none.
+    static func candidates(earlierCaptures: [Entry], new newEntries: [Entry]) -> @Sendable (Entry) -> [Entry] {
+        { entry in
+            let before = newEntries.prefix { $0 != entry }
+            return earlierCaptures + before
+        }
+    }
+
     // MARK: Question ids
 
     /// `<new id>.vs.<earlier id>.sameAsk`, for example `4.2.vs.3.2.sameAsk`.
@@ -350,10 +365,11 @@ enum DupesConflicts {
 
     /// Builds the requests. Screen text goes only with `.screenText` allowed,
     /// and images only with `.images` allowed and only for same-source pairs.
-    /// A failed image load leaves that image out.
+    /// A failed image load leaves that image out. `candidates` gives the
+    /// entries each new entry is compared with.
     static func batches(
         new newEntries: [Entry],
-        earlier: [Entry],
+        candidates: (Entry) -> [Entry],
         allowed: JevDataKinds,
         images: JevImageLoader
     ) -> [Batch] {
@@ -372,6 +388,16 @@ enum DupesConflicts {
 
         var batches: [Batch] = []
         for chunk in chunks(newEntries) {
+            // Every entry that a new entry of this request is compared with,
+            // once each, in capture and badge order.
+            var earlier: [Entry] = []
+            for entry in chunk {
+                for other in candidates(entry) where !earlier.contains(other) {
+                    earlier.append(other)
+                }
+            }
+            earlier.sort { ($0.captureIndex, $0.badge ?? Int.max) < ($1.captureIndex, $1.badge ?? Int.max) }
+
             var newValues: [JevValue] = []
             var newHasCrop: [Bool] = []
             for entry in chunk {
@@ -383,7 +409,7 @@ enum DupesConflicts {
                 var hasCrop = false
                 if sendImages,
                    newHasCrop.filter({ $0 }).count < JevRequestEncoder.maxImages,
-                   earlier.contains(where: { entry.sharesSource(with: $0) }),
+                   candidates(entry).contains(where: { entry.sharesSource(with: $0) }),
                    let crop = image(of: entry) {
                     fields.append(("crop", .image(crop)))
                     hasCrop = true
@@ -412,7 +438,7 @@ enum DupesConflicts {
                 // fill what is left.
                 let limit = min(maxEarlierCrops, JevRequestEncoder.maxImages - newHasCrop.filter { $0 }.count)
                 var crops: [(JevCodeText, JevValue)] = []
-                for entry in earlier.reversed() where chunk.contains(where: { $0.sharesSource(with: entry) }) {
+                for entry in earlier.reversed() where chunk.contains(where: { candidates($0).contains(entry) && $0.sharesSource(with: entry) }) {
                     guard crops.count < limit else { break }
                     if let crop = image(of: entry) {
                         crops.append((entry.key, .image(crop)))
@@ -428,7 +454,7 @@ enum DupesConflicts {
             let notice: JevCodeText = stateValue.kinds.contains(.screenText) ? "\(JevPrompting.screenTextNotice) " : ""
             var questions: [(id: JevCodeText, question: JevQuestion)] = []
             for (position, entry) in chunk.enumerated() {
-                for other in earlier {
+                for other in candidates(entry) {
                     var pointers: [JevCodeText] = []
                     if screenKeys.contains(other.key) {
                         pointers.append(" Screen text for earlier_note: `earlier_screen_text.\(other.key)`.")
@@ -503,10 +529,17 @@ enum DupesConflicts {
         let scope: JevRefinedLine.Scope = entry.badge.map { .item(badge: $0) } ?? .capture
         var lines: [JevRefinedLine] = []
 
+        // An earlier paste can only have done the work when an entry comes
+        // from an earlier capture. Entries of the same capture go in one paste.
+        func fromEarlierCapture(_ group: [Entry]) -> Bool {
+            group.contains { $0.captureIndex < entry.captureIndex }
+        }
+
         let duplicates = outcomes.filter { $0.outcome == .duplicate }.map(\.earlier)
         for label in packed(duplicates, label: { group in
             let allCaptures = captures(group.map(\.captureIndex) + [entry.captureIndex])
-            return "Same ask: \(entry.name) repeats \(list(group.map(\.name))) (\(allCaptures)). An earlier paste may have made this change. Check the code, and make the change once. Each note is in manifest.md."
+            let paste: JevCodeText = fromEarlierCapture(group) ? " An earlier paste may have made this change. Check the code, and make the change once." : " Make the change once."
+            return "Same ask: \(entry.name) repeats \(list(group.map(\.name))) (\(allCaptures)).\(paste) Each note is in manifest.md."
         }) {
             lines.append(JevRefinedLine(scope: .round, label: label))
         }
@@ -514,7 +547,8 @@ enum DupesConflicts {
         let overlaps = outcomes.filter { $0.outcome == .overlap }.map(\.earlier)
         for label in packed(overlaps, label: { group in
             let read: JevCodeText = group.count == 1 ? group[0].name : "them"
-            return "\(entry.sentenceName) may overlap with \(list(group.map(\.name))). Read \(read) in manifest.md. An earlier paste may have done part of it. Check the code before you edit twice."
+            let paste: JevCodeText = fromEarlierCapture(group) ? " An earlier paste may have done part of it." : ""
+            return "\(entry.sentenceName) may overlap with \(list(group.map(\.name))). Read \(read) in manifest.md.\(paste) Check the code before you edit twice."
         }) {
             lines.append(JevRefinedLine(scope: scope, label: label))
         }

@@ -243,16 +243,18 @@ struct DupesConflictsJobTests {
 
     // MARK: Pairs
 
-    @Test("The first capture of a round sends no request and returns empty")
+    @Test("The first capture of a round with one entry sends no request and returns empty")
     func firstCaptureSendsNothing() async throws {
-        let captures = [dupesCapture(1, note: "a note", marks: [dupesItem(1, "make it bigger")])]
+        // One entry on purpose: with two or more, the later entries pair with
+        // the earlier ones of their own capture (see the same-capture tests).
+        let captures = [dupesCapture(1, marks: [dupesItem(1, "make it bigger")])]
         let log = RequestLog()
         let output = try await DupesConflictsJob().run(dupesContext(captures, current: 1, ask: canned(log: log)))
         #expect(output == .empty)
         #expect(await log.count == 0)
     }
 
-    @Test("A capture with no new entry, or with no earlier entry, sends nothing")
+    @Test("A capture with no new entry, or with one new entry and no earlier entry, sends nothing")
     func noEntriesSendsNothing() async throws {
         let log = RequestLog()
 
@@ -267,37 +269,104 @@ struct DupesConflictsJobTests {
         #expect(await log.count == 0)
     }
 
-    @Test("A new entry pairs only with entries of captures with a lower index")
-    func pairsWithLowerIndexOnly() async throws {
+    @Test("A new entry never pairs with a later capture")
+    func neverPairsWithLaterCapture() async throws {
+        // Capture 2 holds one entry on purpose, so its only pair is with
+        // capture 1. Pairs inside a capture have their own tests.
+        let captures = [
+            dupesCapture(1, marks: [dupesItem(1, "make the title bigger")]),
+            dupesCapture(2, marks: [dupesItem(1, "use a darker blue")]),
+            dupesCapture(3, marks: [dupesItem(1, "rename the menu")]),
+        ]
+        let log = RequestLog()
+        _ = try await DupesConflictsJob().run(dupesContext(captures, current: 2, ask: canned(log: log)))
+        let requests = await log.requests
+        #expect(requests.count == 1)
+
+        let ids = requests.flatMap { $0.questions.map { $0.id.text } }
+        #expect(ids.count == 2)
+        for id in ids {
+            let parsed = DupesConflicts.parse(questionID: id)
+            #expect(parsed?.new == "2.1", "\(id)")
+            #expect(parsed?.earlier == "1.1", "\(id)")
+        }
+    }
+
+    @Test("Inside the first capture, items 1.2 and 1.3 and the note pair with the entries before them")
+    func pairsInsideOneCapture() async throws {
+        let captures = [
+            dupesCapture(1, note: "keep the old wording", marks: [
+                dupesItem(1, "make the title bigger"),
+                dupesItem(2, "remove the border"),
+                dupesItem(3, "use a darker blue"),
+            ]),
+        ]
+        let log = RequestLog()
+        let output = try await DupesConflictsJob().run(dupesContext(captures, current: 1, ask: canned(log: log)))
+        let requests = await log.requests
+
+        // 1.1 has no entry before it, so it sends nothing. The others send one request each.
+        #expect(requests.count == 3)
+        #expect(Set(requests.flatMap { newIDs(of: $0) }) == ["1.2", "1.3", "1.note"])
+        #expect(requests.allSatisfy { newIDs(of: $0).count == 1 })
+
+        var expected = Set<String>()
+        let pairs = [
+            ("1.2", ["1.1"]),
+            ("1.3", ["1.1", "1.2"]),
+            ("1.note", ["1.1", "1.2", "1.3"]),
+        ]
+        for (new, earlier) in pairs {
+            for id in earlier {
+                expected.insert("\(new).vs.\(id).sameAsk")
+                expected.insert("\(new).vs.\(id).opposite")
+            }
+        }
+        let sent = requests.flatMap { $0.questions.map { $0.id.text } }
+        #expect(sent.count == 12)
+        #expect(Set(sent) == expected)
+        #expect(output.lines.isEmpty)
+    }
+
+    @Test("A later capture pairs with the earlier capture, then with its own earlier entries, never 2.1 with 2.2")
+    func pairsInALaterCapture() async throws {
         let captures = [
             dupesCapture(1, marks: [dupesItem(1, "make the title bigger")]),
             dupesCapture(2, marks: [dupesItem(1, "use a darker blue"), dupesItem(2, "remove the border")]),
-            dupesCapture(3, marks: [dupesItem(1, "rename the menu")]),
         ]
         let log = RequestLog()
         _ = try await DupesConflictsJob().run(dupesContext(captures, current: 2, ask: canned(log: log)))
         let requests = await log.requests
         #expect(requests.count == 2)
 
-        let ids = requests.flatMap { $0.questions.map { $0.id.text } }
-        #expect(ids.count == 4)
-        for id in ids {
-            let parsed = DupesConflicts.parse(questionID: id)
-            #expect(parsed?.new.hasPrefix("2.") == true, "\(id)")
-            #expect(parsed?.earlier == "1.1", "\(id)")
-        }
+        let first = try #require(requestHolding("2.1", in: requests))
+        let second = try #require(requestHolding("2.2", in: requests))
+        #expect(first.questions.map { $0.id.text } == [
+            "2.1.vs.1.1.sameAsk", "2.1.vs.1.1.opposite",
+        ])
+        #expect(second.questions.map { $0.id.text } == [
+            "2.2.vs.1.1.sameAsk", "2.2.vs.1.1.opposite",
+            "2.2.vs.2.1.sameAsk", "2.2.vs.2.1.opposite",
+        ])
+        let sent = requests.flatMap { $0.questions.map { $0.id.text } }
+        #expect(!sent.contains { $0.hasPrefix("2.1.vs.2.2") })
     }
 
     // MARK: Consent
 
+    /// Capture 2 holds one entry (an item by default), so these tests keep
+    /// checking pairs across captures. Entries of one capture always share a
+    /// source and pair with each other: the same-capture tests cover that.
     private func consentRequests(
         earlier: (app: String?, window: String?) = ("Claude", "Main"),
         current: (app: String?, window: String?) = ("Claude", "Main"),
-        allowed: JevDataKinds
+        allowed: JevDataKinds,
+        currentMarks: [FeedbackMark] = [dupesItem(1, "make the title smaller", ocr: "Save changes")],
+        currentNote: String? = nil
     ) async throws -> [JevRequest] {
         let captures = [
             dupesCapture(1, app: earlier.app, window: earlier.window, marks: [dupesItem(1, "make the title bigger", ocr: "Save")]),
-            dupesCapture(2, app: current.app, window: current.window, note: "general ask", marks: [dupesItem(1, "make the title smaller", ocr: "Save changes")]),
+            dupesCapture(2, app: current.app, window: current.window, note: currentNote, marks: currentMarks),
         ]
         let log = RequestLog()
         _ = try await DupesConflictsJob().run(dupesContext(captures, current: 2, allowed: allowed, ask: canned(log: log)))
@@ -307,7 +376,7 @@ struct DupesConflictsJobTests {
     @Test("With reviewer text only, a request holds no screen text, app, or crop")
     func reviewerTextOnly() async throws {
         let requests = try await consentRequests(allowed: .reviewerText)
-        #expect(requests.count == 2)
+        #expect(requests.count == 1)
         for request in requests {
             #expect(request.kinds == .reviewerText)
             #expect(names(of: request.state) == ["new"])
@@ -326,7 +395,7 @@ struct DupesConflictsJobTests {
     @Test("With screen text allowed, the state holds screen text and each question starts with the notice")
     func screenTextAllowed() async throws {
         let requests = try await consentRequests(allowed: [.reviewerText, .screenText])
-        #expect(requests.count == 2)
+        #expect(requests.count == 1)
         for request in requests {
             #expect(request.kinds.contains(.screenText))
             #expect(!request.kinds.contains(.images))
@@ -341,15 +410,21 @@ struct DupesConflictsJobTests {
         }
         let item = try #require(requestHolding("2.1", in: requests))
         #expect(names(of: newObjects(of: item).first) == ["id", "note", "screen_text", "app"])
-        // A note has no mark, so no screen text. Its app name still goes.
+    }
+
+    @Test("A general note sends no screen text of its own, but its app name goes")
+    func noteSendsAppNameOnly() async throws {
+        // Capture 2 is a lone note, so the note's only pair is with capture 1.
+        let requests = try await consentRequests(allowed: [.reviewerText, .screenText], currentMarks: [], currentNote: "general ask")
         let note = try #require(requestHolding("2.note", in: requests))
+        #expect(requests.count == 1)
         #expect(names(of: newObjects(of: note).first) == ["id", "note", "app"])
     }
 
     @Test("With images allowed and the same app, crops go for new and earlier entries")
     func imagesSameApp() async throws {
         let requests = try await consentRequests(earlier: ("Claude", "Inbox"), current: ("Claude", "Main"), allowed: [.reviewerText, .images])
-        #expect(requests.count == 2)
+        #expect(requests.count == 1)
         for request in requests {
             #expect(request.kinds.contains(.images))
             #expect(!request.kinds.contains(.screenText))
@@ -374,7 +449,7 @@ struct DupesConflictsJobTests {
     @Test("With different apps and window titles, no image goes")
     func noImagesForDifferentSources() async throws {
         let requests = try await consentRequests(earlier: ("Mail", "Inbox"), current: ("Claude", "Main"), allowed: [.reviewerText, .screenText, .images])
-        #expect(requests.count == 2)
+        #expect(requests.count == 1)
         for request in requests {
             #expect(request.images.isEmpty)
             #expect(!request.kinds.contains(.images))
@@ -387,7 +462,7 @@ struct DupesConflictsJobTests {
     func missingNamesNeverMatch() async throws {
         let allKinds: JevDataKinds = [.reviewerText, .screenText, .images]
         let noNames = try await consentRequests(earlier: (nil, nil), current: (nil, nil), allowed: allKinds)
-        #expect(noNames.count == 2)
+        #expect(noNames.count == 1)
         #expect(noNames.allSatisfy { $0.images.isEmpty })
 
         let differentTitles = try await consentRequests(earlier: (nil, "Inbox"), current: (nil, "Main"), allowed: allKinds)
@@ -396,6 +471,40 @@ struct DupesConflictsJobTests {
         // The same non-empty window title still matches when both apps are missing.
         let sameTitle = try await consentRequests(earlier: (nil, "Main"), current: (nil, "Main"), allowed: allKinds)
         #expect(sameTitle.allSatisfy { $0.images.count == 2 })
+    }
+
+    @Test("Two entries of one capture are the same source, whatever the app and window names are")
+    func sameCaptureIsSameSource() async throws {
+        func entry(_ capture: Int, _ badge: Int, app: String?, window: String?) -> DupesConflicts.Entry {
+            DupesConflicts.Entry(captureIndex: capture, badge: badge, note: "n", app: app, windowTitle: window)
+        }
+        #expect(entry(1, 1, app: nil, window: nil).sharesSource(with: entry(1, 2, app: nil, window: nil)))
+        #expect(entry(1, 1, app: "Mail", window: "Inbox").sharesSource(with: entry(1, 2, app: "Claude", window: "Main")))
+        #expect(!entry(1, 1, app: nil, window: nil).sharesSource(with: entry(2, 1, app: nil, window: nil)))
+
+        // With no names at all, the crops still go for a pair inside one
+        // capture, and only with images allowed.
+        let captures = [
+            dupesCapture(1, app: nil, window: nil, marks: [dupesItem(1, "make the title bigger"), dupesItem(2, "make the title smaller")]),
+        ]
+        let withImages = RequestLog()
+        _ = try await DupesConflictsJob().run(dupesContext(captures, current: 1, allowed: [.reviewerText, .images], ask: canned(log: withImages)))
+        let imageRequests = await withImages.requests
+        let request = try #require(imageRequests.first)
+        #expect(imageRequests.count == 1)
+        #expect(newIDs(of: request) == ["1.2"])
+        #expect(names(of: request.state) == ["new", "earlier_crops"])
+        #expect(names(of: newObjects(of: request).first) == ["id", "note", "crop"])
+        #expect(names(of: field("earlier_crops", in: request.state)) == ["e1_1"])
+        #expect(request.images.count == 2)
+
+        let textOnly = RequestLog()
+        _ = try await DupesConflictsJob().run(dupesContext(captures, current: 1, allowed: .reviewerText, ask: canned(log: textOnly)))
+        let textRequests = await textOnly.requests
+        let plain = try #require(textRequests.first)
+        #expect(plain.images.isEmpty)
+        #expect(names(of: plain.state) == ["new"])
+        #expect(names(of: newObjects(of: plain).first) == ["id", "note"])
     }
 
     @Test("A failed image load leaves that image out and does not fail the job")
@@ -502,11 +611,15 @@ struct DupesConflictsJobTests {
             #expect(Set(ids).count == ids.count)
             all += ids
         }
-        // 3 new entries and 5 earlier entries make 15 pairs and 30 questions.
-        #expect(all.count == 30)
-        #expect(Set(all).count == 30)
+        // 3 new entries and 5 earlier entries make 15 pairs. The 3 pairs inside
+        // capture 3 (3.2 vs 3.1, 3.note vs 3.1, 3.note vs 3.2) make 18 pairs
+        // and 36 questions.
+        #expect(all.count == 36)
+        #expect(Set(all).count == 36)
         #expect(all.contains("3.note.vs.2.note.opposite"))
         #expect(all.contains("3.1.vs.1.note.sameAsk"))
+        #expect(all.contains("3.2.vs.3.1.sameAsk"))
+        #expect(all.contains("3.note.vs.3.2.opposite"))
     }
 
     // MARK: Chunking
@@ -526,7 +639,7 @@ struct DupesConflictsJobTests {
         #expect(DupesConflicts.chunks(entries(40)).flatMap { $0 }.map(\.id) == entries(40).map(\.id))
     }
 
-    @Test("17 new entries make 8 requests, and every pair's two questions appear once")
+    @Test("17 new entries make 8 requests, and every pair's two questions appear once, also inside the capture")
     func seventeenEntries() async throws {
         let captures = [
             dupesCapture(1, marks: [dupesItem(1, "make the title bigger"), dupesItem(2, "remove the border")]),
@@ -554,17 +667,20 @@ struct DupesConflictsJobTests {
             #expect((questionText(entry.question) ?? "").contains("`new[\(position)]`"), "\(entry.id)")
         }
 
+        // Each new entry pairs with the 2 entries of capture 1, then with the
+        // new entries before it: 34 pairs across captures and 0 + 1 + ... + 16
+        // = 136 pairs inside capture 2.
         let new = (1...16).map { "2.\($0)" } + ["2.note"]
         let earlier = ["1.1", "1.2"]
         var expected = Set<String>()
-        for n in new {
-            for e in earlier {
+        for (position, n) in new.enumerated() {
+            for e in earlier + new[..<position] {
                 expected.insert("\(n).vs.\(e).sameAsk")
                 expected.insert("\(n).vs.\(e).opposite")
             }
         }
         let sent = requests.flatMap { $0.questions.map { $0.id.text } }
-        #expect(sent.count == 68)
+        #expect(sent.count == 340)
         #expect(Set(sent) == expected)
     }
 
@@ -734,6 +850,75 @@ struct DupesConflictsJobTests {
         }
         #expect(lines.allSatisfy { $0.screenText == nil && $0.file == nil })
         #expect(!lines.contains { $0.label.text.contains("Heading") })
+    }
+
+    /// Runs the job on the last capture of `captures` and returns its lines.
+    private func runRound(_ captures: [FeedbackCapture], _ table: [String: PairScore]) async throws -> [JevRefinedLine] {
+        let last = try #require(captures.last)
+        return try await DupesConflictsJob().run(dupesContext(captures, current: last.index, ask: canned(table))).lines
+    }
+
+    @Test("Inside one capture, a duplicate and an overlap leave out the earlier-paste sentence")
+    func lineTextInsideOneCapture() async throws {
+        let captures = [
+            dupesCapture(1, marks: [dupesItem(1, "make the title bigger"), dupesItem(2, "make the heading larger"), dupesItem(3, "enlarge the title")]),
+        ]
+        let lines = try await runRound(captures, [
+            "1.2.vs.1.1": PairScore(sameAsk: 1.0, opposite: 0),
+            "1.3.vs.1.1": PairScore(sameAsk: 1.8, opposite: 0),
+        ])
+        #expect(lines == [
+            itemLine(2, "1.2 may overlap with 1.1. Read 1.1 in manifest.md. Check the code before you edit twice."),
+            scopedLine(.round, "Same ask: 1.3 repeats 1.1 (capture 1). Make the change once. Each note is in manifest.md."),
+        ])
+    }
+
+    @Test("Inside one capture, an overlap with two entries says to read them")
+    func overlapOfTwoInsideOneCapture() async throws {
+        let captures = [
+            dupesCapture(1, marks: [dupesItem(1, "make the title bigger"), dupesItem(2, "make the heading larger"), dupesItem(3, "enlarge the title")]),
+        ]
+        let lines = try await runRound(captures, [
+            "1.3.vs.1.1": PairScore(sameAsk: 1.0, opposite: 0),
+            "1.3.vs.1.2": PairScore(sameAsk: 0.5, opposite: 0),
+        ])
+        #expect(lines == [
+            itemLine(3, "1.3 may overlap with 1.1 and 1.2. Read them in manifest.md. Check the code before you edit twice."),
+        ])
+    }
+
+    @Test("Inside one capture, a conflict gives the normal conflict line")
+    func conflictInsideOneCapture() async throws {
+        let captures = [
+            dupesCapture(1, marks: [dupesItem(1, "make the title bigger"), dupesItem(2, "make the title smaller")]),
+        ]
+        let lines = try await runRound(captures, ["1.2.vs.1.1": PairScore(sameAsk: 1.9, opposite: 0.8)])
+        #expect(lines == [
+            scopedLine(.round, "Ask first: 1.2 and 1.1 ask for opposite changes to the same element. Read both in manifest.md. Ask the user which one wins before you edit either. 1.2 is newer."),
+        ])
+    }
+
+    @Test("A line that names one earlier-capture entry and one same-capture entry keeps the earlier-paste sentence")
+    func lineTextMixedCaptures() async throws {
+        let captures = [
+            dupesCapture(1, marks: [dupesItem(1, "make the title bigger")]),
+            dupesCapture(2, marks: [dupesItem(1, "make the heading larger"), dupesItem(2, "enlarge the title")]),
+        ]
+        let duplicate = try await runRound(captures, [
+            "2.2.vs.1.1": PairScore(sameAsk: 1.7, opposite: 0),
+            "2.2.vs.2.1": PairScore(sameAsk: 1.6, opposite: 0),
+        ])
+        #expect(duplicate == [
+            scopedLine(.round, "Same ask: 2.2 repeats 1.1 and 2.1 (captures 1 and 2). An earlier paste may have made this change. Check the code, and make the change once. Each note is in manifest.md."),
+        ])
+
+        let overlap = try await runRound(captures, [
+            "2.2.vs.1.1": PairScore(sameAsk: 1.0, opposite: 0),
+            "2.2.vs.2.1": PairScore(sameAsk: 0.8, opposite: 0),
+        ])
+        #expect(overlap == [
+            itemLine(2, "2.2 may overlap with 1.1 and 2.1. Read them in manifest.md. An earlier paste may have done part of it. Check the code before you edit twice."),
+        ])
     }
 
     // MARK: Failures
