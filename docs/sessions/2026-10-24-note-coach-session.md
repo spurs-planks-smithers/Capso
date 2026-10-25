@@ -17,11 +17,11 @@ On `claude/note-coach-d8dd95`: `1d69a9c` spec, `27eca9b` shared stub-test line, 
 ## Git
 
 - PR [#66](https://github.com/spurs-planks-smithers/Capso/pull/66) into `feature/feedback-sessions`. Fork CI is off, so it shows zero checks. Local results: JevKit 91 pass, the unsigned Debug build passes.
-- Sub-issues: #62 closed (accuracy), #63 closed after this note (trial), #61 closes when PR #66 merges.
+- Sub-issues #61 (job and tests), #62 (accuracy), and #63 (trial) are closed.
 
 ## Open
 
-- Drew approves the PR #66 merge. Then #61 and #37 close.
+- Drew approves the PR #66 merge. Then #37 closes.
 - Turning the on state on for daily use is Drew's call. The kill rule in the spec applies.
 - Later: the circle crop as input (needs `jevSendImages`), with its own accuracy run.
 - A wrong commit hash went to the orchestration once and was corrected. A memory now says to read every hash from git.
