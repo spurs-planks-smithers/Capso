@@ -55,7 +55,7 @@ Nextshot does not update itself over the network. When you get a new DMG:
 1. Open the new DMG.
 2. Double-click **Nextshot** in its window, then click **Install**.
 
-Nextshot quits the copy that runs, replaces it, and opens the new version. It also ejects old Nextshot DMGs, so they leave the Finder sidebar. Your rounds, settings, and permissions stay.
+Nextshot quits the copy that runs, replaces it, and opens the new version. It also ejects old Nextshot DMGs, so they leave the Finder sidebar. Your rounds, settings, and permissions stay. If the DMG is not newer than your copy, Nextshot says it is up to date.
 
 A drag to **Applications** works only while Nextshot is not running. Finder cannot replace an app that is running.
 

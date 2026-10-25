@@ -8,6 +8,7 @@ Date: 2026-10-25. Decided by Drew, from feedback round `2026-10-25-0637-feedback
 - The DMG window shows no `LICENSE.txt`. The zip has none beside the app either. The license ships inside the app, at `Contents/Resources/LICENSE.txt` (Drew chose "remove from installer only").
 - The volume name holds the version, as the top row of the Nshot menu does, for example `Nextshot 2026.10.24 (524)`.
 - An update starts from the copy on the image. A double-click on it shows "Install Nextshot ...?". Install quits the running copy, replaces it in place, and opens the new copy.
+- When the copy on the image is not newer, it says "Nextshot is up to date." with both versions. OK brings the running copy to the front. Install Anyway replaces it, for a move back from a trial build. Before this, the copy exited with no word, and a double-click seemed to do nothing (live test, 2026-10-25).
 - The newest build wins at launch. An older copy that starts finds a newer one and exits. A newer copy asks older copies to quit. Newest means the later version date, then the higher build number. The build number alone fails across branches: on 2026-10-25 a local trial build was 665 and the release from a later commit was 618.
 - The installed copy ejects every mounted disk image that holds a Nextshot.app with its bundle ID. Old installers no longer pile up under Locations in Finder.
 - dmgbuild makes the image, not create-dmg.

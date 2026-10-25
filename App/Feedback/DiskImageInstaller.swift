@@ -81,7 +81,30 @@ enum DiskImageInstaller {
             logger.notice("Install declined.")
             return
         }
+        install(destination: destination, runningCopies: runningCopies)
+    }
 
+    /// The copy on the image is not newer. Before 2026-10-25 it exited with no
+    /// word, so a double-click "to update" seemed to do nothing. Install
+    /// Anyway goes back from a trial build to a release (Drew, 2026-10-25).
+    /// Returns only when the user says OK or the install fails.
+    static func offerReplaceNewer(destination: URL, runningCopies: [NSRunningApplication]) {
+        let installed = runningCopies.first?.bundleURL ?? destination
+        let alert = NSAlert()
+        alert.messageText = "Nextshot is up to date."
+        let state = runningCopies.isEmpty ? "installed" : "open"
+        alert.informativeText = "Nextshot \(versionText(of: installed)) is \(state). This disk has \(versionText(of: Bundle.main.bundleURL)), which is not newer."
+        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: "Install Anyway")
+        NSApp.activate(ignoringOtherApps: true)
+        guard alert.runModal() == .alertSecondButtonReturn else { return }
+        logger.notice("Install Anyway over \(versionText(of: installed), privacy: .public).")
+        install(destination: destination, runningCopies: runningCopies)
+    }
+
+    /// Quits the running copies, puts this copy at `destination`, opens it,
+    /// and exits. Returns only when a step fails.
+    private static func install(destination: URL, runningCopies: [NSRunningApplication]) {
         for app in runningCopies {
             app.terminate()
         }

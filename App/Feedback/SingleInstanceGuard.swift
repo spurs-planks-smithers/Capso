@@ -38,6 +38,10 @@ enum SingleInstanceGuard {
             installedBuild: installedBuild
         )
         logger.notice("Launch plan for build \(me.build.description, privacy: .public): \(String(describing: plan), privacy: .public)")
+        // The running copies that are not on an image, for the install dialogs.
+        let installed = others.filter { app in
+            !(app.bundleURL.map(DiskImageInstaller.isOnReadOnlyVolume) ?? false)
+        }
 
         switch plan {
         case .run:
@@ -52,18 +56,19 @@ enum SingleInstanceGuard {
                 exit(0)
             }
         case .yield(let pid):
+            if me.onReadOnlyVolume, let destination {
+                DiskImageInstaller.offerReplaceNewer(destination: destination, runningCopies: installed)
+            }
             logger.notice("Another copy runs (pid \(pid)). Quitting pid \(current.processIdentifier).")
             others.first { $0.processIdentifier == pid }?.activate()
             exit(0)
         case .openInstalled:
             if let destination {
+                DiskImageInstaller.offerReplaceNewer(destination: destination, runningCopies: [])
                 DiskImageInstaller.openAndExit(destination)
             }
         case .offerInstall:
             if let destination {
-                let installed = others.filter { app in
-                    !(app.bundleURL.map(DiskImageInstaller.isOnReadOnlyVolume) ?? false)
-                }
                 DiskImageInstaller.offerInstall(destination: destination, runningCopies: installed)
                 // Not Now, or the install failed: run from the image, unless
                 // another copy still runs. An installed copy goes first.
