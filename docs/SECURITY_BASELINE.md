@@ -67,7 +67,7 @@ The fork's feedback code has one network path, the Jev package (JevKit). It call
 | Sparkle | 2.9.1 | `project.yml` exactVersion |
 | GRDB.swift | 7.4.1 | `Packages/HistoryKit/Package.swift` exact |
 
-The feedback work adds no dependency. JevKit uses only Apple frameworks (Foundation, CoreGraphics, ImageIO, Security) and no TypeSafe SDK.
+The feedback work adds no dependency. JevKit uses only Apple frameworks (Foundation, CoreGraphics, ImageIO, Security, and Vision for on-device face detection in the data guard, #70) and no TypeSafe SDK.
 
 ## Feedback bundle data
 

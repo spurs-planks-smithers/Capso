@@ -130,6 +130,7 @@ Agent access:
 - Logs: `/usr/bin/log show --last 10m --predicate 'subsystem == "com.drewschulz.nextshot" AND category == "Jev"'`. They hold job ids, capture numbers, statuses, times, and token counts only.
 - Failures are silent: the prompt stays plain, and `jev.json` records the reason.
 - Crops and search lines (`cropsAnchors`, #38): each item gets two crop PNGs (`<stem>-item-<N>.png` and `-clean.png`) and at most one search line in the refined file. Without `jevSendImages`, crops are cut around the marks with no Jev check. Search lines need `jevSendScreenText`. In shadow, `scripts/jev-review-crops-anchors.py` draws each crop over its capture. Design: `docs/superpowers/specs/2026-10-24-crops-anchors-design.md`.
+- Injection and data guard (`dataGuard`, #70): local rules flag screen text aimed at an AI agent and find private data. The kind flags `dataGuardContact`, `dataGuardNumbers`, `dataGuardSecrets`, and `dataGuardFaces` (off, shadow, on) set how far each kind runs, and alone they run nothing. In on, the refined file warns about injection with the pixel box, never the text, and points to `<stem>-covered.png`: a copy with solid black boxes over private data. Jev checks weak injection lines only with `jevSendScreenText`, and looks for missed private data only with `jevSendImages`, in an image that already has the local covers. A model answer can add a warning or a cover, never remove one. `scripts/jev-review-data-guard.py` draws each cover over its capture. Design: `docs/superpowers/specs/2026-10-24-data-guard-design.md`.
 
 ## Brand and README
 
