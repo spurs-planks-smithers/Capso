@@ -97,8 +97,8 @@
 </style>
 </head>
 <body>
-<div id="root" data-composition-id="root" data-start="0" data-auto-duration data-duration="82.407" data-width="1920" data-height="1080">
-  <audio id="soundtrack" class="clip" src="audio/final.wav" data-start="0" data-auto-duration data-duration="82.407" data-volume="1"></audio>
+<div id="root" data-composition-id="root" data-start="0" data-auto-duration data-duration="81.731" data-width="1920" data-height="1080">
+  <audio id="soundtrack" class="clip" src="audio/final.wav" data-start="0" data-auto-duration data-duration="81.731" data-volume="1"></audio>
 
   <div id="sketch" class="layer"></div>
 
@@ -201,7 +201,6 @@
       <div class="key"><span class="sym">⇧</span>Shift</div>
       <div class="key">F</div>
     </div>
-    <div class="keys" id="keysC" style="top:842px;"><div class="key">C</div></div>
     <div class="keys" id="keysS" style="top:842px;"><div class="key"><span class="sym">⌘</span>S</div><div style="align-self:center;font-size:26px;color:#AAB4BA;margin-left:4px;">saves the capture</div></div>
 
     <div class="panel" id="notePanel" style="left:1170px;top:200px;width:660px;padding:24px;">
@@ -230,14 +229,14 @@
     <div id="menu" style="width:420px;left:1460px;">
       <div class="row gray">Nextshot 2026.10.24 (516)</div>
       <div class="sep"></div>
-      <div class="row gray">Session: feedback</div>
+      <div class="row gray">Round: feedback</div>
       <div class="sep"></div>
       <div class="row"><span>Copy Last Capture Prompt</span><span class="hk">⌥⇧C</span></div>
       <div class="row" id="copyRow"><span>Copy Prompt and End Round</span><span class="hk">⌥⇧R</span></div>
       <div class="row"><span>Open Round Folder</span><span class="hk">⌥⇧O</span></div>
       <div class="row"><span>End Round</span><span class="hk">⌥⇧E</span></div>
       <div class="sep"></div>
-      <div class="row">All Sessions...</div>
+      <div class="row">All Rounds...</div>
       <div class="row">Change Start Round Shortcut...</div>
       <div class="sep"></div>
       <div class="row">Settings...</div>
@@ -321,7 +320,7 @@
     <div id="endcard" style="position:absolute;left:1070px;top:190px;width:800px;">
       <div class="er" style="display:flex;align-items:center;gap:26px;"><img src="assets/img/nextshot-icon-512.png" style="width:140px;height:140px;"><div style="font-size:100px;font-weight:800;letter-spacing:-2px;color:#fff;">Nextshot</div></div>
       <div class="er" style="position:relative;margin-top:30px;font-size:58px;font-weight:700;letter-spacing:-1px;color:#fff;"><span id="tagline">Show AI what you mean.</span><svg style="position:absolute;left:0;top:76px;" width="610" height="14"><path id="endline" pathLength="100" d="M3 7 L607 7" fill="none" stroke="#3CCDBE" stroke-width="6" stroke-linecap="round"/></svg></div>
-      <div class="er" style="margin-top:34px;font-size:30px;color:#AAB4BA;">Visual feedback for AI coding agents, on your Mac.</div>
+      <div class="er" style="margin-top:34px;font-size:30px;color:#AAB4BA;">Stop describing to AI what to fix.<br>Start pointing at it.</div>
       <div class="er" style="margin-top:40px;display:inline-flex;align-items:center;height:96px;padding:0 44px;border-radius:20px;background:#3CCDBE;color:#0F2E2A;font-size:50px;font-weight:800;letter-spacing:-0.5px;">Get it at nextshot.dev</div>
       <div class="er" style="display:flex;align-items:center;gap:14px;margin-top:34px;opacity:0.7;"><div class="key" style="height:58px;font-size:24px;"><span class="sym">⌥</span>Option</div><div class="key" style="height:58px;font-size:24px;"><span class="sym">⇧</span>Shift</div><div class="key" style="height:58px;font-size:24px;">F</div><div style="font-size:26px;color:#AAB4BA;margin-left:8px;">starts a round</div></div>
     </div>
@@ -783,7 +782,7 @@
   $('#lensMark').innerHTML = markSvg.replace('<svg ', '<svg width="62" height="46" ') + '<span class="gdot" style="left:50px;top:-2px;width:18px;height:18px;"></span>';
   hide('#menubar');
   show('#menubar', how.start + 0.35, 0.3);
-  const stepAt = [how.start + 0.3, cue('key_c') - 0.1, scene('session').start + 0.1, cue('menu') - 0.6, cue('paste') - 0.3];
+  const stepAt = [how.start + 0.3, cue('mark_click') - 0.1, scene('session').start + 0.1, cue('menu') - 0.6, cue('paste') - 0.3];
   hide(['#step1', '#step2', '#step3', '#step4']);
   ['#step1', '#step2', '#step3', '#step4'].forEach((st, k) => {
     tl.fromTo(st, { autoAlpha: 0, y: -12 }, { autoAlpha: 1, y: 0, duration: 0.3 }, stepAt[k]);
@@ -807,7 +806,7 @@
     thumbs.appendChild(box);
   });
 
-  hide([card1, card2, card3, '#sel', '#crosshair', '#flash1', '#keysF', '#keysC', '#keysS', '#notePanel', '#tray', '#lens', '#flash2', '#flash3',
+  hide([card1, card2, card3, '#sel', '#crosshair', '#flash1', '#keysF', '#keysS', '#notePanel', '#tray', '#lens', '#flash2', '#flash3',
         '#notePanel3', '#menu', '#callout', '#agent', '#cursor', '#pkg', '#plan', '#closeCard', ...$$('#tray .slotlabel')]);
   gsap.set($$('.badge', card1).concat($$('.badge', card2), $$('.badge', card3)), { scale: 0, autoAlpha: 0 });
   tl.fromTo(card1, { autoAlpha: 0, y: 80 }, { autoAlpha: 1, y: 0, duration: 0.45, ease: 'power3.out' }, how.start + 0.15);
@@ -827,20 +826,19 @@
   fade('#crosshair', g1, 0.1);
   tl.fromTo('#flash1', { autoAlpha: 0.85 }, { autoAlpha: 0, duration: 0.3 }, g1);
 
-  show('#keysC', cue('key_c') - 0.1, 0.12);
+  // No key first: the editor opens on the counter tool (2026-10-24).
   // The cursor clicks each spot, and a numbered dot drops where it clicks.
   const BADGE_AT = [[704, 280], [532, 488], [306, 596]];
-  show('#cursor', cue('key_c') + 0.05, 0.12);
+  show('#cursor', cue('mark_click') + 0.05, 0.12);
   ['badge1', 'badge2', 'badge3'].forEach((c, k) => {
     const [x, y] = BADGE_AT[k];
     const from = k ? BADGE_AT[k - 1] : [820, 420];
-    tl.fromTo('#cursor', { x: from[0], y: from[1] }, { x, y, duration: Math.max(0.12, Math.min(0.3, cue(c) - 0.05 - (k ? cue(['badge1', 'badge2'][k - 1]) : cue('key_c') + 0.1))), ease: 'power2.inOut' },
-              (k ? cue(['badge1', 'badge2'][k - 1]) : cue('key_c') + 0.1) + 0.02);
+    tl.fromTo('#cursor', { x: from[0], y: from[1] }, { x, y, duration: Math.max(0.12, Math.min(0.3, cue(c) - 0.05 - (k ? cue(['badge1', 'badge2'][k - 1]) : cue('mark_click') + 0.1))), ease: 'power2.inOut' },
+              (k ? cue(['badge1', 'badge2'][k - 1]) : cue('mark_click') + 0.1) + 0.02);
     tl.fromTo('#cursor', { scale: 1 }, { scale: 0.85, duration: 0.06, yoyo: true, repeat: 1, transformOrigin: '0 0' }, cue(c) - 0.06);
   });
   fade('#cursor', cue('badge3') + 0.25, 0.15);
   ['badge1', 'badge2', 'badge3'].forEach((c, k) => pop($$('.badge', card1)[k], cue(c)));
-  fade('#keysC', cue('badge3') + 0.3, 0.15);
   show('#keysS', cue('badge3') + 0.45, 0.12);
   fade('#keysS', cue('panel') + 0.65, 0.15);
 

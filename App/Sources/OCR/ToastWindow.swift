@@ -36,7 +36,8 @@ final class ToastWindow: NSPanel {
         self.contentView = hostingView
     }
 
-    func show(autoDismissAfter: TimeInterval = 1.5) {
+    // Fork: 3x upstream's 1.5 s, so a toast stays long enough to read (Drew, 2026-10-24).
+    func show(autoDismissAfter: TimeInterval = 4.5) {
         let finalFrame = frame
         var startFrame = finalFrame
         startFrame.origin.y -= 20
@@ -77,17 +78,18 @@ private struct ToastView: View {
     let iconColor: Color
 
     var body: some View {
+        // Fork: about 15% larger than upstream's 16, 13, 16, and 10 points (Drew, 2026-10-24).
         HStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.system(size: 16, weight: .medium))
+                .font(.system(size: 18, weight: .medium))
                 .foregroundStyle(iconColor)
             Text(message)
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(.primary)
         }
         .fixedSize()
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 12)
         .background(.ultraThinMaterial)
         .clipShape(Capsule())
         .shadow(color: .black.opacity(0.2), radius: 8, y: 4)

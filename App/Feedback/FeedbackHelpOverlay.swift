@@ -172,14 +172,17 @@ struct FeedbackHelpView: View {
                 Line(key: "Esc", action: "Cancel"),
             ]
         case .marking:
+            // The editor opens on the counter tool (`FeedbackDefaultTool`), so
+            // a click drops a red dot with no key first (Drew, 2026-10-24).
             var lines = [
-                Line(key: "C or N", action: "Numbered circle"),
+                Line(key: "Click", action: "Add a red dot"),
                 Line(key: "A, R, T", action: "Arrow, box, text"),
+                Line(key: "C", action: "Back to red dots"),
                 Line(key: "Delete", action: "Remove selected mark"),
                 Line(key: "⌘S", action: "Save, then add notes"),
             ]
             if let document {
-                lines.insert(Line(key: "← →", action: "Undo, redo"), at: 2)
+                lines.insert(Line(key: "← →", action: "Undo, redo"), at: 3)
                 // Reading `objects` here updates the line as marks come and go.
                 lines.append(document.objects.isEmpty
                     ? Line(key: "Esc", action: "Copy screenshot, close")
