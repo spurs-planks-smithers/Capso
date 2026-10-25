@@ -148,9 +148,9 @@ struct PromptLanesJobTests {
         }
         #expect(severityLevels.map(codeText) == [
             #"A small taste preference. The screen works and reads well without it. Example: "maybe a slightly warmer gray"."#,
-            #"The change improves the look, the wording, or the layout. Nothing is broken. Example: "make this title bigger"."#,
-            #"Something is broken, inconsistent, or cut off, but the screen still works. Example: "the tags are cut off on the right"."#,
-            #"The feature fails, shows wrong data, or stops the user from finishing a task. Example: "this total does not match the total on page 2"."#,
+            #"The change improves the look, the wording, or the layout. Nothing is broken. Example: "add more space above this heading"."#,
+            #"Something is broken, inconsistent, or cut off, but the screen still works. Example: "the last word of this button label is cut off"."#,
+            #"The feature fails, shows wrong data, or stops the user from finishing a task. Example: "saving this form loses what I typed"."#,
         ])
 
         let size = request.questions[1].question
@@ -160,10 +160,10 @@ struct PromptLanesJobTests {
             return
         }
         #expect(sizeLevels.map(codeText) == [
-            #"One value, word, or sentence in one place. Example: "rename this column to Voice Minutes"."#,
-            #"A few related edits in one place, such as one component or one page. Example: "make these four cards the same width"."#,
-            #"Edits in a few files or places. Example: "use the same footnote on page 2 and page 3"."#,
-            #"A change across the app, the repository, or every page. Example: "rename this everywhere in the app"."#,
+            #"One value, word, or sentence in one place. Example: "rename this button to Save"."#,
+            #"A few related edits in one place, such as one component or one page. Example: "line up the labels in this form"."#,
+            #"Edits in a few files or places. Example: "show this setting in the menu and remember it after a restart"."#,
+            #"A change across the app, the repository, or every page. Example: "use the new brand color on every screen"."#,
         ])
 
         let kind = request.questions[2].question
@@ -174,7 +174,7 @@ struct PromptLanesJobTests {
         }
         #expect(options.map(\.name.text) == ["exact", "judgment"])
         #expect(options.map { codeText($0.description) } == [
-            #"Every change is exact: new text given in full, a named color, a size or spacing number, or one named element to remove. Example: "remove the sentence about sources"."#,
+            #"Every change is exact: new text given in full, a named color, a size or spacing number, or one named thing to remove. The note may also say why. Examples: "drop the subtitle, it repeats the title", "rename this button to Save", "make this 20% wider"."#,
             #"At least one change needs a choice: make something clearer, better, or consistent, pick a layout, research, explain, or answer a question. A note that names no concrete change, such as "fix this", is judgment too."#,
         ])
     }
@@ -276,13 +276,13 @@ struct PromptLanesJobTests {
         }
     }
 
-    @Test("The job is registered at version 1, with no consent beyond reviewer text")
+    @Test("The job is registered at version 2, with no consent beyond reviewer text")
     func identity() {
         let job = PromptLanesJob()
         #expect(job.id == "promptLanes" && job.flag == .promptLanes)
-        #expect(job.version == 1)
+        #expect(job.version == 2)
         #expect(job.requires.isEmpty)
-        #expect(JevJobRegistry.all.contains { $0.id == "promptLanes" && $0.version == 1 })
+        #expect(JevJobRegistry.all.contains { $0.id == "promptLanes" && $0.version == 2 })
     }
 }
 
@@ -403,7 +403,7 @@ struct PromptLanesRunnerTests {
 
         #expect(await transport.count == 1)
         let record = try #require(try bundle.record(1))
-        #expect(record.job == "promptLanes" && record.jobVersion == 1 && record.mode == "shadow" && record.status == .done)
+        #expect(record.job == "promptLanes" && record.jobVersion == PromptLanesJob().version && record.mode == "shadow" && record.status == .done)
         #expect(record.answers.map(\.id) == ["1.1.severity", "1.1.size", "1.1.kind"])
         #expect(record.lines.isEmpty)
         #expect(record.summary == .object([JevSummaryField(key: "1.1", value: .fields(["lane": "A", "severity": 2, "size": 1]))]))
