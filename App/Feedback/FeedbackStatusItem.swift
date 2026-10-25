@@ -13,6 +13,8 @@ struct FeedbackMenuState {
     var basket: FeedbackBasket
     /// The folder that holds every round folder.
     var rootURL: URL
+    /// Shows Zip Round and Zip N Selected (`zipHandoff` flag, #85).
+    var zipEnabled = false
 
     /// What the menu shows when no provider is set.
     static let empty = FeedbackMenuState(
@@ -47,10 +49,12 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     var onStartRound: (() -> Void)?
     var onOpenAllRounds: (() -> Void)?
     var onCopySelected: (() -> Void)?
+    var onZipSelected: (() -> Void)?
     var onClearSelection: (() -> Void)?
     var onToggleCapture: ((FeedbackBasketKey) -> Void)?
     var onQuickLook: ((FeedbackBasketKey) -> Void)?
     var onCopyRecentRound: ((FeedbackRound) -> Void)?
+    var onZipRecentRound: ((FeedbackRound) -> Void)?
     var onOpenRecentFolder: ((FeedbackRound) -> Void)?
     var onResumeRound: ((FeedbackRound) -> Void)?
 
@@ -66,9 +70,15 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     private var topMenu: NSMenu?
     private var roundRows: [RoundRow] = []
     private var copySelectedItem: NSMenuItem?
+    private var zipSelectedItem: NSMenuItem?
     private var clearSelectionItem: NSMenuItem?
     private var basketSeparator: NSMenuItem?
     private var allRoundsItem: NSMenuItem?
+    /// The `zipEnabled` of the last rebuild. The basket lines read it, so a
+    /// checkbox click reads no flag.
+    private var zipEnabled = false
+    /// Kept while the Share menu shows.
+    private var sharePicker: NSSharingServicePicker?
 
     /// Made once and added again on each rebuild. `setShortcut(for:)` adds a
     /// notification observer that nothing removes, so a new item on every menu
@@ -125,6 +135,7 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
             removeBasketItems(from: menu)
         } else if let copySelectedItem {
             copySelectedItem.title = Self.copySelectedTitle(count)
+            zipSelectedItem?.title = Self.zipSelectedTitle(count)
         } else {
             insertBasketItems(into: menu, count: count)
         }
@@ -175,9 +186,11 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         menu.removeAllItems()
         roundRows = []
         copySelectedItem = nil
+        zipSelectedItem = nil
         clearSelectionItem = nil
         basketSeparator = nil
         allRoundsItem = nil
+        zipEnabled = state.zipEnabled
 
         // The running build comes first, so anyone can tell builds apart.
         menu.addItem(grayLine(ForkBranding.versionLine))
@@ -270,6 +283,10 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         "Copy \(count) Selected"
     }
 
+    private static func zipSelectedTitle(_ count: Int) -> String {
+        "Zip \(count) Selected"
+    }
+
     /// The basket lines sit below the Recent rows: a separator, Copy N
     /// Selected, and Clear Selection, in front of the separator that comes
     /// before "All Rounds...". Nothing above that point moves, so a round
@@ -281,23 +298,28 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         let anchor = menu.index(of: allRoundsItem) - 1
         guard anchor >= 0 else { return }
         let copy = menuItem(Self.copySelectedTitle(count), action: #selector(copySelected))
+        // Fork: Zip N Selected sits right below Copy N Selected (#85).
+        let zip = zipEnabled ? menuItem(Self.zipSelectedTitle(count), action: #selector(zipSelected)) : nil
         let clear = menuItem("Clear Selection", action: #selector(clearSelection))
         let separator = NSMenuItem.separator()
-        menu.insertItem(separator, at: anchor)
-        menu.insertItem(copy, at: anchor + 1)
-        menu.insertItem(clear, at: anchor + 2)
+        let lines = [separator, copy, zip, clear].compactMap { $0 }
+        for (offset, line) in lines.enumerated() {
+            menu.insertItem(line, at: anchor + offset)
+        }
         copySelectedItem = copy
+        zipSelectedItem = zip
         clearSelectionItem = clear
         basketSeparator = separator
     }
 
     private func removeBasketItems(from menu: NSMenu) {
-        for item in [copySelectedItem, clearSelectionItem, basketSeparator] {
+        for item in [copySelectedItem, zipSelectedItem, clearSelectionItem, basketSeparator] {
             if let item, item.menu === menu {
                 menu.removeItem(item)
             }
         }
         copySelectedItem = nil
+        zipSelectedItem = nil
         clearSelectionItem = nil
         basketSeparator = nil
     }
@@ -316,6 +338,9 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
 
         menu.removeAllItems()
         menu.addItem(menuItem("Copy Round Prompt", action: #selector(copyRecentRound(_:)), round: round))
+        if state.zipEnabled {
+            menu.addItem(menuItem("Zip Round", action: #selector(zipRecentRound(_:)), round: round))
+        }
         menu.addItem(.separator())
 
         for capture in round.captures {
@@ -351,6 +376,20 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         topMenu?.cancelTracking()
         RunLoop.main.perform(inModes: [.default]) { [weak self] in
             MainActor.assumeIsolated { self?.onQuickLook?(key) }
+        }
+    }
+
+    /// The macOS Share menu for a zip, at the Nshot button (#85). It shows
+    /// once the run loop is back in its default mode, so never inside menu
+    /// tracking.
+    func showSharePicker(for url: URL) {
+        RunLoop.main.perform(inModes: [.default]) { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self, let button = self.item?.button else { return }
+                let picker = NSSharingServicePicker(items: [url])
+                self.sharePicker = picker
+                picker.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+            }
         }
     }
 
@@ -395,10 +434,15 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     @objc private func startRound() { onStartRound?() }
     @objc private func openAllRounds() { onOpenAllRounds?() }
     @objc private func copySelected() { onCopySelected?() }
+    @objc private func zipSelected() { onZipSelected?() }
     @objc private func clearSelection() { onClearSelection?() }
 
     @objc private func copyRecentRound(_ sender: NSMenuItem) {
         if let round = sender.representedObject as? FeedbackRound { onCopyRecentRound?(round) }
+    }
+
+    @objc private func zipRecentRound(_ sender: NSMenuItem) {
+        if let round = sender.representedObject as? FeedbackRound { onZipRecentRound?(round) }
     }
 
     @objc private func openRecentFolder(_ sender: NSMenuItem) {
