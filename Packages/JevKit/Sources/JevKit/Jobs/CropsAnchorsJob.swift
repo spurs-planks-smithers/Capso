@@ -19,12 +19,21 @@ import ImageIO
 /// Every question id, state key, option name, and label is `JevCodeText`: a
 /// literal with numbers and other code text in it. OCR text goes only into
 /// `.screen` values under `screen_text` keys.
+///
+/// Each part has a sub-flag (#94): `cropsItemCrops` for the crop PNGs and
+/// their lines, and `cropsSearchLines` for the search lines. The runner caps
+/// each at the state of `cropsAnchors`. A part whose sub-flag is off sends no
+/// request and adds nothing to the summary. A part in shadow records its
+/// answers and summary, and writes no file and no line. With both off, the job
+/// returns nothing.
 public struct CropsAnchorsJob: JevJob {
     public let id = "cropsAnchors"
     public let flag = FeatureFlag.cropsAnchors
     /// Crops around the marks and notes need no consent beyond reviewer text.
     public let requires: JevDataKinds = []
-    public let version = 1
+    public let version = 2
+
+    public var options: [FeatureFlag] { [.cropsItemCrops, .cropsSearchLines] }
 
     /// Request A: the lowest `target_shown` probability that counts as shown.
     static let targetShownThreshold = 0.5
@@ -40,24 +49,44 @@ public struct CropsAnchorsJob: JevJob {
     static let anchorConfidenceThreshold = 0.2
     /// The runner drops all output at the deadline. No request or image load
     /// starts this close to it, which leaves time to cut and encode the crop PNGs.
-    static let requestMargin: Duration = .milliseconds(500)
+    static let defaultRequestMargin: Duration = .milliseconds(500)
     /// The crop PNGs are cut one item at a time. None starts this close to the deadline.
-    static let outputMargin: Duration = .milliseconds(100)
+    static let defaultOutputMargin: Duration = .milliseconds(100)
 
-    public init() {}
+    private let requestMargin: Duration
+    private let outputMargin: Duration
+
+    public init() {
+        self.init(requestMargin: Self.defaultRequestMargin, outputMargin: Self.defaultOutputMargin)
+    }
+
+    /// Tests pass wider margins, so a loaded machine cannot close the window between the two (issue #91).
+    init(requestMargin: Duration, outputMargin: Duration) {
+        self.requestMargin = requestMargin
+        self.outputMargin = outputMargin
+    }
 
     public func run(_ context: JevJobContext) async throws -> JevJobOutput {
+        let cropsMode = context.optionModes[.cropsItemCrops] ?? .off
+        let searchMode = context.optionModes[.cropsSearchLines] ?? .off
+        guard cropsMode != .off || searchMode != .off else { return .empty }
+
         let items = Self.items(of: context.capture)
-        let cutoff = context.deadline - Self.requestMargin
-        // The PNGs decode while the requests are in flight.
-        async let annotated = Self.decode(context.capture.imageFile, ifAny: items, context: context)
-        async let clean = Self.decode(context.capture.cleanImageFile, ifAny: items, context: context)
+        let cutoff = context.deadline - requestMargin
+        // Only crop files in on mode need the PNGs. They decode while the
+        // requests are in flight.
+        let cropFileItems = cropsMode == .on ? items : []
+        async let annotated = Self.decode(context.capture.imageFile, ifAny: cropFileItems, context: context)
+        async let clean = Self.decode(context.capture.cleanImageFile, ifAny: cropFileItems, context: context)
         async let crops = Self.findCrops(items, context: context, cutoff: cutoff)
         async let search = Self.findSearchLines(items, context: context, cutoff: cutoff)
         let (foundCrops, foundSearch, pngs) = await (crops, search, (annotated, clean))
 
-        var output = Self.output(items: items, crops: foundCrops.crops, search: foundSearch, pngs: pngs, context: context)
-        output.summary = Self.summary(items: items, crops: foundCrops.crops, search: foundSearch, captureIndex: context.capture.index)
+        var output = Self.output(items: items, crops: foundCrops.crops, search: foundSearch, pngs: pngs, context: context, outputMargin: outputMargin)
+        output.summary = Self.summary(
+            items: items, crops: foundCrops.crops, search: foundSearch, captureIndex: context.capture.index,
+            withCrops: cropsMode != .off, withSearch: searchMode != .off
+        )
         output.failure = foundCrops.failure ?? foundSearch.failure
         return output
     }
@@ -235,6 +264,7 @@ extension CropsAnchorsJob {
     // MARK: - Crops
 
     private static func findCrops(_ items: [Item], context: JevJobContext, cutoff: ContinuousClock.Instant) async -> CropResults {
+        guard (context.optionModes[.cropsItemCrops] ?? .off) != .off else { return CropResults() }
         var results = await boxes(for: items, context: context, cutoff: cutoff)
         // A crop that costs over half the full image's tokens is not worth sending.
         for (badge, crop) in results.crops where crop.status != .tooSmall && !ItemCrop.isWorthIt(crop.box, imageSize: context.capture.size) {
@@ -432,7 +462,7 @@ extension CropsAnchorsJob {
 
     private static func findSearchLines(_ items: [Item], context: JevJobContext, cutoff: ContinuousClock.Instant) async -> SearchResults {
         var found = SearchResults()
-        guard context.allowed.contains(.screenText) else { return found }
+        guard (context.optionModes[.cropsSearchLines] ?? .off) != .off, context.allowed.contains(.screenText) else { return found }
         let capture = context.capture
         let set = AnchorCandidates.build(capture: capture, lines: context.screenLines)
         guard !set.lines.isEmpty else { return found }
@@ -566,15 +596,20 @@ extension CropsAnchorsJob {
         crops: [Int: Crop],
         search: SearchResults,
         pngs: (annotated: CGImage?, clean: CGImage?),
-        context: JevJobContext
+        context: JevJobContext,
+        outputMargin: Duration
     ) -> JevJobOutput {
         let capture = context.capture
         var files: [JevRefinedFile] = []
         var cropLines: [Int: [JevRefinedLine]] = [:]
+        // A part in shadow records its answers and summary. Only a part in
+        // on writes files and lines.
+        let writesCrops = context.optionModes[.cropsItemCrops] == .on
+        let writesSearch = context.optionModes[.cropsSearchLines] == .on
 
         // A PNG that is missing or has another size gives no crops.
         let wanted = items.filter { crops[$0.badge]?.status.words != nil }
-        if !wanted.isEmpty, let annotated = pngs.annotated, let clean = pngs.clean {
+        if writesCrops, !wanted.isEmpty, let annotated = pngs.annotated, let clean = pngs.clean {
             let stopAt = context.deadline - outputMargin
             for item in wanted {
                 // The runner drops all output at the deadline. Later items get no crop.
@@ -605,11 +640,11 @@ extension CropsAnchorsJob {
                 label: "Open each item's crop before the full image. Open the full image only for layout, or when a crop line says unsure or not checked."
             ))
         }
-        if let capturePick = search.capture, capturePick.status == .picked, let text = capturePick.line?.text {
+        if writesSearch, let capturePick = search.capture, capturePick.status == .picked, let text = capturePick.line?.text {
             lines.append(JevRefinedLine(scope: .capture, label: "Search the repository for this screen text (whole capture):", screenText: text))
         }
         for item in items {
-            if let pick = search.items[item.badge], pick.status == .picked, let text = pick.line?.text {
+            if writesSearch, let pick = search.items[item.badge], pick.status == .picked, let text = pick.line?.text {
                 lines.append(JevRefinedLine(scope: .item(badge: item.badge), label: "Search the repository for this screen text:", screenText: text))
             }
             lines += cropLines[item.badge] ?? []
@@ -621,12 +656,21 @@ extension CropsAnchorsJob {
 
     /// What jev.json records for the review script: one object per item, or
     /// one for the whole capture when it has no badges. Numbers and code
-    /// text only. Boxes are `[x1, y1, x2, y2]` in capture pixels.
-    private static func summary(items: [Item], crops: [Int: Crop], search: SearchResults, captureIndex: Int) -> [JevSummaryField] {
+    /// text only. Boxes are `[x1, y1, x2, y2]` in capture pixels. A part
+    /// whose sub-flag is off adds no field.
+    private static func summary(
+        items: [Item],
+        crops: [Int: Crop],
+        search: SearchResults,
+        captureIndex: Int,
+        withCrops: Bool,
+        withSearch: Bool
+    ) -> [JevSummaryField] {
         func numbers(_ box: FeedbackBox) -> JevSummaryValue {
             .numbers([box.x1, box.y1, box.x2, box.y2])
         }
         func anchorFields(_ anchor: Anchor?) -> [JevSummaryField] {
+            guard withSearch else { return [] }
             var fields = [JevSummaryField(key: "anchorStatus", value: (anchor?.status ?? .noScreenText).summary)]
             if anchor?.status == .picked, let line = anchor?.line {
                 fields.append(JevSummaryField(key: "anchorSource", value: .number(Double(line.source))))
@@ -640,7 +684,7 @@ extension CropsAnchorsJob {
         var objects: [JevSummaryValue] = []
         for item in items {
             var fields = [JevSummaryField(key: "item", value: "\(item.prefix)")]
-            if let crop = crops[item.badge] {
+            if withCrops, let crop = crops[item.badge] {
                 fields.append(JevSummaryField(key: "cropStatus", value: crop.status.summary))
                 fields.append(JevSummaryField(key: "cropSource", value: crop.source.summary))
                 fields.append(JevSummaryField(key: "crop", value: numbers(crop.box)))
@@ -653,10 +697,11 @@ extension CropsAnchorsJob {
             }
             objects.append(.object(fields + anchorFields(search.items[item.badge])))
         }
-        if items.isEmpty {
+        // A capture with no badges has a search line only.
+        if items.isEmpty, withSearch {
             objects.append(.object([JevSummaryField(key: "item", value: "\(captureIndex)")] + anchorFields(search.capture)))
         }
-        return [JevSummaryField(key: "items", value: .array(objects))]
+        return objects.isEmpty ? [] : [JevSummaryField(key: "items", value: .array(objects))]
     }
 
     /// A capture PNG from the bundle folder, decoded now. Nil when there are no

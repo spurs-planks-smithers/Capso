@@ -90,6 +90,14 @@ public enum FeedbackLibrary {
         return parts.joined(separator: ", ")
     }
 
+    /// The round's captures for a menu list: the newest first. A tie in capture
+    /// time keeps the higher index first. The round itself stays in capture order.
+    public static func capturesNewestFirst(_ round: FeedbackRound) -> [FeedbackCapture] {
+        round.captures.sorted {
+            $0.capturedAt == $1.capturedAt ? $0.index > $1.index : $0.capturedAt > $1.capturedAt
+        }
+    }
+
     /// "3:43 PM <window title>". The app name stands in for a missing window
     /// title, and "Capture <index>" for a missing app.
     public static func captureRowTitle(_ capture: FeedbackCapture, timeZone: TimeZone, locale: Locale = .current) -> String {

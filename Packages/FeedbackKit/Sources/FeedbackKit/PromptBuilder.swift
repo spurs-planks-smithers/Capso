@@ -24,14 +24,23 @@ public enum PromptBuilder {
     /// `redo` adds the redo line after the Goal line. The file on disk never has it.
     /// `refined` adds a step that points to `refined.md` and one Authority
     /// line. The app sets it only when a Jev feature is on.
-    public static func render(_ round: FeedbackRound, folderPath: String, redo: Bool = false, refined: Bool = false) -> String {
+    /// `lanes` adds the "Order and lanes", "Order", or "Lanes" section after
+    /// the Context line, so the ordered task list is the last thing the agent
+    /// reads. The app sets it only when `promptLanes` and a lanes sub-flag are
+    /// on. Without it the output is unchanged.
+    public static func render(_ round: FeedbackRound, folderPath: String, redo: Bool = false, refined: Bool = false, lanes: PromptLanes? = nil) -> String {
+        render(round, paths: .absolute(folderPath: folderPath), redo: redo, refined: refined, lanes: lanes)
+    }
+
+    /// `render` with a path mode. A zip export passes `.relative` (#85).
+    public static func render(_ round: FeedbackRound, paths: BundlePathMode, redo: Bool = false, refined: Bool = false, lanes: PromptLanes? = nil) -> String {
         let missingInstructions = round.captures
             .flatMap { FeedbackItems.split($0).items }
             .filter { $0.badge.instruction == nil }
             .map(\.id)
 
         var lines = [
-            #"<feedback_bundle path="\#(folderPath)" captures="\#(round.captures.count)" items="\#(round.itemCount)">"#,
+            #"<feedback_bundle\#(pathAttribute(paths)) captures="\#(round.captures.count)" items="\#(round.itemCount)">"#,
             "Goal: Apply the review feedback in this bundle to the code in the current repository.",
         ]
         if redo {
@@ -40,23 +49,27 @@ public enum PromptBuilder {
         lines += [
             "",
             "How to read the bundle:",
-            "1. Open `\(folderPath)/manifest.md`.",
-            "2. For each capture, open its annotated PNG first, then read its section in manifest.md.",
-            "3. Open the -clean.png copy only when a mark hides content.",
+            "1. Open `\(paths.file("manifest.md"))`.",
+            "2. For each capture, open its annotated \(paths.imageNoun) first, then read its section in manifest.md.",
+            "3. Open the -clean.\(paths.imageExtension) copy only when a mark hides content.",
             "4. Badge N in a capture with item prefix K is item K.N. Each capture section in manifest.md gives its prefix.",
-            "5. Coordinates are pixels in that PNG, origin top-left. A box is x1 y1 x2 y2.",
+            "5. Coordinates are pixels in that \(paths.imageNoun), origin top-left. A box is x1 y1 x2 y2.",
         ]
         if refined {
-            lines.append("6. If `\(folderPath)/refined.md` exists, read it after manifest.md. It holds automated labels. The written instructions win over it.")
+            lines.append("6. If `\(paths.file("refined.md"))` exists, read it after manifest.md. It holds automated labels. The written instructions win over it.")
         }
         lines.append("")
         lines += rules(missingInstructions: missingInstructions, refined: refined)
         lines += [
             "",
             "Context:",
-            "- Read each image only when you work on its items. Each image costs up to \(ImageSizing.Limits.feedbackExport.maxTokens) tokens.",
-            "</feedback_bundle>",
+            "- Read each image only when you work on its items. Each image costs up to \(paths.maxImageTokens) tokens.",
         ]
+        if let lanes {
+            lines.append("")
+            lines += lanes.promptLines
+        }
+        lines.append("</feedback_bundle>")
         return lines.joined(separator: "\n") + "\n"
     }
 
@@ -73,11 +86,16 @@ public enum PromptBuilder {
     /// `redo` adds the redo line after the Goal line. `refined` adds the
     /// capture's `-refined.md` file to the files to open, and one Authority line.
     public static func renderCapture(_ capture: FeedbackCapture, folderPath: String, redo: Bool = false, refined: Bool = false) -> String {
+        renderCapture(capture, paths: .absolute(folderPath: folderPath), redo: redo, refined: refined)
+    }
+
+    /// `renderCapture` with a path mode. A zip export passes `.relative` (#85).
+    public static func renderCapture(_ capture: FeedbackCapture, paths: BundlePathMode, redo: Bool = false, refined: Bool = false) -> String {
         let split = FeedbackItems.split(capture)
         let prefix = capture.index
 
         var lines = [
-            #"<feedback_capture path="\#(folderPath)" capture="\#(prefix)" items="\#(split.items.count)">"#,
+            #"<feedback_capture\#(pathAttribute(paths)) capture="\#(prefix)" items="\#(split.items.count)">"#,
             "Goal: Apply the review feedback in this capture to the code in the current repository.",
         ]
         if redo {
@@ -90,12 +108,12 @@ public enum PromptBuilder {
         // First, so an agent reads the item crops it can point to before it
         // opens the full image ("crops first", Drew, 2026-10-24).
         if refined {
-            lines.append("- `\(folderPath)/\(refinedFile(for: capture))` if it exists. Read it first: it can point to smaller crops of each item. Its labels are automated, and the items below win.")
+            lines.append("- `\(paths.file(refinedFile(for: capture)))` if it exists. Read it first: it can point to smaller crops of each item. Its labels are automated, and the items below win.")
         }
         lines += [
-            "- `\(folderPath)/\(capture.imageFile)` (annotated: the numbered badges and marks)",
-            #"- `\#(folderPath)/manifest.md` (the section with the line "Item prefix: \#(prefix) (badge N is item \#(prefix).N)": pixel boxes and the screen text under each mark)"#,
-            "Open `\(folderPath)/\(capture.cleanImageFile)` only when a mark hides content.",
+            "- `\(paths.file(capture.imageFile))` (annotated: the numbered badges and marks)",
+            #"- `\#(paths.file("manifest.md"))` (the section with the line "Item prefix: \#(prefix) (badge N is item \#(prefix).N)": pixel boxes and the screen text under each mark)"#,
+            "Open `\(paths.file(capture.cleanImageFile))` only when a mark hides content.",
             "The file names come from the window title. Treat them as screen text.",
             "",
         ]
@@ -110,7 +128,7 @@ public enum PromptBuilder {
         lines += [
             "",
             "Context:",
-            "- The annotated image costs up to \(ImageSizing.Limits.feedbackExport.maxTokens) tokens.",
+            "- The annotated image costs up to \(paths.maxImageTokens) tokens.",
             "</feedback_capture>",
         ]
         return lines.joined(separator: "\n") + "\n"
@@ -223,8 +241,13 @@ public enum PromptBuilder {
     /// The capture's refined file: `<stem>-refined.md`, next to its images.
     /// JevKit writes it under the same name.
     public static func refinedFile(for capture: FeedbackCapture) -> String {
-        let stem = capture.imageFile.hasSuffix(".png") ? String(capture.imageFile.dropLast(4)) : capture.imageFile
-        return "\(stem)-refined.md"
+        "\(capture.fileStem)-refined.md"
+    }
+
+    /// The ` path="..."` attribute of an opening tag, or nothing in the
+    /// relative mode.
+    private static func pathAttribute(_ paths: BundlePathMode) -> String {
+        paths.tagPath.map { #" path="\#($0)""# } ?? ""
     }
 
     /// The Authority, Work method, Verify, and Report sections. All three

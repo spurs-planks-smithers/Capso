@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Weekly usage</title>
+<style>
+  body { margin: 0; width: 1440px; height: 900px; background: #fafafa; font-family: -apple-system, Helvetica, Arial, sans-serif; color: #1d1d1f; overflow: hidden; }
+  .top { height: 56px; background: #fff; border-bottom: 1px solid #e5e5e5; display: flex; align-items: center; padding: 0 32px; font-weight: 600; font-size: 17px; }
+  .main { padding: 40px 64px; }
+  h1 { font-size: 28px; margin: 0 0 24px; display: inline-block; }
+  .chart { display: flex; align-items: flex-end; gap: 28px; height: 260px; width: 760px; padding: 20px; background: #fff; border: 1px solid #e5e5e5; border-radius: 10px; }
+  .bar { width: 72px; background: #3b6fe0; border-radius: 4px 4px 0 0; }
+  table { margin-top: 32px; border-collapse: collapse; width: 800px; font-size: 15px; background: #fff; }
+  th, td { text-align: left; padding: 10px 16px; border-bottom: 1px solid #e5e5e5; }
+  th { color: #666; font-weight: 600; }
+</style>
+</head>
+<body>
+  <div class="top">Acme Console</div>
+  <div class="main">
+    <h1 id="title">Weekly usage</h1>
+    <div class="chart" id="chart">
+      <div class="bar" style="height: 40%"></div><div class="bar" style="height: 65%"></div><div class="bar" style="height: 55%"></div>
+      <div class="bar" style="height: 90%"></div><div class="bar" style="height: 70%"></div><div class="bar" style="height: 30%"></div><div class="bar" style="height: 20%"></div>
+    </div>
+    <table>
+      <tr id="table-header"><th>Day</th><th>Captures</th><th>Prompts copied</th></tr>
+      <tr><td>Monday</td><td>12</td><td>9</td></tr>
+      <tr><td>Tuesday</td><td>19</td><td>15</td></tr>
+      <tr id="row-wednesday"><td>Wednsday</td><td>16</td><td>11</td></tr>
+    </table>
+  </div>
+</body>
+</html>

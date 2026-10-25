@@ -24,8 +24,16 @@ public protocol JevJob: Sendable {
     /// Raise it when the questions change, so old and new answers are never
     /// mixed in a comparison.
     var version: Int { get }
+    /// Flags that change what the job reports, for example the data guard's
+    /// kind flags. Never the job's own flag. Alone, an option flag runs
+    /// nothing. Default: none.
+    var options: [FeatureFlag] { get }
     /// One capture's work. Throwing records "jobError" for this job only.
     func run(_ context: JevJobContext) async throws -> JevJobOutput
+}
+
+extension JevJob {
+    public var options: [FeatureFlag] { [] }
 }
 
 /// Sends one request for a job. The runner supplies it. It refuses a request
@@ -87,6 +95,9 @@ public struct JevJobContext: Sendable {
     /// example when the editor changed the capture's size. Screen text: send
     /// it only as `.screen`.
     public let screenLines: [FeedbackTextLine]?
+    /// The mode of each flag in the job's `options`, read once with the
+    /// other flags when the capture starts. A missing flag means off.
+    public let optionModes: [FeatureFlag: FlagState]
 
     public init(
         round: FeedbackRound,
@@ -96,7 +107,8 @@ public struct JevJobContext: Sendable {
         deadline: ContinuousClock.Instant,
         jev: JevAsker,
         images: JevImageLoader,
-        screenLines: [FeedbackTextLine]? = nil
+        screenLines: [FeedbackTextLine]? = nil,
+        optionModes: [FeatureFlag: FlagState] = [:]
     ) {
         self.round = round
         self.capture = capture
@@ -106,6 +118,7 @@ public struct JevJobContext: Sendable {
         self.jev = jev
         self.images = images
         self.screenLines = screenLines
+        self.optionModes = optionModes
     }
 }
 

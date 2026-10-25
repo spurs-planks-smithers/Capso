@@ -133,10 +133,14 @@ struct RunnerOffTests {
 
     @Test("The real registry's stub jobs send nothing, even with every flag on")
     func registryStubsSendNothing() async throws {
+        // Every planned job is real since PR #68, so no stub is left to run.
+        // The test stays for the next stub, and passes while there is none.
+        let stubs = JevJobRegistry.all.filter { $0.version == 0 }
+        guard !stubs.isEmpty else { return }
         let bundle = try await Bundle.make()
         let transport = StubTransport()
         let all = Dictionary(uniqueKeysWithValues: FeatureFlag.allCases.map { ($0, $0.spec.allowedStates.contains(.on) ? FlagState.on : .shadow) })
-        let runner = makeRunner(bundle, jobs: JevJobRegistry.all.filter { $0.version == 0 }, flags: all, transport: transport)
+        let runner = makeRunner(bundle, jobs: stubs, flags: all, transport: transport)
         await runCapture(runner, bundle)
         #expect(await transport.count == 0)
         let records = try bundle.jevFile().captures.first?.jobs ?? []
@@ -316,13 +320,18 @@ struct RunnerLimitTests {
     @Test("Settle returns inside its timeout while a job runs, and marks the capture still running")
     func settleTimeout() async throws {
         let bundle = try await Bundle.make()
-        let transport = StubTransport(fallback: jsonResponse(noulBody("1.1.names_change")), delay: .seconds(1))
-        let runner = makeRunner(bundle, jobs: [askingJob()], flags: [.jevBase: .on, .noteCoach: .on], transport: transport)
+        // The client caps each attempt at 2 seconds and tries 3 times, so the job runs about 6 seconds.
+        // A loaded machine cannot finish it before settle returns (issue #91).
+        var settings = JevRunnerSettings()
+        settings.captureBudget = .seconds(10)
+        let transport = StubTransport(fallback: jsonResponse(noulBody("1.1.names_change")), delay: .seconds(10))
+        let runner = makeRunner(bundle, jobs: [askingJob()], flags: [.jevBase: .on, .noteCoach: .on], transport: transport, settings: settings)
         await runner.expect(folderName: bundle.folderName, capture: 1)
         await runner.start(folderName: bundle.folderName, capture: 1)
         let started = ContinuousClock.now
         await runner.settle(folderName: bundle.folderName, timeout: .milliseconds(100))
-        #expect(ContinuousClock.now - started < .milliseconds(400))
+        // Settle waits 100 ms, not for the job. Half the job's time leaves room for a slow scheduler.
+        #expect(ContinuousClock.now - started < .seconds(3))
         #expect(try bundle.text("refined.md").contains("Capture 1:\n- Still running at round end. Use the plain files for this capture."))
     }
 

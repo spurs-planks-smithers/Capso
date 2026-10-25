@@ -100,16 +100,17 @@ public actor JevRunner {
         guard started.insert(key).inserted else { return }
 
         // Flags are read once, so a change during a capture has effect at
-        // the next one.
-        let states = Dictionary(uniqueKeysWithValues: FeatureFlag.allCases.map { ($0, flags($0)) })
+        // the next one. A sub-flag reads at the lower of its own state and
+        // its parent's, so a job never compares states itself (#94).
+        let states = Dictionary(uniqueKeysWithValues: FeatureFlag.allCases.map { ($0, FlagResolver.effectiveState(of: $0, state: flags)) })
         let state: @Sendable (FeatureFlag) -> FlagState = { states[$0] ?? .off }
         guard JevGate.mayRun(jobs: jobs, flags: state) else {
             expected.remove(key)
             return
         }
+        // A job with options has work only when an option is on after the cap.
         let planned = jobs.compactMap { job -> (job: any JevJob, mode: FlagState)? in
-            let mode = state(job.flag)
-            return mode == .off ? nil : (job, mode)
+            JevGate.runs(job, flags: state) ? (job, state(job.flag)) : nil
         }
         let allowed = JevGate.allowedKinds(flags: state)
         let lines = screenLines?.compactMap { line in
@@ -117,7 +118,7 @@ public actor JevRunner {
         }
 
         running[key] = Task {
-            await self.run(key: key, planned: planned, allowed: allowed, screenLines: lines)
+            await self.run(key: key, planned: planned, allowed: allowed, screenLines: lines, flagStates: states)
             self.finish(key)
         }
     }
@@ -160,7 +161,7 @@ public actor JevRunner {
 
     // MARK: - One capture
 
-    private func run(key: Key, planned: [(job: any JevJob, mode: FlagState)], allowed: JevDataKinds, screenLines: [FeedbackTextLine]?) async {
+    private func run(key: Key, planned: [(job: any JevJob, mode: FlagState)], allowed: JevDataKinds, screenLines: [FeedbackTextLine]?, flagStates: [FeatureFlag: FlagState]) async {
         let startedAt = now()
         var finished: [JevBundleWriter.Finished] = []
         var runnable: [(job: any JevJob, mode: FlagState)] = []
@@ -195,10 +196,15 @@ public actor JevRunner {
 
         await withTaskGroup(of: JevBundleWriter.Finished.self) { group in
             for entry in runnable {
+                // A job never sees its own flag, so shadow and on run alike.
+                let optionModes = Dictionary(
+                    entry.job.options.filter { $0 != entry.job.flag }.map { ($0, flagStates[$0] ?? .off) },
+                    uniquingKeysWith: { first, _ in first }
+                )
                 group.addTask {
                     await self.runJob(entry.job, mode: entry.mode, round: round, capture: capture, folderURL: folderURL,
                                       allowed: allowed, deadline: deadline, budget: budget, images: images,
-                                      screenLines: screenLines, startedAt: startedAt)
+                                      screenLines: screenLines, optionModes: optionModes, startedAt: startedAt)
                 }
             }
             for await result in group {
@@ -231,6 +237,7 @@ public actor JevRunner {
         budget: RequestBudget,
         images: JevImageLoader,
         screenLines: [FeedbackTextLine]?,
+        optionModes: [FeatureFlag: FlagState],
         startedAt: Date
     ) async -> JevBundleWriter.Finished {
         let clockStart = ContinuousClock.now
@@ -239,7 +246,8 @@ public actor JevRunner {
             try await self.send(request, allowed: allowed, deadline: deadline, budget: budget, recorder: recorder)
         }
         let context = JevJobContext(round: round, capture: capture, folderURL: folderURL, allowed: allowed,
-                                    deadline: deadline, jev: asker, images: images, screenLines: screenLines)
+                                    deadline: deadline, jev: asker, images: images, screenLines: screenLines,
+                                    optionModes: optionModes)
 
         let outcome = await Self.race(deadline: deadline) {
             do {

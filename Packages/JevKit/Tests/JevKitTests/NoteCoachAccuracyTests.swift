@@ -125,7 +125,9 @@ struct NoteCoachAccuracyTests {
                     await recorded.store(result.response, retries: result.retries)
                     return result.response
                 },
-                images: JevImageLoader { _, _, _ in throw NoImages() }
+                images: JevImageLoader { _, _, _ in throw NoImages() },
+                // The sub-flags are on, so the job asks Jev about every filled note.
+                optionModes: [.noteCoachVague: .on, .noteCoachQuestion: .on, .noteCoachEmpty: .on]
             )
             do {
                 _ = try await NoteCoachJob().run(context)

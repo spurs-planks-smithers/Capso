@@ -1,6 +1,6 @@
 # Note coach: design (draft)
 
-Date: 2026-10-24. Status: approved (Drew, 2026-10-24). Code waits for the Jev base (#36) job interface. Sub-issues: #61 (job, rule, and tests), #62 (accuracy test), #63 (shadow run, paste test, and on decision). Issue: #37 (parent #34). Flag: `noteCoach` (off, shadow, on). Related docs: `docs/superpowers/specs/2026-10-24-jev-handoff-design.md` (Jev design), `docs/superpowers/specs/2026-10-24-feature-flags-design.md` (flags), `docs/plans/2026-10-24-jev-image-ideas.md` (idea 1).
+Date: 2026-10-24. Status: approved (Drew, 2026-10-24). Code waits for the Jev base (#36) job interface. Sub-issues: #61 (job, rule, and tests), #62 (accuracy test), #63 (shadow run, paste test, and on decision). Issue: #37 (parent #34). Flag: `noteCoach` (off, shadow, on), with sub-flags `noteCoachVague`, `noteCoachQuestion`, and `noteCoachEmpty` (2026-10-25, #94). Related docs: `docs/superpowers/specs/2026-10-24-jev-handoff-design.md` (Jev design), `docs/superpowers/specs/2026-10-24-feature-flags-design.md` (flags), `docs/plans/2026-10-24-jev-image-ideas.md` (idea 1).
 
 ## Intent
 
@@ -100,6 +100,22 @@ The coach runs only when both `jevBase` and `noteCoach` are on or in shadow. `je
 
 The job never reads the flag state, as the base requires. It returns the same output in shadow and on. The runner writes the lines only in on, and writes the summary and the review file in both.
 
+### Sub-flags (2026-10-25, #94)
+
+Each kind of line has its own sub-flag, so Drew can judge one kind alone. The runner caps each sub-flag at the state of `noteCoach` (the lower of the two, in the order off, shadow, on). A sub-flag alone runs nothing. All three start off in both channels and are dev-only.
+
+| Sub-flag | Gates | Needs a request |
+| --- | --- | --- |
+| `noteCoachVague` | the "Ask the reviewer first: the note names no change." line | yes |
+| `noteCoachQuestion` | the "Answer this item. Change no code." line | yes |
+| `noteCoachEmpty` | the "Ask the reviewer first: the item has no note." line | no |
+
+- The job sends no request when `noteCoachVague` and `noteCoachQuestion` are both off. The request itself is unchanged: four questions for each filled note.
+- A line is written only when its sub-flag is on after the cap. A sub-flag in shadow records its label but writes no line.
+- A label whose sub-flag is off stays out of the `jev.json` summary and the review file. The labels with no sub-flag (`unsure`, `partial`, `clear`, `not_checked`) are recorded whenever a request was sent.
+- With `noteCoach` on and all three sub-flags off, the runner does not start the job: no key read, no stored work, no request, no file, and no round-end wait. With all three in shadow, the job runs and records labels, and no copied prompt changes.
+- Job version is 3.
+
 Review file: `jev-review/noteCoach.md` in the bundle, one section per capture, for Drew. Each item shows its label, the three probabilities, and Drew's note on one line. No prompt names the file, and its first line tells agents not to act on it. It holds reviewer text and numbers only. My call: it lets Drew check a shadow round in one read (#63).
 
 Lines in `<capture>-refined.md` (on state only). They sit under the heading "Item K.N:". Drew's note stays exact in the prompt and the manifest. The refined file never repeats or changes it.
@@ -186,7 +202,7 @@ The trial found one bug, fixed in `387d38c`: the review file showed each capture
 ## Rollout and kill rule
 
 1. Build with `noteCoach` off in both channels. A test proves the off state changes nothing.
-2. Drew sets shadow with `scripts/nextshot-flags.sh set noteCoach shadow` once the base works on his Mac.
+2. Drew sets shadow with `scripts/nextshot-flags.sh feature noteCoach shadow` once the base works on his Mac. That sets `noteCoach` and its three sub-flags. To judge one kind alone, he sets the parent with `set noteCoach shadow` and one sub-flag, for example `set noteCoachVague shadow`.
 3. Run the accuracy test. Set the thresholds from it.
 4. Paste test (Drew, 2026-10-24): one capture with a vague item and a question item, pasted into Claude Code. The agent must ask the reviewer about the vague item and answer the question item with no code edit. On 2026-10-21 an agent skipped a softer rule, so file tests alone do not prove this.
 5. On only when the accuracy test and the paste test pass, and Drew agrees. The release default stays off. Jev features are dev-only.
@@ -216,6 +232,7 @@ None open. Drew answered every question that changes what gets built on 2026-10-
 - 2026-10-24: Drew labeled the LM Studio "why is this not available?" note a bug to fix (partial), not a question (Drew).
 - 2026-10-24: a fourth question, `reports_problem`, keeps bug reports from the question line (Drew). Job version 2.
 - 2026-10-24: thresholds set from the accuracy test: vague drops `names_change`, and the question cut on `names_change` moves to 0.8 (my call, as the spec left thresholds to the test).
+- 2026-10-25: one sub-flag per kind of line: `noteCoachVague`, `noteCoachQuestion`, and `noteCoachEmpty`. Each starts off, is dev-only, and runs at the lower of its own state and `noteCoach`'s state (Drew, #94). The job sends no request when the vague and question sub-flags are both off. Job version 3.
 
 ## Left to the builder
 

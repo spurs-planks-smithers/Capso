@@ -1,0 +1,47 @@
+{
+  "title": "Account settings",
+  "boxes": {
+    "title": {
+      "x1": 285,
+      "y1": 105,
+      "x2": 512,
+      "y2": 137,
+      "text": "Account settings"
+    },
+    "email": {
+      "x1": 285,
+      "y1": 169,
+      "x2": 1055,
+      "y2": 226,
+      "text": "Email address alex@example.com"
+    },
+    "name": {
+      "x1": 285,
+      "y1": 238,
+      "x2": 1055,
+      "y2": 294,
+      "text": "Display name Alex Rivera"
+    },
+    "language": {
+      "x1": 285,
+      "y1": 306,
+      "x2": 1055,
+      "y2": 363,
+      "text": "Language English (US)"
+    },
+    "save": {
+      "x1": 285,
+      "y1": 395,
+      "x2": 426,
+      "y2": 433,
+      "text": "Save changes"
+    },
+    "delete": {
+      "x1": 285,
+      "y1": 473,
+      "x2": 385,
+      "y2": 491,
+      "text": "Delete account"
+    }
+  }
+}

@@ -10,7 +10,8 @@ func makeContext(
     capture: FeedbackCapture = sampleCapture(),
     allowed: JevDataKinds = .reviewerText,
     response: JevResponse = JevResponse(model: JevEndpoint.model, answers: [:], inputTokens: 0, outputTokens: 0),
-    sent: RequestLog = RequestLog()
+    sent: RequestLog = RequestLog(),
+    optionModes: [FeatureFlag: FlagState] = [:]
 ) -> JevJobContext {
     let round = FeedbackRound(
         name: "feedback",
@@ -37,7 +38,8 @@ func makeContext(
                 sourceRegion: box,
                 contentRect: FeedbackBox(x1: 0, y1: 0, x2: 400, y2: 300)
             )
-        }
+        },
+        optionModes: optionModes
     )
 }
 
@@ -73,8 +75,8 @@ struct JobInterfaceTests {
     @Test("The registry lists one job per planned feature, with distinct ids and flags")
     func registryLines() {
         let jobs = JevJobRegistry.all
-        #expect(jobs.map(\.id) == ["noteCoach", "cropsAnchors", "dupesConflicts", "oneBreath"])
-        #expect(jobs.map(\.flag) == [.noteCoach, .cropsAnchors, .dupesConflicts, .oneBreath])
+        #expect(jobs.map(\.id) == ["noteCoach", "cropsAnchors", "dupesConflicts", "oneBreath", "promptLanes", "dataGuard"])
+        #expect(jobs.map(\.flag) == [.noteCoach, .cropsAnchors, .dupesConflicts, .oneBreath, .promptLanes, .dataGuard])
         #expect(Set(jobs.map(\.id)).count == jobs.count)
     }
 

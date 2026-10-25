@@ -54,6 +54,8 @@ final class FeedbackController {
     private var copyingRoundPrompt = false
     /// The captures checked in the Recent menu.
     private var basket = FeedbackBasket()
+    /// Zip Round and Zip N Selected (#85). Made in `start`.
+    private var zip: FeedbackZip?
     private let quickLook = FeedbackQuickLook()
     /// The Recent list as read from disk. The menu asks for it on every open
     /// and every submenu open. The cache decodes a `feedback.json` only when
@@ -134,6 +136,13 @@ final class FeedbackController {
         statusItem.onShowSettings = {
             AppDelegate.shared?.showPreferences()
         }
+        zip = FeedbackZip(
+            rootURL: store.rootURL,
+            waitForSaves: { [weak self] in await self?.waitForSaves() },
+            showToast: { [weak self] message in self?.showToast(message, screen: nil) },
+            showShare: { [weak self] url in self?.statusItem.showSharePicker(for: url) },
+            report: { [weak self] error, context in self?.report(error, context: context) }
+        )
         connectHistoryMenu()
         notePanel.onClosed = { [weak self] in
             self?.updateHelp()
@@ -231,16 +240,18 @@ final class FeedbackController {
     /// menu row and Option+Shift+E, comes here too: an ended round's prompt
     /// is on the clipboard and the same toast says so (Drew, 2026-10-24). The round ends
     /// first, so the prompt holds each capture whose save was in progress.
-    /// The prompt comes from the ended round, so it matches the `prompt.md`
-    /// that `end()` writes. Resume in Recent reopens the round. With a Jev
-    /// feature on, the copy waits at most 500 ms for a running capture and
-    /// points to refined.md.
+    /// The prompt comes from the ended round, so it holds the same captures
+    /// as the `prompt.md` that `end()` writes. Resume in Recent reopens the
+    /// round. With a Jev feature on, the copy waits at most 500 ms for a
+    /// running capture and points to refined.md. With `promptLanes` and a
+    /// lanes sub-flag on, the prompt also ends with the Order and lanes,
+    /// Order, or Lanes section, built after that wait.
     @discardableResult
     func copyPromptAndEndRound() async throws -> String {
         let round = try await endRound()
         let folder = store.rootURL.appendingPathComponent(round.folderName, isDirectory: true)
         await jev.settle(folderName: round.folderName)
-        let prompt = PromptBuilder.render(round, folderPath: folder.path, refined: jev.pointsToRefinedFiles)
+        let prompt = PromptBuilder.render(round, folderPath: folder.path, refined: jev.pointsToRefinedFiles, lanes: jev.lanes(for: round, folderURL: folder))
         copyToClipboard(prompt, toast: Self.promptCopiedRoundEndedToast, screen: nil)
         FeedbackLog.logger.notice("round prompt copied, round ended, \(prompt.count) characters")
         return prompt
@@ -269,6 +280,14 @@ final class FeedbackController {
                     report(error, context: "Round prompt was not copied")
                 }
             }
+        }
+    }
+
+    /// Waits for every save in progress, without ending the round. A zip
+    /// (#85) waits here, so it holds each capture that is being stored.
+    private func waitForSaves() async {
+        for task in Array(saveTasks.values) {
+            await task.value
         }
     }
 
@@ -409,8 +428,22 @@ final class FeedbackController {
                 active: self.round,
                 recent: self.recentRounds(),
                 basket: self.basket,
-                rootURL: self.store.rootURL
+                rootURL: self.store.rootURL,
+                zipEnabled: Flags.isOn(.zipHandoff)
             )
+        }
+        statusItem.onZipRecentRound = { [weak self] round in
+            FeedbackLog.logger.notice("menu: Zip Round")
+            self?.zip?.zipRound(folderName: round.folderName)
+        }
+        // The basket clears as Copy N Selected clears it, but only when the
+        // zip starts: a click during a running zip keeps the checks.
+        statusItem.onZipSelected = { [weak self] in
+            guard let self else { return }
+            FeedbackLog.logger.notice("menu: Zip Selected")
+            if self.zip?.zipSelected(self.basket) == true {
+                self.basket.removeAll()
+            }
         }
         statusItem.onStartRound = { [weak self] in
             self?.capture()
@@ -517,7 +550,7 @@ final class FeedbackController {
             let folder = self.store.rootURL.appendingPathComponent(round.folderName, isDirectory: true)
             let refined = self.jev.pointsToRefinedFiles
                 && FileManager.default.fileExists(atPath: folder.appendingPathComponent("refined.md").path)
-            let prompt = PromptBuilder.render(round, folderPath: folder.path, redo: true, refined: refined)
+            let prompt = PromptBuilder.render(round, folderPath: folder.path, redo: true, refined: refined, lanes: self.jev.lanes(for: round, folderURL: folder))
             self.copyToClipboard(prompt, toast: Self.promptCopiedToast, screen: nil)
             FeedbackLog.logger.notice("recent round prompt copied, \(prompt.count) characters")
         }
