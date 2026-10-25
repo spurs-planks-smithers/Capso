@@ -23,11 +23,16 @@ public struct PromptLanesRating: Equatable, Sendable {
 /// The rule that turns Jev's three answers for one item into a rating. Pure
 /// code: the same answers always give the same rating.
 ///
-/// The threshold is a start value. The accuracy test sets the final one, and
-/// a change to it or to a question raises the job's `version`.
+/// The accuracy test (#73) set the rule on 2026-10-24 for the pinned model
+/// `JevEndpoint.model`, against Drew's reviewed labels. A new model needs a
+/// new test run.
+/// - Lane A needs `exact` at 0.9. At 0.8, two notes that mix an exact value
+///   with a vague ask reached lane A.
+/// - Lane A takes only polish and nit (Drew, 2026-10-24). Jev can rate a
+///   wrong number as a bug, and a wrong value must reach the strong model.
 public enum PromptLanesRule {
     /// Lane A needs `exact` at least this likely.
-    public static let exactMinimum = 0.8
+    public static let exactMinimum = 0.9
 
     /// The most likely level of a Score. A tie takes the higher level, so a
     /// doubt never lowers severity and never shrinks a size. Nil means not
@@ -55,7 +60,8 @@ public enum PromptLanesRule {
         else { return nil }
 
         let small = sizeValue == .oneLine || sizeValue == .oneFile
-        let laneA = exact >= exactMinimum && small && severityValue != .blocker
+        let minor = severityValue == .nit || severityValue == .polish
+        let laneA = exact >= exactMinimum && small && minor
         return PromptLanesRating(laneA: laneA, severity: severityValue, size: sizeValue, exact: exact)
     }
 }
@@ -76,7 +82,9 @@ public struct PromptLanesJob: JevJob {
     public let requires: JevDataKinds = []
     /// Version 2 (2026-10-24, accuracy test #73): removal examples in the
     /// `exact` option, and examples that no longer copy test notes.
-    public let version = 2
+    /// Version 3 (2026-10-24, Drew's label review): severity levels follow
+    /// Drew's line, and a mixed exact and vague note is judgment.
+    public let version = 3
 
     public init() {}
 
@@ -156,9 +164,9 @@ public struct PromptLanesJob: JevJob {
                     "How serious is the problem that `items[\(index)].note` describes? `general_note` is context from the same reviewer. Words like \"this\" or \"here\" refer to the marked item.",
                     levels: [
                         "A small taste preference. The screen works and reads well without it. Example: \"maybe a slightly warmer gray\".",
-                        "The change improves the look, the wording, or the layout. Nothing is broken. Example: \"add more space above this heading\".",
-                        "Something is broken, inconsistent, or cut off, but the screen still works. Example: \"the last word of this button label is cut off\".",
-                        "The feature fails, shows wrong data, or stops the user from finishing a task. Example: \"saving this form loses what I typed\".",
+                        "The change improves the look, the layout, or the wording, including cut-off text, uneven sizes, or inconsistent terms. Nothing is false or broken. Example: \"add more space above this heading\".",
+                        "The screen says something false or misleading, but the feature works. Example: \"this label says the plan is free, but it is not\".",
+                        "A feature fails, does not work, or shows wrong data. Example: \"saving this form loses what I typed\".",
                     ]
                 )
             ))
@@ -180,7 +188,7 @@ public struct PromptLanesJob: JevJob {
                     "Can a developer do every change in `items[\(index)].note` with no design or product choice?",
                     options: [
                         "exact": "Every change is exact: new text given in full, a named color, a size or spacing number, or one named thing to remove. The note may also say why. Examples: \"drop the subtitle, it repeats the title\", \"rename this button to Save\", \"make this 20% wider\".",
-                        "judgment": "At least one change needs a choice: make something clearer, better, or consistent, pick a layout, research, explain, or answer a question. A note that names no concrete change, such as \"fix this\", is judgment too.",
+                        "judgment": "At least one change needs a choice: make something clearer, better, or consistent, pick a layout, research, explain, or answer a question. A note that names no concrete change, such as \"fix this\", is judgment too. So is a note that mixes an exact value with a vague ask, such as \"make this card bigger and its title 18 points\".",
                     ]
                 )
             ))

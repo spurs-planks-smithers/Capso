@@ -33,8 +33,8 @@ private func makeLanesCapture(index: Int = 1, notes: [(badge: Int, note: String?
 /// probability list, and `exact` is the probability of the `exact` option.
 private typealias LanesShape = (severity: [Double], size: [Double], exact: Double)
 
-/// Bug, one file, exact at 0.90: lane A.
-private let mechanical: LanesShape = ([0.05, 0.15, 0.7, 0.1], [0.1, 0.7, 0.15, 0.05], 0.9)
+/// Polish, one file, exact at 0.90: lane A.
+private let mechanical: LanesShape = ([0.05, 0.7, 0.15, 0.1], [0.1, 0.7, 0.15, 0.05], 0.9)
 /// Blocker, many files, exact at 0.20: lane B.
 private let judgment: LanesShape = ([0.0, 0.1, 0.2, 0.7], [0.05, 0.1, 0.15, 0.7], 0.2)
 
@@ -148,9 +148,9 @@ struct PromptLanesJobTests {
         }
         #expect(severityLevels.map(codeText) == [
             #"A small taste preference. The screen works and reads well without it. Example: "maybe a slightly warmer gray"."#,
-            #"The change improves the look, the wording, or the layout. Nothing is broken. Example: "add more space above this heading"."#,
-            #"Something is broken, inconsistent, or cut off, but the screen still works. Example: "the last word of this button label is cut off"."#,
-            #"The feature fails, shows wrong data, or stops the user from finishing a task. Example: "saving this form loses what I typed"."#,
+            #"The change improves the look, the layout, or the wording, including cut-off text, uneven sizes, or inconsistent terms. Nothing is false or broken. Example: "add more space above this heading"."#,
+            #"The screen says something false or misleading, but the feature works. Example: "this label says the plan is free, but it is not"."#,
+            #"A feature fails, does not work, or shows wrong data. Example: "saving this form loses what I typed"."#,
         ])
 
         let size = request.questions[1].question
@@ -175,7 +175,7 @@ struct PromptLanesJobTests {
         #expect(options.map(\.name.text) == ["exact", "judgment"])
         #expect(options.map { codeText($0.description) } == [
             #"Every change is exact: new text given in full, a named color, a size or spacing number, or one named thing to remove. The note may also say why. Examples: "drop the subtitle, it repeats the title", "rename this button to Save", "make this 20% wider"."#,
-            #"At least one change needs a choice: make something clearer, better, or consistent, pick a layout, research, explain, or answer a question. A note that names no concrete change, such as "fix this", is judgment too."#,
+            #"At least one change needs a choice: make something clearer, better, or consistent, pick a layout, research, explain, or answer a question. A note that names no concrete change, such as "fix this", is judgment too. So is a note that mixes an exact value with a vague ask, such as "make this card bigger and its title 18 points"."#,
         ])
     }
 
@@ -230,13 +230,13 @@ struct PromptLanesJobTests {
         #expect(output.files.isEmpty)
         #expect(output.failure == nil)
         #expect(output.summary == [
-            JevSummaryField(key: "1.1", value: .fields(["lane": "A", "severity": 2, "size": 1])),
+            JevSummaryField(key: "1.1", value: .fields(["lane": "A", "severity": 1, "size": 1])),
             JevSummaryField(key: "1.2", value: .fields(["lane": "askFirst"])),
             JevSummaryField(key: "1.3", value: .fields(["lane": "B", "severity": 3, "size": 3])),
         ])
         // The review holds each note on one line, and no screen text.
         #expect(output.review == """
-        - 1.1: lane A. bug 0.70, one file 0.70, exact 0.90. Note: "rename this to Invoice Detail"
+        - 1.1: lane A. polish 0.70, one file 0.70, exact 0.90. Note: "rename this to Invoice Detail"
         - 1.2: ask first. Note: ""
         - 1.3: lane B. blocker 0.70, many files 0.70, exact 0.20. Note: "make the cards line up"
         """)
@@ -254,7 +254,7 @@ struct PromptLanesJobTests {
         let output = try await PromptLanesJob().run(makeContext(capture: capture, response: response(answers("1.1", mechanical), threeLevels, wrongType)))
 
         #expect(output.summary == [
-            JevSummaryField(key: "1.1", value: .fields(["lane": "A", "severity": 2, "size": 1])),
+            JevSummaryField(key: "1.1", value: .fields(["lane": "A", "severity": 1, "size": 1])),
             JevSummaryField(key: "1.2", value: .fields(["lane": "notRated"])),
             JevSummaryField(key: "1.3", value: .fields(["lane": "notRated"])),
             JevSummaryField(key: "1.4", value: .fields(["lane": "notRated"])),
@@ -276,13 +276,13 @@ struct PromptLanesJobTests {
         }
     }
 
-    @Test("The job is registered at version 2, with no consent beyond reviewer text")
+    @Test("The job is registered at version 3, with no consent beyond reviewer text")
     func identity() {
         let job = PromptLanesJob()
         #expect(job.id == "promptLanes" && job.flag == .promptLanes)
-        #expect(job.version == 2)
+        #expect(job.version == 3)
         #expect(job.requires.isEmpty)
-        #expect(JevJobRegistry.all.contains { $0.id == "promptLanes" && $0.version == 2 })
+        #expect(JevJobRegistry.all.contains { $0.id == "promptLanes" && $0.version == 3 })
     }
 }
 
@@ -314,18 +314,20 @@ struct PromptLanesRuleTests {
         #expect(sizeTie.exact == 0.9)
     }
 
-    @Test("Lane A needs exact at 0.8, a small size, and no blocker")
+    @Test("Lane A needs exact at 0.9, a small size, and polish or nit")
     func laneA() throws {
         let size = score([0, 1, 0, 0])
-        let severity = score([0, 0, 1, 0])
-        let atThreshold = try #require(PromptLanesRule.rate(severity: severity, size: size, kind: choice(exact: 0.8)))
+        let severity = score([0, 1, 0, 0])
+        let atThreshold = try #require(PromptLanesRule.rate(severity: severity, size: size, kind: choice(exact: 0.9)))
         #expect(atThreshold.laneA)
-        #expect(atThreshold.severity == .bug && atThreshold.size == .oneFile && atThreshold.exact == 0.8)
+        #expect(atThreshold.severity == .polish && atThreshold.size == .oneFile && atThreshold.exact == 0.9)
 
-        #expect(try #require(PromptLanesRule.rate(severity: severity, size: size, kind: choice(exact: 0.79))).laneA == false)
-        #expect(try #require(PromptLanesRule.rate(severity: severity, size: score([0, 0, 1, 0]), kind: choice(exact: 0.9))).laneA == false)
-        #expect(try #require(PromptLanesRule.rate(severity: severity, size: score([0, 0, 0, 1]), kind: choice(exact: 0.9))).laneA == false)
-        #expect(try #require(PromptLanesRule.rate(severity: score([0, 0, 0, 1]), size: size, kind: choice(exact: 0.9))).laneA == false)
+        #expect(try #require(PromptLanesRule.rate(severity: severity, size: size, kind: choice(exact: 0.89))).laneA == false)
+        #expect(try #require(PromptLanesRule.rate(severity: severity, size: score([0, 0, 1, 0]), kind: choice(exact: 1))).laneA == false)
+        #expect(try #require(PromptLanesRule.rate(severity: severity, size: score([0, 0, 0, 1]), kind: choice(exact: 1))).laneA == false)
+        // A bug or a blocker never goes to the fast model, however exact.
+        #expect(try #require(PromptLanesRule.rate(severity: score([0, 0, 1, 0]), size: size, kind: choice(exact: 1))).laneA == false)
+        #expect(try #require(PromptLanesRule.rate(severity: score([0, 0, 0, 1]), size: size, kind: choice(exact: 1))).laneA == false)
 
         // One line is as small as one file. Nit and polish pass.
         #expect(try #require(PromptLanesRule.rate(severity: score([1, 0, 0, 0]), size: score([1, 0, 0, 0]), kind: choice(exact: 1))).laneA)
@@ -364,9 +366,9 @@ struct PromptLanesRuleTests {
         #expect(PromptLanesRule.level(score([1.2, 0, 0, 0]), levels: 4) == nil)
     }
 
-    @Test("The exact minimum is 0.8")
+    @Test("The exact minimum is the value the accuracy test set")
     func thresholds() {
-        #expect(PromptLanesRule.exactMinimum == 0.8)
+        #expect(PromptLanesRule.exactMinimum == 0.9)
     }
 }
 
@@ -406,13 +408,13 @@ struct PromptLanesRunnerTests {
         #expect(record.job == "promptLanes" && record.jobVersion == PromptLanesJob().version && record.mode == "shadow" && record.status == .done)
         #expect(record.answers.map(\.id) == ["1.1.severity", "1.1.size", "1.1.kind"])
         #expect(record.lines.isEmpty)
-        #expect(record.summary == .object([JevSummaryField(key: "1.1", value: .fields(["lane": "A", "severity": 2, "size": 1]))]))
+        #expect(record.summary == .object([JevSummaryField(key: "1.1", value: .fields(["lane": "A", "severity": 1, "size": 1]))]))
         #expect(!bundle.exists(JevRefinedRenderer.captureFileName(for: bundle.capture)))
         #expect(!bundle.exists("refined.md"))
 
         let review = try bundle.text("jev-review/promptLanes.md")
         #expect(review.contains("## Capture 1") && !review.contains("### Capture"))
-        #expect(review.contains(#"- 1.1: lane A. bug 0.70, one file 0.70, exact 0.90. Note: "make it brighter""#))
+        #expect(review.contains(#"- 1.1: lane A. polish 0.70, one file 0.70, exact 0.90. Note: "make it brighter""#))
     }
 
     @Test("On writes the same summary and still no refined line")
@@ -424,7 +426,7 @@ struct PromptLanesRunnerTests {
         let record = try #require(try bundle.record(1))
         #expect(record.mode == "on" && record.status == .done)
         #expect(record.lines.isEmpty)
-        #expect(record.summary == .object([JevSummaryField(key: "1.1", value: .fields(["lane": "A", "severity": 2, "size": 1]))]))
+        #expect(record.summary == .object([JevSummaryField(key: "1.1", value: .fields(["lane": "A", "severity": 1, "size": 1]))]))
         let name = JevRefinedRenderer.captureFileName(for: bundle.capture)
         let refined = try bundle.exists(name) ? bundle.text(name) : ""
         #expect(!refined.contains("Item 1.1:"))
