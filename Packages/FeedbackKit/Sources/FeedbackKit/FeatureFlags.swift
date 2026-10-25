@@ -84,7 +84,9 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
         case .dupesConflicts:
             FlagSpec(issue: 39, allowedStates: [.off, .shadow, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil, devOnly: true)
         case .oneBreath:
-            FlagSpec(issue: 40, allowedStates: [.off, .shadow], devDefault: .off, releaseDefault: .off, releasedInBuild: nil, devOnly: true)
+            // Paused and locked off (Drew, 2026-10-24, #40). Add .shadow
+            // back here and in the flags script to run the trial again.
+            FlagSpec(issue: 40, allowedStates: [.off], devDefault: .off, releaseDefault: .off, releasedInBuild: nil, devOnly: true)
         case .jevSendImages:
             FlagSpec(issue: 36, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil, devOnly: true)
         case .jevSendScreenText:
