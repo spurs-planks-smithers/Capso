@@ -53,16 +53,19 @@ The script stops when the DMG has no stapled notarization ticket, when a file is
 Redesigned 2026-10-24 for the v3.1 video, in the video's words: round, dot, one prompt.
 
 - **Video first.** The video sits under the tagline, as wide as the window height allows, so the whole page fits a 1440 by 900 screen with no scroll. A "Watch the intro" button covers the poster, and the native controls appear once the video plays. Without JavaScript, the video keeps its controls.
-- **Poster.** The site poster is the frame at 46.6 seconds: numbered dots on the stand page and the note panel asking "Circle 1 (1 of 3): what should change?". The deploy's default poster is the end card, so pass this frame:
+- **Poster.** The site poster is the frame at 56.8 seconds: the Nshot menu open over the round of three captures (Drew, 2026-10-24: "The menu for Nextshot is key."). Until 2026-10-24 it was the note panel frame at 46.6 seconds. The deploy's default poster is the end card, so pass this frame:
 
 ```bash
-ffmpeg -v error -y -ss 46.6 -i build/releases/Nextshot-onboarding-2026.10.24.mp4 -frames:v 1 -q:v 3 build/site-poster.jpg
+ffmpeg -v error -y -ss 56.8 -i build/releases/Nextshot-onboarding-2026.10.24.mp4 -frames:v 1 -q:v 3 build/site-poster.jpg
 ```
 
 ```bash
 site/deploy.sh --video build/releases/Nextshot-onboarding-2026.10.24.mp4 --poster build/site-poster.jpg
 ```
 
+- **Tagline.** "Show AI what you mean." with the line "Stop describing to AI what to fix. Start pointing at it." under it, and in the meta descriptions (Drew, 2026-10-24). It said "Visual feedback for AI coding agents, on your Mac." until then.
+- **Download buttons.** Each place that offers the download (the header and under the video) has a Mac button and a Windows button of the same size, so neither ranks above the other (Drew, 2026-10-24). Mac is teal. Windows is gray, does not click, and carries a smaller "Coming soon" pill. Both show a download arrow icon so they read as download buttons. The icon is a plain arrow: Apple's trademark rules do not allow the Apple logo on third-party pages. On phones the header pair stacks under the brand.
+- **Version line.** Under the buttons, only "Version 2026.10.24". The size, "macOS 15 or later", and "Notarized by Apple" are gone (Drew, 2026-10-24). `deploy.sh` still computes the size for its own output.
 - **Gradient.** Teal light at the top left, indigo at the top right, and mint under the video, over graphite. It drifts over 48 seconds. All of it is CSS on `body::before`.
 - **Dot field.** `dots.js` draws a 24-pixel grid of faint mint dots on one canvas. At rest the dots undulate in two slow, crossing waves. Under the pointer they brighten and part by up to 7 pixels. A moving pointer leaves a soft ripple about every 110 pixels, and a click or tap sends a ring outward at 560 pixels per second for 2.2 seconds. Drew asked for the effect after he saw a dot background in the Claude desktop app. Anthropic has published no description of that effect, so this one follows his description.
 - **Cost.** The canvas draws at the display's frame rate only while something moves. At rest it draws 20 frames per second, and it stops while the tab is hidden. People who set Reduce Motion get a still grid and a still gradient.
