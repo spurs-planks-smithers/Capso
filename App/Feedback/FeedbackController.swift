@@ -234,13 +234,14 @@ final class FeedbackController {
     /// The prompt comes from the ended round, so it matches the `prompt.md`
     /// that `end()` writes. Resume in Recent reopens the round. With a Jev
     /// feature on, the copy waits at most 500 ms for a running capture and
-    /// points to refined.md.
+    /// points to refined.md. With `promptLanes` on, the prompt also ends with
+    /// the Order and lanes section, built after that wait.
     @discardableResult
     func copyPromptAndEndRound() async throws -> String {
         let round = try await endRound()
         let folder = store.rootURL.appendingPathComponent(round.folderName, isDirectory: true)
         await jev.settle(folderName: round.folderName)
-        let prompt = PromptBuilder.render(round, folderPath: folder.path, refined: jev.pointsToRefinedFiles)
+        let prompt = PromptBuilder.render(round, folderPath: folder.path, refined: jev.pointsToRefinedFiles, lanes: jev.lanes(for: round, folderURL: folder))
         copyToClipboard(prompt, toast: Self.promptCopiedRoundEndedToast, screen: nil)
         FeedbackLog.logger.notice("round prompt copied, round ended, \(prompt.count) characters")
         return prompt
@@ -517,7 +518,7 @@ final class FeedbackController {
             let folder = self.store.rootURL.appendingPathComponent(round.folderName, isDirectory: true)
             let refined = self.jev.pointsToRefinedFiles
                 && FileManager.default.fileExists(atPath: folder.appendingPathComponent("refined.md").path)
-            let prompt = PromptBuilder.render(round, folderPath: folder.path, redo: true, refined: refined)
+            let prompt = PromptBuilder.render(round, folderPath: folder.path, redo: true, refined: refined, lanes: self.jev.lanes(for: round, folderURL: folder))
             self.copyToClipboard(prompt, toast: Self.promptCopiedToast, screen: nil)
             FeedbackLog.logger.notice("recent round prompt copied, \(prompt.count) characters")
         }

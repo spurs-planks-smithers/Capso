@@ -2,10 +2,80 @@
 import Foundation
 
 /// Lanes and priority (issue #69): the round plan that sorts a round's items
-/// into exact edits and judgment calls, and orders them by severity. The plan
-/// itself comes later. For now this type holds the two level scales that Jev
-/// rates each item on. See `docs/superpowers/specs/2026-10-24-prompt-lanes-design.md`.
+/// into exact edits and judgment calls, and orders them by severity. JevKit
+/// builds the plan from jev.json and the round. This type holds the plan and
+/// writes its prompt section, so FeedbackKit never needs to know about Jev.
+/// It holds item ids and level names only, never the reviewer's words. See
+/// `docs/superpowers/specs/2026-10-24-prompt-lanes-design.md`.
 public struct PromptLanes: Equatable, Sendable {
+    /// One item in a lane. Both levels nil means the item is not rated: its
+    /// capture has no usable labels.
+    public struct Entry: Equatable, Sendable {
+        /// The item id, K.N.
+        public var item: String
+        public var severity: Severity?
+        public var size: Size?
+
+        public init(item: String, severity: Severity? = nil, size: Size? = nil) {
+            self.item = item
+            self.severity = severity
+            self.size = size
+        }
+    }
+
+    /// Exact edits, in the order to do them.
+    public var laneA: [Entry]
+    /// Items that need judgment, in the order to plan them.
+    public var laneB: [Entry]
+    /// Item ids that have no note.
+    public var askFirst: [String]
+
+    public init(laneA: [Entry], laneB: [Entry], askFirst: [String]) {
+        self.laneA = laneA
+        self.laneB = laneB
+        self.askFirst = askFirst
+    }
+
+    /// The "Order and lanes" section, as lines for the end of the round
+    /// prompt. An empty lane prints a none line, and the last line points to
+    /// the lane that has items. With no item in either lane, there is no
+    /// last line.
+    public var promptLines: [String] {
+        var lines = [
+            "Order and lanes:",
+            "These labels come from an automated model. The reviewer's words win. Each item appears once.",
+        ]
+        if laneA.isEmpty {
+            lines.append("Lane A, exact edits: none.")
+        } else {
+            lines.append("Lane A, exact edits. After your plan table, hand these items to a subagent on a fast, low-cost model as one batch, with each item's instruction from manifest.md. In Claude Code, set the subagent's model to haiku. With fewer than three items, do them yourself. Check each edit before you start lane B.")
+            lines += laneA.map(Self.line)
+        }
+        if laneB.isEmpty {
+            lines.append("Lane B, needs judgment: none.")
+        } else {
+            lines.append("Lane B, needs judgment. Plan these yourself, in this order:")
+            lines += laneB.map(Self.line)
+        }
+        if !askFirst.isEmpty {
+            lines.append("Ask first: \(askFirst.joined(separator: ", ")) (no instruction).")
+        }
+        switch (laneA.isEmpty, laneB.isEmpty) {
+        case (false, false): lines.append("Start with lane A. Then work lane B from the top.")
+        case (true, false): lines.append("Work lane B from the top.")
+        case (false, true): lines.append("Start with lane A.")
+        case (true, true): break
+        }
+        return lines
+    }
+
+    private static func line(_ entry: Entry) -> String {
+        guard let severity = entry.severity, let size = entry.size else {
+            return "- \(entry.item) not rated"
+        }
+        return "- \(entry.item) \(severity.name), \(size.name)"
+    }
+
     /// How serious the problem in an item's note is. The raw value is Jev's
     /// level number, nit first.
     public enum Severity: Int, CaseIterable, Sendable {
