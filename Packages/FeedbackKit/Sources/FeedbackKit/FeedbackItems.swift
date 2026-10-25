@@ -12,6 +12,19 @@ public struct FeedbackItem: Equatable, Sendable {
 
     /// The shape's OCR text names the marked region best, so it wins.
     public var ocrText: String? { shape?.ocrText ?? badge.ocrText }
+
+    /// The box that holds the badge, the shape it sits on, and the point its
+    /// arrow aims at. The preview crop and the item crop both start from it.
+    public var focus: FeedbackBox {
+        var focus = badge.box
+        if let shape {
+            focus = focus.union(shape.box)
+        }
+        if let tip = badge.point {
+            focus = focus.union(FeedbackBox(x1: tip.x, y1: tip.y, x2: tip.x, y2: tip.y))
+        }
+        return focus
+    }
 }
 
 public enum FeedbackItems {
