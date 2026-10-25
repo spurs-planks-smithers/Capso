@@ -139,6 +139,7 @@ enum DiskImageInstaller {
         let staged = folder.appendingPathComponent(".Nextshot-install-\(UUID().uuidString).app")
         do {
             try files.copyItem(at: Bundle.main.bundleURL, to: staged)
+            markUserApproved(staged)
             if files.fileExists(atPath: destination.path) {
                 _ = try files.replaceItemAt(destination, withItemAt: staged)
             } else {
@@ -147,6 +148,29 @@ enum DiskImageInstaller {
         } catch {
             try? files.removeItem(at: staged)
             throw error
+        }
+    }
+
+    /// The copy keeps the download's quarantine flags, without the "user
+    /// approved" bit, so Gatekeeper asked "Are you sure you want to open it?"
+    /// a second time (live test, 2026-10-25). The user already said Open to
+    /// this same notarized app on the image. This sets only that bit, as
+    /// Finder does after Open, and keeps the download record.
+    nonisolated private static func markUserApproved(_ bundle: URL) {
+        let name = "com.apple.quarantine"
+        let path = bundle.path
+        let size = getxattr(path, name, nil, 0, 0, XATTR_NOFOLLOW)
+        guard size > 0 else { return }
+        var buffer = [UInt8](repeating: 0, count: size)
+        guard getxattr(path, name, &buffer, size, 0, XATTR_NOFOLLOW) == size,
+              let value = String(bytes: buffer, encoding: .utf8) else { return }
+        var fields = value.split(separator: ";", omittingEmptySubsequences: false).map(String.init)
+        guard let first = fields.first, let flags = UInt32(first, radix: 16) else { return }
+        let userApproved: UInt32 = 0x40
+        fields[0] = String(format: "%04x", flags | userApproved)
+        let updated = Array(fields.joined(separator: ";").utf8)
+        if setxattr(path, name, updated, updated.count, 0, XATTR_NOFOLLOW) != 0 {
+            logger.notice("Could not mark the installed copy as approved: errno \(errno)")
         }
     }
 
