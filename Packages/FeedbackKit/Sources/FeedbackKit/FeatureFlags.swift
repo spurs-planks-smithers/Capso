@@ -70,6 +70,9 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
     /// Consent for screen text (OCR text, window titles, app names) to leave
     /// the Mac in Jev requests.
     case jevSendScreenText
+    /// Zip Round and Zip N Selected in the Nshot menu (#85). Not a Jev
+    /// feature, so it may turn on in a release build.
+    case zipHandoff
 
     /// New flags start with both defaults `off`. A release default turns on
     /// only with a released-in build number.
@@ -91,6 +94,8 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
             FlagSpec(issue: 36, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil, devOnly: true)
         case .jevSendScreenText:
             FlagSpec(issue: 36, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil, devOnly: true)
+        case .zipHandoff:
+            FlagSpec(issue: 85, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
         }
     }
 
