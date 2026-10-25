@@ -75,8 +75,8 @@ struct JobInterfaceTests {
     @Test("The registry lists one job per planned feature, with distinct ids and flags")
     func registryLines() {
         let jobs = JevJobRegistry.all
-        #expect(jobs.map(\.id) == ["noteCoach", "cropsAnchors", "dupesConflicts", "oneBreath"])
-        #expect(jobs.map(\.flag) == [.noteCoach, .cropsAnchors, .dupesConflicts, .oneBreath])
+        #expect(jobs.map(\.id) == ["noteCoach", "cropsAnchors", "dupesConflicts", "oneBreath", "promptLanes", "dataGuard"])
+        #expect(jobs.map(\.flag) == [.noteCoach, .cropsAnchors, .dupesConflicts, .oneBreath, .promptLanes, .dataGuard])
         #expect(Set(jobs.map(\.id)).count == jobs.count)
     }
 

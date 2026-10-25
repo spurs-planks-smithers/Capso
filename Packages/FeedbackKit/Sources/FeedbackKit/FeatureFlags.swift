@@ -87,6 +87,17 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
     case dupesMerge
     case dupesConflict
     case oneBreath
+    case promptLanes
+    case dataGuard
+    /// Data guard sub-flags (Drew, 2026-10-24 and 2026-10-25). The first gates
+    /// the check for screen text aimed at an AI agent. The others set how far
+    /// one kind of private data runs. Each runs at the lower of its own state
+    /// and `dataGuard`'s, so alone it runs nothing.
+    case dataGuardInjection
+    case dataGuardContact
+    case dataGuardNumbers
+    case dataGuardSecrets
+    case dataGuardFaces
     /// Consent for capture images to leave the Mac in Jev requests.
     case jevSendImages
     /// Consent for screen text (OCR text, window titles, app names) to leave
@@ -118,6 +129,12 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
             // Paused and locked off (Drew, 2026-10-24, #40). Add .shadow
             // back here and in the flags script to run the trial again.
             FlagSpec(issue: 40, allowedStates: [.off], devDefault: .off, releaseDefault: .off, releasedInBuild: nil, devOnly: true)
+        case .promptLanes:
+            FlagSpec(issue: 69, allowedStates: [.off, .shadow, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil, devOnly: true)
+        case .dataGuard:
+            FlagSpec(issue: 70, allowedStates: [.off, .shadow, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil, devOnly: true)
+        case .dataGuardInjection, .dataGuardContact, .dataGuardNumbers, .dataGuardSecrets, .dataGuardFaces:
+            Self.subFlagSpec(of: .dataGuard)
         case .jevSendImages:
             FlagSpec(issue: 36, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil, devOnly: true)
         case .jevSendScreenText:

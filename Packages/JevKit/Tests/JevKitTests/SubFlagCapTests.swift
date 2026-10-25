@@ -206,7 +206,7 @@ struct SubFlagGateTests {
             checked.append(job.id)
         }
         try #require(!checked.isEmpty, "no registered job has sub-flags")
-        #expect(checked == ["noteCoach", "cropsAnchors", "dupesConflicts"])
+        #expect(checked == ["noteCoach", "cropsAnchors", "dupesConflicts", "dataGuard"])
 
         // Every sub-flag belongs to a feature that has a job.
         for flag in FeatureFlag.allCases {
