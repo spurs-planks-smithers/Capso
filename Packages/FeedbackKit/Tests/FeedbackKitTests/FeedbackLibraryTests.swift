@@ -183,6 +183,39 @@ struct FeedbackLibraryTests {
         #expect(FeedbackLibrary.captureRowTitle(neither, timeZone: tz, locale: en) == "3:43 PM Capture 4")
     }
 
+    @Test("Lists a round's captures newest first and leaves the round in capture order")
+    func capturesNewestFirst() {
+        defer { try? fileManager.removeItem(at: root) }
+        var s = ended(day: 21)
+        s.captures = [
+            capture(1, title: "first"),
+            capture(2, title: "second"),
+            capture(3, title: "third"),
+        ]
+        s.captures[0].capturedAt = date(21, 11, 19)
+        s.captures[1].capturedAt = date(21, 11, 58)
+        s.captures[2].capturedAt = date(21, 12, 1)
+
+        #expect(FeedbackLibrary.capturesNewestFirst(s).map(\.index) == [3, 2, 1])
+        #expect(s.captures.map(\.index) == [1, 2, 3])
+    }
+
+    @Test("Breaks a tie in capture time by putting the higher index first")
+    func capturesNewestFirstTie() {
+        defer { try? fileManager.removeItem(at: root) }
+        var s = ended(day: 21)
+        s.captures = [capture(1), capture(2), capture(3)]
+        #expect(FeedbackLibrary.capturesNewestFirst(s).map(\.index) == [3, 2, 1])
+    }
+
+    @Test("Lists no captures for a round with none")
+    func capturesNewestFirstEmpty() {
+        defer { try? fileManager.removeItem(at: root) }
+        var s = ended(day: 21)
+        s.captures = []
+        #expect(FeedbackLibrary.capturesNewestFirst(s).isEmpty)
+    }
+
     @Test("Counts items as a short text")
     func countsItems() {
         defer { try? fileManager.removeItem(at: root) }

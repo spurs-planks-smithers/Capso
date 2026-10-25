@@ -17,4 +17,12 @@ enum Flags {
     static func isOn(_ flag: FeatureFlag) -> Bool {
         state(flag) == .on
     }
+
+    /// The state a sub-flag runs at: the lower of its own state and its
+    /// parent's. A flag with no parent runs at its own state. Read a sub-flag
+    /// through this, never through `state`, so the parent's cap always holds
+    /// (#94).
+    static func effectiveState(_ flag: FeatureFlag) -> FlagState {
+        FlagResolver.effectiveState(of: flag, state: state)
+    }
 }

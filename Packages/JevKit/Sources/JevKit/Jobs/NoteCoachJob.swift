@@ -96,11 +96,19 @@ public enum NoteCoachRule {
 /// only: no window title, OCR text, app name, file name, or image. The job
 /// returns the same output in shadow and on. The runner writes the lines in
 /// on only. See docs/superpowers/specs/2026-10-24-note-coach-design.md.
+///
+/// Each kind of line has its own sub-flag (#94): `noteCoachVague`,
+/// `noteCoachQuestion`, and `noteCoachEmpty`. The runner caps each at the
+/// state of `noteCoach`. A label whose sub-flag is off is left out of the
+/// summary, the review, and the refined file. With `noteCoachVague` and
+/// `noteCoachQuestion` both off, the job sends no request.
 public struct NoteCoachJob: JevJob {
     public let id = "noteCoach"
     public let flag = FeatureFlag.noteCoach
     public let requires: JevDataKinds = []
-    public let version = 2
+    public let version = 3
+
+    public var options: [FeatureFlag] { [.noteCoachVague, .noteCoachQuestion, .noteCoachEmpty] }
 
     public init() {}
 
@@ -120,9 +128,15 @@ public struct NoteCoachJob: JevJob {
         let items = Self.items(in: capture)
         guard !items.isEmpty else { return .empty }
 
+        // Jev labels vague and question notes only. An empty note needs no
+        // request. A filled note gets no label when neither sub-flag is on.
+        let modes = context.optionModes
+        let asksJev = (modes[.noteCoachVague] ?? .off) != .off || (modes[.noteCoachQuestion] ?? .off) != .off
+        guard asksJev || (modes[.noteCoachEmpty] ?? .off) != .off else { return .empty }
+
         let filled = items.filter(\.isFilled)
         var response: JevResponse?
-        if !filled.isEmpty {
+        if asksJev, !filled.isEmpty {
             response = try await context.jev.ask(Self.request(capture: capture, filled: filled))
         }
 
@@ -131,6 +145,7 @@ public struct NoteCoachJob: JevJob {
         // The review writer adds the capture heading.
         var review: [String] = []
         for item in items {
+            if item.isFilled, !asksJev { continue }
             let id = Self.itemID(capture: capture.index, badge: item.badge)
             let label: NoteCoachLabel?
             var reviewLine = "- \(id.text):"
@@ -146,15 +161,32 @@ public struct NoteCoachJob: JevJob {
                 label = .empty
                 reviewLine += " empty."
             }
+
+            let reach = Self.reach(of: label, modes: modes)
+            if reach == .off { continue }
             reviewLine += " Note: \"\(item.note.split(whereSeparator: \.isNewline).joined(separator: " "))\""
             review.append(reviewLine)
+            summary.append(JevSummaryField(key: id, value: label.map { JevSummaryValue.code($0.code) } ?? "not_checked"))
 
-            if let line = label.flatMap({ NoteCoachRule.line(for: $0) }) {
+            if reach == .on, let line = label.flatMap({ NoteCoachRule.line(for: $0) }) {
                 lines.append(JevRefinedLine(scope: .item(badge: item.badge), label: line))
             }
-            summary.append(JevSummaryField(key: id, value: label.map { JevSummaryValue.code($0.code) } ?? "not_checked"))
         }
-        return JevJobOutput(lines: lines, summary: summary, review: review.joined(separator: "\n"))
+        return JevJobOutput(lines: lines, summary: summary, review: review.isEmpty ? nil : review.joined(separator: "\n"))
+    }
+
+    /// How far a label goes. Off leaves it out of every output. Shadow
+    /// records it in jev.json and the review. On also writes its refined
+    /// line. Each of vague, question, and empty follows its own sub-flag. The
+    /// other labels have no sub-flag and no line, so they go to shadow
+    /// whenever a request was sent.
+    private static func reach(of label: NoteCoachLabel?, modes: [FeatureFlag: FlagState]) -> FlagState {
+        switch label {
+        case .vague: modes[.noteCoachVague] ?? .off
+        case .question: modes[.noteCoachQuestion] ?? .off
+        case .empty: modes[.noteCoachEmpty] ?? .off
+        case .unsure, .partial, .clear, nil: .shadow
+        }
     }
 
     /// Each distinct badge, in ascending order. A badge with several marks

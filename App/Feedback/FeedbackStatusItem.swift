@@ -343,7 +343,7 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         }
         menu.addItem(.separator())
 
-        for capture in round.captures {
+        for capture in FeedbackLibrary.capturesNewestFirst(round) {
             let key = FeedbackBasketKey(folderName: round.folderName, captureIndex: capture.index)
             let title = FeedbackLibrary.captureRowTitle(capture, timeZone: .current)
             let rowView = FeedbackCaptureRowView(
