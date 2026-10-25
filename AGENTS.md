@@ -62,6 +62,20 @@ xcodebuild -project Capso.xcodeproj -scheme Capso -configuration Debug CODE_SIGN
 - Stage by explicit path. Use conventional commit prefixes. Add no AI attribution lines.
 - Run `github-route status` before every push. Stop if it exits nonzero.
 
+### GitHub issues
+
+- **Every open `bug` and `enhancement` issue carries exactly one severity label.** Any other open issue may carry one, but never two. Give a new bug or enhancement its severity label in the same call that opens it.
+- **Rate the problem a user meets while the issue stays open.** For a planned feature, rate the gap: a user who cannot finish a task without it means `sev-blocker`.
+- **Swap a rating in one command:** `gh issue edit N --remove-label sev-polish --add-label sev-bug`. An add-only call leaves two severity labels.
+- This fork has no GitHub tracking kit and no drift check. It keeps GitHub's default labels plus the four `sev-` labels. Decision record: `~/.dotfiles/claude-code/docs/decisions/2026-10-24-issue-severity-labels.md`.
+
+| Severity, high to low | Meaning | Example (made up) |
+| --- | --- | --- |
+| `sev-blocker` | The feature fails, shows wrong data, or stops the user from finishing a task. | "saving this form loses what I typed" |
+| `sev-bug` | Something is broken, inconsistent, or cut off, but the screen still works. | "the last word of this button label is cut off" |
+| `sev-polish` | The change improves the look, the wording, or the layout. Nothing is broken. | "add more space above this heading" |
+| `sev-nit` | A small taste preference. The screen works and reads well without it. | "maybe a slightly warmer gray" |
+
 ## Upstream flow
 
 - `origin` is the fork, `spurs-planks-smithers/Capso`.
