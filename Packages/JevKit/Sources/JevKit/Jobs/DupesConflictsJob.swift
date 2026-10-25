@@ -121,18 +121,26 @@ public struct DupesConflictsJob: JevJob {
         try await withThrowingTaskGroup(of: (Int, Result<JevResponse, JevError>).self) { group in
             for (position, batch) in batches.enumerated() {
                 group.addTask {
+                    // Return the pair after the do/catch, never from inside
+                    // it. A Release build returned the same position from
+                    // both children of that form and lost a result (#39).
+                    let result: Result<JevResponse, JevError>
                     do {
-                        return (position, .success(try await asker.ask(batch.request)))
+                        result = .success(try await asker.ask(batch.request))
                     } catch let error as JevError {
-                        return (position, .failure(error))
+                        result = .failure(error)
                     }
+                    return (position, result)
                 }
             }
             var results = [Result<JevResponse, JevError>?](repeating: nil, count: batches.count)
             for try await (position, result) in group {
                 results[position] = result
             }
-            return results.compactMap { $0 }
+            // One result per batch, in batch order, so each response stays
+            // with its own entries. A missing result is a job error for that
+            // batch, never another batch's response.
+            return results.map { $0 ?? .failure(JevError(.jobError)) }
         }
     }
 }
