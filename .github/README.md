@@ -50,13 +50,14 @@ Camera and microphone access are needed only for video recording. Nextshot asks 
 
 ## Update
 
-Nextshot does not update itself. When you get a new DMG:
+Nextshot does not update itself over the network. When you get a new DMG:
 
-1. Quit Nextshot. Finder cannot replace an app that is running.
-2. Open the new DMG and drag **Nextshot** to **Applications**. Choose **Replace**.
-3. Open Nextshot again.
+1. Open the new DMG.
+2. Double-click **Nextshot** in its window, then click **Install**.
 
-Your rounds, settings, and permissions stay.
+Nextshot quits the copy that runs, replaces it, and opens the new version. It also ejects old Nextshot DMGs, so they leave the Finder sidebar. Your rounds, settings, and permissions stay.
+
+A drag to **Applications** works only while Nextshot is not running. Finder cannot replace an app that is running.
 
 The Shortcuts actions **Start Feedback Session** and **End Feedback Session** are now **Start Feedback Round** and **End Feedback Round**. A Shortcut saved before this change keeps working, because Nextshot still answers to the old actions. They no longer show in the action list, so use the new actions in new Shortcuts.
 

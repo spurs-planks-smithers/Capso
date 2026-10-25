@@ -103,4 +103,4 @@ CLOUDFLARE_API_TOKEN="$(security find-generic-password -s CLOUDFLARE_API_TOKEN_N
 
 Capso's Additional Use Grant allows personal use, internal use within an organization, and non-commercial distribution. The page says "Free for personal use and internal use only." Keep the site free. Never add a price or a sign-up for paid use.
 
-The license notice travels with the software: the DMG holds `LICENSE.txt` beside the app and inside it (`Contents/Resources/LICENSE.txt`). On 2026-10-23 Drew removed the page footer's Capso credit and license link. The BSL requires the notice on each copy of the software, not on a download page.
+The license notice travels with the software, inside the app (`Contents/Resources/LICENSE.txt`). Since 2026-10-25 the DMG window shows no `LICENSE.txt` beside the app (Drew, 2026-10-25). On 2026-10-23 Drew removed the page footer's Capso credit and license link. The BSL requires the notice on each copy of the software, not on a download page.
