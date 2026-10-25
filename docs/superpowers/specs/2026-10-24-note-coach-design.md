@@ -169,6 +169,20 @@ Final run (job version 2, the rule above):
 
 The two missed made-up questions get no line, which costs little: one asks why a value is empty (`reports_problem` 0.67), and one asks for draft text (`names_change` 0.95). No real change request got the question line. The thresholds sit on 49 vague notes and 9 real questions, so shadow data checks them again before the on state.
 
+## Trial results (2026-10-24)
+
+On the combined build of all four Jev features (`integration/jev-trials`), with only `jevBase` and `noteCoach` set. `jev.json` recorded note coach version 2 in every run.
+
+| Step | Build | Result |
+| --- | --- | --- |
+| Shadow | 611 | Trial capture: "make this text bold" clear, "fix this" vague, "what does this do?" question. Drew's two real captures in the same round: 6 of 6 notes clear. One request per capture, 93 to 254 ms. No refined file. |
+| On | 614 | The refined file held "Ask the reviewer first: the note names no change." under item 1.1 and "Answer this item. Change no code." under item 1.2. The copied prompt named the refined file first and carried the scoped Authority line. 172 ms. |
+| Paste test | n/a | Claude Code headless (Sonnet) on the copied prompt, in a scratch clone of this repository. It asked the reviewer what to fix for item 1.1, answered item 1.2, and edited no file (`git status` empty). Its plan table named both labels as its reasons. |
+
+Limits: the paste-test capture showed a web page, not Nextshot, so the agent had no matching code to edit anyway. The test used Sonnet. Drew usually works with a larger model.
+
+The trial found one bug, fixed in `387d38c`: the review file showed each capture heading twice.
+
 ## Rollout and kill rule
 
 1. Build with `noteCoach` off in both channels. A test proves the off state changes nothing.
