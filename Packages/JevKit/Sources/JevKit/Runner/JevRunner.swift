@@ -117,7 +117,7 @@ public actor JevRunner {
         }
 
         running[key] = Task {
-            await self.run(key: key, planned: planned, allowed: allowed, screenLines: lines)
+            await self.run(key: key, planned: planned, allowed: allowed, screenLines: lines, flagStates: states)
             self.finish(key)
         }
     }
@@ -160,7 +160,7 @@ public actor JevRunner {
 
     // MARK: - One capture
 
-    private func run(key: Key, planned: [(job: any JevJob, mode: FlagState)], allowed: JevDataKinds, screenLines: [FeedbackTextLine]?) async {
+    private func run(key: Key, planned: [(job: any JevJob, mode: FlagState)], allowed: JevDataKinds, screenLines: [FeedbackTextLine]?, flagStates: [FeatureFlag: FlagState]) async {
         let startedAt = now()
         var finished: [JevBundleWriter.Finished] = []
         var runnable: [(job: any JevJob, mode: FlagState)] = []
@@ -195,10 +195,15 @@ public actor JevRunner {
 
         await withTaskGroup(of: JevBundleWriter.Finished.self) { group in
             for entry in runnable {
+                // A job never sees its own flag, so shadow and on run alike.
+                let optionModes = Dictionary(
+                    entry.job.options.filter { $0 != entry.job.flag }.map { ($0, flagStates[$0] ?? .off) },
+                    uniquingKeysWith: { first, _ in first }
+                )
                 group.addTask {
                     await self.runJob(entry.job, mode: entry.mode, round: round, capture: capture, folderURL: folderURL,
                                       allowed: allowed, deadline: deadline, budget: budget, images: images,
-                                      screenLines: screenLines, startedAt: startedAt)
+                                      screenLines: screenLines, optionModes: optionModes, startedAt: startedAt)
                 }
             }
             for await result in group {
@@ -231,6 +236,7 @@ public actor JevRunner {
         budget: RequestBudget,
         images: JevImageLoader,
         screenLines: [FeedbackTextLine]?,
+        optionModes: [FeatureFlag: FlagState],
         startedAt: Date
     ) async -> JevBundleWriter.Finished {
         let clockStart = ContinuousClock.now
@@ -239,7 +245,8 @@ public actor JevRunner {
             try await self.send(request, allowed: allowed, deadline: deadline, budget: budget, recorder: recorder)
         }
         let context = JevJobContext(round: round, capture: capture, folderURL: folderURL, allowed: allowed,
-                                    deadline: deadline, jev: asker, images: images, screenLines: screenLines)
+                                    deadline: deadline, jev: asker, images: images, screenLines: screenLines,
+                                    optionModes: optionModes)
 
         let outcome = await Self.race(deadline: deadline) {
             do {

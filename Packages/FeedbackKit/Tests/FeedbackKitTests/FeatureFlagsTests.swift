@@ -28,14 +28,16 @@ private func resolve(_ channel: BuildChannel, override: String?) -> FlagState {
 
 @Suite("FeatureFlags")
 struct FeatureFlagsTests {
-    @Test("Lists the nine flags with their issue numbers")
+    @Test("Lists the thirteen flags with their issue numbers")
     func registryContents() {
         #expect(FeatureFlag.allCases.map(\.rawValue) == [
             "jevBase", "noteCoach", "cropsAnchors", "dupesConflicts", "oneBreath", "promptLanes", "dataGuard",
+            "dataGuardContact", "dataGuardNumbers", "dataGuardSecrets", "dataGuardFaces",
             "jevSendImages", "jevSendScreenText",
         ])
-        // The two consent flags belong to the Jev base, #36.
-        #expect(FeatureFlag.allCases.map(\.spec.issue) == [36, 37, 38, 39, 40, 69, 70, 36, 36])
+        // The data guard's kind flags belong to #70. The two consent flags
+        // belong to the Jev base, #36.
+        #expect(FeatureFlag.allCases.map(\.spec.issue) == [36, 37, 38, 39, 40, 69, 70, 70, 70, 70, 70, 36, 36])
     }
 
     @Test("Every Jev flag is dev-only, and a dev-only flag defaults to off in release")
