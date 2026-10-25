@@ -24,7 +24,10 @@ On `claude/data-guard-0cc5bf`, read with `git log 2539f9c..HEAD`.
 - The unsigned Debug build from `AGENTS.md` passes.
 - Fork CI is off, so the PR shows zero checks. Zero checks is not a pass.
 
+- Trial (#80) on build 723, 2026-10-25, made-up data only, both consent flags off. Shadow: three captures, 28 to 72 ms each, 0 requests. The guard found the email, phone, card, and key on each, and flagged injection on the two captures that held the "Note to AI" line. Drew checked the review page: boxes on the right lines, no false boxes, nothing missed. On: `<stem>-covered.png` had solid boxes over the typed text, and the refined file held the injection warning and the covered-copy line. Uncovered by design: window and tab titles, and a tiny editor minimap that OCR cannot read. The Jev questions (consent flags on) were not trialed. All flags are reset. Drew's verdict: pass.
+
 ## Open
 
-- Trial on the orchestration session's combined build (#80): shadow first, then Drew decides on per kind.
+- Drew's dev-build review of PR #83. The PR stays open until then.
+- The Jev pass (`jevSendScreenText`, `jevSendImages`) has no real trial yet.
 - Follow-up #81: the copied prompts name the covered copy, and item crops get covers.
