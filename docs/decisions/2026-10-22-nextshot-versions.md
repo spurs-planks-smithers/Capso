@@ -2,6 +2,8 @@
 
 Date: 2026-10-22. Decided by Drew.
 
+Replaced in part on 2026-10-25: the Scheme section and the "updates stay manual" line are superseded by [2026-10-25-versioning-and-releases.md](2026-10-25-versioning-and-releases.md). The text below stays as the record of what shipped as 2026.10.22 to 2026.10.25.
+
 ## Decision
 
 - Updates stay manual. Each person installs a new notarized DMG over the old app. Sparkle stays off. Self-serve updates are backlog issue [spurs-planks-smithers/Capso#4](https://github.com/spurs-planks-smithers/Capso/issues/4).
