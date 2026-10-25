@@ -10,6 +10,7 @@ A side session that the orchestration session started. Worktree `.claude/worktre
 - Built the local detectors and masking, the face finder (Apple Vision) and solid covers, the kind flags and the job options hook, and the job. A Sonnet executor wrote the review page script in its own worktree. This session reviewed it and merged its commit.
 - Security choices made while building: a strong local hit cannot be cleared by Jev; the image sent to Jev has every local find drawn over, whatever the kind flags; the image stays home when private screen text has no box, or when the face finder fails (found by the automated security review); no rule uses bare "agent" or "AI", because Nextiva's contact center screens use those words for people; test keys are built at run time, so git-secrets never sees a key-shaped literal.
 - An Opus security review (read only) found one high and eight lower issues, and all are fixed in `24e4eb9`. High: a slow Jev request at the 2 s deadline made the runner drop the whole output, local results included, so the request now gives up 400 ms early. Others: OCR lines the runner cut at 200 scalars hid their ends, the window title reached Jev, four phrasings and wrapped or Cyrillic text got past the strong rules, a card or IBAN followed by more digits was missed, a partial covered copy claimed to be complete, shadow review text said "covered", the account pattern backtracked on long space runs, and the review script followed a symlink.
+- A later automated check found three more issues, fixed in `4319e17`: an ambiguous rejoin of cut lines, an unchecked cut line left uncovered in the agent's copy, and bounded gaps that missed four or more spaces in the account pattern.
 - The orchestration session approved the shared-file edits. The kind flags and the options hook are one commit on `jev/next-base`, `bc53a43`, and the branch was restacked on it. The Jev base spec's decisions log records the rule change. The old tip is kept as `backup/data-guard-pre-restack`.
 
 ## Commits
@@ -18,7 +19,7 @@ On `claude/data-guard-0cc5bf`, read with `git log 2539f9c..HEAD`.
 
 ## Tests
 
-- JevKit: 194 tests pass, 51 of them for the data guard and 5 for the options hook. FeedbackKit: 227 tests pass.
+- JevKit: 197 tests pass, 54 of them for the data guard and 5 for the options hook. FeedbackKit: 227 tests pass.
 - The review script: the executor's synthetic-round check passes, and a symlinked output file is refused with the link's target unchanged.
 - The unsigned Debug build from `AGENTS.md` passes.
 - Fork CI is off, so the PR shows zero checks. Zero checks is not a pass.
