@@ -165,7 +165,10 @@ final class CaptureOverlayWindow: NSPanel {
         }
         // Local monitor: catches ESC/Space when our window is key.
         localEscMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp]) { [weak self] event in
-            self?.handleLocalKeyEvent(event) ?? event
+            // Fork: a nil from `handleLocalKeyEvent` consumes the key. `?? event`
+            // passed it on, and the view ran Esc or Space a second time.
+            guard let self else { return event }
+            return self.handleLocalKeyEvent(event)
         }
         // Ensure Shift-driven behavior still runs when the view is not first
         // responder (e.g. after clicking across screens): multi-window

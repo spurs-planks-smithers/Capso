@@ -13,7 +13,7 @@ Nextshot is built on [Capso](https://github.com/lzhgus/Capso), an open-source sc
 ## How it works
 
 1. Press **Option+Shift+F** and drag over the part of the screen you want to change.
-2. Mark it up. Press **C** or **N** to drop numbered badges on each problem. Boxes, arrows, and text work too.
+2. Mark it up. Click each problem to drop a numbered red dot. No key is needed first. For an arrow, a box, or text, press **A**, **R**, or **T**. Press **C** to go back to dots.
 3. Press **Command+S**. Nextshot asks one short question per badge: what should change? Type or dictate each answer. Press **Return** to go to the next one.
 4. When you finish, the prompt is on your clipboard. Paste it into your agent.
 
@@ -29,10 +29,10 @@ Click **Nshot** in the menu bar to:
 
 - See which build you run. The top row shows it, for example **Nextshot 2026.10.22 (497)**.
 - **Copy Last Capture Prompt** (**Option+Shift+C**) again, for example after dictation replaced your clipboard.
-- **Copy Prompt and End Round** (**Option+Shift+R**). Copying the whole prompt ends the round. **Resume Round** in **Recent** reopens it.
+- **Copy Prompt and End Round** (**Option+Shift+R**). Copying the whole prompt ends the round. **Resume Round** in **Recent Rounds** reopens it.
 - **Open Round Folder** (**Option+Shift+O**) to see the round's files.
 - **End Round** (**Option+Shift+E**) when you are done.
-- Pick from **Recent** rounds. Check single captures to copy one combined prompt, or **Resume Round** to keep adding to an old round.
+- Pick from **Recent Rounds**. Check single captures to copy one combined prompt, or **Resume Round** to keep adding to an old round.
 - **Change Start Round Shortcut...** to pick a key other than **Option+Shift+F**.
 - Open **Settings...**, or **Quit Nextshot**.
 
