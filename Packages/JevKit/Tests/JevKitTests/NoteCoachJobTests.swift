@@ -167,7 +167,7 @@ struct NoteCoachJobTests {
         #expect(output.files.isEmpty)
         #expect(output.failure == nil)
         let review = try #require(output.review)
-        #expect(review.hasPrefix("### Capture 3\n- 3.1: empty."))
+        #expect(review.hasPrefix("- 3.1: empty."))
     }
 
     @Test("A capture with no badges sends nothing and returns nothing")
@@ -246,7 +246,6 @@ struct NoteCoachJobTests {
         let output = try await NoteCoachJob().run(makeContext(capture: capture, response: reply))
 
         #expect(output.review == """
-        ### Capture 3
         - 3.1: vague. Level 0 0.90, change 0.10, answer 0.10, problem 0.05. Note: "fix this now"
         - 3.2: empty. Note: ""
         - 3.3: question. Level 0 0.10, change 0.10, answer 0.90, problem 0.05. Note: "what does this do?"
@@ -423,7 +422,7 @@ struct NoteCoachRunnerTests {
         #expect(!bundle.exists("refined.md"))
 
         let review = try bundle.text("jev-review/noteCoach.md")
-        #expect(review.contains("### Capture 1"))
+        #expect(review.contains("## Capture 1") && !review.contains("### Capture"))
         #expect(review.contains(#"- 1.1: vague. Level 0 0.90, change 0.10, answer 0.10, problem 0.05. Note: "make it brighter""#))
     }
 
