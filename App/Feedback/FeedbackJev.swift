@@ -37,6 +37,20 @@ final class FeedbackJev {
         JevGate.pointsToRefinedFiles { Flags.state($0) }
     }
 
+    /// The plan for a copied round prompt ("Order and lanes", "Order", or
+    /// "Lanes"), or nil. Nil unless `jevBase`, `promptLanes`, and at least
+    /// one of `lanesOrder` and `lanesSplit` are on, and the round has a rated
+    /// item. A sub-flag counts at its effective state, the lower of its own
+    /// state and `promptLanes` (#94). It reads only the bundle's jev.json and
+    /// sends nothing.
+    func lanes(for round: FeedbackRound, folderURL: URL) -> PromptLanes? {
+        PromptLanesPlan.forPrompt(
+            round: round,
+            file: PromptLanesPlan.loadRecords(folderURL: folderURL),
+            flags: { Flags.effectiveState($0) }
+        )
+    }
+
     /// Reads the key at launch when Jev may run, so the one macOS access
     /// dialog shows at launch and not during a capture.
     func warmUp() {

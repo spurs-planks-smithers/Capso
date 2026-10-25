@@ -28,19 +28,41 @@ private func resolve(_ channel: BuildChannel, override: String?) -> FlagState {
 
 @Suite("FeatureFlags")
 struct FeatureFlagsTests {
-    @Test("Lists the twenty-two flags with their issue numbers")
+    @Test("Lists the twenty-four flags with their issue numbers")
     func registryContents() {
         #expect(FeatureFlag.allCases.map(\.rawValue) == [
             "jevBase", "noteCoach", "noteCoachVague", "noteCoachQuestion", "noteCoachEmpty",
             "cropsAnchors", "cropsItemCrops", "cropsSearchLines",
             "dupesConflicts", "dupesMerge", "dupesConflict",
-            "oneBreath", "promptLanes", "dataGuard",
+            "oneBreath", "promptLanes", "lanesOrder", "lanesSplit", "dataGuard",
             "dataGuardInjection", "dataGuardContact", "dataGuardNumbers", "dataGuardSecrets", "dataGuardFaces",
             "jevSendImages", "jevSendScreenText", "zipHandoff",
         ])
         // A sub-flag carries its parent's issue. The two consent flags belong
         // to the Jev base, #36.
-        #expect(FeatureFlag.allCases.map(\.spec.issue) == [36, 37, 37, 37, 37, 38, 38, 38, 39, 39, 39, 40, 69, 70, 70, 70, 70, 70, 70, 36, 36, 85])
+        #expect(FeatureFlag.allCases.map(\.spec.issue) == [36, 37, 37, 37, 37, 38, 38, 38, 39, 39, 39, 40, 69, 69, 69, 70, 70, 70, 70, 70, 70, 36, 36, 85])
+    }
+
+    @Test("The lane sub-flags sit right after promptLanes, carry its issue, and are dev-only and off by default")
+    func laneSubFlags() throws {
+        #expect(FeatureFlag.subFlags(of: .promptLanes) == [.lanesOrder, .lanesSplit])
+        let start = try #require(FeatureFlag.allCases.firstIndex(of: .promptLanes))
+        #expect(Array(FeatureFlag.allCases[(start + 1)...].prefix(2)) == [.lanesOrder, .lanesSplit])
+        for flag in [FeatureFlag.lanesOrder, .lanesSplit] {
+            let spec = flag.spec
+            #expect(spec.parent == .promptLanes, "\(flag)")
+            #expect(spec.issue == 69, "\(flag)")
+            #expect(spec.allowedStates == [.off, .shadow, .on], "\(flag)")
+            #expect(spec.devDefault == .off && spec.releaseDefault == .off, "\(flag)")
+            #expect(spec.releasedInBuild == nil, "\(flag)")
+            #expect(spec.devOnly, "\(flag)")
+            // An override turns it on in a dev build, and a release build ignores it.
+            #expect(FlagResolver.state(of: flag, channel: .dev) { _ in "on" } == .on, "\(flag)")
+            #expect(FlagResolver.state(of: flag, channel: .release) { _ in "on" } == .off, "\(flag)")
+            // Alone, with the parent at its default (off), a lane sub-flag runs nothing.
+            let alone = FlagResolver.effectiveState(of: flag) { FlagResolver.state(of: $0, channel: .dev) { key in key == flag.overrideKey ? "on" : nil } }
+            #expect(alone == .off, "\(flag)")
+        }
     }
 
     /// The sub-flags of the Jev features, by parent (#94).
@@ -48,6 +70,7 @@ struct FeatureFlagsTests {
         (.noteCoach, [.noteCoachVague, .noteCoachQuestion, .noteCoachEmpty]),
         (.cropsAnchors, [.cropsItemCrops, .cropsSearchLines]),
         (.dupesConflicts, [.dupesMerge, .dupesConflict]),
+        (.promptLanes, [.lanesOrder, .lanesSplit]),
         (.dataGuard, [.dataGuardInjection, .dataGuardContact, .dataGuardNumbers, .dataGuardSecrets, .dataGuardFaces]),
     ]
 

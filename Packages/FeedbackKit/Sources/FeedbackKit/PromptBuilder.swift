@@ -24,12 +24,16 @@ public enum PromptBuilder {
     /// `redo` adds the redo line after the Goal line. The file on disk never has it.
     /// `refined` adds a step that points to `refined.md` and one Authority
     /// line. The app sets it only when a Jev feature is on.
-    public static func render(_ round: FeedbackRound, folderPath: String, redo: Bool = false, refined: Bool = false) -> String {
-        render(round, paths: .absolute(folderPath: folderPath), redo: redo, refined: refined)
+    /// `lanes` adds the "Order and lanes", "Order", or "Lanes" section after
+    /// the Context line, so the ordered task list is the last thing the agent
+    /// reads. The app sets it only when `promptLanes` and a lanes sub-flag are
+    /// on. Without it the output is unchanged.
+    public static func render(_ round: FeedbackRound, folderPath: String, redo: Bool = false, refined: Bool = false, lanes: PromptLanes? = nil) -> String {
+        render(round, paths: .absolute(folderPath: folderPath), redo: redo, refined: refined, lanes: lanes)
     }
 
     /// `render` with a path mode. A zip export passes `.relative` (#85).
-    public static func render(_ round: FeedbackRound, paths: BundlePathMode, redo: Bool = false, refined: Bool = false) -> String {
+    public static func render(_ round: FeedbackRound, paths: BundlePathMode, redo: Bool = false, refined: Bool = false, lanes: PromptLanes? = nil) -> String {
         let missingInstructions = round.captures
             .flatMap { FeedbackItems.split($0).items }
             .filter { $0.badge.instruction == nil }
@@ -60,8 +64,12 @@ public enum PromptBuilder {
             "",
             "Context:",
             "- Read each image only when you work on its items. Each image costs up to \(paths.maxImageTokens) tokens.",
-            "</feedback_bundle>",
         ]
+        if let lanes {
+            lines.append("")
+            lines += lanes.promptLines
+        }
+        lines.append("</feedback_bundle>")
         return lines.joined(separator: "\n") + "\n"
     }
 
