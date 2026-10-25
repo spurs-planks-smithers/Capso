@@ -1,0 +1,33 @@
+{
+  "title": "Weekly usage",
+  "boxes": {
+    "title": {
+      "x1": 64,
+      "y1": 97,
+      "x2": 249,
+      "y2": 129,
+      "text": "Weekly usage"
+    },
+    "chart": {
+      "x1": 64,
+      "y1": 153,
+      "x2": 866,
+      "y2": 455,
+      "text": ""
+    },
+    "table-header": {
+      "x1": 64,
+      "y1": 487,
+      "x2": 864,
+      "y2": 525,
+      "text": "Day Captures Prompts copied"
+    },
+    "row-wednesday": {
+      "x1": 64,
+      "y1": 602,
+      "x2": 864,
+      "y2": 641,
+      "text": "Wednsday 16 11"
+    }
+  }
+}
