@@ -189,21 +189,24 @@ Strong patterns. One match flags the capture with no model:
 
 | Rule | Example of what it matches |
 | --- | --- |
-| `override` | "ignore all previous instructions", "disregard the above rules", "forget your prior prompts" |
+| `override` | "ignore all previous instructions", "disregard the above rules", "forget your prior prompts", "ignore everything above" |
 | `newInstructions` | "new instructions:", "updated instructions:" |
-| `systemPrompt` | "system prompt", "developer message", "system message" |
+| `revealPrompt` | "print your system prompt", "reveal the hidden instructions" |
 | `chatTemplate` | `<\|im_start\|>`, `[INST]`, `<<SYS>>`, `<system>`, `### instruction` |
 | `hideFromUser` | "do not tell the user", "without telling the reviewer" |
-| `orderToAgent` | a name of an AI agent or model, then an order: "assistant, run", "Claude: delete", "AI agent please push" |
+| `addressesAgent` | an AI name, then an order ("AI agent: run", "Claude, please delete"), "if you are an AI", "note to AI" |
 
 Weak patterns. A match sends the line to Jev, with consent:
 
 | Rule | Example |
 | --- | --- |
-| `agentName` | "AI agent", "assistant", "language model", "LLM", "Claude", "ChatGPT", "Codex", "Copilot", "Gemini" |
+| `agentName` | "AI agent", "AI assistant", "coding agent", "language model", "LLM", "Claude", "ChatGPT", "Codex", "Copilot", "Gemini", "assistant" |
+| `systemWords` | "system prompt", "developer message", "prompt injection", "jailbreak" |
 | `commandShape` | "curl ", "wget ", "\| sh", "\| bash", "rm -rf", "sudo ", "chmod +x", "git push", "base64 -d" |
-| `dataRequest` | "send it to", "upload to", "paste into", "exfiltrate", "api key", "credentials", "ssh key" |
-| `attention` | "important:", "attention:", "note to ai" at the start of a line |
+| `dataRequest` | "send the API keys to", "upload the files to", "exfiltrate", "api key", "credentials", "ssh key" |
+| `attention` | "important:", "attention:", "urgent:", "warning:" at the start of a line |
+
+No rule uses bare "agent" or bare "AI". Nextiva's contact center screens use "agent" and "assistant" for people, so "Agent: please send the invoice" matches nothing. Bare "AI" is in too many product labels ("Ask AI"). "System prompt" is weak only, because AI tools show it as a settings label.
 
 A weak hit with `jevSendScreenText` off is recorded as "suspect, not checked". It gets no line in the prompt. Captures of the Claude desktop app hit `agentName` often, so a weak hit alone must not warn.
 
