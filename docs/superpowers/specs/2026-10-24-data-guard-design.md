@@ -275,6 +275,8 @@ Per kind in shadow or on, a Noul and a Box. `<data>` is the kind's description.
 | `K.<kind>.shown` | Noul: Does `shot` show `<data>` that no black box covers? Yes: readable `<data>` is visible outside the black boxes. No: none is visible, or every one sits under a black box. |
 | `K.<kind>.where` | Box: Where is the largest `<data>` in `shot` that no black box covers? |
 
+The image stays on the Mac when any OCR line holds private data but has no box. The job cannot cover that data, so sending the image would send data the local rules already found. `notAsked` is then `unplaced`.
+
 Rule: the Box becomes a cover when `shown` ≥ 0.7 and the Box confidence is 0.3 or more, or null. TypeSafe's Box page says a Box always returns a box, so the Noul decides whether the data is there. `JevImage.sourceBox(for:)` maps the box back to capture pixels. The cover grows by 10% of its size on each side, at least 8 pixels.
 
 ## The covered copy
@@ -356,7 +358,8 @@ The record's `summary` is this object. Every box is `[x1, y1, x2, y2]` in pixels
 | `kinds[].local` | array of `{rule, box}` | Local hits. A hit with no box has no `box` field ("found, not placed"). |
 | `kinds[].jev` | `{shown, box, confidence, cover}` | Present only when Jev answered. `box` and `confidence` are present only when the Box answered. `cover` is true when the box passed both thresholds. |
 | `covers` | number | Covers drawn in the covered copy, so kinds in on only |
-| `notAsked` | `time` | Present only when the job skipped its request for lack of time |
+| `notAsked` | `time` or `unplaced` | Present only when the job skipped a request: for lack of time, or because private screen text had no box (see Leftover check) |
+| `imageMissing` | `true` | Present only when a PNG did not decode or draw, or the face finder failed |
 
 ### Review file (shadow and on)
 
