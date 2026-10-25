@@ -22,9 +22,37 @@ enum LaunchPlan: Equatable {
     /// build or newer. Open the installed copy and exit.
     case openInstalled
 
+    /// A Nextshot build, ordered by version date first, then build number.
+    /// The build number is the commit count on the branch that made it, so
+    /// two branches give numbers that do not compare: on 2026-10-25 a local
+    /// build from a trial branch was 665, and the release from a later commit
+    /// was 618. The version is the HEAD commit date
+    /// (`docs/decisions/2026-10-22-nextshot-versions.md`).
+    struct Build: Comparable, CustomStringConvertible {
+        var version: [Int]
+        var number: Int
+
+        /// `version` is CFBundleShortVersionString, for example "2026.10.25".
+        init(version: String, number: Int) {
+            self.version = version.split(separator: ".").map { Int($0) ?? 0 }
+            self.number = number
+        }
+
+        static let unknown = Build(version: "", number: 0)
+
+        static func < (a: Build, b: Build) -> Bool {
+            if a.version != b.version { return a.version.lexicographicallyPrecedes(b.version) }
+            return a.number < b.number
+        }
+
+        var description: String {
+            "\(version.map(String.init).joined(separator: ".")) (\(number))"
+        }
+    }
+
     struct Copy: Equatable {
         var pid: pid_t
-        var build: Int
+        var build: Build
         var launchDate: Date
         /// True for a copy on a disk image, or one that macOS moved to a
         /// read-only place before launch (App Translocation).
@@ -34,7 +62,7 @@ enum LaunchPlan: Equatable {
     /// `others` are the other running copies with this bundle ID.
     /// `installedBuild` is the build of the copy where an install would go,
     /// or nil when there is none.
-    static func decide(me: Copy, others: [Copy], installedBuild: Int?) -> LaunchPlan {
+    static func decide(me: Copy, others: [Copy], installedBuild: Build?) -> LaunchPlan {
         if me.onReadOnlyVolume {
             let installedCopies = others.filter { !$0.onReadOnlyVolume }
             let newestElsewhere = (installedCopies.map(\.build) + [installedBuild].compactMap { $0 }).max()
@@ -57,7 +85,7 @@ enum LaunchPlan: Equatable {
         return older.isEmpty ? .run : .quitOlderCopies(older)
     }
 
-    /// The highest build wins. Among copies of that build, the oldest wins:
+    /// The newest build wins. Among copies of that build, the oldest wins:
     /// two copies that start in the same second both see each other, so only
     /// one of them may stay.
     static func keeper(of copies: [Copy]) -> Copy? {

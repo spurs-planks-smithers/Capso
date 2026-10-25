@@ -37,7 +37,7 @@ enum SingleInstanceGuard {
             others: others.map { copy(of: $0, bundleURL: $0.bundleURL, launchedNow: false) },
             installedBuild: installedBuild
         )
-        logger.notice("Launch plan for build \(me.build): \(String(describing: plan), privacy: .public)")
+        logger.notice("Launch plan for build \(me.build.description, privacy: .public): \(String(describing: plan), privacy: .public)")
 
         switch plan {
         case .run:

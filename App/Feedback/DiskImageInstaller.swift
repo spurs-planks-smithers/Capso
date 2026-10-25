@@ -21,10 +21,13 @@ enum DiskImageInstaller {
 
     // MARK: - Facts about a copy
 
-    /// The build number (CFBundleVersion, the commit count), or 0.
-    nonisolated static func build(of bundleURL: URL?) -> Int {
-        guard let bundleURL, let info = Bundle(url: bundleURL)?.infoDictionary else { return 0 }
-        return Int(info["CFBundleVersion"] as? String ?? "") ?? 0
+    /// The version date and build number (CFBundleVersion, the commit count).
+    nonisolated static func build(of bundleURL: URL?) -> LaunchPlan.Build {
+        guard let bundleURL, let info = Bundle(url: bundleURL)?.infoDictionary else { return .unknown }
+        return LaunchPlan.Build(
+            version: info["CFBundleShortVersionString"] as? String ?? "",
+            number: Int(info["CFBundleVersion"] as? String ?? "") ?? 0
+        )
     }
 
     /// "2026.10.24 (524)", the same text as the top row of the Nshot menu.
@@ -100,7 +103,7 @@ enum DiskImageInstaller {
             )
             return
         }
-        logger.notice("Installed build \(build(of: Bundle.main.bundleURL)) at \(destination.path, privacy: .public).")
+        logger.notice("Installed build \(build(of: Bundle.main.bundleURL).description, privacy: .public) at \(destination.path, privacy: .public).")
         openAndExit(destination)
     }
 
