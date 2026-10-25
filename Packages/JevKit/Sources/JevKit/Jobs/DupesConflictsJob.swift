@@ -10,6 +10,14 @@ import Foundation
 /// Jev only labels pairs. Code applies the thresholds and writes every line
 /// the agent sees, with ids and code words only. The design is
 /// docs/superpowers/specs/2026-10-24-dupes-conflicts-design.md.
+///
+/// Each part has a sub-flag (#96): `dupesMerge` for the "Same ask" and "may
+/// overlap" lines, and `dupesConflict` for the "Ask first" lines. The runner
+/// caps each at the state of `dupesConflicts`. A part that is off asks no
+/// question, and a part in shadow records its outcomes and writes no line.
+/// With both off, the job sends no request. With `dupesMerge` on and
+/// `dupesConflict` off, the job still asks `opposite`, so a pair that is a
+/// conflict never gets a merge line.
 public struct DupesConflictsJob: JevJob {
     public let id = "dupesConflicts"
     public let flag = FeatureFlag.dupesConflicts
@@ -18,12 +26,24 @@ public struct DupesConflictsJob: JevJob {
     /// match: duplicate precision 0.53. With screen text it was 1.00. So the
     /// job needs screen text, and the runner skips it without that consent.
     public let requires: JevDataKinds = [.screenText]
-    /// Version 2 needs screen text. Raise it when the questions change.
-    public let version = 2
+    /// Version 2 needs screen text. Version 3 adds the sub-flags. Raise it
+    /// when the questions change.
+    public let version = 3
+
+    public var options: [FeatureFlag] { [.dupesMerge, .dupesConflict] }
 
     public init() {}
 
     public func run(_ context: JevJobContext) async throws -> JevJobOutput {
+        let merge = context.optionModes[.dupesMerge] ?? .off
+        let conflict = context.optionModes[.dupesConflict] ?? .off
+        guard merge != .off || conflict != .off else { return .empty }
+        // `sameAsk` serves the merge lines only. `opposite` serves the
+        // conflict lines, and also guards the merge lines: a conflict wins
+        // over a duplicate, so a pair that is a conflict never reads as a
+        // repeat, also when its conflict line is off.
+        let asking: Set<DupesConflicts.QuestionKind> = merge == .off ? [.opposite] : [.sameAsk, .opposite]
+
         // Drew chose notes and screen text, without images (2026-10-24). The
         // image path stays for a later choice, but this job never sends one.
         let allowed = context.allowed.subtracting(.images)
@@ -40,7 +60,8 @@ public struct DupesConflictsJob: JevJob {
             new: checked,
             candidates: candidates,
             allowed: allowed,
-            images: context.images
+            images: context.images,
+            asking: asking
         )
         let results = try await send(batches, using: context.jev)
 
@@ -55,8 +76,9 @@ public struct DupesConflictsJob: JevJob {
                 anySucceeded = true
                 for entry in batch.entries {
                     let outcomes = DupesConflicts.outcomes(of: entry, against: candidates(entry), in: response)
-                    lines += DupesConflicts.lines(for: entry, outcomes: outcomes)
-                    flagged += DupesConflicts.flaggedSummary(of: entry, outcomes: outcomes)
+                    // A part in shadow adds to the summary only. A part in on adds its lines too.
+                    lines += DupesConflicts.lines(for: entry, outcomes: DupesConflicts.kept(outcomes, merge: merge, conflict: conflict, modes: [.on]))
+                    flagged += DupesConflicts.flaggedSummary(of: entry, outcomes: DupesConflicts.kept(outcomes, merge: merge, conflict: conflict, modes: [.shadow, .on]))
                 }
             case .failure(let error):
                 firstError = firstError ?? error
@@ -77,7 +99,10 @@ public struct DupesConflictsJob: JevJob {
             let labels = DupesConflicts.packed(failure.entries) { group in
                 "Not checked for repeats (\(reason)): \(DupesConflicts.list(group.map(\.name)))."
             }
-            lines += labels.map { JevRefinedLine(scope: .capture, label: $0) }
+            // Say so only when a part writes lines. In shadow nothing shows.
+            if merge == .on || conflict == .on {
+                lines += labels.map { JevRefinedLine(scope: .capture, label: $0) }
+            }
             notChecked += failure.entries.map { .fields(["entry": .code($0.id), "reason": .code(reason)]) }
         }
         return JevJobOutput(lines: lines, summary: [
@@ -374,12 +399,14 @@ enum DupesConflicts {
     /// Builds the requests. Screen text goes only with `.screenText` allowed,
     /// and images only with `.images` allowed and only for same-source pairs.
     /// A failed image load leaves that image out. `candidates` gives the
-    /// entries each new entry is compared with.
+    /// entries each new entry is compared with. `asking` names the questions
+    /// each pair gets (the sub-flags decide, see `DupesConflictsJob`).
     static func batches(
         new newEntries: [Entry],
         candidates: (Entry) -> [Entry],
         allowed: JevDataKinds,
-        images: JevImageLoader
+        images: JevImageLoader,
+        asking: Set<QuestionKind> = [.sameAsk, .opposite]
     ) -> [Batch] {
         let sendScreenText = allowed.contains(.screenText)
         let sendImages = allowed.contains(.images)
@@ -482,14 +509,18 @@ enum DupesConflicts {
                             "earlier_note": .reviewer(other.note),
                         ])
                     }
-                    questions.append((
-                        questionID(new: entry, earlier: other, kind: .sameAsk),
-                        .score(instructions(sameAskText(position: position)), levels: sameAskLevels)
-                    ))
-                    questions.append((
-                        questionID(new: entry, earlier: other, kind: .opposite),
-                        .noul(instructions(oppositeText(position: position)), yes: oppositeYes, no: oppositeNo)
-                    ))
+                    if asking.contains(.sameAsk) {
+                        questions.append((
+                            questionID(new: entry, earlier: other, kind: .sameAsk),
+                            .score(instructions(sameAskText(position: position)), levels: sameAskLevels)
+                        ))
+                    }
+                    if asking.contains(.opposite) {
+                        questions.append((
+                            questionID(new: entry, earlier: other, kind: .opposite),
+                            .noul(instructions(oppositeText(position: position)), yes: oppositeYes, no: oppositeNo)
+                        ))
+                    }
                 }
             }
             batches.append(Batch(entries: chunk, request: JevRequest(state: stateValue, questions: questions)))
@@ -509,6 +540,27 @@ enum DupesConflicts {
             let sameAsk = response.score(questionID(new: entry, earlier: other, kind: .sameAsk).text)?.score
             let opposite = response.noul(questionID(new: entry, earlier: other, kind: .opposite).text)
             return (other, outcome(sameAsk: sameAsk, opposite: opposite))
+        }
+    }
+
+    /// Keeps the outcomes of the parts whose mode is in `modes`. An outcome of
+    /// any other part becomes `.different`, so it adds no line and no summary
+    /// entry. A conflict that is hidden this way hides the pair's duplicate
+    /// too, because `outcome(sameAsk:opposite:)` already let the conflict win:
+    /// a pair that is a conflict never gets a "make the change once" line.
+    /// Lines use `[.on]`, and the summary uses `[.shadow, .on]`.
+    static func kept(
+        _ outcomes: [(earlier: Entry, outcome: Outcome)],
+        merge: FlagState,
+        conflict: FlagState,
+        modes: Set<FlagState>
+    ) -> [(earlier: Entry, outcome: Outcome)] {
+        outcomes.map { pair in
+            switch pair.outcome {
+            case .conflict: (pair.earlier, modes.contains(conflict) ? .conflict : .different)
+            case .duplicate, .overlap: (pair.earlier, modes.contains(merge) ? pair.outcome : .different)
+            case .different: pair
+            }
         }
     }
 
