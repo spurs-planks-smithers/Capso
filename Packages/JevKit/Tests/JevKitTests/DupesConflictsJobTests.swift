@@ -1178,6 +1178,33 @@ struct DupesConflictsJobTests {
             _ = try JevRequestEncoder.encode(request)
         }
     }
+
+    // An optimized build once lost the result of the request that finished
+    // first, and paired the other result with the wrong items (2026-10-25,
+    // #39). Debug builds never showed it, so run this suite in Release too:
+    // swift test -c release -Xswiftc -enable-testing --package-path Packages/JevKit
+    @Test("Each request keeps its own answers, whichever request finishes first")
+    func everyRequestKeepsItsAnswers() async throws {
+        let captures = [dupesCapture(1, note: nil, marks: [dupesItem(1, "Bigger"), dupesItem(2, "Smaller"), dupesItem(3, "Larger")])]
+        let base = canned([
+            "1.2.vs.1.1": PairScore(sameAsk: 0.34, opposite: 0.91),
+            "1.3.vs.1.1": PairScore(sameAsk: 1.36, opposite: 0.09),
+            "1.3.vs.1.2": PairScore(sameAsk: 0.36, opposite: 0.91),
+        ])
+        for slowPrefix in ["1.2.vs", "1.3.vs"] {
+            let ask: Ask = { request in
+                if request.questions.contains(where: { $0.id.text.hasPrefix(slowPrefix) }) {
+                    try await Task.sleep(for: .milliseconds(50))
+                }
+                return try await base(request)
+            }
+            let labels = try await DupesConflictsJob().run(dupesContext(captures, current: 1, ask: ask)).lines.map(\.label.text)
+            #expect(labels.count == 3, "slow \(slowPrefix): \(labels)")
+            #expect(labels.contains { $0.hasPrefix("Ask first: 1.2 and 1.1") }, "slow \(slowPrefix): \(labels)")
+            #expect(labels.contains { $0.hasPrefix("1.3 may overlap with 1.1") }, "slow \(slowPrefix): \(labels)")
+            #expect(labels.contains { $0.hasPrefix("Ask first: 1.3 and 1.2") }, "slow \(slowPrefix): \(labels)")
+        }
+    }
 }
 
 // MARK: Sub-flags
@@ -1332,8 +1359,13 @@ struct DupesConflictsSubFlagTests {
         let onlyOpposite = RequestLog()
         _ = try await Self.run([.dupesConflict: .on], log: onlyOpposite)
 
-        let fullRequests = await full.requests
-        let oppositeRequests = await onlyOpposite.requests
+        // The requests run at once, so the log order can change between runs
+        // (it did in Release). Compare them by their first question id.
+        func byFirstQuestion(_ requests: [JevRequest]) -> [JevRequest] {
+            requests.sorted { ($0.questions.first?.id.text ?? "") < ($1.questions.first?.id.text ?? "") }
+        }
+        let fullRequests = byFirstQuestion(await full.requests)
+        let oppositeRequests = byFirstQuestion(await onlyOpposite.requests)
         #expect(fullRequests.count == oppositeRequests.count)
         for (whole, part) in zip(fullRequests, oppositeRequests) {
             // JevValue is not Equatable, so compare the printed state.

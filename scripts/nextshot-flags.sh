@@ -25,13 +25,13 @@ domain="${NEXTSHOT_FLAGS_DOMAIN:-com.drewschulz.nextshot}"
 # One entry per flag: <flag>:<allowed states>. Keep this line in step with
 # FeatureFlag in Packages/FeedbackKit/Sources/FeedbackKit/FeatureFlags.swift.
 # FeatureFlagsTests fails when the two differ.
-FLAGS="jevBase:off,on noteCoach:off,shadow,on noteCoachVague:off,shadow,on noteCoachQuestion:off,shadow,on noteCoachEmpty:off,shadow,on cropsAnchors:off,shadow,on cropsItemCrops:off,shadow,on cropsSearchLines:off,shadow,on dupesConflicts:off,shadow,on dupesMerge:off,shadow,on dupesConflict:off,shadow,on oneBreath:off promptLanes:off,shadow,on lanesOrder:off,shadow,on lanesSplit:off,shadow,on dataGuard:off,shadow,on jevSendImages:off,on jevSendScreenText:off,on zipHandoff:off,on"
+FLAGS="jevBase:off,on noteCoach:off,shadow,on noteCoachVague:off,shadow,on noteCoachQuestion:off,shadow,on noteCoachEmpty:off,shadow,on cropsAnchors:off,shadow,on cropsItemCrops:off,shadow,on cropsSearchLines:off,shadow,on dupesConflicts:off,shadow,on dupesMerge:off,shadow,on dupesConflict:off,shadow,on oneBreath:off promptLanes:off,shadow,on lanesOrder:off,shadow,on lanesSplit:off,shadow,on dataGuard:off,shadow,on dataGuardInjection:off,shadow,on dataGuardContact:off,shadow,on dataGuardNumbers:off,shadow,on dataGuardSecrets:off,shadow,on dataGuardFaces:off,shadow,on jevSendImages:off,on jevSendScreenText:off,on zipHandoff:off,on"
 
 # One entry per feature flag that has sub-flags: <parent>:<sub-flags>. A
 # sub-flag runs at the lower of its own state and its parent's state, so it
 # runs nothing alone (#94). FeatureFlagsTests compares this line with the
 # parents in the registry.
-SUBFLAGS="noteCoach:noteCoachVague,noteCoachQuestion,noteCoachEmpty cropsAnchors:cropsItemCrops,cropsSearchLines dupesConflicts:dupesMerge,dupesConflict promptLanes:lanesOrder,lanesSplit"
+SUBFLAGS="noteCoach:noteCoachVague,noteCoachQuestion,noteCoachEmpty cropsAnchors:cropsItemCrops,cropsSearchLines dupesConflicts:dupesMerge,dupesConflict promptLanes:lanesOrder,lanesSplit dataGuard:dataGuardInjection,dataGuardContact,dataGuardNumbers,dataGuardSecrets,dataGuardFaces"
 
 usage() {
   echo "Usage: $0 list | set <flag> <state> | reset <flag> | feature <parent> <state|reset>" >&2

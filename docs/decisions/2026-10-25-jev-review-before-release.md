@@ -12,6 +12,7 @@ On 2026-10-25 a notarized test DMG, build 700 (`Nextshot-2026.10.25-e9e33da.dmg`
 2. **Build 700's DMG is never published.** It stays a local test (Drew chose "Never publish it").
 3. **PRs #68, #82, and #83 stay open until Drew's dev-build review.** A feature PR merges only after the review keeps it.
    - Correction (Drew, 2026-10-25, about 1:10 pm): PR #68 merged at 12:48 pm on Drew's word in the dupes session. Drew then ruled that the dupes offline eval (`docs/evals/2026-10-24-dupes-conflicts-eval.md`) counts as its review. PRs #82 and #83 still stay open until the review.
+   - Correction (Drew, 2026-10-25, evening): merge every Jev PR now (#83, #97, #99, #98, #82), ready for tonight's versioning and release work. Drew's words: "All of these features need to be off for the foreseeable future by feature flags." Every Jev flag and sub-flag defaults off in dev and release builds and is dev-only, so a release build cannot turn one on. The dev-build review still decides which features ever turn on.
 4. **Every Jev feature gets sub-feature flags.** Each sub-flag defaults off, is dev-only, and runs at the lower of its own state and its parent's. Design: `docs/superpowers/specs/2026-10-25-jev-sub-flags-design.md`.
 5. **New Jev feature sessions wait for the review.** The repo and skill router (idea 13) and the wrong-badge check (idea 2) start after it (Drew chose "After the review").
 

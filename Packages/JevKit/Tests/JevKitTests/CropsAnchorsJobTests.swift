@@ -201,6 +201,7 @@ func runCropsJob(
     allowed: JevDataKinds,
     script: CropsScript = CropsScript(),
     budget: Duration = .seconds(5),
+    job: CropsAnchorsJob = CropsAnchorsJob(),
     pngSize: PixelSize? = nil,
     highlights: [FeedbackBox] = [],
     screenLines: [FeedbackTextLine]? = nil,
@@ -254,7 +255,7 @@ func runCropsJob(
         screenLines: screenLines,
         optionModes: optionModes
     )
-    let output = try await CropsAnchorsJob().run(context)
+    let output = try await job.run(context)
     let finishedAt = ContinuousClock.now
     try JevBundleWriter.check(output, for: capture, in: round)
     // The client's own checks: ids, option counts, image count and sizes.
@@ -625,8 +626,12 @@ struct CropsAnchorsJobTests {
 
     @Test("Past the request cutoff but before the crop stop: no load and no request, and the crops say not checked")
     func pastCutoffBeforeStop() async throws {
-        // The cutoff is 500 ms before the deadline and the crops stop 100 ms before it.
-        let run = try await runCropsJob(cropsCapture(), allowed: allKinds, budget: .milliseconds(450))
+        // The real margins put the cutoff 500 ms and the crop stop 100 ms before the deadline, which leaves
+        // a 400 ms window that a loaded machine can use up (issue #91). This job keeps the 100 ms stop and
+        // moves the cutoff 10 s before the deadline, which is 5 s before the job starts. The window is 4.9 s.
+        #expect(CropsAnchorsJob.defaultRequestMargin > CropsAnchorsJob.defaultOutputMargin)
+        let job = CropsAnchorsJob(requestMargin: .seconds(10), outputMargin: .milliseconds(100))
+        let run = try await runCropsJob(cropsCapture(), allowed: allKinds, job: job)
         #expect(run.requests.isEmpty)
         #expect(run.loads == 0)
         #expect(run.output.cropLabels.first?.contains("not checked: open the full image") == true)

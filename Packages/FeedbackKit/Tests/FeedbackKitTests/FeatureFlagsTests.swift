@@ -28,18 +28,19 @@ private func resolve(_ channel: BuildChannel, override: String?) -> FlagState {
 
 @Suite("FeatureFlags")
 struct FeatureFlagsTests {
-    @Test("Lists the nineteen flags with their issue numbers")
+    @Test("Lists the twenty-four flags with their issue numbers")
     func registryContents() {
         #expect(FeatureFlag.allCases.map(\.rawValue) == [
             "jevBase", "noteCoach", "noteCoachVague", "noteCoachQuestion", "noteCoachEmpty",
             "cropsAnchors", "cropsItemCrops", "cropsSearchLines",
             "dupesConflicts", "dupesMerge", "dupesConflict",
             "oneBreath", "promptLanes", "lanesOrder", "lanesSplit", "dataGuard",
+            "dataGuardInjection", "dataGuardContact", "dataGuardNumbers", "dataGuardSecrets", "dataGuardFaces",
             "jevSendImages", "jevSendScreenText", "zipHandoff",
         ])
         // A sub-flag carries its parent's issue. The two consent flags belong
         // to the Jev base, #36.
-        #expect(FeatureFlag.allCases.map(\.spec.issue) == [36, 37, 37, 37, 37, 38, 38, 38, 39, 39, 39, 40, 69, 69, 69, 70, 36, 36, 85])
+        #expect(FeatureFlag.allCases.map(\.spec.issue) == [36, 37, 37, 37, 37, 38, 38, 38, 39, 39, 39, 40, 69, 69, 69, 70, 70, 70, 70, 70, 70, 36, 36, 85])
     }
 
     @Test("The lane sub-flags sit right after promptLanes, carry its issue, and are dev-only and off by default")
@@ -70,6 +71,7 @@ struct FeatureFlagsTests {
         (.cropsAnchors, [.cropsItemCrops, .cropsSearchLines]),
         (.dupesConflicts, [.dupesMerge, .dupesConflict]),
         (.promptLanes, [.lanesOrder, .lanesSplit]),
+        (.dataGuard, [.dataGuardInjection, .dataGuardContact, .dataGuardNumbers, .dataGuardSecrets, .dataGuardFaces]),
     ]
 
     private static let subFlags: [FeatureFlag] = FeatureFlag.allCases.filter { $0.spec.parent != nil }
