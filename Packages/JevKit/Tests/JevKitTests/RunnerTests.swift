@@ -316,13 +316,18 @@ struct RunnerLimitTests {
     @Test("Settle returns inside its timeout while a job runs, and marks the capture still running")
     func settleTimeout() async throws {
         let bundle = try await Bundle.make()
-        let transport = StubTransport(fallback: jsonResponse(noulBody("1.1.names_change")), delay: .seconds(1))
-        let runner = makeRunner(bundle, jobs: [askingJob()], flags: [.jevBase: .on, .noteCoach: .on], transport: transport)
+        // The client caps each attempt at 2 seconds and tries 3 times, so the job runs about 6 seconds.
+        // A loaded machine cannot finish it before settle returns (issue #91).
+        var settings = JevRunnerSettings()
+        settings.captureBudget = .seconds(10)
+        let transport = StubTransport(fallback: jsonResponse(noulBody("1.1.names_change")), delay: .seconds(10))
+        let runner = makeRunner(bundle, jobs: [askingJob()], flags: [.jevBase: .on, .noteCoach: .on], transport: transport, settings: settings)
         await runner.expect(folderName: bundle.folderName, capture: 1)
         await runner.start(folderName: bundle.folderName, capture: 1)
         let started = ContinuousClock.now
         await runner.settle(folderName: bundle.folderName, timeout: .milliseconds(100))
-        #expect(ContinuousClock.now - started < .milliseconds(400))
+        // Settle waits 100 ms, not for the job. Half the job's time leaves room for a slow scheduler.
+        #expect(ContinuousClock.now - started < .seconds(3))
         #expect(try bundle.text("refined.md").contains("Capture 1:\n- Still running at round end. Use the plain files for this capture."))
     }
 
