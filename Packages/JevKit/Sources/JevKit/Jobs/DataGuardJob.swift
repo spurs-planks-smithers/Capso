@@ -193,19 +193,23 @@ public struct DataGuardJob: JevJob {
         // would send data the local rules already found.
         var imageMissing = false
         let unplacedText = sources.contains { $0.place == .screen && $0.box == nil && !DataGuardPatterns.dataHits(in: $0.text).isEmpty }
-        let askImages = context.allowed.contains(.images) && !modes.isEmpty && !unplacedText
+        var askImages = context.allowed.contains(.images) && !modes.isEmpty && !unplacedText
         var clean: CGImage?
         if modes[.faces] != nil || askImages {
             clean = DataGuardCovers.decode(capture.cleanImageFile, in: context.folderURL)
             if clean == nil { imageMissing = true }
         }
+        var facesFailed = false
         if modes[.faces] != nil, let clean {
             do {
                 hits[.faces] = try faceFinder.faces(in: clean)
                     .filter { $0.confidence >= DataGuardRule.faceConfidenceMinimum }
                     .map { LocalHit(rule: .face, box: $0.box) }
             } catch {
+                // Faces could not be covered, so the image stays home.
                 imageMissing = true
+                facesFailed = true
+                askImages = false
             }
         }
 
@@ -263,6 +267,8 @@ public struct DataGuardJob: JevJob {
         var notAsked: JevCodeText?
         if context.allowed.contains(.images), !modes.isEmpty, unplacedText {
             notAsked = "unplaced"
+        } else if context.allowed.contains(.images), facesFailed {
+            notAsked = "faceError"
         }
         if !questions.isEmpty {
             if ContinuousClock.now + DataGuardRule.requestMargin <= context.deadline {

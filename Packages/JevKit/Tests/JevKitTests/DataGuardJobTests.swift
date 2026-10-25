@@ -333,6 +333,20 @@ struct DataGuardPrivateJobTests {
         #expect(try json(output.summary).contains(#""notAsked":"unplaced""#))
     }
 
+    @Test("A face finder error keeps the image home")
+    func faceErrorKeepsImageHome() async throws {
+        let fixture = try GuardFixture.make()
+        let sent = RequestLog()
+        let failing = DataGuardFaceFinder { _ in throw JevError(.jobError) }
+        let output = try await DataGuardJob(faceFinder: failing).run(fixture.context(
+            lines: [line("Plain", row: 0)], allowed: [.images], kinds: [.dataGuardFaces: .on, .dataGuardContact: .shadow], sent: sent
+        ))
+        #expect(await sent.count == 0)
+        let summary = try json(output.summary)
+        #expect(summary.contains(#""notAsked":"faceError""#))
+        #expect(summary.contains(#""imageMissing":true"#))
+    }
+
     @Test("Too little time: no request, and local results stay")
     func noTime() async throws {
         let fixture = try GuardFixture.make()
