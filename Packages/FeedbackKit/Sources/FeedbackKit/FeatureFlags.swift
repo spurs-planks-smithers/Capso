@@ -67,6 +67,12 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
     case oneBreath
     case promptLanes
     case dataGuard
+    /// Data guard kinds (Drew, 2026-10-24). Each sets how far one kind of
+    /// private data runs inside `dataGuard`. Alone, a kind flag runs nothing.
+    case dataGuardContact
+    case dataGuardNumbers
+    case dataGuardSecrets
+    case dataGuardFaces
     /// Consent for capture images to leave the Mac in Jev requests.
     case jevSendImages
     /// Consent for screen text (OCR text, window titles, app names) to leave
@@ -89,7 +95,7 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
             FlagSpec(issue: 40, allowedStates: [.off, .shadow], devDefault: .off, releaseDefault: .off, releasedInBuild: nil, devOnly: true)
         case .promptLanes:
             FlagSpec(issue: 69, allowedStates: [.off, .shadow, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil, devOnly: true)
-        case .dataGuard:
+        case .dataGuard, .dataGuardContact, .dataGuardNumbers, .dataGuardSecrets, .dataGuardFaces:
             FlagSpec(issue: 70, allowedStates: [.off, .shadow, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil, devOnly: true)
         case .jevSendImages:
             FlagSpec(issue: 36, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil, devOnly: true)
