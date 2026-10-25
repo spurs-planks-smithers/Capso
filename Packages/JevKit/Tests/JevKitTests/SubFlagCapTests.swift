@@ -83,6 +83,33 @@ struct SubFlagCapTests {
         #expect(await seen.modes == nil)
     }
 
+    /// Runs `job` with its feature flag at `state`, every consent on, and no
+    /// sub-flag set. The job must run, send no request, and write nothing.
+    private func expectNoRequest(_ job: any JevJob, state: FlagState) async throws {
+        let flag = job.flag
+        let bundle = try await Bundle.make()
+        let transport = StubTransport(fallback: jsonResponse(noulBody("1.1.names_change")))
+        let flags: [FeatureFlag: FlagState] = [.jevBase: .on, flag: state, .jevSendImages: .on, .jevSendScreenText: .on]
+        await runCapture(makeRunner(bundle, jobs: [job], flags: flags, transport: transport), bundle)
+
+        #expect(await transport.count == 0, "\(flag) \(state) sent a request")
+        // The job still ran: its record says done, with no request and no output.
+        let record = try #require(try bundle.record(1), "\(flag) \(state) wrote no record")
+        #expect(record.job == flag.rawValue && record.status == .done)
+        #expect(record.requests == 0 && record.answers.isEmpty && record.lines.isEmpty && record.files.isEmpty)
+        #expect(record.summary == nil && record.review == nil)
+        #expect(!bundle.exists(JevRefinedRenderer.captureFileName(for: bundle.capture)), "\(flag) \(state) wrote a refined file")
+        let crops = ItemCrop.fileNames(imageFile: bundle.capture.imageFile, badge: 1)
+        #expect(!bundle.exists(crops.annotated) && !bundle.exists(crops.clean))
+    }
+
+    @Test("Note coach with every sub-flag off runs but sends no request, in shadow and on")
+    func noteCoachAllSubFlagsOff() async throws {
+        for state in [FlagState.shadow, .on] {
+            try await expectNoRequest(NoteCoachJob(), state: state)
+        }
+    }
+
     @Test("An option flag with no parent keeps its own state, and a job never sees its own flag")
     func optionWithoutParent() async throws {
         let bundle = try await Bundle.make()
