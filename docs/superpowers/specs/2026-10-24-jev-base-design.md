@@ -39,6 +39,7 @@ Terms used in this document:
 - 2026-10-24: a job never sees its flag state. Shadow and on run the same questions. Only the runner decides what is written. So shadow data measures exactly what on mode would do.
 - 2026-10-24: the runner records every answer of every request in `jev.json` itself. A job cannot leave an answer out.
 - 2026-10-24: no certificate pinning. Nextshot has no automatic update, so a pin that TypeSafe's certificate change breaks would stop every installed copy until a new DMG. URLSession's default trust and App Transport Security (ATS) apply.
+- 2026-10-25 (sub-flags, #94): every feature's job declares its sub-flags as option flags, `JevJob.options` (default none). The runner passes their modes in `JevJobContext.optionModes`, read once with the other flags when the capture starts. The runner reads each sub-flag at the lower of its own state and its parent's, so a job never compares states itself. A job never sees its own flag there, and an option flag alone starts no job. This narrows the rule "a job never decides by flag state": a job decides which parts to run and which lines to return from its sub-flags, and its questions stay the same in shadow and on. A job sends no request when every sub-flag that needs one is off. Drew asked that every Jev feature have sub-feature flags that default to off. Design: `2026-10-25-jev-sub-flags-design.md`.
 
 ## Scope
 
@@ -287,6 +288,8 @@ public protocol JevJob: Sendable {
     var requires: JevDataKinds { get }
     /// Raise it when the questions change, so old and new answers are never mixed.
     var version: Int { get }
+    /// Flags that change what the job reports, never its own flag. Default: none (#70).
+    var options: [FeatureFlag] { get }
     /// One capture's work. Ask Jev through context.jev only.
     func run(_ context: JevJobContext) async throws -> JevJobOutput
 }
@@ -300,6 +303,7 @@ public struct JevJobContext: Sendable {
     public let jev: JevAsker              // sends requests; checks consent, caps, and the deadline
     public let images: JevImageLoader     // loads a capture's PNG, or a crop, sized for Jev
     public let screenLines: [FeedbackTextLine]?   // OCR lines with boxes, from memory; nil when unknown
+    public let optionModes: [FeatureFlag: FlagState]   // the mode of each flag in `options`; empty by default
 }
 
 public struct JevJobOutput: Sendable {

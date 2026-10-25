@@ -7,6 +7,7 @@ Date: 2026-10-24. Status: approved design (Drew, 2026-10-24). Built in the orche
 - 2026-10-24: flag state is local only. No remote flag file (Drew).
 - 2026-10-24: Jev features stay in dev builds only until there is a key plan for other people's Macs (Drew).
 - 2026-10-24: the orchestration session builds the flag registry. A separate session builds the shared Jev base (Drew).
+- 2026-10-25: a feature flag can have sub-flags (`FlagSpec.parent`, #94). A sub-flag starts off in both channels, is dev-only for a Jev feature, and runs at the lower of its own state and its parent's state (order: off, shadow, on). `FlagResolver.effectiveState(of:state:)` holds that rule, and `scripts/nextshot-flags.sh feature <parent> <state>` sets a parent and all its sub-flags (Drew). Design: `2026-10-25-jev-sub-flags-design.md`.
 
 ## What a feature flag is
 
@@ -24,7 +25,7 @@ Nextshot reads three layers, in order. The first layer that gives a value wins.
 
 | Layer | Who sets it | Visible to users? | Example |
 | --- | --- | --- | --- |
-| 1. Local override | Drew, with `scripts/nextshot-flags.sh` (it runs `defaults write`) | No | `scripts/nextshot-flags.sh set noteCoach on` |
+| 1. Local override | Drew, with `scripts/nextshot-flags.sh` (it runs `defaults write`) | No | `scripts/nextshot-flags.sh feature noteCoach on` (a parent and its sub-flags), or `set` for one flag |
 | 2. Channel default | The code, per build channel | No | `noteCoach`: dev = shadow, release = off |
 | 3. Off | Built in | No | any flag with no entry |
 
@@ -56,6 +57,7 @@ A version is the DMG that a person installed. Each DMG carries the flag defaults
 - One registry, in one file. Each entry has: the key, the GitHub issue, the states it allows (off, shadow, on), the dev default, the release default, and the build number where the release default turned on.
 - New flags start with the release default off. A test fails if a release default is on without a "released in build" number.
 - With every flag off, Nextshot sends no network request and writes the same files as today. A test proves both.
+- A sub-flag has a `parent` in its entry and carries the parent's issue. The registry lists a parent's sub-flags right after it. A test proves every sub-flag is dev-only, starts off, and runs at the lower of its own state and its parent's state for all nine state pairs. The flags script keeps a `SUBFLAGS=` line, and a test compares it with the registry.
 - No flag shows in the release app's interface. The dev build can show flag states in the menu's gray build line, for example "Nextshot 2026.10.24 (520) dev, 2 flags on".
 - The Jev features stay dev-only until there is a plan for a TypeSafe key on other people's Macs. Drew's key must never ship inside a DMG.
 
