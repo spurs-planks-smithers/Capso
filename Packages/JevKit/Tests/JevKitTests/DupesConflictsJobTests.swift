@@ -1465,7 +1465,9 @@ struct DupesConflictsRunnerTests {
         let bundle = try await Bundle.make(captures: 2)
         let transport = StubTransport(fallback: jsonResponse(pairBody(sameAsk: 1.8, opposite: 0.05)))
         let key = StubKeyProvider()
-        let runner = makeRunner(bundle, jobs: [DupesConflictsJob()], flags: [.jevBase: .on, .dupesConflicts: .on], transport: transport, key: key)
+        // The sub-flags are on, so the job is planned and then skipped for consent.
+        let flags: [FeatureFlag: FlagState] = [.jevBase: .on, .dupesConflicts: .on, .dupesMerge: .on, .dupesConflict: .on]
+        let runner = makeRunner(bundle, jobs: [DupesConflictsJob()], flags: flags, transport: transport, key: key)
         await runCapture(runner, bundle, capture: 2)
 
         #expect(await transport.count == 0)

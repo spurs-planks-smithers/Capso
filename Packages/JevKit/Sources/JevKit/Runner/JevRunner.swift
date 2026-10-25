@@ -108,9 +108,9 @@ public actor JevRunner {
             expected.remove(key)
             return
         }
+        // A job with options has work only when an option is on after the cap.
         let planned = jobs.compactMap { job -> (job: any JevJob, mode: FlagState)? in
-            let mode = state(job.flag)
-            return mode == .off ? nil : (job, mode)
+            JevGate.runs(job, flags: state) ? (job, state(job.flag)) : nil
         }
         let allowed = JevGate.allowedKinds(flags: state)
         let lines = screenLines?.compactMap { line in
