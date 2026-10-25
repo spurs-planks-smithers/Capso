@@ -96,7 +96,7 @@ The accuracy test set the threshold at 0.9 for `jev-1.14.0` (see Accuracy test r
 
 ## The Jev job
 
-`PromptLanesJob` (id `promptLanes`, version 4) runs on the base's trigger, after the note panel ends and OCR is stored. It sends one request per capture when at least one item has a note and `lanesOrder` or `lanesSplit` is shadow or on after the cap. A capture whose notes are all empty sends nothing. With both sub-flags off, the job sends nothing and returns nothing. Version 3 came from the accuracy test. Version 4 (2026-10-25, #94) adds the sub-flags and leaves the questions as they were, so a record from version 3 is no longer used.
+`PromptLanesJob` (id `promptLanes`, version 4) runs on the base's trigger, after the note panel ends and OCR is stored. It sends one request per capture when at least one item has a note and `lanesOrder` or `lanesSplit` is shadow or on after the cap. A capture whose notes are all empty sends nothing. With both sub-flags off, the gate (`JevGate.runs`) does not plan the job, so nothing is sent or recorded. The job guards itself too: it returns nothing and sends nothing. Version 3 came from the accuracy test. Version 4 (2026-10-25, #94) adds the sub-flags and leaves the questions as they were, so a record from version 3 is no longer used.
 
 The request holds reviewer text only, even with `jevSendImages` or `jevSendScreenText` on. `requires` is empty. Severity, size, and kind come from the words of the note. A picture adds little to them, and text keeps the data that leaves the Mac small. My call, as the note coach did.
 
@@ -149,7 +149,7 @@ Rules:
 
 The gate: `PromptLanesPlan.forPrompt(round:file:flags:)` returns nil unless `jevBase` is on, `promptLanes` is on, and at least one of `lanesOrder` and `lanesSplit` is on. The app passes `Flags.effectiveState`, so a sub-flag counts at the lower of its own state and the state of `promptLanes`. The sub-flags pick the layout (see Sub-flags). The gate also returns nil when no item of the round is rated, so a round where every request failed gets no lanes section. Shadow never changes a prompt, and a sub-flag in shadow adds nothing to it.
 
-The base's own gate stays as it is. With `promptLanes` on, the base adds its refined pointer lines to the copied prompts and waits its 500 ms at round end, as it does for every feature in the on state. The round-end wait is needed: it lets the last capture's labels reach jev.json. This job writes no refined lines, so `-refined.md` and `refined.md` appear only when another feature writes lines, or when this job fails ("Not refined: promptLanes (timeout)"). Both pointers say "if it exists", so the agent loses nothing. My call, from the builder check: a lanes-only gate would change four base files for a small gain.
+The base's own gate stays as it is, except that a job with options counts only when one of them is on after the cap (#96). With `promptLanes` on and a lanes sub-flag on, the base adds its refined pointer lines to the copied prompts and waits its 500 ms at round end, as it does for every feature in the on state. The round-end wait is needed: it lets the last capture's labels reach jev.json. This job writes no refined lines, so `-refined.md` and `refined.md` appear only when another feature writes lines, or when this job fails ("Not refined: promptLanes (timeout)"). Both pointers say "if it exists", so the agent loses nothing. My call, from the builder check: a lanes-only gate would change four base files for a small gain.
 
 ## The round prompt in the on state
 
@@ -237,7 +237,7 @@ The job runs only when `jevBase` is on, `promptLanes` is shadow or on, and `lane
 | `promptLanes` | Requests | `jev.json` | Review file | Copied round prompt |
 | --- | --- | --- | --- | --- |
 | off | none | no promptLanes entry | none | unchanged, byte for byte |
-| shadow or on, both sub-flags off | none | a record with no answers | none | unchanged |
+| shadow or on, both sub-flags off | none | no promptLanes entry (the gate plans no job) | none | unchanged |
 | shadow | one per capture with a filled note | the runner's record with every answer, and the summary | `jev-review/promptLanes.md` | unchanged |
 | on | same as shadow | same as shadow | same as shadow | the section for the sub-flags that are on, at the end |
 
@@ -272,7 +272,7 @@ The base test `registryStubsSendNothing` runs only stub jobs (`version == 0`). T
 7. Section text: the exact lines for a made-up round, an empty lane A, an empty lane B, and a round with no rated item (no section).
 8. Failure: a transport error records the job as not refined, and the plan lists that capture's items as not rated.
 
-9. Sub-flags (#94): the registry rules for `lanesOrder` and `lanesSplit` (parent, issue, dev-only, off by default, allowed states). The job with each sub-flag on, in shadow, and off: one request when either is shadow or on, none when both are off, and an empty output. The cap: a sub-flag under a parent in shadow runs in shadow, and a sub-flag alone runs nothing. The plan and the section text for each of the four combinations: both on is today's section, order only is one list worst first, split only is two lanes in capture order, and neither gives no section. Every item appears once in every layout.
+9. Sub-flags (#94): the registry rules for `lanesOrder` and `lanesSplit` (parent, issue, dev-only, off by default, allowed states). The job with each sub-flag on, in shadow, and off: one request when either is shadow or on, none when both are off, and an empty output. The cap: a sub-flag under a parent in shadow runs in shadow, and a sub-flag alone runs nothing. The gate: the parent on with both sub-flags off plans no job, and a prompt points to refined files only with a sub-flag on. The plan and the section text for each of the four combinations: both on is today's section, order only is one list worst first, split only is two lanes in capture order, and neither gives no section. Every item appears once in every layout.
 
 Test fixtures use made-up notes only. The repository is public.
 

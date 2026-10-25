@@ -80,8 +80,9 @@ public enum PromptLanesRule {
 /// The job has two sub-flags (#94): `lanesOrder` and `lanesSplit`. The runner
 /// caps each at the state of `promptLanes`. The one request gives the ratings
 /// for both, so with both off after the cap the job sends no request. The
-/// sub-flags change only the round prompt's section, which `PromptLanesPlan`
-/// builds at round end.
+/// gate (`JevGate.runs`) does not plan the job then, and the job guards
+/// itself too. The sub-flags change only the round prompt's section, which
+/// `PromptLanesPlan` builds at round end.
 public struct PromptLanesJob: JevJob {
     public let id = "promptLanes"
     public let flag = FeatureFlag.promptLanes
