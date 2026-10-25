@@ -28,21 +28,37 @@ private func resolve(_ channel: BuildChannel, override: String?) -> FlagState {
 
 @Suite("FeatureFlags")
 struct FeatureFlagsTests {
-    @Test("Lists the thirteen flags with their issue numbers")
+    @Test("Lists the fourteen flags with their issue numbers")
     func registryContents() {
         #expect(FeatureFlag.allCases.map(\.rawValue) == [
             "jevBase", "noteCoach", "cropsAnchors", "dupesConflicts", "oneBreath", "promptLanes", "dataGuard",
             "dataGuardContact", "dataGuardNumbers", "dataGuardSecrets", "dataGuardFaces",
-            "jevSendImages", "jevSendScreenText",
+            "jevSendImages", "jevSendScreenText", "zipHandoff",
         ])
         // The data guard's kind flags belong to #70. The two consent flags
-        // belong to the Jev base, #36.
-        #expect(FeatureFlag.allCases.map(\.spec.issue) == [36, 37, 38, 39, 40, 69, 70, 70, 70, 70, 70, 36, 36])
+        // belong to the Jev base, #36. The zip handoff is #85.
+        #expect(FeatureFlag.allCases.map(\.spec.issue) == [36, 37, 38, 39, 40, 69, 70, 70, 70, 70, 70, 36, 36, 85])
+    }
+
+    /// Flags that are not Jev features. They may turn on in a release build.
+    private static let nonJevFlags: Set<FeatureFlag> = [.zipHandoff]
+
+    @Test("The zip handoff flag is not dev-only and starts off")
+    func zipHandoffFlag() {
+        let spec = FeatureFlag.zipHandoff.spec
+        #expect(spec.issue == 85)
+        #expect(spec.devOnly == false)
+        #expect(spec.allowedStates == [.off, .on])
+        #expect(spec.devDefault == .off)
+        #expect(spec.releaseDefault == .off)
+        // Not dev-only: an override turns it on in a release build too.
+        #expect(FlagResolver.state(of: .zipHandoff, channel: .release) { _ in "on" } == .on)
+        #expect(FlagResolver.state(of: .zipHandoff, channel: .release) { _ in nil } == .off)
     }
 
     @Test("Every Jev flag is dev-only, and a dev-only flag defaults to off in release")
     func jevFlagsAreDevOnly() {
-        for flag in FeatureFlag.allCases {
+        for flag in FeatureFlag.allCases where !Self.nonJevFlags.contains(flag) {
             #expect(flag.spec.devOnly, "\(flag) can turn on in a release build")
             #expect(flag.spec.releaseDefault == .off, "\(flag) is dev-only but on in release")
         }
@@ -50,7 +66,7 @@ struct FeatureFlagsTests {
 
     @Test("A release build ignores every override of a dev-only flag")
     func devOnlyIgnoresReleaseOverride() {
-        for flag in FeatureFlag.allCases {
+        for flag in FeatureFlag.allCases where flag.spec.devOnly {
             for state in flag.spec.allowedStates {
                 #expect(FlagResolver.state(of: flag, channel: .release) { _ in state.rawValue } == .off, "\(flag) \(state) in release")
                 #expect(FlagResolver.state(of: flag, channel: .dev) { _ in state.rawValue } == state, "\(flag) \(state) in dev")

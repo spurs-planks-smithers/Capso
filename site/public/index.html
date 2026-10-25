@@ -6,9 +6,9 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#15191c">
 <title>Nextshot: Show AI what you mean.</title>
-<meta name="description" content="Show AI what you mean. Visual feedback for AI coding agents, on your Mac.">
+<meta name="description" content="Show AI what you mean. Stop trying to describe fixes to your agents. Start giving visual feedback. One-click handoffs built for LLMs.">
 <meta property="og:title" content="Nextshot: Show AI what you mean.">
-<meta property="og:description" content="Visual feedback for AI coding agents, on your Mac. One round of screens, dots, and notes becomes one prompt.">
+<meta property="og:description" content="Stop trying to describe fixes to your agents. Start giving visual feedback. One-click handoffs built for LLMs.">
 <meta property="og:image" content="https://nextshot.dev/media/{{POSTER}}">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/nextshot-icon.png">
@@ -20,12 +20,15 @@
 <main class="page">
   <header class="top">
     <span class="brand"><img src="/nextshot-icon.png" alt="" width="34" height="34"><span>Nextshot</span></span>
-    <a class="download small" href="/download">Download for Mac</a>
+    <div class="pair">
+      <a class="download small" href="/download"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v7m0 0L5 6.5m3 3 3-3M3 11.5v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1"/></svg>Download for Mac</a>
+      <button class="download small soon" type="button" disabled><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v7m0 0L5 6.5m3 3 3-3M3 11.5v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1"/></svg>Download for Windows<span class="pill">Coming soon</span></button>
+    </div>
   </header>
 
   <section class="hero">
     <h1>Show AI what you mean.</h1>
-    <p class="lead">Visual feedback for AI coding agents, on your Mac.</p>
+    <p class="lead"><span>Stop trying to describe fixes to your agents.</span> <span>Start giving visual feedback.</span> <span>One-click handoffs built for LLMs.</span></p>
     <div class="frame">
       <video class="video" controls playsinline preload="metadata" poster="/media/{{POSTER}}" src="/media/{{VIDEO}}"></video>
       <button class="play" type="button" hidden><span class="tri" aria-hidden="true"></span>Watch the intro</button>
@@ -34,14 +37,17 @@
 
   <section class="below">
     <div class="get">
-      <a class="download" href="/download">Download for Mac</a>
-      <p class="meta">Version {{VERSION}}, {{SIZE}}<br>macOS 15 or later. Notarized by Apple.</p>
+      <div class="pair">
+        <a class="download" href="/download"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v7m0 0L5 6.5m3 3 3-3M3 11.5v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1"/></svg>Download for Mac</a>
+        <button class="download soon" type="button" disabled><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v7m0 0L5 6.5m3 3 3-3M3 11.5v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1"/></svg>Download for Windows<span class="pill">Coming soon</span></button>
+      </div>
+      <p class="meta">Version {{VERSION}}</p>
     </div>
     <div class="round">
       <h2>One round, one prompt</h2>
       <ol class="flow">
         <li><b>Grab</b><span>Press <kbd>⌥ Option</kbd> <kbd>⇧ Shift</kbd> <kbd>F</kbd>. Drag over the screen.</span></li>
-        <li><b>Mark</b><span>Press <kbd>C</kbd>, click each issue, and say the fix.</span></li>
+        <li><b>Mark</b><span>Click each issue, and say the fix.</span></li>
         <li><b>Repeat</b><span>Grab the next screen. One round holds them all.</span></li>
         <li><b>Hand off</b><span>Copy one prompt from the Nshot menu. Paste it into any AI agent.</span></li>
       </ol>

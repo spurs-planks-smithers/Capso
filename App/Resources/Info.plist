@@ -59,6 +59,8 @@
     <string>Nextshot needs camera access to show your webcam during screen recordings.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>Nextshot needs microphone access to record audio during screen recordings.</string>
+    <key>NSDownloadsFolderUsageDescription</key>
+    <string>Nextshot saves feedback zips to your Downloads folder.</string>
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>SUPublicEDKey</key>

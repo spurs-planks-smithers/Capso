@@ -378,10 +378,13 @@ struct OneBreathFlagTests {
         #expect(review.contains("| 1 | 1. Make the title brighter. | circle 1 | not checked | |"))
     }
 
-    @Test("A local override cannot turn oneBreath on")
-    func neverOn() {
+    @Test("While one-breath is paused, no local override can turn it on or to shadow")
+    func lockedOff() {
+        #expect(FeatureFlag.oneBreath.spec.allowedStates == [.off])
         for channel in [BuildChannel.dev, .release] {
-            #expect(FlagResolver.state(of: .oneBreath, channel: channel) { _ in "on" } == .off)
+            for override in ["on", "shadow"] {
+                #expect(FlagResolver.state(of: .oneBreath, channel: channel) { _ in override } == .off)
+            }
         }
     }
 }

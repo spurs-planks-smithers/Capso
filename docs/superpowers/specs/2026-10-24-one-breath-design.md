@@ -1,6 +1,6 @@
 # One-breath notes, shadow test: design (draft)
 
-Date: 2026-10-24. Status: draft for Drew's review. Issue: #40 (parent #34). Flag: `oneBreath` (off or shadow). Depends on the Jev base (#36) and the flag registry (#35).
+Date: 2026-10-24. Status: paused by Drew on 2026-10-24 after the trial. The flag is locked off. Issue: #40 (parent #34). Flag: `oneBreath` (off or shadow). Depends on the Jev base (#36) and the flag registry (#35).
 
 Terms used in this document:
 
@@ -20,6 +20,8 @@ Terms used in this document:
 - 2026-10-24: build or stop: build a real one-breath mode only if Drew finds one breath faster after 5 or more trial captures, and at least 95% of parts are right (interview).
 - 2026-10-24: correction to the line above: the bar is 90%, not 95%. Five captures with three circles give about 15 parts, and 95% would allow no mistake. 90% allows one (Drew, after the builder check).
 - 2026-10-24: Drew approved this spec, with the calls listed under "Left to the builder".
+- 2026-10-24: trial result: 3 captures, 11 parts. Code gave every part the circle its number named. Jev agreed at 0.8 or more on 7 parts and was unsure on 4.
+- 2026-10-24: Drew paused the feature after the trial: "Overall, I don't think this is a very good feature. I think we should deprioritize this, table it, and make the feature flag hidden for now." The `oneBreath` flag is locked off (only `off` allowed), the code merges, and #40 goes to the backlog. To restart, allow `shadow` again in the registry and the flags script.
 - 2026-10-24: Wispr Flow writes a spoken list as a numbered list (Drew's test, below). The split code treats a numbered line as the strongest circle mention.
 
 ## Intent

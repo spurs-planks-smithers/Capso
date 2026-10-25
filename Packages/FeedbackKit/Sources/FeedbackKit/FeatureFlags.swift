@@ -78,6 +78,9 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
     /// Consent for screen text (OCR text, window titles, app names) to leave
     /// the Mac in Jev requests.
     case jevSendScreenText
+    /// Zip Round and Zip N Selected in the Nshot menu (#85). Not a Jev
+    /// feature, so it may turn on in a release build.
+    case zipHandoff
 
     /// New flags start with both defaults `off`. A release default turns on
     /// only with a released-in build number.
@@ -92,7 +95,9 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
         case .dupesConflicts:
             FlagSpec(issue: 39, allowedStates: [.off, .shadow, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil, devOnly: true)
         case .oneBreath:
-            FlagSpec(issue: 40, allowedStates: [.off, .shadow], devDefault: .off, releaseDefault: .off, releasedInBuild: nil, devOnly: true)
+            // Paused and locked off (Drew, 2026-10-24, #40). Add .shadow
+            // back here and in the flags script to run the trial again.
+            FlagSpec(issue: 40, allowedStates: [.off], devDefault: .off, releaseDefault: .off, releasedInBuild: nil, devOnly: true)
         case .promptLanes:
             FlagSpec(issue: 69, allowedStates: [.off, .shadow, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil, devOnly: true)
         case .dataGuard, .dataGuardContact, .dataGuardNumbers, .dataGuardSecrets, .dataGuardFaces:
@@ -101,6 +106,8 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
             FlagSpec(issue: 36, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil, devOnly: true)
         case .jevSendScreenText:
             FlagSpec(issue: 36, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil, devOnly: true)
+        case .zipHandoff:
+            FlagSpec(issue: 85, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
         }
     }
 
