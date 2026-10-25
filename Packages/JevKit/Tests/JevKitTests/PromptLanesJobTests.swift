@@ -438,6 +438,10 @@ struct PromptLanesRunnerTests {
             [.jevBase: .on, .lanesOrder: .on, .lanesSplit: .on],
             [.jevBase: .on, .promptLanes: .off, .lanesOrder: .on],
             [.jevBase: .on, .promptLanes: .off, .lanesSplit: .shadow],
+            // The parent on with both sub-flags off: the gate plans no job.
+            [.jevBase: .on, .promptLanes: .on],
+            [.jevBase: .on, .promptLanes: .on, .lanesOrder: .off, .lanesSplit: .off],
+            [.jevBase: .on, .promptLanes: .shadow],
         ]
         for flags in cases {
             let bundle = try await Bundle.make()
@@ -504,26 +508,27 @@ struct PromptLanesRunnerTests {
         }
     }
 
-    @Test("A sub-flag runs at the lower of its state and promptLanes: shadow under a shadow parent, nothing under an on parent with both off")
+    @Test("A sub-flag runs at the lower of its state and promptLanes: a sub-flag on under a shadow parent runs in shadow")
     func capAtTheParent() async throws {
-        // The parent is shadow, so a sub-flag set to on still runs in shadow.
         let bundle = try await Bundle.make()
         let transport = Self.transport()
         let runner = makeRunner(bundle, jobs: [PromptLanesJob()], flags: [.jevBase: .on, .promptLanes: .shadow, .lanesOrder: .on], transport: transport)
         await runCapture(runner, bundle)
         #expect(await transport.count == 1)
         #expect(try bundle.record(1)?.mode == "shadow")
+    }
 
-        // The parent is on and both sub-flags are off: the job runs, sends
-        // nothing, and records nothing to rate.
-        let idle = try await Bundle.make()
-        let idleTransport = Self.transport()
-        let idleRunner = makeRunner(idle, jobs: [PromptLanesJob()], flags: [.jevBase: .on, .promptLanes: .on], transport: idleTransport)
-        await runCapture(idleRunner, idle)
-        #expect(await idleTransport.count == 0)
-        let idleRecord = try #require(try idle.record(1))
-        #expect(idleRecord.status == .done && idleRecord.requests == 0 && idleRecord.answers.isEmpty)
-        #expect(idleRecord.lines.isEmpty && idleRecord.files.isEmpty)
-        #expect(!idle.exists("jev-review/promptLanes.md"), "a review was written with no sub-flag on")
+    @Test("With the parent on and a sub-flag in shadow, the job asks and records, and no sub-flag is on")
+    func subFlagShadowUnderOnParent() async throws {
+        let bundle = try await Bundle.make()
+        let transport = Self.transport()
+        let flags: [FeatureFlag: FlagState] = [.jevBase: .on, .promptLanes: .on, .lanesOrder: .shadow]
+        let runner = makeRunner(bundle, jobs: [PromptLanesJob()], flags: flags, transport: transport)
+        await runCapture(runner, bundle)
+        #expect(await transport.count == 1)
+        #expect(try bundle.record(1)?.status == .done)
+        // The gate points prompts to refined files only with an option on.
+        #expect(!JevGate.pointsToRefinedFiles(jobs: [PromptLanesJob()], flags: flagSet(flags)))
+        #expect(JevGate.mayRun(jobs: [PromptLanesJob()], flags: flagSet(flags)))
     }
 }

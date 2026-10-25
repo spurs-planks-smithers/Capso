@@ -178,6 +178,7 @@ struct SubFlagGateTests {
         (NoteCoachJob(), .noteCoach, FeatureFlag.subFlags(of: .noteCoach)),
         (CropsAnchorsJob(), .cropsAnchors, FeatureFlag.subFlags(of: .cropsAnchors)),
         (DupesConflictsJob(), .dupesConflicts, FeatureFlag.subFlags(of: .dupesConflicts)),
+        (PromptLanesJob(), .promptLanes, FeatureFlag.subFlags(of: .promptLanes)),
     ]
 
     private struct Gate: Equatable {
@@ -192,7 +193,7 @@ struct SubFlagGateTests {
 
     @Test("Every feature has sub-flags to test")
     func featuresHaveSubFlags() {
-        #expect(Self.features.count == 3)
+        #expect(Self.features.count == 4)
         for feature in Self.features {
             #expect(!feature.subs.isEmpty, "\(feature.flag)")
         }
@@ -206,7 +207,7 @@ struct SubFlagGateTests {
             checked.append(job.id)
         }
         try #require(!checked.isEmpty, "no registered job has sub-flags")
-        #expect(checked == ["noteCoach", "cropsAnchors", "dupesConflicts"])
+        #expect(checked == ["noteCoach", "cropsAnchors", "dupesConflicts", "promptLanes"])
 
         // Every sub-flag belongs to a feature that has a job.
         for flag in FeatureFlag.allCases {
