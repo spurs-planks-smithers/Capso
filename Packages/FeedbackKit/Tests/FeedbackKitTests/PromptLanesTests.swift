@@ -140,6 +140,108 @@ struct PromptLanesSectionTests {
         #expect(!joined.contains("\u{00B7}"))
     }
 
+    // MARK: Layouts (the lanes sub-flags, #94)
+
+    @Test("The default layout is the full section, and the title of each layout names what it holds")
+    func layoutTitles() {
+        #expect(PromptLanes(laneA: [], laneB: [], askFirst: []).layout == .orderAndLanes)
+        let titles: [(PromptLanes.Layout, String)] = [(.orderAndLanes, "Order and lanes:"), (.order, "Order:"), (.lanes, "Lanes:")]
+        for (layout, title) in titles {
+            let lanes = PromptLanes(laneA: [entry("1.1", .nit, .oneLine)], laneB: [entry("1.2", .bug, .oneFile)], askFirst: [], layout: layout)
+            #expect(lanes.promptLines.first == title, "\(layout)")
+            #expect(lanes.promptLines.dropFirst().first == Self.intro[1], "\(layout)")
+        }
+    }
+
+    @Test("Order only: one list, worst first, with no lane and no start line")
+    func orderOnlySection() {
+        let lanes = PromptLanes(
+            laneA: [],
+            laneB: [entry("4.1", .bug, .severalFiles), entry("3.2", .polish, .oneLine), entry("7.1")],
+            askFirst: ["4.5", "6.2"],
+            layout: .order
+        )
+        #expect(lanes.promptLines.joined(separator: "\n") == """
+        Order:
+        These labels come from an automated model. The reviewer's words win. Each item appears once.
+        Plan and work these items in this order, worst first:
+        - 4.1 bug, several files
+        - 3.2 polish, one line
+        - 7.1 not rated
+        Ask first: 4.5, 6.2 (no instruction).
+        """)
+        let text = lanes.promptLines.joined(separator: "\n")
+        #expect(!text.contains("Lane A") && !text.contains("Lane B") && !text.contains("subagent"))
+    }
+
+    @Test("Order only without an Ask first item ends with the list, and an empty list prints a none line")
+    func orderOnlyEdges() {
+        let plain = PromptLanes(laneA: [], laneB: [entry("1.1", .bug, .oneFile)], askFirst: [], layout: .order)
+        #expect(plain.promptLines == Self.intro.map { $0 == "Order and lanes:" ? "Order:" : $0 } + [
+            "Plan and work these items in this order, worst first:",
+            "- 1.1 bug, one file",
+        ])
+        let none = PromptLanes(laneA: [], laneB: [], askFirst: ["1.1"], layout: .order)
+        #expect(none.promptLines.suffix(2) == ["Items, worst first: none.", "Ask first: 1.1 (no instruction)."])
+    }
+
+    @Test("Lanes only: lane A and lane B with no order claim")
+    func lanesOnlySection() {
+        let lanes = PromptLanes(
+            laneA: [entry("3.2", .polish, .oneLine)],
+            laneB: [entry("4.1", .bug, .severalFiles), entry("7.1")],
+            askFirst: ["4.5", "6.2"],
+            layout: .lanes
+        )
+        #expect(lanes.promptLines.joined(separator: "\n") == """
+        Lanes:
+        These labels come from an automated model. The reviewer's words win. Each item appears once.
+        \(Self.laneAHeading)
+        - 3.2 polish, one line
+        Lane B, needs judgment. Plan these yourself:
+        - 4.1 bug, several files
+        - 7.1 not rated
+        Ask first: 4.5, 6.2 (no instruction).
+        Start with lane A. Then work lane B.
+        """)
+        let text = lanes.promptLines.joined(separator: "\n")
+        #expect(!text.contains("worst first") && !text.contains("in this order") && !text.contains("from the top"))
+    }
+
+    @Test("Lanes only: an empty lane prints its none line, and the last line points to the lane that has items")
+    func lanesOnlyEmptyLanes() {
+        let title = ["Lanes:", Self.intro[1]]
+        let onlyB = PromptLanes(laneA: [], laneB: [entry("1.1", .bug, .oneFile)], askFirst: [], layout: .lanes)
+        #expect(onlyB.promptLines == title + ["Lane A, exact edits: none.", "Lane B, needs judgment. Plan these yourself:", "- 1.1 bug, one file", "Work lane B."])
+        let onlyA = PromptLanes(laneA: [entry("1.1", .nit, .oneLine)], laneB: [], askFirst: [], layout: .lanes)
+        #expect(onlyA.promptLines == title + [Self.laneAHeading, "- 1.1 nit, one line", "Lane B, needs judgment: none.", "Start with lane A."])
+        let neither = PromptLanes(laneA: [], laneB: [], askFirst: ["1.1"], layout: .lanes)
+        #expect(neither.promptLines == title + ["Lane A, exact edits: none.", "Lane B, needs judgment: none.", "Ask first: 1.1 (no instruction)."])
+    }
+
+    @Test("Both layouts that hold lanes share the lane A text, and the full layout is unchanged")
+    func fullLayoutUnchanged() {
+        let laneA = [entry("3.2", .polish, .oneLine)]
+        let laneB = [entry("4.1", .bug, .severalFiles)]
+        let full = PromptLanes(laneA: laneA, laneB: laneB, askFirst: [])
+        #expect(full.promptLines == PromptLanes(laneA: laneA, laneB: laneB, askFirst: [], layout: .orderAndLanes).promptLines)
+        #expect(full.promptLines.contains(Self.laneBHeading))
+        #expect(full.promptLines.last == "Start with lane A. Then work lane B from the top.")
+
+        let split = PromptLanes(laneA: laneA, laneB: laneB, askFirst: [], layout: .lanes)
+        #expect(split.promptLines.contains(Self.laneAHeading))
+        #expect(!split.promptLines.contains(Self.laneBHeading))
+    }
+
+    @Test("Every layout's text has no em dash and no middot")
+    func layoutsUsePlainPunctuation() {
+        for layout in [PromptLanes.Layout.orderAndLanes, .order, .lanes] {
+            let lanes = PromptLanes(laneA: [entry("1.1", .nit, .oneLine)], laneB: [entry("2.1"), entry("2.2", .bug, .oneFile)], askFirst: ["3.1"], layout: layout)
+            let joined = lanes.promptLines.joined(separator: "\n")
+            #expect(!joined.contains("\u{2014}") && !joined.contains("\u{2013}") && !joined.contains("\u{00B7}"), "\(layout)")
+        }
+    }
+
     // MARK: PromptBuilder.render
 
     private var round: FeedbackRound {
@@ -166,6 +268,16 @@ struct PromptLanesSectionTests {
         )
         #expect(with == expected)
         #expect(with != plain)
+    }
+
+    @Test("Each layout's section sits at the same place, after the Context line, before the closing tag")
+    func everyLayoutInsertion() {
+        let plain = PromptBuilder.render(round, folderPath: folder)
+        for layout in [PromptLanes.Layout.orderAndLanes, .order, .lanes] {
+            let lanes = PromptLanes(laneA: layout == .order ? [] : [entry("2.1", .nit, .oneLine)], laneB: [entry("2.2", .bug, .oneFile)], askFirst: [], layout: layout)
+            let with = PromptBuilder.render(round, folderPath: folder, lanes: lanes)
+            #expect(with == plain.replacingOccurrences(of: "</feedback_bundle>\n", with: "\n" + lanes.promptLines.joined(separator: "\n") + "\n</feedback_bundle>\n"), "\(layout)")
+        }
     }
 
     @Test("The lanes section also follows the refined step and the redo line")

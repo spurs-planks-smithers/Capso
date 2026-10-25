@@ -24,9 +24,10 @@ public enum PromptBuilder {
     /// `redo` adds the redo line after the Goal line. The file on disk never has it.
     /// `refined` adds a step that points to `refined.md` and one Authority
     /// line. The app sets it only when a Jev feature is on.
-    /// `lanes` adds the "Order and lanes" section after the Context line, so
-    /// the ordered task list is the last thing the agent reads. The app sets
-    /// it only when `promptLanes` is on. Without it the output is unchanged.
+    /// `lanes` adds the "Order and lanes", "Order", or "Lanes" section after
+    /// the Context line, so the ordered task list is the last thing the agent
+    /// reads. The app sets it only when `promptLanes` and a lanes sub-flag are
+    /// on. Without it the output is unchanged.
     public static func render(_ round: FeedbackRound, folderPath: String, redo: Bool = false, refined: Bool = false, lanes: PromptLanes? = nil) -> String {
         render(round, paths: .absolute(folderPath: folderPath), redo: redo, refined: refined, lanes: lanes)
     }

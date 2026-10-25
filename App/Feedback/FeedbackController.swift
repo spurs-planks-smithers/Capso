@@ -243,9 +243,9 @@ final class FeedbackController {
     /// The prompt comes from the ended round, so it holds the same captures
     /// as the `prompt.md` that `end()` writes. Resume in Recent reopens the
     /// round. With a Jev feature on, the copy waits at most 500 ms for a
-    /// running capture and points to refined.md. With `promptLanes` on, the
-    /// prompt also ends with the Order and lanes section, built after that
-    /// wait.
+    /// running capture and points to refined.md. With `promptLanes` and a
+    /// lanes sub-flag on, the prompt also ends with the Order and lanes,
+    /// Order, or Lanes section, built after that wait.
     @discardableResult
     func copyPromptAndEndRound() async throws -> String {
         let round = try await endRound()

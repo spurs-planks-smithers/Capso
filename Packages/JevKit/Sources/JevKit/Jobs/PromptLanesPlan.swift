@@ -13,10 +13,22 @@ import Foundation
 public enum PromptLanesPlan {
     /// The plan for a copied round prompt, or nil when the prompt stays plain.
     /// Needs `jevBase` and `promptLanes` both on: shadow never changes a
-    /// prompt. Nil also when `jev.json` is missing or no item is rated.
+    /// prompt. The sub-flags pick the layout: `lanesOrder` on gives the
+    /// severity order, and `lanesSplit` on gives the lane A and lane B split.
+    /// Neither on gives nil. A sub-flag in shadow changes nothing. Nil also
+    /// when `jev.json` is missing or no item is rated.
+    /// - Parameter flags: Returns a flag's effective state, as the app's
+    ///   `Flags.effectiveState` does (#94).
     public static func forPrompt(round: FeedbackRound, file: JevRecordFile?, flags: (FeatureFlag) -> FlagState) -> PromptLanes? {
         guard flags(.jevBase) == .on, flags(.promptLanes) == .on, let file else { return nil }
-        return plan(round: round, file: file)
+        let layout: PromptLanes.Layout
+        switch (flags(.lanesOrder) == .on, flags(.lanesSplit) == .on) {
+        case (true, true): layout = .orderAndLanes
+        case (true, false): layout = .order
+        case (false, true): layout = .lanes
+        case (false, false): return nil
+        }
+        return plan(round: round, file: file, layout: layout)
     }
 
     /// Every item of the round appears once: in lane A, in lane B, or in Ask
@@ -27,12 +39,17 @@ public enum PromptLanesPlan {
     /// - A capture's labels count only from a `done` record of this job at
     ///   its current version. Shadow and on records both count.
     /// - A filled item with no usable label goes to lane B as not rated.
-    /// - Each lane runs by severity, highest first. Inside one severity it
-    ///   runs by capture, then badge. Not rated items come last in lane B.
-    ///   Size does not change the order. It only gates lane A, in the job.
+    /// - `orderAndLanes`: each lane runs by severity, highest first. Inside
+    ///   one severity it runs by capture, then badge. Not rated items come
+    ///   last in lane B. Size does not change the order. It only gates lane A,
+    ///   in the job.
+    /// - `order`: one list in `laneB`, by the same rule, with the not rated
+    ///   items last. There is no lane A.
+    /// - `lanes`: each lane runs by capture, then badge. Not rated items stay
+    ///   in lane B, in that order.
     ///
     /// Nil when no item is rated.
-    public static func plan(round: FeedbackRound, file: JevRecordFile) -> PromptLanes? {
+    public static func plan(round: FeedbackRound, file: JevRecordFile, layout: PromptLanes.Layout = .orderAndLanes) -> PromptLanes? {
         var laneA: [Placed] = []
         var laneB: [Placed] = []
         var notRated: [Placed] = []
@@ -59,11 +76,28 @@ public enum PromptLanesPlan {
         }
 
         guard !laneA.isEmpty || !laneB.isEmpty else { return nil }
-        return PromptLanes(
-            laneA: laneA.sorted(by: before).map(\.entry),
-            laneB: laneB.sorted(by: before).map(\.entry) + notRated.sorted(by: before).map(\.entry),
-            askFirst: askFirst
-        )
+        switch layout {
+        case .orderAndLanes:
+            return PromptLanes(
+                laneA: laneA.sorted(by: before).map(\.entry),
+                laneB: laneB.sorted(by: before).map(\.entry) + notRated.sorted(by: before).map(\.entry),
+                askFirst: askFirst
+            )
+        case .order:
+            return PromptLanes(
+                laneA: [],
+                laneB: (laneA + laneB).sorted(by: before).map(\.entry) + notRated.sorted(by: before).map(\.entry),
+                askFirst: askFirst,
+                layout: .order
+            )
+        case .lanes:
+            return PromptLanes(
+                laneA: laneA.sorted(by: inCaptureOrder).map(\.entry),
+                laneB: (laneB + notRated).sorted(by: inCaptureOrder).map(\.entry),
+                askFirst: askFirst,
+                layout: .lanes
+            )
+        }
     }
 
     /// The bundle's `jev.json`. Nil when the file is missing, unreadable, or
@@ -92,6 +126,12 @@ public enum PromptLanesPlan {
         let left = lhs.entry.severity?.rawValue ?? 0
         let right = rhs.entry.severity?.rawValue ?? 0
         if left != right { return left > right }
+        if lhs.capture != rhs.capture { return lhs.capture < rhs.capture }
+        return lhs.badge < rhs.badge
+    }
+
+    /// Capture first, then badge. The `lanes` layout uses it.
+    private static func inCaptureOrder(_ lhs: Placed, _ rhs: Placed) -> Bool {
         if lhs.capture != rhs.capture { return lhs.capture < rhs.capture }
         return lhs.badge < rhs.badge
     }

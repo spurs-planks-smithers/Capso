@@ -301,24 +301,138 @@ struct PromptLanesPlanTests {
     }
 }
 
+// MARK: - The layouts
+
+@Suite("Prompt lanes plan: layouts")
+struct PromptLanesPlanLayoutTests {
+    /// Capture 1 has two lane A items (nit before polish) and two lane B items
+    /// (bug before blocker). Capture 2 has a not rated item and an empty note.
+    /// Capture 3 has a filled note and no record.
+    private let round = makeRound([
+        makeCapture(1, [(1, "n"), (2, "n"), (3, "n"), (4, "n")]),
+        makeCapture(2, [(1, "n"), (2, nil)]),
+        makeCapture(3, [(1, "n")]),
+    ])
+    private var file: JevRecordFile {
+        makeFile([
+            1: record(summary: .fields([
+                "1.1": rated("A", .nit, .oneLine),
+                "1.2": rated("A", .polish, .oneFile),
+                "1.3": rated("B", .bug, .severalFiles),
+                "1.4": rated("B", .blocker, .manyFiles),
+            ])),
+            2: record(summary: .fields(["2.1": notRatedValue, "2.2": askFirstValue])),
+        ])
+    }
+
+    private func entry(_ item: String, _ severity: PromptLanes.Severity, _ size: PromptLanes.Size) -> PromptLanes.Entry {
+        PromptLanes.Entry(item: item, severity: severity, size: size)
+    }
+
+    @Test("Both parts: today's plan, each lane worst first, and the default layout gives the same plan")
+    func orderAndLanes() throws {
+        let plan = try #require(PromptLanesPlan.plan(round: round, file: file, layout: .orderAndLanes))
+        #expect(plan.layout == .orderAndLanes)
+        #expect(plan.laneA == [entry("1.2", .polish, .oneFile), entry("1.1", .nit, .oneLine)])
+        #expect(plan.laneB == [entry("1.4", .blocker, .manyFiles), entry("1.3", .bug, .severalFiles), PromptLanes.Entry(item: "2.1"), PromptLanes.Entry(item: "3.1")])
+        #expect(plan.askFirst == ["2.2"])
+        #expect(PromptLanesPlan.plan(round: round, file: file) == plan)
+    }
+
+    @Test("Order only: one list in laneB, worst first across both lanes, not rated last, no lane A")
+    func orderOnly() throws {
+        let plan = try #require(PromptLanesPlan.plan(round: round, file: file, layout: .order))
+        #expect(plan.layout == .order)
+        #expect(plan.laneA.isEmpty)
+        #expect(plan.laneB == [
+            entry("1.4", .blocker, .manyFiles), entry("1.3", .bug, .severalFiles),
+            entry("1.2", .polish, .oneFile), entry("1.1", .nit, .oneLine),
+            PromptLanes.Entry(item: "2.1"), PromptLanes.Entry(item: "3.1"),
+        ])
+        #expect(plan.askFirst == ["2.2"])
+    }
+
+    @Test("Split only: lane A and lane B each in capture order, with the not rated items in lane B")
+    func splitOnly() throws {
+        let plan = try #require(PromptLanesPlan.plan(round: round, file: file, layout: .lanes))
+        #expect(plan.layout == .lanes)
+        // Severity no longer orders the lanes: nit 1.1 comes before polish 1.2.
+        #expect(plan.laneA == [entry("1.1", .nit, .oneLine), entry("1.2", .polish, .oneFile)])
+        #expect(plan.laneB == [entry("1.3", .bug, .severalFiles), entry("1.4", .blocker, .manyFiles), PromptLanes.Entry(item: "2.1"), PromptLanes.Entry(item: "3.1")])
+        #expect(plan.askFirst == ["2.2"])
+    }
+
+    @Test("Every item appears exactly once in every layout, and no rated item gives nil in every layout")
+    func everyItemOnceAndNilWhenNoneRated() throws {
+        for layout in [PromptLanes.Layout.orderAndLanes, .order, .lanes] {
+            let plan = try #require(PromptLanesPlan.plan(round: round, file: file, layout: layout), "\(layout)")
+            let placed = ids(plan.laneA) + ids(plan.laneB) + plan.askFirst
+            #expect(placed.sorted() == allItemIDs(round).sorted(), "\(layout)")
+            #expect(Set(placed).count == placed.count, "\(layout) places an item twice")
+
+            let unrated = makeFile([1: record(summary: .fields(["1.1": notRatedValue]))])
+            #expect(PromptLanesPlan.plan(round: makeRound([makeCapture(1, [(1, "n")])]), file: unrated, layout: layout) == nil, "\(layout)")
+        }
+    }
+
+    @Test("The section of each layout shows the same items with the same level names")
+    func sectionsShareTheItems() throws {
+        var itemLines: [Set<String>] = []
+        for layout in [PromptLanes.Layout.orderAndLanes, .order, .lanes] {
+            let plan = try #require(PromptLanesPlan.plan(round: round, file: file, layout: layout))
+            itemLines.append(Set(plan.promptLines.filter { $0.hasPrefix("- ") }))
+        }
+        try #require(!itemLines[0].isEmpty)
+        #expect(itemLines[0] == itemLines[1] && itemLines[1] == itemLines[2])
+    }
+}
+
 // MARK: - The gate
 
 @Suite("Prompt lanes plan: the flag gate")
 struct PromptLanesPlanGateTests {
-    private let round = makeRound([makeCapture(1, [(1, "note")])])
+    private let round = makeRound([makeCapture(1, [(1, "note"), (2, "note")])])
     private var file: JevRecordFile {
-        makeFile([1: record(summary: .fields(["1.1": rated("A", .polish, .oneLine)]))])
+        makeFile([1: record(summary: .fields(["1.1": rated("A", .polish, .oneLine), "1.2": rated("B", .bug, .oneFile)]))])
     }
 
-    @Test("Both flags on gives the plan")
+    /// jevBase and promptLanes on, with the two sub-flags as given.
+    private func states(order: FlagState, split: FlagState) -> [FeatureFlag: FlagState] {
+        [.jevBase: .on, .promptLanes: .on, .lanesOrder: order, .lanesSplit: split]
+    }
+
+    @Test("Both sub-flags on gives today's plan")
     func bothOn() {
-        let plan = PromptLanesPlan.forPrompt(round: round, file: file, flags: flagSet([.jevBase: .on, .promptLanes: .on]))
+        let plan = PromptLanesPlan.forPrompt(round: round, file: file, flags: flagSet(states(order: .on, split: .on)))
         #expect(plan == PromptLanesPlan.plan(round: round, file: file))
-        #expect(plan != nil)
+        #expect(plan?.layout == .orderAndLanes)
     }
 
-    @Test("forPrompt is nil when promptLanes is off or shadow, or jevBase is off")
+    @Test("Each sub-flag alone picks its layout, and a sub-flag in shadow or off adds nothing")
+    func layoutByFlags() {
+        let cases: [(FlagState, FlagState, PromptLanes.Layout?)] = [
+            (.on, .on, .orderAndLanes),
+            (.on, .off, .order),
+            (.on, .shadow, .order),
+            (.off, .on, .lanes),
+            (.shadow, .on, .lanes),
+            (.off, .off, nil),
+            (.shadow, .shadow, nil),
+            (.shadow, .off, nil),
+            (.off, .shadow, nil),
+        ]
+        for (order, split, layout) in cases {
+            let plan = PromptLanesPlan.forPrompt(round: round, file: file, flags: flagSet(states(order: order, split: split)))
+            #expect(plan?.layout == layout, "order \(order), split \(split)")
+            if let layout {
+                #expect(plan == PromptLanesPlan.plan(round: round, file: file, layout: layout), "order \(order), split \(split)")
+            }
+        }
+    }
+
+    @Test("forPrompt is nil when promptLanes is off or shadow, or jevBase is off, even with a sub-flag on")
     func gated() {
+        let subFlagsOn: [FeatureFlag: FlagState] = [.lanesOrder: .on, .lanesSplit: .on]
         let cases: [[FeatureFlag: FlagState]] = [
             [.jevBase: .on, .promptLanes: .off],
             [.jevBase: .on, .promptLanes: .shadow],
@@ -327,22 +441,39 @@ struct PromptLanesPlanGateTests {
             [.promptLanes: .on],
             [:],
         ]
-        for states in cases {
-            #expect(PromptLanesPlan.forPrompt(round: round, file: file, flags: flagSet(states)) == nil, "\(states) gave a plan")
+        for base in cases {
+            // With no sub-flag, and with both on.
+            #expect(PromptLanesPlan.forPrompt(round: round, file: file, flags: flagSet(base)) == nil, "\(base) gave a plan")
+            #expect(PromptLanesPlan.forPrompt(round: round, file: file, flags: flagSet(base.merging(subFlagsOn) { $1 })) == nil, "\(base) with sub-flags on gave a plan")
         }
+        // promptLanes on and both sub-flags off (the default): the prompt stays plain.
+        #expect(PromptLanesPlan.forPrompt(round: round, file: file, flags: flagSet([.jevBase: .on, .promptLanes: .on])) == nil)
+    }
+
+    @Test("With the app's call shape, a sub-flag counts at the lower of its state and promptLanes")
+    func throughEffectiveState() {
+        func plan(_ raw: [FeatureFlag: FlagState]) -> PromptLanes? {
+            let state: (FeatureFlag) -> FlagState = { raw[$0] ?? .off }
+            return PromptLanesPlan.forPrompt(round: round, file: file, flags: { FlagResolver.effectiveState(of: $0, state: state) })
+        }
+        #expect(plan([.jevBase: .on, .promptLanes: .on, .lanesOrder: .on])?.layout == .order)
+        #expect(plan([.jevBase: .on, .promptLanes: .on, .lanesSplit: .on])?.layout == .lanes)
+        // The parent in shadow caps the sub-flag, and the parent off turns it off.
+        #expect(plan([.jevBase: .on, .promptLanes: .shadow, .lanesOrder: .on, .lanesSplit: .on]) == nil)
+        #expect(plan([.jevBase: .on, .lanesOrder: .on, .lanesSplit: .on]) == nil)
     }
 
     @Test("forPrompt is nil when there is no jev.json, and when no item is rated")
     func noFileOrNoRatedItem() {
-        let on = flagSet([.jevBase: .on, .promptLanes: .on])
+        let on = flagSet(states(order: .on, split: .on))
         #expect(PromptLanesPlan.forPrompt(round: round, file: nil, flags: on) == nil)
         #expect(PromptLanesPlan.forPrompt(round: round, file: JevRecordFile(), flags: on) == nil)
     }
 
     @Test("Other features' flags do not matter")
     func otherFlags() {
-        let states: [FeatureFlag: FlagState] = [.jevBase: .on, .promptLanes: .on, .noteCoach: .on, .cropsAnchors: .shadow]
-        #expect(PromptLanesPlan.forPrompt(round: round, file: file, flags: flagSet(states)) != nil)
+        let flags = states(order: .on, split: .on).merging([.noteCoach: .on, .cropsAnchors: .shadow]) { $1 }
+        #expect(PromptLanesPlan.forPrompt(round: round, file: file, flags: flagSet(flags)) != nil)
     }
 }
 
@@ -410,7 +541,7 @@ struct PromptLanesPlanDiskTests {
         #expect(plan.askFirst.isEmpty)
 
         // The same plan comes from the flag gate with the app's call shape.
-        let gated = PromptLanesPlan.forPrompt(round: round, file: PromptLanesPlan.loadRecords(folderURL: bundle.folder), flags: flagSet([.jevBase: .on, .promptLanes: .on]))
+        let gated = PromptLanesPlan.forPrompt(round: round, file: PromptLanesPlan.loadRecords(folderURL: bundle.folder), flags: flagSet(lanesFlags(.on)))
         #expect(gated == plan)
     }
 
@@ -433,7 +564,7 @@ struct PromptLanesPlanDiskTests {
         let afterFirst = try #require(PromptLanesPlan.loadRecords(folderURL: bundle.folder))
         // No item is rated, so the prompt would stay plain.
         #expect(PromptLanesPlan.plan(round: round, file: afterFirst) == nil)
-        #expect(PromptLanesPlan.forPrompt(round: round, file: afterFirst, flags: flagSet([.jevBase: .on, .promptLanes: .on])) == nil)
+        #expect(PromptLanesPlan.forPrompt(round: round, file: afterFirst, flags: flagSet(lanesFlags(.on))) == nil)
 
         await runCapture(runner, bundle, capture: 2)
         #expect(await transport.count == 2)
