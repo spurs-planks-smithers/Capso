@@ -29,10 +29,10 @@ Click **Nshot** in the menu bar to:
 
 - See which build you run. The top row shows it, for example **Nextshot 2026.10.22 (497)**.
 - **Copy Last Capture Prompt** (**Option+Shift+C**) again, for example after dictation replaced your clipboard.
-- **Copy Prompt and End Round** (**Option+Shift+R**). Copying the whole prompt ends the round. **Resume Round** in **Recent** reopens it.
+- **Copy Prompt and End Round** (**Option+Shift+R**). Copying the whole prompt ends the round. **Resume Round** in **Recent Rounds** reopens it.
 - **Open Round Folder** (**Option+Shift+O**) to see the round's files.
 - **End Round** (**Option+Shift+E**) when you are done.
-- Pick from **Recent** rounds. Check single captures to copy one combined prompt, or **Resume Round** to keep adding to an old round.
+- Pick from **Recent Rounds**. Check single captures to copy one combined prompt, or **Resume Round** to keep adding to an old round.
 - **Change Start Round Shortcut...** to pick a key other than **Option+Shift+F**.
 - Open **Settings...**, or **Quit Nextshot**.
 

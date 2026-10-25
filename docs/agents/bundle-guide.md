@@ -33,7 +33,7 @@ The prompt names files by absolute path. They sit in a bundle folder: `~/Library
 - **Ask when there is no instruction.** An item marked "n/a (no instruction: ask)" has no instruction. Ask the person before you change it.
 - **Open the clean PNG only when a mark hides content.**
 - **Coordinates are pixels in the annotated PNG,** origin top-left. A box is x1 y1 x2 y2.
-- **Check before you redo.** A prompt copied from Nextshot's Recent list adds the line "An earlier pass may have worked on this feedback. Check the code first." Read the current code before you change it again.
+- **Check before you redo.** A prompt copied from Nextshot's Recent Rounds list adds the line "An earlier pass may have worked on this feedback. Check the code first." Read the current code before you change it again.
 
 ## Access to the bundle folder
 

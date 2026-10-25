@@ -15,6 +15,20 @@ final class FeedbackRoundDot: NSView {
     /// Diameter in points. The mark is 14 points tall, so 5 stays subtle.
     static let diameter: CGFloat = 5
 
+    /// The dot as an image for a menu row, 8 points across like the help box's
+    /// dot. It is not a template, so it stays green on the row highlight. The
+    /// color resolves when the image draws, so it follows the menu's appearance.
+    static let menuImage: NSImage = {
+        let image = NSImage(size: NSSize(width: 8, height: 8), flipped: false) { rect in
+            NSColor.systemGreen.setFill()
+            NSBezierPath(ovalIn: rect).fill()
+            return true
+        }
+        image.isTemplate = false
+        image.accessibilityDescription = "Active round"
+        return image
+    }()
+
     /// How far the dot's center sits inside the mark's top right corner, in points.
     /// The center is inside the corner so the dot does not reach the button's edge.
     private static let cornerInset: CGFloat = 0.5

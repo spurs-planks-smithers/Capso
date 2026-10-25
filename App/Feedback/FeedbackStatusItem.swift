@@ -28,7 +28,7 @@ struct FeedbackMenuState {
 /// short product name and the capture count, for example "Nshot (2)".
 ///
 /// The menu is rebuilt each time it opens. It lists the active round's
-/// actions, the active round and the last ended rounds under "Recent", and a basket of checked
+/// actions, the active round and the last ended rounds under "Recent Rounds", and a basket of checked
 /// captures. The basket lines sit below the Recent rows, so checking a box
 /// never moves a row above it and an open submenu stays lined up with its
 /// parent row. Each round row opens a submenu. A submenu fills when it
@@ -59,6 +59,7 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         var item: NSMenuItem
         var menu: NSMenu
         var round: FeedbackRound
+        var active: Bool
     }
 
     private var item: NSStatusItem?
@@ -128,8 +129,9 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
             insertBasketItems(into: menu, count: count)
         }
         for row in roundRows {
-            row.item.subtitle = FeedbackLibrary.subtitle(
-                for: row.round,
+            row.item.subtitle = Self.rowSubtitle(
+                row.round,
+                active: row.active,
                 selectedCount: basket.count(inFolder: row.round.folderName)
             )
         }
@@ -203,10 +205,11 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         }
         recent += state.recent.filter { $0.folderName != state.active?.folderName }
         if !recent.isEmpty {
-            menu.addItem(.sectionHeader(title: "Recent"))
+            menu.addItem(.sectionHeader(title: "Recent Rounds"))
             let now = Date()
             for round in recent {
-                let row = makeRoundRow(round, now: now, basket: state.basket)
+                let active = round.folderName == state.active?.folderName
+                let row = makeRoundRow(round, active: active, now: now, basket: state.basket)
                 roundRows.append(row)
                 menu.addItem(row.item)
             }
@@ -229,13 +232,20 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         }
     }
 
-    private func makeRoundRow(_ round: FeedbackRound, now: Date, basket: FeedbackBasket) -> RoundRow {
+    private func makeRoundRow(_ round: FeedbackRound, active: Bool, now: Date, basket: FeedbackBasket) -> RoundRow {
         let title = FeedbackLibrary.title(startedAt: round.startedAt, now: now, timeZone: .current)
         let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
-        item.subtitle = FeedbackLibrary.subtitle(
-            for: round,
+        item.subtitle = Self.rowSubtitle(
+            round,
+            active: active,
             selectedCount: basket.count(inFolder: round.folderName)
         )
+        if active {
+            // The green dot of the menu bar mark and the help box, in the
+            // state column, so the row's text stays lined up with the others.
+            item.onStateImage = FeedbackRoundDot.menuImage
+            item.state = .on
+        }
 
         let submenu = NSMenu()
         submenu.autoenablesItems = false
@@ -244,7 +254,14 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         // menuNeedsUpdate replaces it before anything shows.
         submenu.addItem(grayLine("Loading..."))
         item.submenu = submenu
-        return RoundRow(item: item, menu: submenu, round: round)
+        return RoundRow(item: item, menu: submenu, round: round, active: active)
+    }
+
+    /// The active round's subtitle starts with "Active round", so the row says
+    /// in words what its green dot shows (Drew, 2026-10-24).
+    private static func rowSubtitle(_ round: FeedbackRound, active: Bool, selectedCount: Int) -> String {
+        let subtitle = FeedbackLibrary.subtitle(for: round, selectedCount: selectedCount)
+        return active ? "Active round, \(subtitle)" : subtitle
     }
 
     // MARK: - Basket lines

@@ -38,7 +38,7 @@ struct CaptureFeedbackIntent: AppIntent {
 
 struct CopyFeedbackPromptIntent: AppIntent {
     static let title: LocalizedStringResource = "Copy Feedback Prompt"
-    static let description = IntentDescription("Copies the active round's prompt to the clipboard, ends the round, and returns the prompt. Resume in the Nshot menu's Recent list reopens the round.")
+    static let description = IntentDescription("Copies the active round's prompt to the clipboard, ends the round, and returns the prompt. Resume in the Nshot menu's Recent Rounds list reopens the round.")
 
     /// The same path as Copy Prompt and End Round in the Nshot menu.
     @MainActor
