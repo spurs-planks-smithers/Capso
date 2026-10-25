@@ -24,6 +24,7 @@ import argparse
 import html
 import json
 import math
+import os
 import struct
 import subprocess
 import sys
@@ -437,7 +438,14 @@ def main():
     page = render_page(folder.resolve(), feedback, jev)
 
     out_path = folder / OUTPUT_NAME
-    out_path.write_text(page, encoding="utf-8")
+    # An imported bundle could hold a symlink with the page's name. O_NOFOLLOW
+    # refuses it, so the script never writes over the link's target.
+    try:
+        fd = os.open(out_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o644)
+    except OSError as error:
+        fail(f"cannot write {out_path.name}: {error.strerror}")
+    with os.fdopen(fd, "w", encoding="utf-8") as out:
+        out.write(page)
     print(out_path.resolve())
 
     if not args.no_open:
