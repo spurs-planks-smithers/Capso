@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Nshot menu</title>
+<style>
+  body { margin: 0; width: 1440px; height: 900px; background: #6b7a8f; font-family: -apple-system, Helvetica, Arial, sans-serif; overflow: hidden; }
+  .bar { height: 30px; background: rgba(240, 240, 240, 0.95); display: flex; justify-content: flex-end; align-items: center; padding: 0 16px; font-size: 14px; gap: 18px; }
+  .menu { position: absolute; top: 34px; right: 120px; width: 380px; background: #f2f2f2; border-radius: 10px; padding: 6px 0; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); font-size: 14px; color: #1d1d1f; }
+  .gray { color: #8a8a8e; padding: 6px 16px; }
+  .row { display: flex; justify-content: space-between; padding: 6px 16px; }
+  .key { color: #8a8a8e; }
+  .sep { height: 1px; background: #d0d0d0; margin: 6px 0; }
+</style>
+</head>
+<body>
+  <div class="bar"><span>Wi-Fi</span><span id="mark">Nshot (2)</span><span>Sat 6:30 PM</span></div>
+  <div class="menu">
+    <div class="gray" id="build">Nextshot 2026.10.24 (616)</div>
+    <div class="sep"></div>
+    <div class="gray">Round: feedback</div>
+    <div class="row" id="row-copy"><span>Copy Last Capture Prompt</span><span class="key" id="key-copy">⌥⇧C</span></div>
+    <div class="row" id="row-end"><span>Copy Prompt and End Round</span><span class="key" id="key-end">⌥⇧R</span></div>
+    <div class="row" id="row-open"><span>Open Round Folder</span><span class="key" id="key-open">⌥⇧O</span></div>
+    <div class="row" id="row-stop"><span>End Round</span><span class="key" id="key-stop">⌥⇧E</span></div>
+    <div class="sep"></div>
+    <div class="row" id="row-all"><span>All Rounds</span></div>
+    <div class="row" id="row-quit"><span>Quit Nextshot</span><span class="key">⌘Q</span></div>
+  </div>
+</body>
+</html>

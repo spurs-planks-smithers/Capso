@@ -40,15 +40,21 @@ Each case is two entries (capture, element, note) and its expected call. The exp
 
 | Group | Pairs | Example | Expected |
 | --- | --- | --- | --- |
-| D: same change, same element, other words | 8 | Settings title: "Make the title bigger" and "Increase the title's font size" | duplicate |
+| D: same change, same element, other words | 12 | Settings title: "Make the title bigger" and "Increase the font size of the page title" | duplicate |
 | X: same change, other element or page | 8 | "Make this title bigger" on Settings and on Pricing (the round 1823 case) | different |
-| O: one ask holds part of the other | 6 | "Show the hotkey in gray on the right" and "Show the hotkey in gray, and make the row taller" | overlap |
-| C: opposite changes, same element | 8 | bigger and smaller; remove the Buy button and rename it; blue and gray | conflict |
-| U: unrelated | 6 | "Fix the typo in the Email row" and "Make the chart taller" | different |
+| O: one ask holds part of the other | 6 | "Show the hotkey in gray on the right" and "Show the hotkey in gray on the right, and make the whole row taller" | overlap |
+| C: opposite changes, same element | 10 | bigger and smaller; remove the Buy button and rename it; green and blue | conflict |
+| U: unrelated | 6 | "Fix the typo in Wednesday" and "Make the chart taller" | different |
+| B: same element, changes that can both be done | 4 | "Make the title bold" and "Make the title blue" | different |
+| P: opposite changes, different elements | 4 | "Make this title bigger" on Settings and "Make this title smaller" on Pricing | different |
 | S: inside one capture | 6 | badges 1 and 2 on one title: "bigger" and "smaller" (the round 1801 case) | per case |
-| N: general note and item | 4 | general note "Make every title bigger" and item "Make the Settings title bigger" | overlap |
+| N: general note and item | 4 | general note "Make every page title bigger" and item "Make the title bigger" | per case |
 
-That is 46 pairs. Two real pairs from Drew's rounds can join them, with their notes only (see Decisions):
+That is 60 pairs: 13 duplicates, 13 conflicts, 8 overlaps, and 26 different. A separate reviewer checked every expected call before any run (2026-10-24). It agreed with 45 of the first 48. The 3 ambiguous cases (N3, O3, X7) were reworded, and groups B and P and 4 more duplicate and conflict cases were added at its request.
+
+Seven X and S cases use the same words for two different elements. With notes only (arm A1), nothing tells them apart from a duplicate. So A1 is expected to fail them. That result shows whether notes alone may ever produce a "make the change once" line.
+
+Two real pairs from Drew's rounds can join them, with their notes only (see Decisions):
 
 - Items 3.2 and 4.2 of round `2026-10-22-1839`: overlap (the same menu hotkey, from Claude and Outlook).
 - Items 1.2 and 2.1 of round `2026-10-21-1541`: different (the same kind of change on another page).
@@ -71,7 +77,8 @@ Each arm runs 3 times, to measure stability: the share of cases with the same ca
 The test stores every answer, so code variants are scored from the same answers, with no new request:
 
 - V1: the job as built.
-- V2: a duplicate between two different sources with no image becomes an overlap. The agent then gets a "check the code" line, never "make the change once".
+- V2: a duplicate between two different sources (different app and different window title) becomes an overlap. The agent then gets a "check the code" line, never "make the change once".
+- V2w: as V2, but a duplicate stays only when both entries are in one capture or have the same window title. Two pages of one app then count as different sources.
 - V3: the duplicate cut point at 1.6 and at 1.7, in place of 1.5.
 
 ### What it measures
@@ -87,7 +94,7 @@ The test stores every answer, so code variants are scored from the same answers,
 - A new opt-in suite `DupesConflictsLiveEval` in `Packages/JevKit/Tests/JevKitTests/`. It runs only with `NEXTSHOT_JEV_EVAL=1` and a key, through a new script `scripts/jev-eval-dupes.sh` that reads the Keychain item `TYPESAFE_API_KEY_NEXTSHOT` and never prints it.
 - Cases and PNGs live in `Packages/JevKit/Tests/JevKitTests/Fixtures/dupes-eval/`. The suite builds rounds in a temporary folder, runs `DupesConflictsJob` through a real `JevClient` for each arm, and writes `results.json` and `report.md`.
 - It never touches the installed app, the flags, or `~/Library/Application Support/Nextshot`.
-- Cost: about 46 pairs, 4 arms, and 3 runs, so about 550 pair checks in about 150 requests. That is less than $0.05 at $0.042 per million input tokens.
+- Each case runs alone, as one round with one pair, so one request per case, arm, and run: 60 cases, 4 arms, and 3 runs make 720 requests, plus 6 for the real pairs. At about 1,500 input tokens each, that is about 1.1M tokens, or about $0.05 at $0.042 per million input tokens.
 
 ### Pass rule
 
