@@ -88,6 +88,10 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
     case dupesConflict
     case oneBreath
     case promptLanes
+    /// Sub-flags of `promptLanes`: the severity order, and the lane A and
+    /// lane B split.
+    case lanesOrder
+    case lanesSplit
     case dataGuard
     /// Consent for capture images to leave the Mac in Jev requests.
     case jevSendImages
@@ -122,6 +126,8 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
             FlagSpec(issue: 40, allowedStates: [.off], devDefault: .off, releaseDefault: .off, releasedInBuild: nil, devOnly: true)
         case .promptLanes:
             FlagSpec(issue: 69, allowedStates: [.off, .shadow, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil, devOnly: true)
+        case .lanesOrder, .lanesSplit:
+            Self.subFlagSpec(of: .promptLanes)
         case .dataGuard:
             FlagSpec(issue: 70, allowedStates: [.off, .shadow, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil, devOnly: true)
         case .jevSendImages:
