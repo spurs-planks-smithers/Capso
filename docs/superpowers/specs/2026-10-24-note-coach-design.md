@@ -113,7 +113,7 @@ Each kind of line has its own sub-flag, so Drew can judge one kind alone. The ru
 - The job sends no request when `noteCoachVague` and `noteCoachQuestion` are both off. The request itself is unchanged: four questions for each filled note.
 - A line is written only when its sub-flag is on after the cap. A sub-flag in shadow records its label but writes no line.
 - A label whose sub-flag is off stays out of the `jev.json` summary and the review file. The labels with no sub-flag (`unsure`, `partial`, `clear`, `not_checked`) are recorded whenever a request was sent.
-- With `noteCoach` on and all three sub-flags off, the job runs, sends nothing, and writes nothing.
+- With `noteCoach` on and all three sub-flags off, the runner does not start the job: no key read, no stored work, no request, no file, and no round-end wait. With all three in shadow, the job runs and records labels, and no copied prompt changes.
 - Job version is 3.
 
 Review file: `jev-review/noteCoach.md` in the bundle, one section per capture, for Drew. Each item shows its label, the three probabilities, and Drew's note on one line. No prompt names the file, and its first line tells agents not to act on it. It holds reviewer text and numbers only. My call: it lets Drew check a shadow round in one read (#63).

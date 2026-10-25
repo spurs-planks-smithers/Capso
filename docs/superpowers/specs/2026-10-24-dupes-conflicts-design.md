@@ -208,7 +208,9 @@ Every Jev feature gets sub-flags, each off by default and dev-only (`docs/superp
 | `dupesConflict` | `opposite` | summary in `jev.json` only | "Ask first" round lines |
 
 - The job declares `options = [.dupesMerge, .dupesConflict]` and reads each part's capped mode.
-- A part that is off asks no question and writes nothing. With both parts off, the job sends no request.
+- A part that is off asks no question and writes nothing. With both parts off, the runner does not start the job: no key read, no stored work, no request, no file, and no round-end wait. With both parts in shadow, the job runs and records its pairs, and no copied prompt changes.
+- Built in #96. `sameAsk` is asked when `dupesMerge` is not off. `opposite` is asked when either part is not off. A part in shadow adds its pairs to the summary and writes no line. The "Not checked for repeats" line shows only when a part is on, and the summary names the failed entries in every case.
+- A conflict pair stays out of the summary when `dupesConflict` is off, and a conflict that Jev also rates as a repeat gets no "Same ask" line. Tests cover each part on and off, both off, shadow, and this guard (`DupesConflictsSubFlagTests`).
 - The guard (my call): with `dupesMerge` not off and `dupesConflict` off, the job still asks `opposite` in the same request. A pair at 0.7 or more then gets no "Same ask" line and no conflict line. This keeps the rule that a conflict wins over a duplicate, so the merge never tells the agent to make one change for two opposite asks. It adds no request and about 40 tokens per pair.
 - The summary lists only the outcomes of parts that are not off.
 - The job version goes to 3, so the review script never mixes these answers with version 2 answers.
@@ -270,6 +272,7 @@ Light research on 2026-10-24 (four searches). The findings that shape this desig
 - 2026-10-24: items inside one capture are compared too, after the trial showed three asks about one element in one capture. This replaces the earlier call "no pairs inside one capture" (Drew).
 - 2026-10-24: after the live eval (60 labeled cases, 726 requests), the check sends notes and screen text, and no images. Notes alone failed the bar. Notes and screen text met it with no wrong duplicate or conflict call. Images raised recall a little at about 5.7 times the tokens (Drew).
 - 2026-10-24: Ask first and Same ask lines go in the round section at the top of `refined.md`, as the approved base spec says. The handoff design said "at the top of the round prompt". The base spec wins (Drew).
+- 2026-10-25: two sub-flags, `dupesMerge` and `dupesConflict`, each off by default, dev-only, and capped at `dupesConflicts`'s state (Drew, #94, #96). Job version 3. With `dupesMerge` on and `dupesConflict` off, the job still asks `opposite`, so a conflict never gets a merge line (the guard).
 
 My calls (Drew can change any of them):
 

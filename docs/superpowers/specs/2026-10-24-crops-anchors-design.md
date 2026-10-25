@@ -83,7 +83,8 @@ Each part has its own sub-flag, so Drew can judge one part alone. The runner cap
 
 - A part whose sub-flag is off sends no request, loads no image, and adds nothing to the `jev.json` summary.
 - A part in shadow sends its requests and records its answers and summary. It writes no crop file and no line.
-- With both sub-flags off, the job runs, sends nothing, and writes nothing.
+- With both sub-flags off, the runner does not start the job: no key read, no stored work, no request, no file, and no round-end wait. With both in shadow, the job runs and records its answers, and no copied prompt changes.
+- Shadow reports the same crop status as on. The status comes from the size, worth-it, and edge checks, which do not read the capture PNG. Shadow skips only the PNG decode and the file cutting. A test compares the two summaries for five cases, including a PNG of another size.
 - Job version is 2.
 - The client refuses any request that holds a data kind without consent, so a bug in this job cannot send an image or screen text by mistake.
 - The images header goes only on requests A and B.

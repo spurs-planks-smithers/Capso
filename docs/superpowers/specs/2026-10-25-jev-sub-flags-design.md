@@ -49,7 +49,8 @@ Drew will review every Jev feature in one dev build, then decide which parts to 
 - The runner reads each option flag once, when the capture starts, with the other flags (as `bc53a43` does).
 - `optionModes[sub]` = the lower of the sub-flag's state and the job flag's state. Order: off, shadow, on.
 - Shadow writes the sub-feature's answers to `jev.json` and the job's review file only. On also writes its refined lines. The files on disk (`prompt.md`, `<stem>-prompt.md`) never change.
-- A parent in on with every sub-flag off runs the job but produces nothing, and sends no request.
+- A parent with every sub-flag off after the cap runs nothing. The runner does not start the job, so there is no key read, no stored work, no request, no file, and no round-end wait. This replaces the first draft, "runs the job but produces nothing", after a review on 2026-10-25.
+- `JevGate` follows the same rule. A job with options runs only when an option is shadow or on after the cap, and its prompts point to refined files only when its flag is on and an option is on. A parent in on with every sub-flag in shadow runs and records, and changes no copied prompt.
 - A sub-flag alone, with its parent off, runs nothing.
 - App code that reads a sub-flag directly (lanes builds its section at round end) uses one shared helper with the same rule: `FlagResolver.effectiveState(of:...)` in FeedbackKit, and `Flags.effectiveState(.name)` in the app.
 
