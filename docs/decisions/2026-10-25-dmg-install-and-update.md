@@ -42,8 +42,20 @@ A scratch test app compiled from the three fork files, with its own bundle ID, o
 | Build 1 runs, build 1 on an image starts | The image copy exits. |
 | Build 1 runs, build 2 on an image starts, Install | Build 1 quit. Build 2 replaced it in place and runs. Both test images ejected. An image with another bundle ID stayed mounted. |
 
-Not tested: a notarized DMG with the quarantine flag, so neither App Translocation nor a second Gatekeeper prompt after the install.
+Real notarized releases on m5pro, each DMG copied with a Safari quarantine flag, over the copy in `~/Applications`:
+
+| Update | Prompts | Result |
+|---|---|---|
+| 2026.10.24 (524) to 619 | Open, Install, screen recording | Installed and ejected both DMGs. The recording prompt came from the signature switch (see below). |
+| 619 to 620 | Open, Install, a second Open | Grant kept: 620 read screen content at launch. The second Open came from the copied quarantine flag, which lacked the "user approved" bit. 620 wrote the #84 manifest ("n/a (round is active)"). |
+| 620 to 621 | Open, Install | Grant kept. No second prompt: Gatekeeper let the installed copy run 0.4 seconds after the copy. |
+
+The DMG copy ran from `/Volumes`, not from an App Translocation path.
+
+## Screen recording and signatures
+
+macOS ties the screen recording grant to the app's signature. Releases are signed "Developer ID Application" (team M586UD979K). Local builds from `scripts/build-local.sh` and worktree DerivedData are signed "Apple Development: Drew Schulz". All share the bundle ID `com.drewschulz.nextshot`, so each switch between the two kinds asks for screen recording again, and a capture from a copy without a working grant comes out blank. On 2026-10-25 m5pro had 15 registered copies with that bundle ID (`tccutil reset` printed 15 lines). "Quit & Reopen" in System Settings and a `nextshot://` link with no Nextshot running both started a trial copy from DerivedData, not the copy in `~/Applications`. Release to release keeps the grant, which is the case for people who install only DMGs.
 
 ## Later
 
-Backlog [spurs-planks-smithers/Capso#88](https://github.com/spurs-planks-smithers/Capso/issues/88): the running copy offers the update when a newer image mounts, so no double-click is needed, and a Gatekeeper check with a real download. Self-serve updates over the network stay in [spurs-planks-smithers/Capso#4](https://github.com/spurs-planks-smithers/Capso/issues/4).
+Backlog [spurs-planks-smithers/Capso#88](https://github.com/spurs-planks-smithers/Capso/issues/88): the running copy offers the update when a newer image mounts, so no double-click is needed. Its Gatekeeper check is done (the table above). Self-serve updates over the network stay in [spurs-planks-smithers/Capso#4](https://github.com/spurs-planks-smithers/Capso/issues/4).
