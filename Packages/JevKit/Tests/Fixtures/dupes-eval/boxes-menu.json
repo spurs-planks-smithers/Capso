@@ -1,0 +1,89 @@
+{
+  "title": "Nshot menu",
+  "boxes": {
+    "mark": {
+      "x1": 1271,
+      "y1": 7,
+      "x2": 1329,
+      "y2": 23,
+      "text": "Nshot (2)"
+    },
+    "build": {
+      "x1": 940,
+      "y1": 40,
+      "x2": 1320,
+      "y2": 68,
+      "text": "Nextshot 2026.10.24 (616)"
+    },
+    "row-copy": {
+      "x1": 940,
+      "y1": 109,
+      "x2": 1320,
+      "y2": 138,
+      "text": "Copy Last Capture Prompt ⌥⇧C"
+    },
+    "key-copy": {
+      "x1": 1266,
+      "y1": 115,
+      "x2": 1304,
+      "y2": 132,
+      "text": "⌥⇧C"
+    },
+    "row-end": {
+      "x1": 940,
+      "y1": 138,
+      "x2": 1320,
+      "y2": 166,
+      "text": "Copy Prompt and End Round ⌥⇧R"
+    },
+    "key-end": {
+      "x1": 1266,
+      "y1": 144,
+      "x2": 1304,
+      "y2": 160,
+      "text": "⌥⇧R"
+    },
+    "row-open": {
+      "x1": 940,
+      "y1": 166,
+      "x2": 1320,
+      "y2": 195,
+      "text": "Open Round Folder ⌥⇧O"
+    },
+    "key-open": {
+      "x1": 1265,
+      "y1": 172,
+      "x2": 1304,
+      "y2": 189,
+      "text": "⌥⇧O"
+    },
+    "row-stop": {
+      "x1": 940,
+      "y1": 195,
+      "x2": 1320,
+      "y2": 223,
+      "text": "End Round ⌥⇧E"
+    },
+    "key-stop": {
+      "x1": 1267,
+      "y1": 201,
+      "x2": 1304,
+      "y2": 217,
+      "text": "⌥⇧E"
+    },
+    "row-all": {
+      "x1": 940,
+      "y1": 236,
+      "x2": 1320,
+      "y2": 264,
+      "text": "All Rounds"
+    },
+    "row-quit": {
+      "x1": 940,
+      "y1": 264,
+      "x2": 1320,
+      "y2": 293,
+      "text": "Quit Nextshot ⌘Q"
+    }
+  }
+}
