@@ -18,6 +18,7 @@ Part A of `docs/superpowers/plans/2026-10-24-dupes-conflicts-test-plan.md`. Run 
 
 - The images are plain screenshots of the test pages, with no drawn badges. Each crop centers on the marked element.
 - The cases are made up and short. Drew's real notes are longer and often hold several asks.
+- After this run, Drew chose notes and screen text (job version 2): the job needs screen-text consent and never sends an image. The eval calls the job directly, so a rerun of arms A3 and A4 now sends no image and matches A2.
 
 ## Full report
 

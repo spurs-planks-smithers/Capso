@@ -86,10 +86,11 @@ The base gives every value a kind, and the client refuses a request with a kind 
 | --- | --- | --- |
 | Drew's notes (item instructions and general notes) | reviewer | always, with the job's flag at shadow or on |
 | Screen text under a mark (OCR, at most 200 characters) and the app name | screen | `jevSendScreenText` is on |
-| Item crops and whole captures | image | `jevSendImages` is on, and only for same-app or same-window pairs |
+| Item crops and whole captures | image | never (Drew, 2026-10-24, after the live eval). The image code stays for a later choice. |
 | Window titles | screen | never: code uses them only on the Mac |
 
-- `requires` is empty. The job works with Drew's notes alone. It reads `context.allowed` and adds screen text and images only when they have consent.
+- `requires` is `[.screenText]` (job version 2). The runner skips the job with reason `consent` when `jevSendScreenText` is off. The live eval of 2026-10-24 (`docs/evals/2026-10-24-dupes-conflicts-eval.md`) showed why: with notes alone, duplicate precision was 0.53 and conflict precision 0.80, because notes cannot tell two elements apart when the words match. With screen text, both were 1.00.
+- The job removes `.images` from the allowed kinds before it builds a request, so it sends no image even when `jevSendImages` is on for another feature.
 - A K.note entry sends its note only. A general note has no mark, so it has no screen text under a mark. With images, it uses the whole capture.
 
 ### The Jev questions
@@ -251,6 +252,7 @@ Light research on 2026-10-24 (four searches). The findings that shape this desig
 - 2026-10-24: the bar for on is 10 labeled calls with at most 1 wrong, for duplicates and conflicts each (Drew).
 - 2026-10-24: general notes join the pairs as K.note entries (Drew).
 - 2026-10-24: items inside one capture are compared too, after the trial showed three asks about one element in one capture. This replaces the earlier call "no pairs inside one capture" (Drew).
+- 2026-10-24: after the live eval (60 labeled cases, 726 requests), the check sends notes and screen text, and no images. Notes alone failed the bar. Notes and screen text met it with no wrong duplicate or conflict call. Images raised recall a little at about 5.7 times the tokens (Drew).
 - 2026-10-24: Ask first and Same ask lines go in the round section at the top of `refined.md`, as the approved base spec says. The handoff design said "at the top of the round prompt". The base spec wins (Drew).
 
 My calls (Drew can change any of them):

@@ -13,12 +13,20 @@ import Foundation
 public struct DupesConflictsJob: JevJob {
     public let id = "dupesConflicts"
     public let flag = FeatureFlag.dupesConflicts
-    public let requires: JevDataKinds = []
-    public let version = 1
+    /// The live eval of 2026-10-24 (docs/evals/2026-10-24-dupes-conflicts-eval.md)
+    /// showed that notes alone cannot tell two elements apart when the words
+    /// match: duplicate precision 0.53. With screen text it was 1.00. So the
+    /// job needs screen text, and the runner skips it without that consent.
+    public let requires: JevDataKinds = [.screenText]
+    /// Version 2 needs screen text. Raise it when the questions change.
+    public let version = 2
 
     public init() {}
 
     public func run(_ context: JevJobContext) async throws -> JevJobOutput {
+        // Drew chose notes and screen text, without images (2026-10-24). The
+        // image path stays for a later choice, but this job never sends one.
+        let allowed = context.allowed.subtracting(.images)
         let newEntries = DupesConflicts.entries(of: context.capture)
         let earlierCaptures = context.round.captures
             .filter { $0.index < context.capture.index }
@@ -31,7 +39,7 @@ public struct DupesConflictsJob: JevJob {
         let batches = DupesConflicts.batches(
             new: checked,
             candidates: candidates,
-            allowed: context.allowed,
+            allowed: allowed,
             images: context.images
         )
         let results = try await send(batches, using: context.jev)
