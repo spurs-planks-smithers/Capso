@@ -6,7 +6,7 @@ Date: 2026-10-24. Status: approved (Drew, 2026-10-24). Issue: #69 (parent #34). 
 
 A large round gives the agent a long, flat list. Blockers sit next to nits, and a one-word rename sits next to a design question. The strong model that Drew pastes into does all of it, at the strong model's price.
 
-Lanes and priority label each item after its capture is saved. At round end, the copied round prompt gets one new section at its end. It lists every item once, worst first, in two lanes:
+Lanes and priority label each item after its capture is saved. At round end, the copied round prompt gets one new section at its end. It lists every item once, in two lanes. Each lane lists its items worst first:
 
 - Lane A, exact edits: the note gives every change as an exact value, and the change is small. The agent hands these to a subagent on a fast, low-cost model as one batch.
 - Lane B, needs judgment: everything else. The agent plans these itself, worst first.
