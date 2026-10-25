@@ -65,6 +65,8 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
     case cropsAnchors
     case dupesConflicts
     case oneBreath
+    case promptLanes
+    case dataGuard
     /// Consent for capture images to leave the Mac in Jev requests.
     case jevSendImages
     /// Consent for screen text (OCR text, window titles, app names) to leave
@@ -85,6 +87,10 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
             FlagSpec(issue: 39, allowedStates: [.off, .shadow, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil, devOnly: true)
         case .oneBreath:
             FlagSpec(issue: 40, allowedStates: [.off, .shadow], devDefault: .off, releaseDefault: .off, releasedInBuild: nil, devOnly: true)
+        case .promptLanes:
+            FlagSpec(issue: 69, allowedStates: [.off, .shadow, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil, devOnly: true)
+        case .dataGuard:
+            FlagSpec(issue: 70, allowedStates: [.off, .shadow, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil, devOnly: true)
         case .jevSendImages:
             FlagSpec(issue: 36, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil, devOnly: true)
         case .jevSendScreenText:
