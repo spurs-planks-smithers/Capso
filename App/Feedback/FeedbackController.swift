@@ -16,11 +16,14 @@ enum FeedbackLog {
 
 /// Fork: owns feedback rounds. Each saved capture goes into the active
 /// round's folder under `defaultRootURL`. This code makes no network calls.
+/// It tells `FeedbackJev` when a capture is ready. Only JevKit sends a
+/// request, and only with Jev flags on.
 @MainActor
 final class FeedbackController {
     static let shared = FeedbackController()
 
     let store: FeedbackRoundStore
+    private let jev: FeedbackJev
     private(set) var round: FeedbackRound?
     private(set) var folderURL: URL?
 
@@ -79,6 +82,7 @@ final class FeedbackController {
             Self.moveLegacyFolder(to: rootURL)
         }
         store = FeedbackRoundStore(rootURL: rootURL)
+        jev = FeedbackJev(rootURL: rootURL)
     }
 
     /// Moves the bundles from the folder used before the rename, once. The
@@ -157,6 +161,7 @@ final class FeedbackController {
         // The status item shows at launch, with or without a round. A
         // round left active before a relaunch shows its count.
         Task { await refresh() }
+        jev.warmUp()
     }
 
     // MARK: - Round actions (hotkey, status menu, App Intents)
@@ -227,12 +232,15 @@ final class FeedbackController {
     /// is on the clipboard and the same toast says so (Drew, 2026-10-24). The round ends
     /// first, so the prompt holds each capture whose save was in progress.
     /// The prompt comes from the ended round, so it matches the `prompt.md`
-    /// that `end()` writes. Resume in Recent reopens the round.
+    /// that `end()` writes. Resume in Recent reopens the round. With a Jev
+    /// feature on, the copy waits at most 500 ms for a running capture and
+    /// points to refined.md.
     @discardableResult
     func copyPromptAndEndRound() async throws -> String {
         let round = try await endRound()
         let folder = store.rootURL.appendingPathComponent(round.folderName, isDirectory: true)
-        let prompt = PromptBuilder.render(round, folderPath: folder.path)
+        await jev.settle(folderName: round.folderName)
+        let prompt = PromptBuilder.render(round, folderPath: folder.path, refined: jev.pointsToRefinedFiles)
         copyToClipboard(prompt, toast: Self.promptCopiedRoundEndedToast, screen: nil)
         FeedbackLog.logger.notice("round prompt copied, round ended, \(prompt.count) characters")
         return prompt
@@ -507,7 +515,9 @@ final class FeedbackController {
         Task { @MainActor in
             await self.repairBundles(inFolders: [round.folderName])
             let folder = self.store.rootURL.appendingPathComponent(round.folderName, isDirectory: true)
-            let prompt = PromptBuilder.render(round, folderPath: folder.path, redo: true)
+            let refined = self.jev.pointsToRefinedFiles
+                && FileManager.default.fileExists(atPath: folder.appendingPathComponent("refined.md").path)
+            let prompt = PromptBuilder.render(round, folderPath: folder.path, redo: true, refined: refined)
             self.copyToClipboard(prompt, toast: Self.promptCopiedToast, screen: nil)
             FeedbackLog.logger.notice("recent round prompt copied, \(prompt.count) characters")
         }
@@ -873,6 +883,10 @@ final class FeedbackController {
                 // File names hold window-title text, so the log keeps only the number.
                 FeedbackLog.logger.notice("capture \(capture.index) stored")
                 pending.captureIndex = capture.index
+                pending.folderName = await store.activeRound?.folderName
+                if let folderName = pending.folderName {
+                    jev.captureStored(folderName: folderName, capture: capture.index)
+                }
                 // Answers given before the capture was stored. Later answers
                 // are saved as they arrive.
                 for (step, text) in pending.answers {
@@ -903,6 +917,9 @@ final class FeedbackController {
             },
             onFinish: {
                 Task { await self.copyCapturePrompt(pending: pending, screen: screen) }
+            },
+            onEnd: {
+                Task { await self.startJev(pending: pending) }
             }
         )
         updateHelp()
@@ -910,7 +927,7 @@ final class FeedbackController {
         // End Round waits for this task, so it never ends a round before
         // the screen text is in.
         let saveID = UUID()
-        saveTasks[saveID] = Task {
+        pending.screenText = Task {
             defer { self.saveTasks[saveID] = nil }
             guard let index = await pending.stored?.value else { return }
             let ocrStart = Date()
@@ -923,6 +940,9 @@ final class FeedbackController {
                 )
                 : []
             let ocrText = (sameGeometry ? lines.map(\.text) : regions.map(\.text)).joined(separator: "\n")
+            // Jev jobs get the line boxes from memory: feedback.json keeps
+            // only the joined text.
+            pending.screenLines = sameGeometry ? lines : nil
             do {
                 try await store.setScreenText(
                     capture: index,
@@ -934,6 +954,19 @@ final class FeedbackController {
             }
             await refresh()
         }
+        saveTasks[saveID] = pending.screenText
+    }
+
+    /// Jev starts when the notes are final (the note panel ended) and the
+    /// screen text is stored, so every job sees the same complete capture.
+    /// It never delays the prompt copy: this runs beside it.
+    private func startJev(pending: PendingAnswers) async {
+        guard let index = await pending.stored?.value, let folderName = pending.folderName else { return }
+        for write in pending.writes {
+            await write.value
+        }
+        await pending.screenText?.value
+        jev.captureReady(folderName: folderName, capture: index, screenLines: pending.screenLines)
     }
 
     /// Waits until the capture and every answer are stored, then puts the
@@ -965,7 +998,7 @@ final class FeedbackController {
 
     private func putOnClipboard(_ capture: FeedbackCapture, in round: FeedbackRound, screen: NSScreen?) {
         let folder = store.rootURL.appendingPathComponent(round.folderName, isDirectory: true)
-        let prompt = PromptBuilder.renderCapture(capture, folderPath: folder.path)
+        let prompt = PromptBuilder.renderCapture(capture, folderPath: folder.path, refined: jev.pointsToRefinedFiles)
         copyToClipboard(prompt, toast: Self.promptCopiedToast, screen: screen)
         FeedbackLog.logger.notice("capture \(capture.index) prompt copied, \(prompt.count) characters")
     }
@@ -1024,6 +1057,12 @@ final class FeedbackController {
         var stored: Task<Int?, Never>?
         /// Answers saved after the capture was stored.
         var writes: [Task<Void, Never>] = []
+        /// The round folder the capture went into, for Jev.
+        var folderName: String?
+        /// OCR and the screen-text save. Jev starts after it.
+        var screenText: Task<Void, Never>?
+        /// The OCR lines with boxes in export pixels, redacted lines removed.
+        var screenLines: [FeedbackTextLine]?
     }
 
     private func report(_ error: Error, context: String) {

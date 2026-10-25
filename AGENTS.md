@@ -8,8 +8,9 @@ This repository is the `spurs-planks-smithers/Capso` fork of [lzhgus/Capso](http
 - XcodeGen generates `Capso.xcodeproj` from `project.yml`. Git ignores the generated project.
 - `App/Sources/`: the upstream app shell (coordinators, windows, views).
 - `App/Feedback/`: fork-only app code (feedback controller, note panel, status item, App Intents).
-- `Packages/`: Swift packages. Each package depends only on `SharedKit` and system frameworks.
-- `Packages/FeedbackKit/`: fork-only. Foundation only, no UI. It holds the round model, the store, image sizing, the note parser, and the manifest and prompt writers.
+- `Packages/`: Swift packages. Each package depends only on `SharedKit` and system frameworks. A fork package may also depend on `FeedbackKit` (2026-10-24).
+- `Packages/FeedbackKit/`: fork-only. Foundation only, no UI. It holds the round model, the store, image sizing, the note parser, the manifest and prompt writers, and the feature flag registry.
+- `Packages/JevKit/`: fork-only, no UI. The Jev base (#36): the TypeSafe client, typed request content and answers, the job interface and registry, the background job runner, and the `jev.json` and refined-file writer. It depends on FeedbackKit. Spec: `docs/superpowers/specs/2026-10-24-jev-base-design.md`.
 
 ## Build
 
@@ -38,7 +39,10 @@ xcodebuild -project Capso.xcodeproj -scheme Capso -configuration Debug CODE_SIGN
 
 ### Local only
 
-- Feedback code adds no network code, no outbound requests, and no sockets.
+- Only the Jev package (`Packages/JevKit`) makes outbound requests. It calls only `https://api.typesafe.ai`. It runs only when `jevBase` and a Jev feature flag are on, and only in a dev build (Drew, 2026-10-24).
+- All other feedback code stays local: no network code, no outbound requests, and no sockets. `NetworkSourceScanTests` in JevKit fails on network code anywhere else in `App/Feedback`, `Packages/FeedbackKit`, or `Packages/JevKit`.
+- Reviewer text (Drew's notes) is the only data that leaves the Mac by default. Screen text needs `jevSendScreenText`, and images need `jevSendImages`. Every value in a Jev request carries its kind, and the runner refuses a request with a kind that has no consent.
+- Nextshot's TypeSafe key is the Keychain item `TYPESAFE_API_KEY_NEXTSHOT`. It is never written to a file, a log, or a DMG.
 - Handle any URL scheme in-process.
 - Bundles stay on disk in `~/Library/Application Support/Nextshot`. Only an agent that Drew starts reads them. On first launch, the app moves the old `CapsoFeedback` folder there.
 
@@ -108,6 +112,25 @@ Agent access:
 - Codex: run the `codex --image ...` command from the top of `manifest.md` in the target repository. It lists every annotated PNG by absolute path.
 - If `codex` is not on `PATH`, the ChatGPT app bundles it at `/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex`.
 - The agent-facing guide to a bundle is `docs/agents/bundle-guide.md`. Keep it in step with the "How to read this bundle" rules that `manifest.md` prints.
+
+## Feature flags
+
+- The registry is `FeatureFlag` in `Packages/FeedbackKit/Sources/FeedbackKit/FeatureFlags.swift`. App code reads a flag with `Flags.state(.name)` or `Flags.isOn(.name)` (`App/Feedback/Flags.swift`). Flags have no interface in the app.
+- Lookup order: a local override (UserDefaults key `flag.<name>`), then the default for the build channel. The channel comes from the code signature: Developer ID Application is `release`, anything else is `dev` (`App/Feedback/BuildChannelDetector.swift`).
+- `scripts/nextshot-flags.sh` has `list`, `set <flag> <state>`, and `reset <flag>`. Its `FLAGS=` line must match the registry, and `FeatureFlagsTests` fails when it does not.
+- All flags start `off` in both channels. A release default turns on only with a released-in build number, and a test enforces this. The design is `docs/superpowers/specs/2026-10-24-feature-flags-design.md`.
+- Every Jev flag is dev-only (`FlagSpec.devOnly`): a release build ignores every override and reads it as `off` (Drew, 2026-10-24). `FeatureFlagsTests` proves it.
+
+## Jev (dev builds only)
+
+- The base (#36) runs each feature's job in the background after a capture's notes are final and its screen text is stored. It never delays a copy, except Copy Prompt and End Round, which waits at most 500 ms and only with a feature on.
+- Turn it on: `scripts/nextshot-flags.sh set jevBase on`, then a feature, for example `set noteCoach shadow`. Consent flags: `jevSendScreenText` and `jevSendImages`. Reset each flag after a test.
+- Shadow writes `jev.json` in the bundle, and a job may also write its review file `jev-review/<job>.md` for Drew (Drew, 2026-10-24). On also writes `<stem>-refined.md` and `refined.md`, and the copied prompts point to them, refined file first. No prompt names a review file. The files on disk (`prompt.md`, `<stem>-prompt.md`) never change.
+- Note coach (`noteCoach`, #37): labels each item's note, with one text-only request per capture and no consent flag. In on, the refined file says "Ask the reviewer first: the note names no change." for a vague note, "Answer this item. Change no code." for a question, and "Ask the reviewer first: the item has no note." for an empty one. Shadow writes each label to `jev.json` and `jev-review/noteCoach.md`. `scripts/note-coach-eval.sh` measures accuracy against a labeled set kept outside the repository. Design: `docs/superpowers/specs/2026-10-24-note-coach-design.md`.
+- A feature session edits only its own job file in `Packages/JevKit/Sources/JevKit/Jobs/`. The registry already has one line per planned feature.
+- Logs: `/usr/bin/log show --last 10m --predicate 'subsystem == "com.drewschulz.nextshot" AND category == "Jev"'`. They hold job ids, capture numbers, statuses, times, and token counts only.
+- Failures are silent: the prompt stays plain, and `jev.json` records the reason.
+- Crops and search lines (`cropsAnchors`, #38): each item gets two crop PNGs (`<stem>-item-<N>.png` and `-clean.png`) and at most one search line in the refined file. Without `jevSendImages`, crops are cut around the marks with no Jev check. Search lines need `jevSendScreenText`. In shadow, `scripts/jev-review-crops-anchors.py` draws each crop over its capture. Design: `docs/superpowers/specs/2026-10-24-crops-anchors-design.md`.
 
 ## Brand and README
 

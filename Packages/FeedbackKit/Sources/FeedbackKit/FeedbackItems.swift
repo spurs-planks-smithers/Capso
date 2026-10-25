@@ -3,18 +3,31 @@ import Foundation
 
 /// A numbered badge, plus the box or ellipse it sits on, if any.
 /// Item `2.3` is badge 3 in capture 2.
-struct FeedbackItem: Equatable {
-    var captureIndex: Int
-    var badge: FeedbackMark
-    var shape: FeedbackMark?
+public struct FeedbackItem: Equatable, Sendable {
+    public var captureIndex: Int
+    public var badge: FeedbackMark
+    public var shape: FeedbackMark?
 
-    var id: String { "\(captureIndex).\(badge.badge ?? 0)" }
+    public var id: String { "\(captureIndex).\(badge.badge ?? 0)" }
 
     /// The shape's OCR text names the marked region best, so it wins.
-    var ocrText: String? { shape?.ocrText ?? badge.ocrText }
+    public var ocrText: String? { shape?.ocrText ?? badge.ocrText }
+
+    /// The box that holds the badge, the shape it sits on, and the point its
+    /// arrow aims at. The preview crop and the item crop both start from it.
+    public var focus: FeedbackBox {
+        var focus = badge.box
+        if let shape {
+            focus = focus.union(shape.box)
+        }
+        if let tip = badge.point {
+            focus = focus.union(FeedbackBox(x1: tip.x, y1: tip.y, x2: tip.x, y2: tip.y))
+        }
+        return focus
+    }
 }
 
-enum FeedbackItems {
+public enum FeedbackItems {
     /// Shapes a badge can label. Other marks are listed on their own.
     static let shapeKinds: Set<FeedbackMark.Kind> = [.rectangle, .ellipse]
 
@@ -22,7 +35,7 @@ enum FeedbackItems {
     ///
     /// A shape goes to the touching badge whose center is nearest to it
     /// (lower badge number on a tie). Each badge takes at most one shape.
-    static func split(_ capture: FeedbackCapture) -> (items: [FeedbackItem], otherMarks: [FeedbackMark]) {
+    public static func split(_ capture: FeedbackCapture) -> (items: [FeedbackItem], otherMarks: [FeedbackMark]) {
         let badges = capture.marks.indices.filter {
             capture.marks[$0].kind == .counter && capture.marks[$0].badge != nil
         }

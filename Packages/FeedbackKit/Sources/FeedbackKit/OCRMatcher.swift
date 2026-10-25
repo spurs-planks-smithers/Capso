@@ -21,8 +21,37 @@ public enum OCRMatcher {
     ) -> [FeedbackMark] {
         marks.map { mark in
             var mark = mark
-            mark.ocrText = text(for: mark, lines: lines, maxDistance: Double(maxDistance))
+            mark.ocrText = joined(matchedLines(for: mark, lines: lines, maxDistance: maxDistance))
             return mark
+        }
+    }
+
+    /// The lines that the rules above pick for one mark, each on its own, in
+    /// the reading order `assignText` joins them in. The text of a mark is
+    /// these lines joined.
+    static func matchedLines(
+        for mark: FeedbackMark,
+        lines: [FeedbackTextLine],
+        maxDistance: Int = defaultMaxDistance
+    ) -> [FeedbackTextLine] {
+        let reach = Double(maxDistance)
+        switch mark.kind {
+        case .text:
+            return []
+        case .rectangle, .ellipse, .freehand, .pixelate, .spotlight:
+            return readingOrder(lines.filter { mark.box.contains($0.box.center) })
+        case .arrow, .line:
+            guard let head = mark.point else { return [] }
+            return matches(at: head, lines: lines, maxDistance: reach)
+        case .counter:
+            if let tip = mark.point {
+                return matches(at: tip, lines: lines, maxDistance: reach)
+            }
+            let touching = lines.filter { $0.box.intersects(mark.box) }
+            if !touching.isEmpty {
+                return readingOrder(touching)
+            }
+            return nearest(to: mark.box.center, lines: lines, maxDistance: reach).map { [$0] } ?? []
         }
     }
 
@@ -34,32 +63,11 @@ public enum OCRMatcher {
         return lines.filter { line in !redactions.contains { $0.intersects(line.box) } }
     }
 
-    private static func text(for mark: FeedbackMark, lines: [FeedbackTextLine], maxDistance: Double) -> String? {
-        switch mark.kind {
-        case .text:
-            return nil
-        case .rectangle, .ellipse, .freehand, .pixelate, .spotlight:
-            return joined(lines.filter { mark.box.contains($0.box.center) })
-        case .arrow, .line:
-            guard let head = mark.point else { return nil }
-            return text(at: head, lines: lines, maxDistance: maxDistance)
-        case .counter:
-            if let tip = mark.point {
-                return text(at: tip, lines: lines, maxDistance: maxDistance)
-            }
-            let touching = lines.filter { $0.box.intersects(mark.box) }
-            if !touching.isEmpty {
-                return joined(touching)
-            }
-            return nearest(to: mark.box.center, lines: lines, maxDistance: maxDistance)?.text
-        }
-    }
-
-    private static func text(at point: FeedbackPoint, lines: [FeedbackTextLine], maxDistance: Double) -> String? {
+    private static func matches(at point: FeedbackPoint, lines: [FeedbackTextLine], maxDistance: Double) -> [FeedbackTextLine] {
         if let hit = lines.first(where: { $0.box.contains(point) }) {
-            return hit.text
+            return [hit]
         }
-        return nearest(to: point, lines: lines, maxDistance: maxDistance)?.text
+        return nearest(to: point, lines: lines, maxDistance: maxDistance).map { [$0] } ?? []
     }
 
     private static func nearest(to point: FeedbackPoint, lines: [FeedbackTextLine], maxDistance: Double) -> FeedbackTextLine? {
@@ -70,11 +78,12 @@ public enum OCRMatcher {
             .line
     }
 
+    private static func readingOrder(_ lines: [FeedbackTextLine]) -> [FeedbackTextLine] {
+        lines.sorted { ($0.box.y1, $0.box.x1) < ($1.box.y1, $1.box.x1) }
+    }
+
     private static func joined(_ lines: [FeedbackTextLine]) -> String? {
         guard !lines.isEmpty else { return nil }
-        return lines
-            .sorted { ($0.box.y1, $0.box.x1) < ($1.box.y1, $1.box.x1) }
-            .map(\.text)
-            .joined(separator: " ")
+        return readingOrder(lines).map(\.text).joined(separator: " ")
     }
 }
