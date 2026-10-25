@@ -62,12 +62,17 @@ private func dupesImages(failing: Set<Int> = []) -> JevImageLoader {
 
 private typealias Ask = @Sendable (JevRequest) async throws -> JevResponse
 
-/// A context for the capture with index `current` of a round that holds `captures`.
+/// Both sub-flags on, as a trial with `feature dupesConflicts on` runs the job.
+private let dupesBothOn: [FeatureFlag: FlagState] = [.dupesMerge: .on, .dupesConflict: .on]
+
+/// A context for the capture with index `current` of a round that holds
+/// `captures`, with the job's sub-flags in `optionModes` (both on by default).
 private func dupesContext(
     _ captures: [FeedbackCapture],
     current: Int,
     allowed: JevDataKinds = .reviewerText,
     images: JevImageLoader = dupesImages(),
+    optionModes: [FeatureFlag: FlagState] = dupesBothOn,
     ask: @escaping Ask
 ) -> JevJobContext {
     let round = FeedbackRound(
@@ -84,7 +89,8 @@ private func dupesContext(
         allowed: allowed,
         deadline: .now + .seconds(2),
         jev: JevAsker(ask),
-        images: images
+        images: images,
+        optionModes: optionModes
     )
 }
 
@@ -190,13 +196,15 @@ private func scopedLine(_ scope: JevRefinedLine.Scope, _ label: JevCodeText) -> 
 struct DupesConflictsJobTests {
     // MARK: Identity
 
-    @Test("The job keeps its id and flag, needs screen text, and sits at version 2")
+    @Test("The job keeps its id and flag, needs screen text, sits at version 3, and its options are its sub-flags")
     func identity() {
         let job = DupesConflictsJob()
         #expect(job.id == "dupesConflicts")
         #expect(job.flag == .dupesConflicts)
         #expect(job.requires == [.screenText])
-        #expect(job.version == 2)
+        #expect(job.version == 3)
+        #expect(job.options == [.dupesMerge, .dupesConflict])
+        #expect(job.options == FeatureFlag.subFlags(of: job.flag))
     }
 
     @Test("Every failure reason has a code name equal to its raw value")
@@ -1172,6 +1180,171 @@ struct DupesConflictsJobTests {
     }
 }
 
+// MARK: Sub-flags
+
+/// The question kinds that the requests in `log` ask, over all their pairs.
+private func askedKinds(_ requests: [JevRequest]) -> Set<DupesConflicts.QuestionKind> {
+    Set(requests.flatMap(\.questions).compactMap { DupesConflicts.parse(questionID: $0.id.text)?.kind })
+}
+
+@Suite("Duplicates and conflicts: sub-flags")
+struct DupesConflictsSubFlagTests {
+    /// Capture 3 holds a duplicate (3.1 and 1.1), an overlap (3.2 and 1.2),
+    /// and a conflict (3.2 and 2.1) with earlier entries.
+    private static let captures = [
+        dupesCapture(1, marks: [dupesItem(1, "make the title bigger"), dupesItem(2, "remove the border")]),
+        dupesCapture(2, marks: [dupesItem(1, "make the title smaller")]),
+        dupesCapture(3, marks: [dupesItem(1, "make the heading larger"), dupesItem(2, "make the heading smaller"), dupesItem(3, "drop the frame")]),
+    ]
+    private static let table = [
+        "3.1.vs.1.1": PairScore(sameAsk: 1.8, opposite: 0),
+        "3.2.vs.1.2": PairScore(sameAsk: 1.0, opposite: 0),
+        // Jev also rates this pair as a repeat. The conflict wins.
+        "3.2.vs.2.1": PairScore(sameAsk: 1.9, opposite: 0.8),
+    ]
+
+    private static let duplicateLine = scopedLine(.round, "Same ask: 3.1 repeats 1.1 (captures 1 and 3). An earlier paste may have made this change. Check the code, and make the change once. Each note is in manifest.md.")
+    private static let overlapLine = itemLine(2, "3.2 may overlap with 1.2. Read 1.2 in manifest.md. An earlier paste may have done part of it. Check the code before you edit twice.")
+    private static let conflictLine = scopedLine(.round, "Ask first: 3.2 and 2.1 ask for opposite changes to the same element. Read both in manifest.md. Ask the user which one wins before you edit either. 3.2 is newer.")
+
+    private static let duplicate: JevSummaryValue = .fields(["pair": "3.1.vs.1.1", "outcome": "duplicate"])
+    private static let overlap: JevSummaryValue = .fields(["pair": "3.2.vs.1.2", "outcome": "overlap"])
+    private static let conflict: JevSummaryValue = .fields(["pair": "3.2.vs.2.1", "outcome": "conflict"])
+
+    private static func summary(_ flagged: [JevSummaryValue]) -> [JevSummaryField] {
+        [JevSummaryField(key: "flagged", value: .array(flagged)), JevSummaryField(key: "notChecked", value: .array([]))]
+    }
+
+    private static func run(_ modes: [FeatureFlag: FlagState], log: RequestLog = RequestLog()) async throws -> JevJobOutput {
+        try await DupesConflictsJob().run(dupesContext(captures, current: 3, optionModes: modes, ask: canned(table, log: log)))
+    }
+
+    @Test("Both sub-flags off, or unset: no request and an empty output")
+    func bothOff() async throws {
+        for modes: [FeatureFlag: FlagState] in [[:], [.dupesMerge: .off, .dupesConflict: .off]] {
+            let log = RequestLog()
+            let output = try await Self.run(modes, log: log)
+            #expect(await log.count == 0, "\(modes)")
+            #expect(output == .empty, "\(modes)")
+        }
+    }
+
+    @Test("Both on: the same lines as before the sub-flags, and every pair in the summary")
+    func bothOn() async throws {
+        let output = try await Self.run([.dupesMerge: .on, .dupesConflict: .on])
+        #expect(output.lines == [Self.duplicateLine, Self.overlapLine, Self.conflictLine])
+        #expect(output.summary == Self.summary([Self.duplicate, Self.overlap, Self.conflict]))
+    }
+
+    @Test("dupesMerge on alone: the Same ask and overlap lines, both questions asked, and no conflict line")
+    func mergeOnly() async throws {
+        let log = RequestLog()
+        let output = try await Self.run([.dupesMerge: .on], log: log)
+        #expect(output.lines == [Self.duplicateLine, Self.overlapLine])
+        // The conflict pair 3.2 and 2.1 reads as a conflict, so it adds neither line nor summary entry.
+        #expect(output.summary == Self.summary([Self.duplicate, Self.overlap]))
+        #expect(askedKinds(await log.requests) == [.sameAsk, .opposite])
+    }
+
+    @Test("dupesConflict on alone: the Ask first line, only the opposite question asked, and no merge line")
+    func conflictOnly() async throws {
+        let log = RequestLog()
+        let output = try await Self.run([.dupesConflict: .on], log: log)
+        #expect(output.lines == [Self.conflictLine])
+        #expect(output.summary == Self.summary([Self.conflict]))
+        let requests = await log.requests
+        #expect(requests.count == 3)
+        #expect(askedKinds(requests) == [.opposite])
+    }
+
+    @Test("Guard: with dupesMerge on and dupesConflict off, a pair that is a conflict gets no Same ask line and no Ask first line")
+    func conflictNeverMerges() async throws {
+        let captures = [
+            dupesCapture(1, marks: [dupesItem(1, "make the title bigger")]),
+            dupesCapture(2, marks: [dupesItem(1, "make the title smaller")]),
+        ]
+        // Jev rates the pair as the same ask and as opposite asks.
+        let both = ["2.1.vs.1.1": PairScore(sameAsk: 1.9, opposite: 0.9)]
+        let ask = { (modes: [FeatureFlag: FlagState], table: [String: PairScore], log: RequestLog) in
+            try await DupesConflictsJob().run(dupesContext(captures, current: 2, optionModes: modes, ask: canned(table, log: log)))
+        }
+
+        let log = RequestLog()
+        let guarded = try await ask([.dupesMerge: .on], both, log)
+        // One request, with both questions for the pair: the guard asks `opposite` too.
+        let request = try #require(await log.requests.first)
+        #expect(await log.count == 1)
+        #expect(request.questions.map(\.id.text) == ["2.1.vs.1.1.sameAsk", "2.1.vs.1.1.opposite"])
+        #expect(guarded.lines.isEmpty, "a conflict got a merge line")
+        #expect(guarded.summary == Self.summary([]))
+
+        // Merge in shadow with conflict off hides it the same way.
+        let shadow = try await ask([.dupesMerge: .shadow], both, RequestLog())
+        #expect(shadow.lines.isEmpty)
+        #expect(shadow.summary == Self.summary([]))
+
+        // With conflict on too, the pair is a conflict and only the Ask first line shows.
+        let conflictLine = scopedLine(.round, "Ask first: 2.1 and 1.1 ask for opposite changes to the same element. Read both in manifest.md. Ask the user which one wins before you edit either. 2.1 is newer.")
+        let bothOn = try await ask([.dupesMerge: .on, .dupesConflict: .on], both, RequestLog())
+        #expect(bothOn.lines == [conflictLine])
+
+        // The same pair with a low opposite is a plain repeat, so the guard changes only conflicts.
+        let repeated = try await ask([.dupesMerge: .on], ["2.1.vs.1.1": PairScore(sameAsk: 1.9, opposite: 0.5)], RequestLog())
+        #expect(repeated.lines == [scopedLine(.round, "Same ask: 2.1 repeats 1.1 (captures 1 and 2). An earlier paste may have made this change. Check the code, and make the change once. Each note is in manifest.md.")])
+    }
+
+    @Test("A part in shadow records its pairs in the summary and writes no line")
+    func shadowParts() async throws {
+        let mergeShadow = try await Self.run([.dupesMerge: .shadow, .dupesConflict: .on])
+        #expect(mergeShadow.lines == [Self.conflictLine])
+        #expect(mergeShadow.summary == Self.summary([Self.duplicate, Self.overlap, Self.conflict]))
+
+        let conflictShadow = try await Self.run([.dupesMerge: .on, .dupesConflict: .shadow])
+        // The conflict pair stays out of the merge lines, and is recorded as a conflict.
+        #expect(conflictShadow.lines == [Self.duplicateLine, Self.overlapLine])
+        #expect(conflictShadow.summary == Self.summary([Self.duplicate, Self.overlap, Self.conflict]))
+
+        let bothShadow = try await Self.run([.dupesMerge: .shadow, .dupesConflict: .shadow])
+        #expect(bothShadow.lines.isEmpty)
+        #expect(bothShadow.summary == Self.summary([Self.duplicate, Self.overlap, Self.conflict]))
+    }
+
+    @Test("The Not checked line shows only when a part writes lines, and the summary always names the entry")
+    func notCheckedLine() async throws {
+        let failing = failing(["3.2": JevError(.timeout)], otherwise: canned(Self.table))
+        let notChecked = JevSummaryField(key: "notChecked", value: .array([.fields(["entry": "3.2", "reason": "timeout"])]))
+        let line = scopedLine(.capture, "Not checked for repeats (timeout): 3.2.")
+
+        for modes: [FeatureFlag: FlagState] in [[.dupesMerge: .on], [.dupesConflict: .on]] {
+            let output = try await DupesConflictsJob().run(dupesContext(Self.captures, current: 3, optionModes: modes, ask: failing))
+            #expect(output.lines.contains(line), "\(modes)")
+            #expect(output.summary.last == notChecked, "\(modes)")
+        }
+        let shadow = try await DupesConflictsJob().run(dupesContext(Self.captures, current: 3, optionModes: [.dupesMerge: .shadow, .dupesConflict: .shadow], ask: failing))
+        #expect(shadow.lines.isEmpty)
+        #expect(shadow.summary.last == notChecked)
+    }
+
+    @Test("The questions of a pair do not change with the sub-flags: sameAsk and opposite are the same questions")
+    func questionsAreTheSame() async throws {
+        let full = RequestLog()
+        _ = try await Self.run([.dupesMerge: .on, .dupesConflict: .on], log: full)
+        let onlyOpposite = RequestLog()
+        _ = try await Self.run([.dupesConflict: .on], log: onlyOpposite)
+
+        let fullRequests = await full.requests
+        let oppositeRequests = await onlyOpposite.requests
+        #expect(fullRequests.count == oppositeRequests.count)
+        for (whole, part) in zip(fullRequests, oppositeRequests) {
+            // JevValue is not Equatable, so compare the printed state.
+            #expect(String(describing: whole.state) == String(describing: part.state))
+            // The conflict-only request is the full request without its sameAsk questions.
+            let kept = whole.questions.filter { $0.id.text.hasSuffix(".opposite") }
+            #expect(kept.map(\.id.text) == part.questions.map(\.id.text))
+        }
+    }
+}
+
 /// The job inside the real runner, client, and writer, with a stubbed transport.
 @Suite("Duplicates and conflicts in the runner")
 struct DupesConflictsRunnerTests {
@@ -1205,12 +1378,14 @@ struct DupesConflictsRunnerTests {
     func shadowRecordsAnswers() async throws {
         let bundle = try await Bundle.make(captures: 2)
         let transport = StubTransport(fallback: jsonResponse(pairBody(sameAsk: 1.8, opposite: 0.05)))
-        let runner = makeRunner(bundle, jobs: [DupesConflictsJob()], flags: [.jevBase: .on, .dupesConflicts: .shadow, .jevSendScreenText: .on], transport: transport)
+        // The sub-flags are on, and the runner caps them at the shadow parent.
+        let flags: [FeatureFlag: FlagState] = [.jevBase: .on, .dupesConflicts: .shadow, .dupesMerge: .on, .dupesConflict: .on, .jevSendScreenText: .on]
+        let runner = makeRunner(bundle, jobs: [DupesConflictsJob()], flags: flags, transport: transport)
         await runCapture(runner, bundle, capture: 2)
 
         #expect(await transport.count == 1)
         let record = try #require(try bundle.record(2))
-        #expect(record.job == "dupesConflicts" && record.jobVersion == 2 && record.mode == "shadow" && record.status == .done)
+        #expect(record.job == "dupesConflicts" && record.jobVersion == 3 && record.mode == "shadow" && record.status == .done)
         #expect(Set(record.answers.map(\.id)) == ["2.1.vs.1.1.sameAsk", "2.1.vs.1.1.opposite"])
         #expect(record.lines.isEmpty)
         #expect(!bundle.exists("refined.md"))
@@ -1230,7 +1405,8 @@ struct DupesConflictsRunnerTests {
     func onWritesRoundLine() async throws {
         let bundle = try await Bundle.make(captures: 2)
         let transport = StubTransport(fallback: jsonResponse(pairBody(sameAsk: 1.8, opposite: 0.05)))
-        let runner = makeRunner(bundle, jobs: [DupesConflictsJob()], flags: [.jevBase: .on, .dupesConflicts: .on, .jevSendScreenText: .on], transport: transport)
+        let flags: [FeatureFlag: FlagState] = [.jevBase: .on, .dupesConflicts: .on, .dupesMerge: .on, .dupesConflict: .on, .jevSendScreenText: .on]
+        let runner = makeRunner(bundle, jobs: [DupesConflictsJob()], flags: flags, transport: transport)
         await runCapture(runner, bundle, capture: 2)
 
         let line = "- Same ask: 2.1 repeats 1.1 (captures 1 and 2). An earlier paste may have made this change. Check the code, and make the change once. Each note is in manifest.md."
@@ -1254,6 +1430,34 @@ struct DupesConflictsRunnerTests {
         #expect(!sent.contains("Copy Last Capture Prompt"))
         let contentType = try #require(sentRequest.value(forHTTPHeaderField: "Content-Type"))
         #expect(contentType.hasPrefix("application/json"), "\(contentType)")
+    }
+
+    @Test("In the runner, dupesConflict alone asks only opposite, and dupesMerge alone asks both and hides a conflict")
+    func subFlagsInTheRunner() async throws {
+        let oppositeOnly = #"{"model":"\#(JevEndpoint.model)","answers":{"2.1.vs.1.1.opposite":{"type":"noul","noul":0.9}},"usage":{"input_tokens":40,"output_tokens":1}}"#
+        let conflictBundle = try await Bundle.make(captures: 2)
+        let conflictTransport = StubTransport(fallback: jsonResponse(oppositeOnly))
+        let conflictFlags: [FeatureFlag: FlagState] = [.jevBase: .on, .dupesConflicts: .on, .dupesConflict: .on, .jevSendScreenText: .on]
+        await runCapture(makeRunner(conflictBundle, jobs: [DupesConflictsJob()], flags: conflictFlags, transport: conflictTransport), conflictBundle, capture: 2)
+
+        let conflictBody = String(decoding: try #require(await conflictTransport.requests.first?.httpBody), as: UTF8.self)
+        #expect(conflictBody.contains("2.1.vs.1.1.opposite") && !conflictBody.contains("sameAsk"))
+        let conflictRecord = try #require(try conflictBundle.record(2))
+        #expect(conflictRecord.status == .done && conflictRecord.answers.map(\.id) == ["2.1.vs.1.1.opposite"])
+        #expect(conflictRecord.lines.map(\.label).contains { $0.hasPrefix("Ask first: 2.1 and 1.1") })
+
+        // Merge alone: both questions go out, Jev rates the pair as a repeat and as opposite asks.
+        let mergeBundle = try await Bundle.make(captures: 2)
+        let mergeTransport = StubTransport(fallback: jsonResponse(pairBody(sameAsk: 1.8, opposite: 0.9)))
+        let mergeFlags: [FeatureFlag: FlagState] = [.jevBase: .on, .dupesConflicts: .on, .dupesMerge: .on, .jevSendScreenText: .on]
+        await runCapture(makeRunner(mergeBundle, jobs: [DupesConflictsJob()], flags: mergeFlags, transport: mergeTransport), mergeBundle, capture: 2)
+
+        let mergeBody = String(decoding: try #require(await mergeTransport.requests.first?.httpBody), as: UTF8.self)
+        #expect(mergeBody.contains("2.1.vs.1.1.sameAsk") && mergeBody.contains("2.1.vs.1.1.opposite"))
+        let mergeRecord = try #require(try mergeBundle.record(2))
+        #expect(mergeRecord.status == .done && mergeRecord.lines.isEmpty, "a conflict got a merge line")
+        let refined = try mergeBundle.exists("refined.md") ? mergeBundle.text("refined.md") : ""
+        #expect(!refined.contains("Same ask") && !refined.contains("Ask first"))
     }
 
     @Test("Without screen text consent, the job is skipped with reason consent and sends nothing")

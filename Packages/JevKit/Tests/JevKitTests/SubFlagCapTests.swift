@@ -85,16 +85,17 @@ struct SubFlagCapTests {
 
     /// Runs `job` with its feature flag at `state`, every consent on, and no
     /// sub-flag set. The job must run, send no request, and write nothing.
-    private func expectNoRequest(_ job: any JevJob, state: FlagState) async throws {
+    private func expectNoRequest(_ job: any JevJob, state: FlagState, captures: Int = 1) async throws {
         let flag = job.flag
-        let bundle = try await Bundle.make()
+        let bundle = try await Bundle.make(captures: captures)
         let transport = StubTransport(fallback: jsonResponse(noulBody("1.1.names_change")))
         let flags: [FeatureFlag: FlagState] = [.jevBase: .on, flag: state, .jevSendImages: .on, .jevSendScreenText: .on]
-        await runCapture(makeRunner(bundle, jobs: [job], flags: flags, transport: transport), bundle)
+        // The last capture is the one that has earlier entries to compare with.
+        await runCapture(makeRunner(bundle, jobs: [job], flags: flags, transport: transport), bundle, capture: captures)
 
         #expect(await transport.count == 0, "\(flag) \(state) sent a request")
         // The job still ran: its record says done, with no request and no output.
-        let record = try #require(try bundle.record(1), "\(flag) \(state) wrote no record")
+        let record = try #require(try bundle.record(captures), "\(flag) \(state) wrote no record")
         #expect(record.job == flag.rawValue && record.status == .done)
         #expect(record.requests == 0 && record.answers.isEmpty && record.lines.isEmpty && record.files.isEmpty)
         #expect(record.summary == nil && record.review == nil)
@@ -114,6 +115,14 @@ struct SubFlagCapTests {
     func cropsAllSubFlagsOff() async throws {
         for state in [FlagState.shadow, .on] {
             try await expectNoRequest(CropsAnchorsJob(), state: state)
+        }
+    }
+
+    @Test("Duplicates and conflicts with every sub-flag off runs but sends no request, in shadow and on")
+    func dupesAllSubFlagsOff() async throws {
+        // Two captures, so capture 2 has an earlier entry and would send a request.
+        for state in [FlagState.shadow, .on] {
+            try await expectNoRequest(DupesConflictsJob(), state: state, captures: 2)
         }
     }
 
