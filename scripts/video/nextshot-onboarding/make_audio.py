@@ -579,6 +579,12 @@ def main():
             lengths[line["id"]] = len(vo[line["id"]]) / SR
 
     scenes, lines, captions, total = build_timeline(script, lengths)
+    # A repeated cue id would replace the earlier cue in this dict with no
+    # error, and move that cue's picture to the wrong scene (2026-10-24).
+    ids = [c["id"] for c in script["cues"]]
+    repeated = sorted({i for i in ids if ids.count(i) > 1})
+    if repeated:
+        sys.exit(f"make_audio: cue ids used more than once: {', '.join(repeated)}")
     cues = {c["id"]: cue_time(c, lines) for c in script["cues"]}
 
     n = int((total + 0.5) * SR)

@@ -2,11 +2,12 @@
 
 An 82-second video that shows Nextiva colleagues what Nextshot does: mark up screens, keep many screens and notes in one round, and hand the whole round to an AI coding agent as one prompt. It plays on nextshot.dev beside the download button, and in email and Teams.
 
-Three cuts exist:
+Four cuts exist:
 
 | Cut | File | What it is |
 |---|---|---|
-| v3.1 (2026-10-24) | `build/releases/Nextshot-onboarding-2026.10.24.mp4`, poster `Nextshot-onboarding-poster.png` | Drew's v3.1 notes: the round concept, new lines 4 to 6 and 8 to 13, a package screen with research, licensed stock music, and the call to action "Get it at nextshot.dev". Then two creative director review rounds. 82.4 seconds. nextshot.dev serves it since 2026-10-24. |
+| v3.2 (2026-10-24) | `build/releases/Nextshot-onboarding-2026.10.24.mp4`, poster `Nextshot-onboarding-poster.png` | v3.1 with the Mark line changed: the editor now opens on the red dot tool, so no C key comes first (Drew, 2026-10-24). Line h says "Click to drop a red dot on each issue." The C keycap and its key sound are gone. The silent cue `mark_click` starts the cursor, and the dots pop on "drop", "dot", and "each". 81.7 seconds. Not on nextshot.dev until `site/deploy.sh` runs. |
+| v3.1 (2026-10-24) | `build/releases/Nextshot-onboarding-2026.10.24-v3.1.mp4`, poster `Nextshot-onboarding-poster-v3.1.png` (copies kept before the v3.2 render wrote the dated name) | Drew's v3.1 notes: the round concept, new lines 4 to 6 and 8 to 13, a package screen with research, licensed stock music, and the call to action "Get it at nextshot.dev". Then two creative director review rounds. 82.4 seconds. nextshot.dev serves it since 2026-10-24. |
 | v3 (2026-10-23) | `build/releases/Nextshot-onboarding-2026.10.23.mp4`, poster `Nextshot-onboarding-poster-v3.png` | Drew's storyboard notes on v2: his script, the OpenAI voice sage, and a style that moves from a rough yellow sketch to the brand look. 70.4 seconds. |
 | v2 (2026-10-22) | `build/releases/Nextshot-onboarding-2026.10.22.mp4`, poster `Nextshot-onboarding-poster-v2.png` | The 36-second cut with Ava (Premium). It went out with the launch email and the email GIF. |
 
@@ -32,17 +33,17 @@ Git ignores `build/`. The render names each file by the date of the HEAD commit,
 
 `audio/` (with the speech cache `audio/tts-cache/`), `renders/`, `timing.json`, `timing.js`, and `node_modules/` are generated. They are not in git.
 
-## Script and storyboard (v3.1)
+## Script and storyboard (v3.2)
 
 | Time | Voiceover | Picture |
 |---|---|---|
 | 0 to 5.0 s | (1 s of picture and music first) "So, you and AI just built a lemonade stand." | Yellow paper, marker strokes. The stand's web page is drawn from the first frame ("Lemonaid", "$9 a cup", a tiny Buy button). A robot labeled "AI" and a stick figure labeled "you". Then an app, legal docs, an email, and a flyer pop in with hand-written labels. |
 | 5.0 to 32.4 s | "But AI output is far from perfect. Small things are wrong everywhere. So you screenshot. Crop. Paste. Prompt. But with so many fixes, big and small, on so many screens, how do you give AI every direction? Page after page. Prompt after prompt. Into AI eternity. Why can't I gather all my feedback in one round, and give it to AI in one prompt?" | Seven red dots pop on the mistakes. A screenshot, crop marks, the crop drops into an AI chat, and a messy prompt types out. Four more AI chats stack up, a tally climbs, and pages pile up. Then the dots gather, a teal circle labeled "1 round" draws around them, and an arrow points to one box, "1 prompt". |
 | 32.4 to 36.2 s | "Now you can. Introducing Nextshot." | The circle closes in, and the dots become the Nextshot icon. A teal circle wipe turns the scene graphite, then the name rises in. |
-| 36.2 to 47.9 s | "Hit Option Shift F. Grab the area you want to give feedback on. Hit C, then click to drop a dot on each issue. Then say what should change." | Step labels "1 Grab" and "2 Mark". Keycaps, the selection, the cursor dropping dots 1 to 3, Command+S with "saves the capture", and the note panel with its real question text and a preview of each dot. The menu bar shows "Nshot (1)" with the green round dot. |
-| 47.9 to 56.6 s | "Then grab the next screen, and the next. Circles, boxes, arrows, notes. One round holds it all." | Step label "3 Repeat". A Checkout capture gets a circle and a box. A Flavors capture gets a circle, an arrow, and a general note. On "round", a teal "Round" outline moves to the center and every capture flies into it. "Nshot (3)" shows enlarged. |
-| 56.6 to 76.6 s | "One click, one paste, and AI gets the whole round. Every screen, every dot, every note. Any AI agent gets one prompt, built the way AI reads: numbered dots, a note on each dot, exact pixels, and a plan before it edits." | Step label "4 Hand off". The Nshot menu zooms in, and the cursor clicks "Copy Prompt and End Round". The round ends. "One round. One prompt." in large brand type, then "3 screens", "6 dots", "7 notes". The agent gets one message, then a "Built the way AI reads" panel adds one row per spoken part, with a research footnote. Last, silent, the agent's plan table builds and checks three items. |
-| 76.6 to 82.4 s | "Nextshot. Show AI what you mean." | The opening sketch returns and wipes into the fixed stand as a clean brand page with teal checks. The end card: icon and name, the tagline with a teal rule, "Visual feedback for AI coding agents, on your Mac.", a "Get it at nextshot.dev" button, and the start keys. |
+| 36.2 to 47.2 s | "Hit Option Shift F. Grab the area you want to give feedback on. Click to drop a red dot on each issue. Then say what should change." (v3.2. Until v3.1 it said "Hit C, then click to drop a dot on each issue.") | Step labels "1 Grab" and "2 Mark". Keycaps for Option Shift F (no C keycap since v3.2), the selection, the cursor dropping dots 1 to 3, Command+S with "saves the capture", and the note panel with its real question text and a preview of each dot. The menu bar shows "Nshot (1)" with the green round dot. |
+| 47.2 to 56.0 s | "Then grab the next screen, and the next. Circles, boxes, arrows, notes. One round holds it all." | Step label "3 Repeat". A Checkout capture gets a circle and a box. A Flavors capture gets a circle, an arrow, and a general note. On "round", a teal "Round" outline moves to the center and every capture flies into it. "Nshot (3)" shows enlarged. |
+| 56.0 to 75.9 s | "One click, one paste, and AI gets the whole round. Every screen, every dot, every note. Any AI agent gets one prompt, built the way AI reads: numbered dots, a note on each dot, exact pixels, and a plan before it edits." | Step label "4 Hand off". The Nshot menu zooms in, and the cursor clicks "Copy Prompt and End Round". The round ends. "One round. One prompt." in large brand type, then "3 screens", "6 dots", "7 notes". The agent gets one message, then a "Built the way AI reads" panel adds one row per spoken part, with a research footnote. Last, silent, the agent's plan table builds and checks three items. |
+| 75.9 to 81.7 s | "Nextshot. Show AI what you mean." | The opening sketch returns and wipes into the fixed stand as a clean brand page with teal checks. The end card: icon and name, the tagline with a teal rule, "Visual feedback for AI coding agents, on your Mac.", a "Get it at nextshot.dev" button, and the start keys. |
 
 ## Specs (v3.1)
 
