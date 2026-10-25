@@ -74,7 +74,9 @@ public struct PromptLanesJob: JevJob {
     public let id = "promptLanes"
     public let flag = FeatureFlag.promptLanes
     public let requires: JevDataKinds = []
-    public let version = 1
+    /// Version 2 (2026-10-24, accuracy test #73): removal examples in the
+    /// `exact` option, and examples that no longer copy test notes.
+    public let version = 2
 
     public init() {}
 
@@ -154,9 +156,9 @@ public struct PromptLanesJob: JevJob {
                     "How serious is the problem that `items[\(index)].note` describes? `general_note` is context from the same reviewer. Words like \"this\" or \"here\" refer to the marked item.",
                     levels: [
                         "A small taste preference. The screen works and reads well without it. Example: \"maybe a slightly warmer gray\".",
-                        "The change improves the look, the wording, or the layout. Nothing is broken. Example: \"make this title bigger\".",
-                        "Something is broken, inconsistent, or cut off, but the screen still works. Example: \"the tags are cut off on the right\".",
-                        "The feature fails, shows wrong data, or stops the user from finishing a task. Example: \"this total does not match the total on page 2\".",
+                        "The change improves the look, the wording, or the layout. Nothing is broken. Example: \"add more space above this heading\".",
+                        "Something is broken, inconsistent, or cut off, but the screen still works. Example: \"the last word of this button label is cut off\".",
+                        "The feature fails, shows wrong data, or stops the user from finishing a task. Example: \"saving this form loses what I typed\".",
                     ]
                 )
             ))
@@ -165,10 +167,10 @@ public struct PromptLanesJob: JevJob {
                 question: .score(
                     "How much code will a developer likely change to do what `items[\(index)].note` asks?",
                     levels: [
-                        "One value, word, or sentence in one place. Example: \"rename this column to Voice Minutes\".",
-                        "A few related edits in one place, such as one component or one page. Example: \"make these four cards the same width\".",
-                        "Edits in a few files or places. Example: \"use the same footnote on page 2 and page 3\".",
-                        "A change across the app, the repository, or every page. Example: \"rename this everywhere in the app\".",
+                        "One value, word, or sentence in one place. Example: \"rename this button to Save\".",
+                        "A few related edits in one place, such as one component or one page. Example: \"line up the labels in this form\".",
+                        "Edits in a few files or places. Example: \"show this setting in the menu and remember it after a restart\".",
+                        "A change across the app, the repository, or every page. Example: \"use the new brand color on every screen\".",
                     ]
                 )
             ))
@@ -177,7 +179,7 @@ public struct PromptLanesJob: JevJob {
                 question: .choice(
                     "Can a developer do every change in `items[\(index)].note` with no design or product choice?",
                     options: [
-                        "exact": "Every change is exact: new text given in full, a named color, a size or spacing number, or one named element to remove. Example: \"remove the sentence about sources\".",
+                        "exact": "Every change is exact: new text given in full, a named color, a size or spacing number, or one named thing to remove. The note may also say why. Examples: \"drop the subtitle, it repeats the title\", \"rename this button to Save\", \"make this 20% wider\".",
                         "judgment": "At least one change needs a choice: make something clearer, better, or consistent, pick a layout, research, explain, or answer a question. A note that names no concrete change, such as \"fix this\", is judgment too.",
                     ]
                 )
