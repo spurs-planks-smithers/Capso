@@ -133,12 +133,14 @@ struct RunnerOffTests {
 
     @Test("The real registry's stub jobs send nothing, even with every flag on")
     func registryStubsSendNothing() async throws {
-        // Every planned feature now has a real job, so no stub is left to check.
-        guard JevJobRegistry.all.contains(where: { $0.version == 0 }) else { return }
+        // Every planned job is real since PR #68, so no stub is left to run.
+        // The test stays for the next stub, and passes while there is none.
+        let stubs = JevJobRegistry.all.filter { $0.version == 0 }
+        guard !stubs.isEmpty else { return }
         let bundle = try await Bundle.make()
         let transport = StubTransport()
         let all = Dictionary(uniqueKeysWithValues: FeatureFlag.allCases.map { ($0, $0.spec.allowedStates.contains(.on) ? FlagState.on : .shadow) })
-        let runner = makeRunner(bundle, jobs: JevJobRegistry.all.filter { $0.version == 0 }, flags: all, transport: transport)
+        let runner = makeRunner(bundle, jobs: stubs, flags: all, transport: transport)
         await runCapture(runner, bundle)
         #expect(await transport.count == 0)
         let records = try bundle.jevFile().captures.first?.jobs ?? []

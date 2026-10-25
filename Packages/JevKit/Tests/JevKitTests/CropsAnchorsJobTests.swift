@@ -1373,6 +1373,38 @@ struct CropsAnchorsSubFlagTests {
         #expect(searchOn.output.searchLines.count == 1)
         #expect(summaryKeys(searchOn.output, "1.1").contains("cropStatus"))
     }
+
+    @Test("Shadow reports the same crop status, box, and requests as on, also where on writes no file")
+    func shadowMatchesOn() async throws {
+        // Where the crop status comes from: the size and worth-it checks, and the edge
+        // checks. None of them reads the capture PNG that the crop files are cut from,
+        // so skipping the PNG decode in shadow cannot change a status.
+        var wide = CropsScript(noul: ["target_shown": 0.9])
+        wide.box = JevBoxAnswer(box: JevBox(top: 0.02, bottom: 0.98, left: 0.02, right: 0.98), confidence: 0.9)
+        let smallImage = cropsCapture(size: PixelSize(width: 300, height: 300), marks: [CropsMark(number: 1, box: FeedbackBox(x1: 135, y1: 135, x2: 165, y2: 165))])
+        let mediumImage = cropsCapture(
+            size: PixelSize(width: 600, height: 500),
+            marks: [CropsMark(number: 1, box: FeedbackBox(x1: 285, y1: 235, x2: 315, y2: 265))]
+        )
+        let images: JevDataKinds = [.reviewerText, .images]
+        let scenarios: [(name: String, capture: FeedbackCapture, allowed: JevDataKinds, script: CropsScript, pngSize: PixelSize?, status: String, writesFiles: Bool)] = [
+            ("a normal crop", cropsCapture(), images, CropsScript(noul: ["target_shown": 0.9]), nil, "checked", true),
+            ("a PNG of another size", cropsCapture(), .reviewerText, CropsScript(), PixelSize(width: 500, height: 400), "marksOnly", false),
+            ("a crop that is not worth its tokens", smallImage, .reviewerText, CropsScript(), nil, "notWorthIt", false),
+            ("a Jev target that is not worth its tokens", mediumImage, images, wide, nil, "notWorthIt", false),
+            ("a crop that is too small", thinCapture(seedWidth: 600), images, CropsScript(noul: ["target_shown": 0.9]), nil, "tooSmall", false),
+        ]
+        for scenario in scenarios {
+            let on = try await runCropsJob(scenario.capture, allowed: scenario.allowed, script: scenario.script, pngSize: scenario.pngSize, optionModes: [.cropsItemCrops: .on])
+            let shadow = try await runCropsJob(scenario.capture, allowed: scenario.allowed, script: scenario.script, pngSize: scenario.pngSize, optionModes: [.cropsItemCrops: .shadow])
+
+            #expect(summaryCode(summaryItem(on.output, "1.1")?["cropStatus"]) == scenario.status, "\(scenario.name): on")
+            #expect(on.output.files.isEmpty != scenario.writesFiles, "\(scenario.name): on files")
+            #expect(shadow.output.summary == on.output.summary, "\(scenario.name): shadow reports another summary than on")
+            #expect(shadow.requests.count == on.requests.count, "\(scenario.name): shadow sends other requests than on")
+            #expect(shadow.output.files.isEmpty && shadow.output.lines.isEmpty, "\(scenario.name): shadow writes a file or a line")
+        }
+    }
 }
 
 // MARK: - The runner
