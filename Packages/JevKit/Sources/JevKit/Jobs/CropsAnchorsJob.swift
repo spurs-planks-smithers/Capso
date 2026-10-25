@@ -49,11 +49,22 @@ public struct CropsAnchorsJob: JevJob {
     static let anchorConfidenceThreshold = 0.2
     /// The runner drops all output at the deadline. No request or image load
     /// starts this close to it, which leaves time to cut and encode the crop PNGs.
-    static let requestMargin: Duration = .milliseconds(500)
+    static let defaultRequestMargin: Duration = .milliseconds(500)
     /// The crop PNGs are cut one item at a time. None starts this close to the deadline.
-    static let outputMargin: Duration = .milliseconds(100)
+    static let defaultOutputMargin: Duration = .milliseconds(100)
 
-    public init() {}
+    private let requestMargin: Duration
+    private let outputMargin: Duration
+
+    public init() {
+        self.init(requestMargin: Self.defaultRequestMargin, outputMargin: Self.defaultOutputMargin)
+    }
+
+    /// Tests pass wider margins, so a loaded machine cannot close the window between the two (issue #91).
+    init(requestMargin: Duration, outputMargin: Duration) {
+        self.requestMargin = requestMargin
+        self.outputMargin = outputMargin
+    }
 
     public func run(_ context: JevJobContext) async throws -> JevJobOutput {
         let cropsMode = context.optionModes[.cropsItemCrops] ?? .off
@@ -61,7 +72,7 @@ public struct CropsAnchorsJob: JevJob {
         guard cropsMode != .off || searchMode != .off else { return .empty }
 
         let items = Self.items(of: context.capture)
-        let cutoff = context.deadline - Self.requestMargin
+        let cutoff = context.deadline - requestMargin
         // Only crop files in on mode need the PNGs. They decode while the
         // requests are in flight.
         let cropFileItems = cropsMode == .on ? items : []
@@ -71,7 +82,7 @@ public struct CropsAnchorsJob: JevJob {
         async let search = Self.findSearchLines(items, context: context, cutoff: cutoff)
         let (foundCrops, foundSearch, pngs) = await (crops, search, (annotated, clean))
 
-        var output = Self.output(items: items, crops: foundCrops.crops, search: foundSearch, pngs: pngs, context: context)
+        var output = Self.output(items: items, crops: foundCrops.crops, search: foundSearch, pngs: pngs, context: context, outputMargin: outputMargin)
         output.summary = Self.summary(
             items: items, crops: foundCrops.crops, search: foundSearch, captureIndex: context.capture.index,
             withCrops: cropsMode != .off, withSearch: searchMode != .off
@@ -585,7 +596,8 @@ extension CropsAnchorsJob {
         crops: [Int: Crop],
         search: SearchResults,
         pngs: (annotated: CGImage?, clean: CGImage?),
-        context: JevJobContext
+        context: JevJobContext,
+        outputMargin: Duration
     ) -> JevJobOutput {
         let capture = context.capture
         var files: [JevRefinedFile] = []
