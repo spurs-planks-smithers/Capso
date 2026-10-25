@@ -44,6 +44,7 @@ xcodebuild -project Capso.xcodeproj -scheme Capso -configuration Debug CODE_SIGN
 - Reviewer text (Drew's notes) is the only data that leaves the Mac by default. Screen text needs `jevSendScreenText`, and images need `jevSendImages`. Every value in a Jev request carries its kind, and the runner refuses a request with a kind that has no consent.
 - Nextshot's TypeSafe key is the Keychain item `TYPESAFE_API_KEY_NEXTSHOT`. It is never written to a file, a log, or a DMG.
 - Handle any URL scheme in-process.
+- The Share menu after a zip hands the file to an app the user picks. Nextshot opens no connection (Drew, 2026-10-25).
 - Bundles stay on disk in `~/Library/Application Support/Nextshot`. Only an agent that Drew starts reads them. On first launch, the app moves the old `CapsoFeedback` folder there.
 
 ### Merge hygiene
@@ -87,6 +88,7 @@ xcodebuild -project Capso.xcodeproj -scheme Capso -configuration Debug CODE_SIGN
 - Recent Rounds lists the active round first, once it holds a capture, then the last 5 ended rounds that hold a capture, newest first (Drew, 2026-10-24). A row shows the day and time, then the apps and the capture count. A row opens a submenu: Copy Round Prompt, one row per capture, Open Folder, and Resume Round. The active round's submenu has no Resume Round, and its Copy Round Prompt does not end the round. The active round's row has a green dot (8 points, `FeedbackRoundDot.menuImage`) in the state column, and its subtitle starts with "Active round". The section header said "Recent" until 2026-10-24 (Drew, 2026-10-24).
 - Every toast, Nextshot's and upstream's, stays 3x longer than upstream's and is about 15% larger (Drew, 2026-10-24): Nextshot toasts 7.5 seconds, upstream toasts 4.5 seconds (`ToastWindow`).
 - A click on a capture row toggles its check, and the menu stays open. While any capture is checked, Copy N Selected and Clear Selection show below the Recent Rounds rows. Copy N Selected copies one combined prompt for all checked captures (`PromptBuilder.renderSelection`) and clears the checks. One checked capture copies that capture's prompt.
+- Zip Round and Zip N Selected (flag `zipHandoff`, #85, Drew, 2026-10-25): Zip Round sits in each round submenu below Copy Round Prompt, and Zip N Selected sits below Copy N Selected. A zip waits for saves in progress and ends no round. It goes to `~/Downloads` as `nextshot-round-2026-10-25-0637-3-captures.zip` (round start time) or `nextshot-selection-<date>-<time>-<N>-captures.zip` (zip time). The zip file goes on the clipboard, a toast gives its name and size, and the macOS Share menu opens at the Nshot icon. Zip N Selected clears the checks, as Copy N Selected does. One zip runs at a time: a second click beeps. The first zip makes macOS ask once for Downloads access.
 - Option-click on a capture row opens Quick Look on its annotated PNG. It does not check the row. The menu closes first.
 - Resume Round reopens an ended round, so the next capture continues its numbering. It shows only when no round is active.
 - A prompt copied from Recent Rounds carries a redo line after the Goal line: "An earlier pass may have worked on this feedback. Check the code first." The files in a bundle never have it.
@@ -111,6 +113,7 @@ Agent access:
 - Claude Code: Drew's user settings list `~/Library/Application Support/Nextshot` in `permissions.additionalDirectories` (added 2026-10-21, renamed from `CapsoFeedback` the same day), so it reads bundles with no approval prompt. Without that setting, start it with `claude --add-dir "$HOME/Library/Application Support/Nextshot"`.
 - Codex: run the `codex --image ...` command from the top of `manifest.md` in the target repository. It lists every annotated PNG by absolute path.
 - If `codex` is not on `PATH`, the ChatGPT app bundles it at `/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex`.
+- A zip export (#85) is for another Mac, or for mail, Slack, or Teams. It holds one folder with the zip's name: `README.md` (the whole prompt, opened first), `manifest.md`, `feedback.json`, and per capture `K-<stem>.jpg`, `K-<stem>-clean.jpg`, and `K-<stem>-prompt.md`. Every path is relative to that folder, so no text that Nextshot writes names the source Mac. Images are JPEG at Claude's standard tier size (1568 px edge, about 1.2 megapixels), quality 0.75, and the manifest's coordinates are pixels of those JPEGs. A zip over 5 MB steps down `ZipLadder` to a 1000 px floor. No Jev files and no `prompt.md` go in. `NSFileCoordinator` makes the zip, so it has no `__MACOSX` or `._` entries. Screen text stays as captured, only in `manifest.md` and `feedback.json`. A selection zip numbers its captures 1 to N by capture time, and its manifest lists the source rounds. Spec: `docs/superpowers/specs/2026-10-25-zip-handoff-design.md`.
 - The agent-facing guide to a bundle is `docs/agents/bundle-guide.md`. Keep it in step with the "How to read this bundle" rules that `manifest.md` prints.
 
 ## Feature flags
@@ -120,6 +123,7 @@ Agent access:
 - `scripts/nextshot-flags.sh` has `list`, `set <flag> <state>`, and `reset <flag>`. Its `FLAGS=` line must match the registry, and `FeatureFlagsTests` fails when it does not.
 - All flags start `off` in both channels. A release default turns on only with a released-in build number, and a test enforces this. The design is `docs/superpowers/specs/2026-10-24-feature-flags-design.md`.
 - Every Jev flag is dev-only (`FlagSpec.devOnly`): a release build ignores every override and reads it as `off` (Drew, 2026-10-24). `FeatureFlagsTests` proves it.
+- `zipHandoff` (#85) is not a Jev flag and not dev-only: an override turns it on in a release build too. Turn it on with `scripts/nextshot-flags.sh set zipHandoff on`.
 
 ## Jev (dev builds only)
 

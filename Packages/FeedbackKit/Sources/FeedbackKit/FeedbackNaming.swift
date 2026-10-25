@@ -86,7 +86,8 @@ public enum FeedbackNaming {
 
     private static let maxLabelLength = 80
 
-    private static func format(_ date: Date, _ pattern: String, timeZone: TimeZone) -> String {
+    /// `ZipName` uses it too, so zip names and folder names share one format.
+    static func format(_ date: Date, _ pattern: String, timeZone: TimeZone) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.calendar = Calendar(identifier: .gregorian)

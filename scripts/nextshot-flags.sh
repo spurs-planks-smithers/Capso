@@ -18,7 +18,7 @@ domain="${NEXTSHOT_FLAGS_DOMAIN:-com.drewschulz.nextshot}"
 # One entry per flag: <flag>:<allowed states>. Keep this line in step with
 # FeatureFlag in Packages/FeedbackKit/Sources/FeedbackKit/FeatureFlags.swift.
 # FeatureFlagsTests fails when the two differ.
-FLAGS="jevBase:off,on noteCoach:off,shadow,on cropsAnchors:off,shadow,on dupesConflicts:off,shadow,on oneBreath:off promptLanes:off,shadow,on dataGuard:off,shadow,on jevSendImages:off,on jevSendScreenText:off,on"
+FLAGS="jevBase:off,on noteCoach:off,shadow,on cropsAnchors:off,shadow,on dupesConflicts:off,shadow,on oneBreath:off promptLanes:off,shadow,on dataGuard:off,shadow,on jevSendImages:off,on jevSendScreenText:off,on zipHandoff:off,on"
 
 usage() {
   echo "Usage: $0 list | set <flag> <state> | reset <flag>" >&2
