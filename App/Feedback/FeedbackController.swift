@@ -64,7 +64,7 @@ final class FeedbackController {
     /// logs once, not on every menu open.
     private var loggedUnreadable: [String] = []
     private static let promptCopiedToast = "Prompt copied. Paste it into your agent."
-    private static let promptCopiedRoundEndedToast = "Prompt copied. Round ended.\nResume it from Recent in the \(ForkBranding.shortName) menu."
+    private static let promptCopiedRoundEndedToast = "Prompt copied. Round ended.\nResume it from Recent Rounds in the \(ForkBranding.shortName) menu."
 
     /// `~/Library/Application Support/Nextshot`: the standard place for an
     /// app's data. It stays out of the home folder, and macOS privacy controls
