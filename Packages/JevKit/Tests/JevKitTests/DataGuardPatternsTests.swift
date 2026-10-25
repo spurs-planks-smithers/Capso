@@ -129,6 +129,8 @@ struct DataGuardDataRuleTests {
         ("SSN 123-45-6789", .ssn),
         ("Account number: 00123456789", .account),
         ("Acct: 98765432", .account),
+        ("Account     number:     00123456789", .account),
+        ("Member   ID 0042424242", .account),
         ("key " + fakeModelKey, .keyShape),
         (fakeGitHubToken, .keyShape),
         ("AKIAIOSFODNN7EXAMPLE", .keyShape),

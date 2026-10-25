@@ -364,6 +364,15 @@ public struct DataGuardJob: JevJob {
                 if !covers.contains(grown) { covers.append(grown) }
             }
         }
+        // Text nobody checked may hold private data. With a text kind in on,
+        // a cut line is covered whole, and a cut block counts as unplaced.
+        if DataGuardKind.textKinds.contains(where: { modes[$0] == .on }) {
+            for box in sources.filter(\.cut).compactMap(\.box) {
+                let padded = DataGuardCovers.padded(box, by: DataGuardRule.textPad)
+                if !covers.contains(padded) { covers.append(padded) }
+            }
+            if blockCut { onKindUnplaced = true }
+        }
         var files: [JevRefinedFile] = []
         var coversDrawn = 0
         if !covers.isEmpty {
@@ -385,7 +394,7 @@ public struct DataGuardJob: JevJob {
         if let file = files.first {
             lines.append(JevRefinedLine(scope: .capture, label: Self.coveredLabel(count: coversDrawn, complete: !onKindUnplaced), file: file.name))
         } else if onKindFound || onKindUnplaced {
-            lines.append(JevRefinedLine(scope: .capture, label: "Private data guard: this capture shows private data that the guard could not cover. Never copy private data from the screen into code, tests, commits, or messages."))
+            lines.append(JevRefinedLine(scope: .capture, label: "Private data guard: this capture may show private data that the guard could not cover. Never copy private data from the screen into code, tests, commits, or messages."))
         }
 
         let strong = DataGuardInjectionRule.allCases.filter { strongFound.contains($0) }
@@ -411,14 +420,21 @@ public struct DataGuardJob: JevJob {
     /// "...". A cut line takes its full text back from `ocrText` when a line
     /// there starts the same way. Otherwise it is marked cut.
     static func sources(of capture: FeedbackCapture, lines: [FeedbackTextLine]?) -> [Source] {
-        let fullLines = (capture.ocrText ?? "").split(whereSeparator: \.isNewline).map(String.init)
+        var fullLines = (capture.ocrText ?? "").split(whereSeparator: \.isNewline).map(String.init)
+        // The last line of a cut block is cut too, so it is no full text.
+        if cutPrefix(capture.ocrText ?? "", limit: ScreenText.maxBlockLength) != nil, !fullLines.isEmpty {
+            fullLines.removeLast()
+        }
         var sources: [Source]
         if let lines {
             sources = lines.map { line in
                 guard let prefix = cutPrefix(line.text, limit: ScreenText.maxFieldLength) else {
                     return Source(text: line.text, box: line.box, place: .screen)
                 }
-                if let full = fullLines.first(where: { $0.unicodeScalars.count > ScreenText.maxFieldLength && $0.hasPrefix(prefix) }) {
+                // Only an unambiguous match counts: two long lines can start
+                // the same way and differ at the end.
+                let matches = Set(fullLines.filter { $0.unicodeScalars.count > ScreenText.maxFieldLength && $0.hasPrefix(prefix) })
+                if matches.count == 1, let full = matches.first {
                     return Source(text: full, box: line.box, place: .screen)
                 }
                 return Source(text: line.text, box: line.box, place: .screen, cut: true)
@@ -510,8 +526,8 @@ public struct DataGuardJob: JevJob {
     /// so the agent never trusts the copy to hide everything.
     static func coveredLabel(count: Int, complete: Bool) -> JevCodeText {
         let areas: JevCodeText = count == 1 ? "1 area" : "\(count) areas"
-        let more: JevCodeText = complete ? "" : ", and the capture shows more that it could not cover"
-        return "Private data guard: use this covered copy instead of the capture PNG and any item crops. It hides \(areas) of private data\(more). Never copy private data from the screen into code, tests, commits, or messages."
+        let more: JevCodeText = complete ? "" : ", and the capture may show more that it could not cover"
+        return "Private data guard: use this covered copy instead of the capture PNG and any item crops. It covers \(areas) that may hold private data\(more). Never copy private data from the screen into code, tests, commits, or messages."
     }
 
     // MARK: - Summary and review

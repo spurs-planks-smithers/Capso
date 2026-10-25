@@ -395,9 +395,10 @@ public enum DataGuardPatterns {
     private static let cardCandidate = regex(#"(?<![\d-])\d(?:[ -]?\d){12,22}(?![\d-])"#)
     private static let ibanCandidate = regex(#"\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]){11,30}\b"#, caseInsensitive: false)
     private static let ssnCandidate = regex(#"(?<![\d-])\d{3}-\d{2}-\d{4}(?![\d-])"#)
-    // Bounded gaps: open `\s*` runs around optional parts backtrack in cubic
-    // time on a long run of spaces.
-    private static let labeledAccount = regex(#"\b(?:account|acct|a/c|routing|member ?id|policy|customer ?id)\b\.?(?:[ \t]{0,3}(?:no\.?|number|num|#|id))?[ \t]{0,3}[:#]?[ \t]{0,3}([A-Za-z0-9][A-Za-z0-9-]{5,})"#)
+    // Possessive gaps (`*+`) never give back a space they took, so a long run
+    // of spaces costs linear time. Open `\s*` runs around optional parts
+    // backtrack in cubic time.
+    private static let labeledAccount = regex(#"\b(?:account|acct|a/c|routing|member[ \t]*+id|policy|customer[ \t]*+id)\b\.?(?:[ \t]*+(?:no\.?|number|num|#|id))?[ \t]*+[:#]?[ \t]*+([A-Za-z0-9][A-Za-z0-9-]{5,})"#)
     private static let secretPatterns: [(DataGuardDataRule, NSRegularExpression)] = [
         (.keyShape, regex(#"\bsk-(?:ant-|proj-|live-|test-)?[A-Za-z0-9_-]{20,}|\b(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{16,}|\bgh[pousr]_[A-Za-z0-9]{30,}|\bgithub_pat_[A-Za-z0-9_]{22,}|\b(?:AKIA|ASIA)[0-9A-Z]{16}\b|\bxox[abprs]-[A-Za-z0-9-]{10,}|\bAIza[0-9A-Za-z_-]{35}|\bglpat-[A-Za-z0-9_-]{20,}|\bnpm_[A-Za-z0-9]{36}\b"#, caseInsensitive: false)),
         (.jwt, regex(#"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}"#, caseInsensitive: false)),
