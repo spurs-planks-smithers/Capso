@@ -692,7 +692,9 @@ private enum DupesEval {
                 allowed: allowed,
                 deadline: .now + .seconds(60),
                 jev: asker,
-                images: scenario.images
+                images: scenario.images,
+                // Both sub-flags are on, so the eval measures every question.
+                optionModes: [.dupesMerge: .on, .dupesConflict: .on]
             )
             do {
                 _ = try await DupesConflictsJob().run(context)
