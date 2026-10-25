@@ -131,6 +131,7 @@ Agent access:
 - Logs: `/usr/bin/log show --last 10m --predicate 'subsystem == "com.drewschulz.nextshot" AND category == "Jev"'`. They hold job ids, capture numbers, statuses, times, and token counts only.
 - Failures are silent: the prompt stays plain, and `jev.json` records the reason.
 - Crops and search lines (`cropsAnchors`, #38): each item gets two crop PNGs (`<stem>-item-<N>.png` and `-clean.png`) and at most one search line in the refined file. Without `jevSendImages`, crops are cut around the marks with no Jev check. Search lines need `jevSendScreenText`. In shadow, `scripts/jev-review-crops-anchors.py` draws each crop over its capture. Design: `docs/superpowers/specs/2026-10-24-crops-anchors-design.md`.
+- Lanes and priority (`promptLanes`, #69): one text-only request per capture rates each item's severity (blocker, bug, polish, nit), size (one line to many files), and kind (exact edit or judgment). Shadow writes each rating to `jev.json` and `jev-review/promptLanes.md`. In on, the copied round prompt (Copy Prompt and End Round, Copy Round Prompt in Recent) ends with an "Order and lanes" section. Lane A lists exact, small edits that are not blockers, for a subagent on a fast, low-cost model. Lane B lists the rest, worst first. The section is built at round end from `jev.json` (`PromptLanesPlan`). `prompt.md` on disk never changes. `scripts/prompt-lanes-eval.sh` measures accuracy against a labeled set kept outside the repository. Design: `docs/superpowers/specs/2026-10-24-prompt-lanes-design.md`.
 
 ## Brand and README
 

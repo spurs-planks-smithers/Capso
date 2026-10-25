@@ -128,7 +128,8 @@ public struct NoteCoachJob: JevJob {
 
         var lines: [JevRefinedLine] = []
         var summary: [JevSummaryField] = []
-        var review = ["### Capture \(capture.index)"]
+        // The review writer adds the capture heading.
+        var review: [String] = []
         for item in items {
             let id = Self.itemID(capture: capture.index, badge: item.badge)
             let label: NoteCoachLabel?

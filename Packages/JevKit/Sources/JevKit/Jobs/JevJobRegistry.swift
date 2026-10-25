@@ -13,5 +13,7 @@ public enum JevJobRegistry {
         CropsAnchorsJob(), // #38
         DupesConflictsJob(), // #39
         OneBreathJob(), // #40
+        PromptLanesJob(), // #69
+        DataGuardJob(), // #70
     ]
 }
