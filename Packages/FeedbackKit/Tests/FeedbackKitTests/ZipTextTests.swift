@@ -62,6 +62,20 @@ struct ZipTextTests {
         #expect(ZipMessages.ready(fileName: name, bytes: 48_000, overBudget: false).hasPrefix("Zip copied: \(name), 48 KB.\n"))
     }
 
+    @Test("Every failure has a toast that names the reason")
+    func failureMessages() {
+        let url = URL(fileURLWithPath: "/tmp/x.png")
+        #expect(ZipMessages.failure(for: ZipError.noCaptures) == "Nothing to zip.\nNo capture was found with both of its images.")
+        #expect(ZipMessages.failure(for: ExportImageError.unreadable(url)) == "Zip not written.\nA capture image could not be read.")
+        #expect(ZipMessages.failure(for: ExportImageError.encodeFailed) == "Zip not written.\nA capture image could not be converted.")
+        #expect(ZipMessages.failure(for: CocoaError(.fileWriteOutOfSpace)) == "Zip not written.\nThe disk is full.")
+        #expect(ZipMessages.failure(for: CocoaError(.fileWriteNoPermission)) == ZipMessages.noDownloadsAccess)
+        #expect(ZipMessages.failure(for: NSError(domain: NSPOSIXErrorDomain, code: Int(EACCES))) == ZipMessages.noDownloadsAccess)
+        let wrapped = NSError(domain: NSCocoaErrorDomain, code: 4, userInfo: [NSUnderlyingErrorKey: NSError(domain: NSPOSIXErrorDomain, code: Int(EPERM))])
+        #expect(ZipMessages.failure(for: wrapped) == ZipMessages.noDownloadsAccess)
+        #expect(ZipMessages.failure(for: CocoaError(.fileReadCorruptFile)) == "Zip not written.\nThe Nextshot log has the reason.")
+    }
+
     @Test("The fixed toasts")
     func fixedMessages() {
         #expect(ZipMessages.making == "Making zip...")

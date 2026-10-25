@@ -46,10 +46,10 @@ public enum PromptBuilder {
             "",
             "How to read the bundle:",
             "1. Open `\(paths.file("manifest.md"))`.",
-            "2. For each capture, open its annotated PNG first, then read its section in manifest.md.",
-            "3. Open the -clean.png copy only when a mark hides content.",
+            "2. For each capture, open its annotated \(paths.imageNoun) first, then read its section in manifest.md.",
+            "3. Open the -clean.\(paths.imageExtension) copy only when a mark hides content.",
             "4. Badge N in a capture with item prefix K is item K.N. Each capture section in manifest.md gives its prefix.",
-            "5. Coordinates are pixels in that PNG, origin top-left. A box is x1 y1 x2 y2.",
+            "5. Coordinates are pixels in that \(paths.imageNoun), origin top-left. A box is x1 y1 x2 y2.",
         ]
         if refined {
             lines.append("6. If `\(paths.file("refined.md"))` exists, read it after manifest.md. It holds automated labels. The written instructions win over it.")
@@ -59,7 +59,7 @@ public enum PromptBuilder {
         lines += [
             "",
             "Context:",
-            "- Read each image only when you work on its items. Each image costs up to \(ImageSizing.Limits.feedbackExport.maxTokens) tokens.",
+            "- Read each image only when you work on its items. Each image costs up to \(paths.maxImageTokens) tokens.",
             "</feedback_bundle>",
         ]
         return lines.joined(separator: "\n") + "\n"
@@ -120,7 +120,7 @@ public enum PromptBuilder {
         lines += [
             "",
             "Context:",
-            "- The annotated image costs up to \(ImageSizing.Limits.feedbackExport.maxTokens) tokens.",
+            "- The annotated image costs up to \(paths.maxImageTokens) tokens.",
             "</feedback_capture>",
         ]
         return lines.joined(separator: "\n") + "\n"

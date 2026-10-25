@@ -20,6 +20,32 @@ public enum BundlePathMode: Sendable, Equatable {
         }
     }
 
+    /// How the text names a capture image: a bundle holds PNGs, a zip export
+    /// holds JPEGs.
+    var imageNoun: String {
+        switch self {
+        case .absolute: "PNG"
+        case .relative: "image"
+        }
+    }
+
+    /// The extension of the clean copy, for "Open the -clean.png copy".
+    var imageExtension: String {
+        switch self {
+        case .absolute: "png"
+        case .relative: "jpg"
+        }
+    }
+
+    /// The most visual tokens one image costs. Zip images are at the
+    /// standard tier size.
+    var maxImageTokens: Int {
+        switch self {
+        case .absolute: ImageSizing.Limits.feedbackExport.maxTokens
+        case .relative: ImageSizing.Limits.standard.maxTokens
+        }
+    }
+
     /// The `path` attribute of the prompt's opening tag. A relative prompt
     /// has none.
     public var tagPath: String? {

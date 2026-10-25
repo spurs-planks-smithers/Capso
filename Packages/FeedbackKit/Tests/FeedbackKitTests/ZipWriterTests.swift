@@ -261,6 +261,50 @@ struct ZipWriterTests {
         #expect(round.captures.first?.marks.first?.instruction == words)
     }
 
+    @Test("Zip text names JPEG images, never PNG files, and the standard token cost")
+    func zipTextNamesNoPNG() throws {
+        let fixture = try Fixture()
+        defer { try? FileManager.default.removeItem(at: fixture.base) }
+        let top = try fixture.unzip(try fixture.zip(try fixture.write(Self.twoCaptureRound())))
+        let texts = try Self.files(in: top).filter { $0.pathExtension == "md" }
+        try #require(texts.count == 4)
+        for file in texts {
+            let text = try Self.text(file)
+            #expect(!text.contains("PNG"), "\(file.lastPathComponent) says PNG")
+            #expect(!text.contains(".png"), "\(file.lastPathComponent) names a .png file")
+            #expect(!text.contains("4784"), "\(file.lastPathComponent) gives the high-resolution cost")
+        }
+        let readme = try Self.text(top.appendingPathComponent("README.md"))
+        #expect(readme.contains("2. For each capture, open its annotated image first, then read its section in manifest.md."))
+        #expect(readme.contains("3. Open the -clean.jpg copy only when a mark hides content."))
+        #expect(readme.contains("costs up to 1568 tokens"))
+    }
+
+    @Test("Checked captures that were not found are named in the README")
+    func unresolvedCapturesAreNamed() throws {
+        let fixture = try Fixture()
+        defer { try? FileManager.default.removeItem(at: fixture.base) }
+        let gone = FeedbackBasketKey(folderName: "2026-10-19-0800-feedback", captureIndex: 9)
+        let result = try ZipWriter.write(
+            kind: .selection, entries: try fixture.write(Self.twoCaptureRound()), unresolved: [gone],
+            into: fixture.destination, now: FeedbackFixtures.date(25, 7, 0), timeZone: FeedbackFixtures.timeZone,
+            stagingRoot: fixture.staging
+        )
+        #expect(result.missing == [gone])
+        let readme = try Self.text(try fixture.unzip(result).appendingPathComponent("README.md"))
+        #expect(readme.contains("Left out (capture not found): round 2026-10-19-0800-feedback, its capture 9."))
+    }
+
+    @Test("A folder left from an earlier unzip also takes the name")
+    func unzippedFolderTakesTheName() throws {
+        let fixture = try Fixture()
+        defer { try? FileManager.default.removeItem(at: fixture.base) }
+        let old = fixture.destination.appendingPathComponent("nextshot-round-2026-10-20-1912-2-captures", isDirectory: true)
+        try FileManager.default.createDirectory(at: old, withIntermediateDirectories: true)
+        let result = try fixture.zip(try fixture.write(Self.twoCaptureRound()))
+        #expect(result.url.lastPathComponent == "nextshot-round-2026-10-20-1912-2-captures-2.zip")
+    }
+
     @Test("A selection manifest lists its source rounds")
     func selectionManifestListsSources() throws {
         let fixture = try Fixture()

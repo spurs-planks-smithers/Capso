@@ -35,25 +35,25 @@ final class FeedbackZip {
     @discardableResult
     func zipRound(folderName: String) -> Bool {
         start(kind: .round) { rootURL in
-            guard let round = FeedbackLibrary.round(named: folderName, in: rootURL) else { return [] }
+            guard let round = FeedbackLibrary.round(named: folderName, in: rootURL) else { return ([], []) }
             let folderPath = rootURL.appendingPathComponent(folderName, isDirectory: true).path
-            return round.captures.map { FeedbackSelectionEntry(round: round, capture: $0, folderPath: folderPath) }
+            return (round.captures.map { FeedbackSelectionEntry(round: round, capture: $0, folderPath: folderPath) }, [])
         }
     }
 
-    /// Returns false, after a beep, when a zip already runs.
+    /// Returns false, after a beep, when a zip already runs. A checked
+    /// capture that is gone is named in the zip's README.
     @discardableResult
     func zipSelected(_ basket: FeedbackBasket) -> Bool {
         start(kind: .selection) { rootURL in
             let resolved = FeedbackLibrary.entries(for: basket, in: rootURL)
-            if !resolved.missing.isEmpty {
-                FeedbackLog.logger.notice("zip: \(resolved.missing.count, privacy: .public) checked captures not found")
-            }
-            return resolved.entries
+            return (resolved.entries, resolved.missing)
         }
     }
 
-    private func start(kind: ZipKind, entries: @escaping @MainActor (URL) -> [FeedbackSelectionEntry]) -> Bool {
+    private typealias Resolved = (entries: [FeedbackSelectionEntry], unresolved: [FeedbackBasketKey])
+
+    private func start(kind: ZipKind, resolve: @escaping @MainActor (URL) -> Resolved) -> Bool {
         guard !running else {
             NSSound.beep()
             return false
@@ -73,16 +73,14 @@ final class FeedbackZip {
             // A save can include OCR, which can take 30 s. The zip reads the
             // round from disk after it, so the zip holds every stored capture.
             await waitForSaves()
-            let list = entries(rootURL)
-            guard !list.isEmpty else {
-                FeedbackLog.logger.notice("zip: nothing to zip")
-                NSSound.beep()
-                return
-            }
+            let resolved = resolve(rootURL)
+            let list = resolved.entries
+            let unresolved = resolved.unresolved
             let downloads = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask)[0]
             do {
+                // An empty list throws noCaptures, so it gets the same toast.
                 let result = try await Task.detached(priority: .userInitiated) {
-                    try ZipWriter.write(kind: kind, entries: list, into: downloads, now: Date(), timeZone: .current)
+                    try ZipWriter.write(kind: kind, entries: list, unresolved: unresolved, into: downloads, now: Date(), timeZone: .current)
                 }.value
                 making.cancel()
                 NSPasteboard.general.clearContents()
@@ -92,32 +90,19 @@ final class FeedbackZip {
                 let seconds = Date().timeIntervalSince(began)
                 // The zip name holds the date only, but the folder stays private like other names.
                 FeedbackLog.logger.notice("zip written: \(kind.rawValue, privacy: .public), \(result.captureCount, privacy: .public) captures, \(result.missing.count, privacy: .public) missing, \(result.bytes, privacy: .public) bytes, step \(result.stepIndex, privacy: .public), over \(result.overBudget, privacy: .public), \(seconds, format: .fixed(precision: 1), privacy: .public) s, \(result.url.lastPathComponent, privacy: .private)")
-            } catch ZipError.noCaptures {
-                FeedbackLog.logger.notice("zip: no capture has both images")
-                NSSound.beep()
             } catch {
+                // Every failure replaces "Making zip..." with a toast that
+                // names the reason (spec, Errors).
                 making.cancel()
-                if Self.isNoAccess(error) {
-                    showToast(ZipMessages.noDownloadsAccess)
+                showToast(ZipMessages.failure(for: error))
+                if case ZipError.noCaptures = error {
+                    FeedbackLog.logger.notice("zip: no capture has both images, \(unresolved.count, privacy: .public) not found")
+                    NSSound.beep()
+                } else {
+                    report(error, "Zip not written")
                 }
-                report(error, "Zip not written")
             }
         }
         return true
-    }
-
-    /// True for a write that macOS refused, as when Downloads access is off.
-    private static func isNoAccess(_ error: Error) -> Bool {
-        let nsError = error as NSError
-        if nsError.domain == NSCocoaErrorDomain, nsError.code == NSFileWriteNoPermissionError {
-            return true
-        }
-        if nsError.domain == NSPOSIXErrorDomain, nsError.code == Int(EPERM) || nsError.code == Int(EACCES) {
-            return true
-        }
-        if let underlying = nsError.userInfo[NSUnderlyingErrorKey] as? NSError {
-            return isNoAccess(underlying)
-        }
-        return false
     }
 }

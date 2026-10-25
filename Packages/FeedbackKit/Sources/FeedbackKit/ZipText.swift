@@ -4,7 +4,9 @@ import Foundation
 /// `README.md`, the file an agent opens first in a zip export (#85). It holds
 /// the whole prompt, with every path relative to its folder.
 public enum ZipReadme {
-    public static func render(_ plan: ZipPlan, kind: ZipKind, missing: [FeedbackBasketKey]) -> String {
+    /// `missing` are captures whose image file was not found. `unresolved`
+    /// are checked captures whose round or capture was not found at all.
+    public static func render(_ plan: ZipPlan, kind: ZipKind, missing: [FeedbackBasketKey], unresolved: [FeedbackBasketKey] = []) -> String {
         var lines = [
             "# Nextshot feedback export",
             "",
@@ -19,6 +21,9 @@ public enum ZipReadme {
         }
         for key in missing {
             lines.append("Left out (image file not found): round \(key.folderName), its capture \(key.captureIndex).")
+        }
+        for key in unresolved {
+            lines.append("Left out (capture not found): round \(key.folderName), its capture \(key.captureIndex).")
         }
         lines.append("")
         // The redo line is in every zip prompt: the agent on the other Mac
@@ -36,6 +41,43 @@ public enum ZipMessages {
     public static func ready(fileName: String, bytes: Int, overBudget: Bool) -> String {
         let over = overBudget ? " (over the 5 MB goal)" : ""
         return "Zip copied: \(fileName), \(sizeText(bytes))\(over).\nPaste it into Mail, Slack, or Teams. It is also in Downloads."
+    }
+
+    /// The toast for a zip that was not written. It names the reason, and
+    /// never a file name, because file names hold screen text.
+    public static func failure(for error: Error) -> String {
+        if let error = error as? ZipError, error == .noCaptures {
+            return "Nothing to zip.\nNo capture was found with both of its images."
+        }
+        if let error = error as? ExportImageError {
+            switch error {
+            case .unreadable: return "Zip not written.\nA capture image could not be read."
+            case .encodeFailed: return "Zip not written.\nA capture image could not be converted."
+            }
+        }
+        if isNoAccess(error) {
+            return noDownloadsAccess
+        }
+        let nsError = error as NSError
+        if nsError.domain == NSCocoaErrorDomain, nsError.code == NSFileWriteOutOfSpaceError {
+            return "Zip not written.\nThe disk is full."
+        }
+        return "Zip not written.\nThe Nextshot log has the reason."
+    }
+
+    /// True for a write that macOS refused, as when Downloads access is off.
+    public static func isNoAccess(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        if nsError.domain == NSCocoaErrorDomain, nsError.code == NSFileWriteNoPermissionError {
+            return true
+        }
+        if nsError.domain == NSPOSIXErrorDomain, nsError.code == Int(EPERM) || nsError.code == Int(EACCES) {
+            return true
+        }
+        if let underlying = nsError.userInfo[NSUnderlyingErrorKey] as? NSError {
+            return isNoAccess(underlying)
+        }
+        return false
     }
 
     /// Decimal units, as Finder shows them: "2.4 MB", or "48 KB" under 0.1 MB.
