@@ -21,8 +21,12 @@ On `claude/prompt-lanes-9d7023`: `9109b99` spec draft, `bedd18d` spec approved, 
 - The unsigned Debug build passes.
 - With `promptLanes` off, no request goes out, and `PromptBuilder.render` output is byte-identical.
 
-## Open
+## Accuracy test (#73, closed)
 
-- #73: build the labeled set in the main checkout's `build/jev-eval/`, run `scripts/prompt-lanes-eval.sh`, Drew confirms the lane A and bug labels, then set the threshold.
+- Three text-only runs of 213 notes. Drew checked 30 labels on a local review page and changed 11. His key replaces Claude's.
+- Final rule (job version 3): severity levels follow Drew's line, a mixed exact and vague note is judgment, and lane A takes only polish and nit at `exact` 0.9 or more.
+- All five bars pass: lane A precision 7 of 7, recall 7 of 12, bug recall 5 of 5, no blocker and no vague note in lane A. The rule was tuned on the graded notes, so the trial is the real check. Details: the spec's "Accuracy test results".
+
+## Open
 - #74: the trial on the orchestration session's combined build: shadow, on, and a paste test that checks the agent starts one smaller-model subagent for lane A.
 - Drew approves the PR merge. Then #69 closes, when all its sub-issues are closed.

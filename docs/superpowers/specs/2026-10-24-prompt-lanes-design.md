@@ -56,13 +56,13 @@ Four searches on 2026-10-24 on how teams route coding work between strong and ch
 
 Each item is one numbered badge. Its note is the badge's `instruction` in `feedback.json`. The capture's general note is context only. The job never labels it.
 
-Severity (a Jev Score, four levels):
+Severity (a Jev Score, four levels). The levels follow Drew's own marks in the label review (Drew, 2026-10-24). Job version 3.
 
 | Level | Name | Meaning |
 | --- | --- | --- |
-| 3 | blocker | The feature fails, shows wrong data, or stops the user from finishing a task. |
-| 2 | bug | Something is broken, inconsistent, or cut off, but the screen still works. |
-| 1 | polish | The change improves the look, the wording, or the layout. Nothing is broken. |
+| 3 | blocker | A feature fails, does not work, or shows wrong data. |
+| 2 | bug | The screen says something false or misleading, but the feature works. |
+| 1 | polish | The change improves the look, the layout, or the wording, including cut-off text, uneven sizes, or inconsistent terms. Nothing is false or broken. |
 | 0 | nit | A small taste preference. The screen works and reads well without it. |
 
 Size (a Jev Score, four levels):
@@ -79,22 +79,22 @@ Kind (a Jev Choice, two options):
 | Option | Meaning |
 | --- | --- |
 | `exact` | Every change in the note is exact: new text given in full, a named color, a size or spacing number, or one named element to remove. A developer makes no design or product choice. |
-| `judgment` | At least one change needs a choice: make something clearer, better, or consistent, pick a layout, research, explain, or answer a question. A note that names no concrete change ("fix this", "look at this") is `judgment` too. The question text says so. My call, from the builder check. |
+| `judgment` | At least one change needs a choice: make something clearer, better, or consistent, pick a layout, research, explain, or answer a question. A note that names no concrete change ("fix this", "look at this") is `judgment` too (my call, from the builder check). So is a note that mixes an exact value with a vague ask, such as a number for the text but only "larger" for the box (Drew, 2026-10-24, job version 3). |
 
 Lanes (decided by code from the three answers):
 
 | Lane | Rule |
 | --- | --- |
-| A, exact edits | `exact` probability 0.8 or more, size one line or one file, and severity not blocker (Drew, 2026-10-24: "Exact and small only"). |
+| A, exact edits | `exact` probability 0.9 or more, size one line or one file, and severity polish or nit. Drew chose "exact and small only" first, then "polish and nit only" after the accuracy test (both 2026-10-24). |
 | B, needs judgment | Every other rated item. |
 | not rated | An answer is missing or out of range, the job failed or did not run for the capture, or the capture was still running at round end. Listed at the end of lane B. |
 | ask first | The note is empty. Code decides this with no Jev question. |
 
-The 0.8 threshold is a start value. The accuracy test sets the final one.
+The accuracy test set the threshold at 0.9 for `jev-1.14.0` (see Accuracy test results). The start value was 0.8.
 
 ## The Jev job
 
-`PromptLanesJob` (id `promptLanes`, version 1) runs on the base's trigger, after the note panel ends and OCR is stored. It sends one request per capture when at least one item has a note. A capture whose notes are all empty sends nothing.
+`PromptLanesJob` (id `promptLanes`, version 3 after the accuracy test) runs on the base's trigger, after the note panel ends and OCR is stored. It sends one request per capture when at least one item has a note. A capture whose notes are all empty sends nothing.
 
 The request holds reviewer text only, even with `jevSendImages` or `jevSendScreenText` on. `requires` is empty. Severity, size, and kind come from the words of the note. A picture adds little to them, and text keeps the data that leaves the Mac small. My call, as the note coach did.
 
@@ -117,7 +117,7 @@ The code rule (pure code, in the job file, next to the questions):
 
 - Severity is the most likely level. A tie takes the higher level, so a doubt never lowers severity.
 - Size is the most likely level. A tie takes the larger size.
-- Lane A needs `exact` at 0.8 or more, size level 0 or 1, and severity level 0 to 2.
+- Lane A needs `exact` at 0.9 or more, size level 0 or 1, and severity level 0 or 1 (nit or polish).
 - Any other rated item is lane B.
 - A missing answer, a Score without four levels, or a number that is not finite or is outside 0 to 1 makes the item not rated.
 
@@ -254,6 +254,34 @@ A failed bar changes the threshold or the question text, then the test runs agai
 
 When: the build and the PR use the start threshold 0.8 and include the harness. The accuracy run and Drew's label check come after the build and before the on step of the trial. They gate the on state, not the PR. My call, as the note coach did it (#62 before #63).
 
+## Accuracy test results (2026-10-24)
+
+Model `jev-1.14.0`. Each run sent 213 notes (72 real, 65 test, 76 made-up), text only. Each run took about 6 s and 118,000 to 131,000 input tokens (about half a cent), with no errors and no retries. Three runs in all.
+
+| Step | Change | Answer key | Result |
+| --- | --- | --- | --- |
+| Run 1 | Start questions, threshold 0.8 | Claude's | 4 of 5 bars pass. Bug recall 6 of 7. Jev scored plain removals as judgment (exact about 0.2 to 0.5). Three question examples copied test notes. |
+| Run 2 | Removal examples in the `exact` option. No example copies a test note. Job version 2. | Claude's | 5 of 5 bars pass: precision 10 of 11, recall 10 of 18, bug recall 7 of 7. |
+| Drew's review | Drew checked 30 labels on a local review page. | Drew's | 11 labels changed: 6 lane A items to lane B, 3 bugs to blockers, 2 bugs to polish. Jev already matched Drew on 5 of the 6 lane changes. Run 2 against Drew's key: precision 9 of 11 (82%), because two notes mix an exact value with a vague ask. |
+| Run 3 | Severity levels follow Drew's line. A mixed exact and vague note is judgment. Job version 3. | Drew's | The mixed notes left lane A. One made-up wrong-number fix was rated bug and reached lane A, so the blocker bar failed. |
+| Final rule | Lane A: `exact` 0.9 or more, polish or nit only. Recomputed from the run 3 answers, with no new send. | Drew's | 5 of 5 bars pass (below). |
+
+| Check | Bar | Final result |
+| --- | --- | --- |
+| Lane A precision, real notes | at least 90% | 7 of 7 (100%) |
+| Blockers in lane A | 0 | 0 |
+| Lane A recall, real notes | at least 50% | 7 of 12 (58%) |
+| Bug recall, real notes | all | 5 of 5 |
+| Vague notes in lane A | 0 | 0 of 65 |
+
+All three sets together: 16 of 16 lane A items are right.
+
+Limits:
+
+- The rule and the threshold were set on the same 72 real notes they are graded on, and only 12 of them belong in lane A. The trial (#74) and the kill rule are the real check.
+- Jev still rates some polish items as bugs. In run 3, 5 of the 9 real items that Jev called a bug or blocker are bugs or blockers in Drew's key. This affects only the order inside a lane.
+- The labeled sets, the review page, and the results stay in the main checkout's git-ignored `build/jev-eval/`.
+
 ## Rollout and kill rule
 
 1. Build with `promptLanes` off in both channels. A test proves the off state changes nothing.
@@ -287,6 +315,10 @@ None open. Drew answered every question that changes what gets built on 2026-10-
 - 2026-10-24 (builder check): a note that names no concrete change is `judgment`, and the accuracy test checks that no vague note reaches lane A (my call).
 - 2026-10-24 (builder check): the accuracy run gates the on state, not the PR. The plan uses the job's current version, not a fixed number (my call).
 - 2026-10-24 (final review): the lane A sentence also hands over each item's file from the plan table, because the subagent has no image (my call).
+- 2026-10-24 (accuracy test): one tuning run (job version 2) with removal examples and no copied test notes (Drew).
+- 2026-10-24 (label review): Drew corrected 11 of Claude's 30 labels. His key replaces Claude's (Drew).
+- 2026-10-24 (label review): severity levels follow Drew's line. Blocker: a feature fails or shows wrong data. Bug: the screen says something false. Polish includes cut-off text, uneven sizes, and inconsistent terms. A mixed exact and vague note is judgment. Job version 3 (Drew).
+- 2026-10-24 (label review): lane A takes only polish and nit, with `exact` at 0.9 or more. This replaces "never a blocker" (Drew).
 
 ## Left to the builder
 
