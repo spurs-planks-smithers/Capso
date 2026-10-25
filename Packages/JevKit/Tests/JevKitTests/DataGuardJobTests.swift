@@ -236,7 +236,7 @@ struct DataGuardPrivateJobTests {
         let file = try #require(output.files.first)
         #expect(file.name == "0900-test-window-covered.png")
         #expect(output.lines.map(\.file) == ["0900-test-window-covered.png"])
-        #expect(output.lines.first?.label.text == "Private data guard: use this covered copy instead of the capture PNG and any item crops. It hides 3 areas of private data. Never copy private data from the screen into code, tests, commits, or messages.")
+        #expect(output.lines.first?.label.text == "Private data guard: use this covered copy instead of the capture PNG and any item crops. It covers 3 areas that may hold private data. Never copy private data from the screen into code, tests, commits, or messages.")
 
         let covered = try decode(file.data)
         #expect(pixel(covered, x: 200, y: 70) == black) // the email line
@@ -278,7 +278,7 @@ struct DataGuardPrivateJobTests {
         let fixture = try GuardFixture.make(ocr: "Plain\nContact user@example.com today")
         let output = try await DataGuardJob(faceFinder: noFaces).run(fixture.context(lines: nil, kinds: [.dataGuardContact: .on], sent: RequestLog()))
         #expect(output.files.isEmpty)
-        #expect(output.lines.map(\.label.text) == ["Private data guard: this capture shows private data that the guard could not cover. Never copy private data from the screen into code, tests, commits, or messages."])
+        #expect(output.lines.map(\.label.text) == ["Private data guard: this capture may show private data that the guard could not cover. Never copy private data from the screen into code, tests, commits, or messages."])
         #expect(output.review?.contains("email not placed") == true)
     }
 
@@ -414,6 +414,50 @@ struct DataGuardPrivateJobTests {
         #expect(try json(output.summary).contains(#""unscanned":1"#))
     }
 
+    @Test("With a text kind in on, an unresolved cut line is covered in the agent's copy too")
+    func cutLineCoveredInCopy() async throws {
+        let fixture = try GuardFixture.make(ocr: "Header")
+        let cut = try #require(ScreenText.field(String(repeating: "y", count: 260)))
+        let output = try await DataGuardJob(faceFinder: noFaces).run(fixture.context(
+            lines: [line("Header", row: 0), FeedbackTextLine(text: cut, box: FeedbackBox(x1: 20, y1: 60, x2: 780, y2: 84))],
+            kinds: [.dataGuardSecrets: .on], sent: RequestLog()
+        ))
+        let covered = try decode(try #require(output.files.first).data)
+        #expect(pixel(covered, x: 700, y: 70) == black)
+        #expect(pixel(covered, x: 200, y: 30) == red)
+    }
+
+    @Test("Two long lines that start the same way are never rejoined by guess")
+    func ambiguousRejoin() async throws {
+        let prefix = String(repeating: "q", count: 230)
+        let first = prefix + " plain end"
+        let second = prefix + " user@example.com"
+        let fixture = try GuardFixture.make(ocr: first + "\n" + second)
+        let cut = try #require(ScreenText.field(first))
+        let output = try await DataGuardJob(faceFinder: noFaces).run(fixture.context(
+            lines: [FeedbackTextLine(text: cut, box: FeedbackBox(x1: 20, y1: 20, x2: 780, y2: 44)), FeedbackTextLine(text: cut, box: FeedbackBox(x1: 20, y1: 60, x2: 780, y2: 84))],
+            kinds: [.dataGuardContact: .on], sent: RequestLog()
+        ))
+        #expect(try json(output.summary).contains(#""unscanned":2"#))
+        let covered = try decode(try #require(output.files.first).data)
+        #expect(pixel(covered, x: 700, y: 30) == black)
+        #expect(pixel(covered, x: 700, y: 70) == black)
+    }
+
+    @Test("The cut last line of a cut block is no full text")
+    func lastLineOfCutBlock() async throws {
+        let long = String(repeating: "w", count: 300)
+        let block = try #require(ScreenText.field(String(repeating: "v\n", count: 2_400) + long, singleLine: false, maxScalars: ScreenText.maxBlockLength))
+        #expect(block.hasSuffix("..."))
+        let fixture = try GuardFixture.make(ocr: block)
+        let lastLine = String(block.split(separator: "\n").last ?? "")
+        let cut = try #require(ScreenText.field(lastLine))
+        let output = try await DataGuardJob(faceFinder: noFaces).run(fixture.context(
+            lines: [FeedbackTextLine(text: cut, box: FeedbackBox(x1: 20, y1: 60, x2: 780, y2: 84))], kinds: [.dataGuardContact: .shadow], sent: RequestLog()
+        ))
+        #expect(try json(output.summary).contains(#""unscanned":1"#))
+    }
+
     @Test("OCR text cut at its block limit keeps the image home when there are no boxes")
     func blockCutKeepsImageHome() async throws {
         let ocr = try #require(ScreenText.field(String(repeating: "z", count: 5_100), singleLine: false, maxScalars: ScreenText.maxBlockLength))
@@ -431,7 +475,7 @@ struct DataGuardPrivateJobTests {
             lines: nil, kinds: [.dataGuardContact: .on, .dataGuardFaces: .on], sent: RequestLog()
         ))
         #expect(!output.files.isEmpty)
-        #expect(output.lines.map(\.label.text) == ["Private data guard: use this covered copy instead of the capture PNG and any item crops. It hides 1 area of private data, and the capture shows more that it could not cover. Never copy private data from the screen into code, tests, commits, or messages."])
+        #expect(output.lines.map(\.label.text) == ["Private data guard: use this covered copy instead of the capture PNG and any item crops. It covers 1 area that may hold private data, and the capture may show more that it could not cover. Never copy private data from the screen into code, tests, commits, or messages."])
     }
 
     @Test("Too little time: no request, and local results stay")
