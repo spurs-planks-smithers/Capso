@@ -16,8 +16,9 @@ final class FeedbackRoundDot: NSView {
     static let diameter: CGFloat = 5
 
     /// The dot as an image for a menu row, 8 points across like the help box's
-    /// dot. It is not a template, so it stays green on the row highlight. The
-    /// color resolves when the image draws, so it follows the menu's appearance.
+    /// dot. The color resolves when the image draws, so it follows the menu's
+    /// appearance. On the blue highlight of an open row, macOS draws it light
+    /// (Drew's screenshot, 2026-10-24).
     static let menuImage: NSImage = {
         let image = NSImage(size: NSSize(width: 8, height: 8), flipped: false) { rect in
             NSColor.systemGreen.setFill()
