@@ -120,6 +120,29 @@ private func failing(_ errors: [String: any Error & Sendable], otherwise ask: @e
     }
 }
 
+/// The batches for the capture with index `current`, built as `run` builds
+/// them but with `allowed` exactly as given. `run` itself removes `.images`
+/// from `allowed` (Drew, 2026-10-24), so the image tests call this instead.
+private func dupesBatches(
+    _ captures: [FeedbackCapture],
+    current: Int,
+    allowed: JevDataKinds,
+    images: JevImageLoader = dupesImages()
+) -> [DupesConflicts.Batch] {
+    let newEntries = DupesConflicts.entries(of: captures.first { $0.index == current }!)
+    let earlierEntries = captures
+        .filter { $0.index < current }
+        .sorted { $0.index < $1.index }
+        .flatMap { DupesConflicts.entries(of: $0) }
+    let candidates = DupesConflicts.candidates(earlierCaptures: earlierEntries, new: newEntries)
+    return DupesConflicts.batches(
+        new: newEntries.filter { !candidates($0).isEmpty },
+        candidates: candidates,
+        allowed: allowed,
+        images: images
+    )
+}
+
 // MARK: Reading requests
 
 private func field(_ name: String, in value: JevValue?) -> JevValue? {
@@ -167,13 +190,13 @@ private func scopedLine(_ scope: JevRefinedLine.Scope, _ label: JevCodeText) -> 
 struct DupesConflictsJobTests {
     // MARK: Identity
 
-    @Test("The job keeps its id, flag, and no required kinds, and sits at version 1")
+    @Test("The job keeps its id and flag, needs screen text, and sits at version 2")
     func identity() {
         let job = DupesConflictsJob()
         #expect(job.id == "dupesConflicts")
         #expect(job.flag == .dupesConflicts)
-        #expect(job.requires == [])
-        #expect(job.version == 1)
+        #expect(job.requires == [.screenText])
+        #expect(job.version == 2)
     }
 
     @Test("Every failure reason has a code name equal to its raw value")
@@ -357,6 +380,20 @@ struct DupesConflictsJobTests {
     /// Capture 2 holds one entry (an item by default), so these tests keep
     /// checking pairs across captures. Entries of one capture always share a
     /// source and pair with each other: the same-capture tests cover that.
+    private func consentCaptures(
+        earlier: (app: String?, window: String?),
+        current: (app: String?, window: String?),
+        currentMarks: [FeedbackMark],
+        currentNote: String?
+    ) -> [FeedbackCapture] {
+        [
+            dupesCapture(1, app: earlier.app, window: earlier.window, marks: [dupesItem(1, "make the title bigger", ocr: "Save")]),
+            dupesCapture(2, app: current.app, window: current.window, note: currentNote, marks: currentMarks),
+        ]
+    }
+
+    /// The requests the job sends through `run`. `run` never sends an image,
+    /// even with `.images` allowed.
     private func consentRequests(
         earlier: (app: String?, window: String?) = ("Claude", "Main"),
         current: (app: String?, window: String?) = ("Claude", "Main"),
@@ -364,13 +401,24 @@ struct DupesConflictsJobTests {
         currentMarks: [FeedbackMark] = [dupesItem(1, "make the title smaller", ocr: "Save changes")],
         currentNote: String? = nil
     ) async throws -> [JevRequest] {
-        let captures = [
-            dupesCapture(1, app: earlier.app, window: earlier.window, marks: [dupesItem(1, "make the title bigger", ocr: "Save")]),
-            dupesCapture(2, app: current.app, window: current.window, note: currentNote, marks: currentMarks),
-        ]
+        let captures = consentCaptures(earlier: earlier, current: current, currentMarks: currentMarks, currentNote: currentNote)
         let log = RequestLog()
         _ = try await DupesConflictsJob().run(dupesContext(captures, current: 2, allowed: allowed, ask: canned(log: log)))
         return await log.requests
+    }
+
+    /// The requests `DupesConflicts.batches` builds, with `allowed` as given.
+    /// The job removes `.images` before it calls `batches`, so the tests of
+    /// the image code call `batches` directly.
+    private func consentBatchRequests(
+        earlier: (app: String?, window: String?) = ("Claude", "Main"),
+        current: (app: String?, window: String?) = ("Claude", "Main"),
+        allowed: JevDataKinds,
+        currentMarks: [FeedbackMark] = [dupesItem(1, "make the title smaller", ocr: "Save changes")],
+        currentNote: String? = nil
+    ) -> [JevRequest] {
+        let captures = consentCaptures(earlier: earlier, current: current, currentMarks: currentMarks, currentNote: currentNote)
+        return dupesBatches(captures, current: 2, allowed: allowed).map(\.request)
     }
 
     @Test("With reviewer text only, a request holds no screen text, app, or crop")
@@ -421,9 +469,48 @@ struct DupesConflictsJobTests {
         #expect(names(of: newObjects(of: note).first) == ["id", "note", "app"])
     }
 
+    @Test("With all three kinds allowed, run sends no image and no new entry carries a crop")
+    func runNeverSendsImages() async throws {
+        // Same app and window in both captures, so `batches` would send crops
+        // here. The job removes `.images` first (Drew, 2026-10-24).
+        let captures = consentCaptures(
+            earlier: ("Claude", "Main"),
+            current: ("Claude", "Main"),
+            currentMarks: [dupesItem(1, "make the title smaller", ocr: "Save changes")],
+            currentNote: nil
+        )
+        let allKinds: JevDataKinds = [.reviewerText, .screenText, .images]
+
+        // The control: the same round, with `.images` left in, does send crops.
+        let control = dupesBatches(captures, current: 2, allowed: allKinds).map(\.request)
+        #expect(control.count == 1)
+        #expect(control.allSatisfy { $0.images.count == 2 })
+
+        // The job must not even load an image.
+        let loader = JevImageLoader { _, _, _ in
+            Issue.record("The job asked the loader for an image")
+            throw ImageFailure()
+        }
+        let log = RequestLog()
+        _ = try await DupesConflictsJob().run(dupesContext(captures, current: 2, allowed: allKinds, images: loader, ask: canned(log: log)))
+        let requests = await log.requests
+        #expect(requests.count == 1)
+        for request in requests {
+            #expect(request.images.isEmpty)
+            #expect(!request.kinds.contains(.images))
+            #expect(request.kinds.contains(.screenText))
+            #expect(names(of: request.state) == ["new", "earlier_screen_text"])
+            let objects = newObjects(of: request)
+            #expect(objects.count == 1)
+            for object in objects {
+                #expect(!names(of: object).contains("crop"))
+            }
+        }
+    }
+
     @Test("With images allowed and the same app, crops go for new and earlier entries")
-    func imagesSameApp() async throws {
-        let requests = try await consentRequests(earlier: ("Claude", "Inbox"), current: ("Claude", "Main"), allowed: [.reviewerText, .images])
+    func imagesSameApp() {
+        let requests = consentBatchRequests(earlier: ("Claude", "Inbox"), current: ("Claude", "Main"), allowed: [.reviewerText, .images])
         #expect(requests.count == 1)
         for request in requests {
             #expect(request.kinds.contains(.images))
@@ -441,14 +528,15 @@ struct DupesConflictsJobTests {
     }
 
     @Test("A shared window title is enough for images, even with different apps")
-    func imagesSameWindowTitle() async throws {
-        let requests = try await consentRequests(earlier: ("Mail", "Main"), current: ("Claude", "Main"), allowed: [.reviewerText, .images])
+    func imagesSameWindowTitle() {
+        let requests = consentBatchRequests(earlier: ("Mail", "Main"), current: ("Claude", "Main"), allowed: [.reviewerText, .images])
+        #expect(requests.count == 1)
         #expect(requests.allSatisfy { $0.images.count == 2 })
     }
 
     @Test("With different apps and window titles, no image goes")
-    func noImagesForDifferentSources() async throws {
-        let requests = try await consentRequests(earlier: ("Mail", "Inbox"), current: ("Claude", "Main"), allowed: [.reviewerText, .screenText, .images])
+    func noImagesForDifferentSources() {
+        let requests = consentBatchRequests(earlier: ("Mail", "Inbox"), current: ("Claude", "Main"), allowed: [.reviewerText, .screenText, .images])
         #expect(requests.count == 1)
         for request in requests {
             #expect(request.images.isEmpty)
@@ -459,22 +547,24 @@ struct DupesConflictsJobTests {
     }
 
     @Test("A missing name on both sides is not the same source")
-    func missingNamesNeverMatch() async throws {
+    func missingNamesNeverMatch() {
         let allKinds: JevDataKinds = [.reviewerText, .screenText, .images]
-        let noNames = try await consentRequests(earlier: (nil, nil), current: (nil, nil), allowed: allKinds)
+        let noNames = consentBatchRequests(earlier: (nil, nil), current: (nil, nil), allowed: allKinds)
         #expect(noNames.count == 1)
         #expect(noNames.allSatisfy { $0.images.isEmpty })
 
-        let differentTitles = try await consentRequests(earlier: (nil, "Inbox"), current: (nil, "Main"), allowed: allKinds)
+        let differentTitles = consentBatchRequests(earlier: (nil, "Inbox"), current: (nil, "Main"), allowed: allKinds)
+        #expect(differentTitles.count == 1)
         #expect(differentTitles.allSatisfy { $0.images.isEmpty })
 
         // The same non-empty window title still matches when both apps are missing.
-        let sameTitle = try await consentRequests(earlier: (nil, "Main"), current: (nil, "Main"), allowed: allKinds)
+        let sameTitle = consentBatchRequests(earlier: (nil, "Main"), current: (nil, "Main"), allowed: allKinds)
+        #expect(sameTitle.count == 1)
         #expect(sameTitle.allSatisfy { $0.images.count == 2 })
     }
 
     @Test("Two entries of one capture are the same source, whatever the app and window names are")
-    func sameCaptureIsSameSource() async throws {
+    func sameCaptureIsSameSource() throws {
         func entry(_ capture: Int, _ badge: Int, app: String?, window: String?) -> DupesConflicts.Entry {
             DupesConflicts.Entry(captureIndex: capture, badge: badge, note: "n", app: app, windowTitle: window)
         }
@@ -487,9 +577,7 @@ struct DupesConflictsJobTests {
         let captures = [
             dupesCapture(1, app: nil, window: nil, marks: [dupesItem(1, "make the title bigger"), dupesItem(2, "make the title smaller")]),
         ]
-        let withImages = RequestLog()
-        _ = try await DupesConflictsJob().run(dupesContext(captures, current: 1, allowed: [.reviewerText, .images], ask: canned(log: withImages)))
-        let imageRequests = await withImages.requests
+        let imageRequests = dupesBatches(captures, current: 1, allowed: [.reviewerText, .images]).map(\.request)
         let request = try #require(imageRequests.first)
         #expect(imageRequests.count == 1)
         #expect(newIDs(of: request) == ["1.2"])
@@ -498,9 +586,7 @@ struct DupesConflictsJobTests {
         #expect(names(of: field("earlier_crops", in: request.state)) == ["e1_1"])
         #expect(request.images.count == 2)
 
-        let textOnly = RequestLog()
-        _ = try await DupesConflictsJob().run(dupesContext(captures, current: 1, allowed: .reviewerText, ask: canned(log: textOnly)))
-        let textRequests = await textOnly.requests
+        let textRequests = dupesBatches(captures, current: 1, allowed: .reviewerText).map(\.request)
         let plain = try #require(textRequests.first)
         #expect(plain.images.isEmpty)
         #expect(names(of: plain.state) == ["new"])
@@ -508,29 +594,25 @@ struct DupesConflictsJobTests {
     }
 
     @Test("A failed image load leaves that image out and does not fail the job")
-    func imageLoadFailure() async throws {
+    func imageLoadFailure() throws {
         let captures = [
             dupesCapture(1, marks: [dupesItem(1, "make the title bigger")]),
             dupesCapture(2, marks: [dupesItem(1, "make the title smaller")]),
         ]
 
-        let earlierFails = RequestLog()
-        _ = try await DupesConflictsJob().run(dupesContext(
+        let firstRequests = dupesBatches(
             captures, current: 2, allowed: [.reviewerText, .images],
-            images: dupesImages(failing: [1]), ask: canned(log: earlierFails)
-        ))
-        let firstRequests = await earlierFails.requests
+            images: dupesImages(failing: [1])
+        ).map(\.request)
         let first = try #require(firstRequests.first)
         #expect(names(of: first.state) == ["new"])
         #expect(names(of: newObjects(of: first).first) == ["id", "note", "crop"])
         #expect(first.questions.allSatisfy { !(questionText($0.question) ?? "").contains("Crop for earlier_note") })
 
-        let newFails = RequestLog()
-        _ = try await DupesConflictsJob().run(dupesContext(
+        let secondRequests = dupesBatches(
             captures, current: 2, allowed: [.reviewerText, .images],
-            images: dupesImages(failing: [2]), ask: canned(log: newFails)
-        ))
-        let secondRequests = await newFails.requests
+            images: dupesImages(failing: [2])
+        ).map(\.request)
         let second = try #require(secondRequests.first)
         #expect(names(of: newObjects(of: second).first) == ["id", "note"])
         #expect(second.questions.allSatisfy { !(questionText($0.question) ?? "").contains("Crop for the new note") })
@@ -539,15 +621,13 @@ struct DupesConflictsJobTests {
     // MARK: Earlier crop cap
 
     @Test("At most 6 earlier crops go in a request, newest first")
-    func earlierCropCap() async throws {
+    func earlierCropCap() throws {
         let captures = [
             dupesCapture(1, marks: (1...5).map { dupesItem($0, "first capture ask \($0)") }),
             dupesCapture(2, marks: (1...3).map { dupesItem($0, "second capture ask \($0)") }),
             dupesCapture(3, marks: [dupesItem(1, "make it bigger")]),
         ]
-        let log = RequestLog()
-        _ = try await DupesConflictsJob().run(dupesContext(captures, current: 3, allowed: [.reviewerText, .images], ask: canned(log: log)))
-        let requests = await log.requests
+        let requests = dupesBatches(captures, current: 3, allowed: [.reviewerText, .images]).map(\.request)
         #expect(requests.count == 1)
         let request = requests[0]
 
@@ -1067,7 +1147,7 @@ struct DupesConflictsJobTests {
     }
 
     @Test("A request never holds more images than the encoder allows")
-    func imageLimit() async throws {
+    func imageLimit() throws {
         // 40 new entries make 8 requests of 5 entries, each with a crop,
         // plus the earlier crops that still fit.
         let captures = [
@@ -1083,9 +1163,7 @@ struct DupesConflictsJobTests {
                 contentRect: FeedbackBox(x1: 0, y1: 0, x2: 400, y2: 300)
             )
         }
-        let log = RequestLog()
-        _ = try await DupesConflictsJob().run(dupesContext(captures, current: 2, allowed: [.reviewerText, .images], images: images, ask: canned(log: log)))
-        let requests = await log.requests
+        let requests = dupesBatches(captures, current: 2, allowed: [.reviewerText, .images], images: images).map(\.request)
         #expect(requests.count == 8)
         for request in requests {
             #expect(request.images.count <= JevRequestEncoder.maxImages)
@@ -1127,12 +1205,12 @@ struct DupesConflictsRunnerTests {
     func shadowRecordsAnswers() async throws {
         let bundle = try await Bundle.make(captures: 2)
         let transport = StubTransport(fallback: jsonResponse(pairBody(sameAsk: 1.8, opposite: 0.05)))
-        let runner = makeRunner(bundle, jobs: [DupesConflictsJob()], flags: [.jevBase: .on, .dupesConflicts: .shadow], transport: transport)
+        let runner = makeRunner(bundle, jobs: [DupesConflictsJob()], flags: [.jevBase: .on, .dupesConflicts: .shadow, .jevSendScreenText: .on], transport: transport)
         await runCapture(runner, bundle, capture: 2)
 
         #expect(await transport.count == 1)
         let record = try #require(try bundle.record(2))
-        #expect(record.job == "dupesConflicts" && record.jobVersion == 1 && record.mode == "shadow" && record.status == .done)
+        #expect(record.job == "dupesConflicts" && record.jobVersion == 2 && record.mode == "shadow" && record.status == .done)
         #expect(Set(record.answers.map(\.id)) == ["2.1.vs.1.1.sameAsk", "2.1.vs.1.1.opposite"])
         #expect(record.lines.isEmpty)
         #expect(!bundle.exists("refined.md"))
@@ -1152,7 +1230,7 @@ struct DupesConflictsRunnerTests {
     func onWritesRoundLine() async throws {
         let bundle = try await Bundle.make(captures: 2)
         let transport = StubTransport(fallback: jsonResponse(pairBody(sameAsk: 1.8, opposite: 0.05)))
-        let runner = makeRunner(bundle, jobs: [DupesConflictsJob()], flags: [.jevBase: .on, .dupesConflicts: .on], transport: transport)
+        let runner = makeRunner(bundle, jobs: [DupesConflictsJob()], flags: [.jevBase: .on, .dupesConflicts: .on, .jevSendScreenText: .on], transport: transport)
         await runCapture(runner, bundle, capture: 2)
 
         let line = "- Same ask: 2.1 repeats 1.1 (captures 1 and 2). An earlier paste may have made this change. Check the code, and make the change once. Each note is in manifest.md."
@@ -1166,11 +1244,30 @@ struct DupesConflictsRunnerTests {
         let captureText = try #require(refinedFiles.first { $0.hasPrefix(#"<feedback_refined capture="2""#) })
         #expect(captureText.components(separatedBy: line).count == 2, "the capture file shows the line once")
 
-        // Only Drew's notes go out by default: no app name, window title, or screen text.
-        let body = try #require(await transport.requests.first?.httpBody)
+        // Drew's notes go out. The app name may go too, because screen text is
+        // allowed. The mark has no screen text of its own, and the capture's
+        // OCR text never goes. No image goes: the request is plain JSON.
+        let sentRequest = try #require(await transport.requests.first)
+        let body = try #require(sentRequest.httpBody)
         let sent = String(decoding: body, as: UTF8.self)
         #expect(sent.contains("make it brighter"))
-        #expect(!sent.contains("Claude"))
         #expect(!sent.contains("Copy Last Capture Prompt"))
+        let contentType = try #require(sentRequest.value(forHTTPHeaderField: "Content-Type"))
+        #expect(contentType.hasPrefix("application/json"), "\(contentType)")
+    }
+
+    @Test("Without screen text consent, the job is skipped with reason consent and sends nothing")
+    func skippedWithoutScreenTextConsent() async throws {
+        let bundle = try await Bundle.make(captures: 2)
+        let transport = StubTransport(fallback: jsonResponse(pairBody(sameAsk: 1.8, opposite: 0.05)))
+        let key = StubKeyProvider()
+        let runner = makeRunner(bundle, jobs: [DupesConflictsJob()], flags: [.jevBase: .on, .dupesConflicts: .on], transport: transport, key: key)
+        await runCapture(runner, bundle, capture: 2)
+
+        #expect(await transport.count == 0)
+        #expect(await key.reads == 0)
+        let record = try #require(try bundle.record(2))
+        #expect(record.job == "dupesConflicts")
+        #expect(record.status == .skipped && record.reason == .consent)
     }
 }

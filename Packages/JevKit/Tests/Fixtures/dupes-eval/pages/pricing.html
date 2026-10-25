@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Choose a plan</title>
+<style>
+  body { margin: 0; width: 1440px; height: 900px; background: #fff; font-family: -apple-system, Helvetica, Arial, sans-serif; color: #1d1d1f; overflow: hidden; }
+  .top { height: 56px; border-bottom: 1px solid #e5e5e5; display: flex; align-items: center; padding: 0 32px; font-weight: 600; font-size: 17px; }
+  h1 { font-size: 28px; margin: 56px 0 8px; text-align: center; }
+  .sub { text-align: center; color: #666; font-size: 16px; margin-bottom: 40px; }
+  .cards { display: flex; justify-content: center; gap: 24px; }
+  .card { width: 300px; height: 360px; border: 1px solid #ddd; border-radius: 12px; padding: 28px; box-sizing: border-box; font-size: 15px; color: #444; line-height: 1.8; }
+  .card h2 { font-size: 20px; margin: 0 0 8px; color: #1d1d1f; }
+  .price { font-size: 32px; font-weight: 700; color: #1d1d1f; margin-bottom: 16px; }
+  .pro { border: 2px solid #3b6fe0; }
+  button { margin-top: 24px; width: 100%; font-size: 16px; padding: 12px; border-radius: 8px; border: 0; background: #3b6fe0; color: #fff; }
+</style>
+</head>
+<body>
+  <div class="top">Acme Console</div>
+  <div style="text-align: center;"><h1 id="title" style="display: inline-block;">Choose a plan</h1></div>
+  <div class="sub" id="subtitle">Every plan includes unlimited projects.</div>
+  <div class="cards">
+    <div class="card" id="card-basic"><h2>Basic</h2><div class="price">$9</div>One user<br>Email support</div>
+    <div class="card pro" id="card-pro"><h2>Pro</h2><div class="price">$19</div>Five users<br>Priority support<button id="buy">Buy Pro</button></div>
+    <div class="card" id="card-team"><h2>Team</h2><div class="price">$49</div>Twenty users<br>Phone support</div>
+  </div>
+</body>
+</html>

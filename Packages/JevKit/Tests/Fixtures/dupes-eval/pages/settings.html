@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Account settings</title>
+<style>
+  body { margin: 0; width: 1440px; height: 900px; background: #f5f5f7; font-family: -apple-system, Helvetica, Arial, sans-serif; color: #1d1d1f; overflow: hidden; }
+  .top { height: 56px; background: #fff; border-bottom: 1px solid #ddd; display: flex; align-items: center; padding: 0 32px; font-weight: 600; font-size: 17px; }
+  .side { position: absolute; top: 57px; left: 0; width: 220px; bottom: 0; background: #fff; border-right: 1px solid #ddd; padding: 24px; box-sizing: border-box; font-size: 15px; line-height: 2.2; color: #555; }
+  .side .on { color: #1d1d1f; font-weight: 600; }
+  .main { position: absolute; top: 57px; left: 221px; right: 0; padding: 48px 64px; }
+  h1 { font-size: 28px; margin: 0 0 32px; display: inline-block; }
+  .row { display: flex; justify-content: space-between; align-items: center; background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 18px 24px; width: 720px; margin-bottom: 12px; font-size: 16px; }
+  .value { color: #555; }
+  button { font-size: 16px; padding: 10px 20px; border-radius: 8px; border: 0; background: #8a8a8e; color: #fff; margin-top: 20px; }
+  .danger { display: inline-block; margin-top: 40px; color: #c00; font-size: 15px; text-decoration: underline; }
+</style>
+</head>
+<body>
+  <div class="top">Acme Console</div>
+  <div class="side"><div>Overview</div><div class="on">Settings</div><div>Billing</div><div>Team</div></div>
+  <div class="main">
+    <h1 id="title">Account settings</h1>
+    <div class="row" id="email"><span>Email address</span><span class="value">alex@example.com</span></div>
+    <div class="row" id="name"><span>Display name</span><span class="value">Alex Rivera</span></div>
+    <div class="row" id="language"><span>Language</span><span class="value">English (US)</span></div>
+    <button id="save">Save changes</button><br>
+    <span class="danger" id="delete">Delete account</span>
+  </div>
+</body>
+</html>
