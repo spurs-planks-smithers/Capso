@@ -110,6 +110,13 @@ struct SubFlagCapTests {
         }
     }
 
+    @Test("Crops and search lines with every sub-flag off runs but sends no request, in shadow and on")
+    func cropsAllSubFlagsOff() async throws {
+        for state in [FlagState.shadow, .on] {
+            try await expectNoRequest(CropsAnchorsJob(), state: state)
+        }
+    }
+
     @Test("An option flag with no parent keeps its own state, and a job never sees its own flag")
     func optionWithoutParent() async throws {
         let bundle = try await Bundle.make()

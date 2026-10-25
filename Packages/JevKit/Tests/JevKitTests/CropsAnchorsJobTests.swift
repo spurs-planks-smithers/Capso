@@ -204,6 +204,7 @@ func runCropsJob(
     pngSize: PixelSize? = nil,
     highlights: [FeedbackBox] = [],
     screenLines: [FeedbackTextLine]? = nil,
+    optionModes: [FeatureFlag: FlagState] = cropsAllOn,
     loadHook: (@Sendable (Int) throws -> Void)? = nil
 ) async throws -> CropsRun {
     let folder = FileManager.default.temporaryDirectory.appendingPathComponent("jev-crops-\(UUID().uuidString)", isDirectory: true)
@@ -250,7 +251,8 @@ func runCropsJob(
             try loadHook?(call)
             return try bundleLoader.image(of: index, variant, region: region)
         },
-        screenLines: screenLines
+        screenLines: screenLines,
+        optionModes: optionModes
     )
     let output = try await CropsAnchorsJob().run(context)
     let finishedAt = ContinuousClock.now
@@ -262,6 +264,9 @@ func runCropsJob(
     }
     return CropsRun(output: output, requests: requests, round: round, loads: loads.count, deadline: deadline, finishedAt: finishedAt)
 }
+
+/// Both sub-flags on, as a trial with `feature cropsAnchors on` runs the job.
+let cropsAllOn: [FeatureFlag: FlagState] = [.cropsItemCrops: .on, .cropsSearchLines: .on]
 
 let cropsRuleLine = JevRefinedLine(
     scope: .capture,
@@ -1273,6 +1278,103 @@ struct CropsAnchorsSummaryTests {
     }
 }
 
+// MARK: - The sub-flags
+
+@Suite("Crops and anchors: sub-flags")
+struct CropsAnchorsSubFlagTests {
+    private static let script = CropsScript(noul: ["target_shown": 0.9, "anchor_fits": 0.9], choice: ["anchor": "line_2"])
+
+    private static func run(_ modes: [FeatureFlag: FlagState], allowed: JevDataKinds = allKinds) async throws -> CropsRun {
+        let capture = cropsCapture(marks: [CropsMark(number: 1, box: centerBadge, text: "Copy Prompt")])
+        return try await runCropsJob(capture, allowed: allowed, script: script, optionModes: modes)
+    }
+
+    private static let cropFiles = ["1028-claude-item-1.png", "1028-claude-item-1-clean.png"]
+
+    @Test("The job is registered at version 2, and its options are its sub-flags")
+    func identity() {
+        let job = CropsAnchorsJob()
+        #expect(job.version == 2)
+        #expect(job.options == [.cropsItemCrops, .cropsSearchLines])
+        #expect(job.options == FeatureFlag.subFlags(of: job.flag))
+    }
+
+    @Test("cropsItemCrops on alone: the two image requests, the crop files and lines, and no search request")
+    func cropsOnly() async throws {
+        let run = try await Self.run([.cropsItemCrops: .on])
+
+        #expect(run.requests.count == 2)
+        #expect(run.requests.allSatisfy { $0.needsImagesHeader && !$0.kinds.contains(.screenText) })
+        #expect(run.output.files.map(\.name) == Self.cropFiles)
+        #expect(run.output.lines.first == cropsRuleLine)
+        #expect(run.output.cropLabels.count == 1)
+        #expect(run.output.searchLines.isEmpty)
+        // The summary has the crop fields and no anchor field.
+        let keys = summaryKeys(run.output, "1.1")
+        #expect(keys.contains("cropStatus") && !keys.contains("anchorStatus"))
+    }
+
+    @Test("cropsSearchLines on alone: one text request, no image load, no file, and the search line")
+    func searchOnly() async throws {
+        let run = try await Self.run([.cropsSearchLines: .on])
+
+        #expect(run.requests.count == 1)
+        #expect(run.requests.allSatisfy { $0.images.isEmpty && !$0.needsImagesHeader })
+        #expect(run.loads == 0)
+        #expect(run.output.files.isEmpty)
+        #expect(run.output.cropLabels.isEmpty)
+        #expect(run.output.lines == run.output.searchLines)
+        #expect(run.output.searchLines.count == 1)
+        let keys = summaryKeys(run.output, "1.1")
+        #expect(keys.contains("anchorStatus") && !keys.contains("cropStatus"))
+    }
+
+    @Test("Both sub-flags off: no request, no image load, and an empty output")
+    func bothOff() async throws {
+        for modes: [FeatureFlag: FlagState] in [[:], [.cropsItemCrops: .off, .cropsSearchLines: .off]] {
+            let run = try await Self.run(modes)
+            #expect(run.requests.isEmpty, "\(modes)")
+            #expect(run.loads == 0, "\(modes)")
+            #expect(run.output == .empty, "\(modes)")
+        }
+    }
+
+    @Test("cropsSearchLines on still needs screen text consent, and cropsItemCrops on still works with reviewer text only")
+    func consentStillApplies() async throws {
+        let search = try await Self.run([.cropsSearchLines: .on], allowed: [.reviewerText, .images])
+        #expect(search.requests.isEmpty)
+        #expect(search.output.lines.isEmpty && search.output.files.isEmpty)
+
+        let crops = try await Self.run([.cropsItemCrops: .on], allowed: .reviewerText)
+        #expect(crops.requests.isEmpty)
+        #expect(crops.output.files.map(\.name) == Self.cropFiles)
+    }
+
+    @Test("A sub-flag in shadow records its answers and summary, and writes no file and no line")
+    func shadowWritesNothing() async throws {
+        let both = try await Self.run([.cropsItemCrops: .shadow, .cropsSearchLines: .shadow])
+        #expect(both.requests.count == 3)
+        #expect(both.output.files.isEmpty && both.output.lines.isEmpty)
+        let keys = summaryKeys(both.output, "1.1")
+        #expect(keys.contains("cropStatus") && keys.contains("anchorStatus"))
+
+        // Crops on and search in shadow: the files and crop lines, and no search line.
+        let cropsOn = try await Self.run([.cropsItemCrops: .on, .cropsSearchLines: .shadow])
+        #expect(cropsOn.requests.count == 3)
+        #expect(cropsOn.output.files.map(\.name) == Self.cropFiles)
+        #expect(cropsOn.output.searchLines.isEmpty)
+        #expect(summaryKeys(cropsOn.output, "1.1").contains("anchorStatus"))
+
+        // Search on and crops in shadow: the search line, and no file and no crop line.
+        let searchOn = try await Self.run([.cropsItemCrops: .shadow, .cropsSearchLines: .on])
+        #expect(searchOn.requests.count == 3)
+        #expect(searchOn.output.files.isEmpty && searchOn.output.cropLabels.isEmpty)
+        #expect(searchOn.output.lines == searchOn.output.searchLines)
+        #expect(searchOn.output.searchLines.count == 1)
+        #expect(summaryKeys(searchOn.output, "1.1").contains("cropStatus"))
+    }
+}
+
 // MARK: - The runner
 
 @Suite("Crops and anchors: runner")
@@ -1307,13 +1409,13 @@ struct CropsAnchorsRunnerTests {
     func shadow() async throws {
         let bundle = try await Bundle.make()
         let transport = StubTransport(Self.imageResponses())
-        let flags: [FeatureFlag: FlagState] = [.jevBase: .on, .cropsAnchors: .shadow, .jevSendImages: .on]
+        let flags: [FeatureFlag: FlagState] = [.jevBase: .on, .cropsAnchors: .shadow, .cropsItemCrops: .on, .cropsSearchLines: .on, .jevSendImages: .on]
         let runner = makeRunner(bundle, jobs: [CropsAnchorsJob()], flags: flags, transport: transport)
         await runCapture(runner, bundle)
 
         let record = try #require(try bundle.record(1))
         #expect(record.job == "cropsAnchors" && record.mode == "shadow" && record.status == .done)
-        #expect(record.jobVersion == 1)
+        #expect(record.jobVersion == 2)
         #expect(record.requests == 2)
         #expect(record.answers.map(\.id) == ["1.1.target", "1.1.target_shown", "1.1.cut_left", "1.1.cut_right", "1.1.cut_top", "1.1.cut_bottom"])
         #expect(record.lines.isEmpty && record.files.isEmpty)
@@ -1328,7 +1430,7 @@ struct CropsAnchorsRunnerTests {
     func on() async throws {
         let bundle = try await Bundle.make()
         let transport = StubTransport(Self.imageResponses())
-        let flags: [FeatureFlag: FlagState] = [.jevBase: .on, .cropsAnchors: .on, .jevSendImages: .on]
+        let flags: [FeatureFlag: FlagState] = [.jevBase: .on, .cropsAnchors: .on, .cropsItemCrops: .on, .cropsSearchLines: .on, .jevSendImages: .on]
         let runner = makeRunner(bundle, jobs: [CropsAnchorsJob()], flags: flags, transport: transport)
         await runCapture(runner, bundle)
 
