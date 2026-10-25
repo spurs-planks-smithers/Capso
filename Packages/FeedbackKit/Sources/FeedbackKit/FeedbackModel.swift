@@ -84,8 +84,13 @@ public struct FeedbackCapture: Codable, Equatable, Sendable {
 
     /// The capture's own prompt, next to its images: `<stem>-prompt.md`.
     public var promptFile: String {
-        let stem = imageFile.hasSuffix(".png") ? String(imageFile.dropLast(4)) : imageFile
-        return "\(stem)-prompt.md"
+        "\(fileStem)-prompt.md"
+    }
+
+    /// `imageFile` without its extension. A bundle image is `.png`, a zip
+    /// export image is `.jpg` (#85).
+    public var fileStem: String {
+        (imageFile as NSString).deletingPathExtension
     }
 }
 

@@ -54,6 +54,8 @@ final class FeedbackController {
     private var copyingRoundPrompt = false
     /// The captures checked in the Recent menu.
     private var basket = FeedbackBasket()
+    /// Zip Round and Zip N Selected (#85). Made in `start`.
+    private var zip: FeedbackZip?
     private let quickLook = FeedbackQuickLook()
     /// The Recent list as read from disk. The menu asks for it on every open
     /// and every submenu open. The cache decodes a `feedback.json` only when
@@ -134,6 +136,13 @@ final class FeedbackController {
         statusItem.onShowSettings = {
             AppDelegate.shared?.showPreferences()
         }
+        zip = FeedbackZip(
+            rootURL: store.rootURL,
+            waitForSaves: { [weak self] in await self?.waitForSaves() },
+            showToast: { [weak self] message in self?.showToast(message, screen: nil) },
+            showShare: { [weak self] url in self?.statusItem.showSharePicker(for: url) },
+            report: { [weak self] error, context in self?.report(error, context: context) }
+        )
         connectHistoryMenu()
         notePanel.onClosed = { [weak self] in
             self?.updateHelp()
@@ -269,6 +278,14 @@ final class FeedbackController {
                     report(error, context: "Round prompt was not copied")
                 }
             }
+        }
+    }
+
+    /// Waits for every save in progress, without ending the round. A zip
+    /// (#85) waits here, so it holds each capture that is being stored.
+    private func waitForSaves() async {
+        for task in Array(saveTasks.values) {
+            await task.value
         }
     }
 
@@ -409,8 +426,22 @@ final class FeedbackController {
                 active: self.round,
                 recent: self.recentRounds(),
                 basket: self.basket,
-                rootURL: self.store.rootURL
+                rootURL: self.store.rootURL,
+                zipEnabled: Flags.isOn(.zipHandoff)
             )
+        }
+        statusItem.onZipRecentRound = { [weak self] round in
+            FeedbackLog.logger.notice("menu: Zip Round")
+            self?.zip?.zipRound(folderName: round.folderName)
+        }
+        // The basket clears as Copy N Selected clears it, but only when the
+        // zip starts: a click during a running zip keeps the checks.
+        statusItem.onZipSelected = { [weak self] in
+            guard let self else { return }
+            FeedbackLog.logger.notice("menu: Zip Selected")
+            if self.zip?.zipSelected(self.basket) == true {
+                self.basket.removeAll()
+            }
         }
         statusItem.onStartRound = { [weak self] in
             self?.capture()
