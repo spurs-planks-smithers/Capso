@@ -47,6 +47,19 @@ private func response(_ parts: [String: JevAnswer]...) -> JevResponse {
     JevResponse(model: JevEndpoint.model, answers: parts.reduce(into: [:]) { $0.merge($1) { _, new in new } }, inputTokens: 0, outputTokens: 0)
 }
 
+/// Every sub-flag on, as a trial with `feature noteCoach on` runs the job.
+private let noteCoachAllOn: [FeatureFlag: FlagState] = [.noteCoachVague: .on, .noteCoachQuestion: .on, .noteCoachEmpty: .on]
+
+/// A job context with the note coach's sub-flags in `modes` (all on by default).
+private func noteCoachContext(
+    capture: FeedbackCapture,
+    response: JevResponse = JevResponse(model: JevEndpoint.model, answers: [:], inputTokens: 0, outputTokens: 0),
+    sent: RequestLog = RequestLog(),
+    modes: [FeatureFlag: FlagState] = noteCoachAllOn
+) -> JevJobContext {
+    makeContext(capture: capture, response: response, sent: sent, optionModes: modes)
+}
+
 /// The text of a code value. Other values give an empty string.
 private func codeText(_ value: JevValue) -> String {
     if case .code(let code) = value { return code.text }
@@ -72,7 +85,7 @@ struct NoteCoachJobTests {
     func requestShape() async throws {
         let capture = makeNoteCapture(notes: [(3, "  what does this do?  "), (1, "make this bigger"), (2, nil)])
         let sent = RequestLog()
-        _ = try await NoteCoachJob().run(makeContext(capture: capture, sent: sent))
+        _ = try await NoteCoachJob().run(noteCoachContext(capture: capture, sent: sent))
 
         let requests = await sent.requests
         #expect(requests.count == 1)
@@ -100,7 +113,7 @@ struct NoteCoachJobTests {
     func questionWording() async throws {
         let capture = makeNoteCapture(index: 1, notes: [(1, "make this bigger")])
         let sent = RequestLog()
-        _ = try await NoteCoachJob().run(makeContext(capture: capture, sent: sent))
+        _ = try await NoteCoachJob().run(noteCoachContext(capture: capture, sent: sent))
         let request = try #require(await sent.requests.first)
         #expect(request.questions.count == 4)
 
@@ -148,7 +161,7 @@ struct NoteCoachJobTests {
     func sharedBadge() async throws {
         let capture = makeNoteCapture(notes: [(1, nil), (1, "first words"), (1, "second words")], general: nil)
         let sent = RequestLog()
-        _ = try await NoteCoachJob().run(makeContext(capture: capture, sent: sent))
+        _ = try await NoteCoachJob().run(noteCoachContext(capture: capture, sent: sent))
         let request = try #require(await sent.requests.first)
         #expect(request.questions.count == 4)
         let body = String(decoding: try JevRequestEncoder.encode(request).body, as: UTF8.self)
@@ -159,7 +172,7 @@ struct NoteCoachJobTests {
     func allEmpty() async throws {
         let capture = makeNoteCapture(notes: [(1, nil), (2, "   "), (3, "\n")])
         let sent = RequestLog()
-        let output = try await NoteCoachJob().run(makeContext(capture: capture, sent: sent))
+        let output = try await NoteCoachJob().run(noteCoachContext(capture: capture, sent: sent))
 
         #expect(await sent.count == 0)
         #expect(output.lines == [1, 2, 3].map { JevRefinedLine(scope: .item(badge: $0), label: "Ask the reviewer first: the item has no note.") })
@@ -173,7 +186,7 @@ struct NoteCoachJobTests {
     @Test("A capture with no badges sends nothing and returns nothing")
     func noItems() async throws {
         let sent = RequestLog()
-        let output = try await NoteCoachJob().run(makeContext(capture: makeNoteCapture(notes: []), sent: sent))
+        let output = try await NoteCoachJob().run(noteCoachContext(capture: makeNoteCapture(notes: []), sent: sent))
         #expect(output == .empty)
         #expect(await sent.count == 0)
     }
@@ -182,7 +195,7 @@ struct NoteCoachJobTests {
     func lines() async throws {
         let capture = makeNoteCapture(notes: [(1, "make this bigger"), (2, nil), (3, "what does this do?")])
         let reply = response(answers("3.1", vague), answers("3.3", question))
-        let output = try await NoteCoachJob().run(makeContext(capture: capture, response: reply))
+        let output = try await NoteCoachJob().run(noteCoachContext(capture: capture, response: reply))
 
         #expect(output.lines == [
             JevRefinedLine(scope: .item(badge: 1), label: "Ask the reviewer first: the note names no change."),
@@ -202,7 +215,7 @@ struct NoteCoachJobTests {
         let capture = makeNoteCapture(notes: [(1, "this is cut off"), (2, "make this wider")])
         let partial = (levels: [0.1, 0.8, 0.1], change: 0.4, answer: 0.1)
         let clear = (levels: [0.05, 0.15, 0.8], change: 0.9, answer: 0.05)
-        let output = try await NoteCoachJob().run(makeContext(capture: capture, response: response(answers("3.1", partial), answers("3.2", clear))))
+        let output = try await NoteCoachJob().run(noteCoachContext(capture: capture, response: response(answers("3.1", partial), answers("3.2", clear))))
 
         #expect(output.lines.isEmpty)
         #expect(output.summary == [JevSummaryField(key: "3.1", value: "partial"), JevSummaryField(key: "3.2", value: "clear")])
@@ -211,7 +224,7 @@ struct NoteCoachJobTests {
     @Test("A missing answer gives that item no line and not_checked, and the other items keep theirs")
     func missingAnswer() async throws {
         let capture = makeNoteCapture(notes: [(1, "make this bigger"), (2, nil), (3, "what does this do?")])
-        let output = try await NoteCoachJob().run(makeContext(capture: capture, response: response(answers("3.1", vague))))
+        let output = try await NoteCoachJob().run(noteCoachContext(capture: capture, response: response(answers("3.1", vague))))
 
         #expect(output.lines == [
             JevRefinedLine(scope: .item(badge: 1), label: "Ask the reviewer first: the note names no change."),
@@ -233,7 +246,7 @@ struct NoteCoachJobTests {
         outOfRange["3.1.asks_answer"] = .noul(1.2)
         var wrongType = answers("3.2", question)
         wrongType["3.2.clarity"] = .noul(0.5)
-        let output = try await NoteCoachJob().run(makeContext(capture: capture, response: response(outOfRange, wrongType)))
+        let output = try await NoteCoachJob().run(noteCoachContext(capture: capture, response: response(outOfRange, wrongType)))
 
         #expect(output.lines.isEmpty)
         #expect(output.summary == [JevSummaryField(key: "3.1", value: "not_checked"), JevSummaryField(key: "3.2", value: "not_checked")])
@@ -243,7 +256,7 @@ struct NoteCoachJobTests {
     func review() async throws {
         let capture = makeNoteCapture(notes: [(1, "fix this\nnow"), (2, nil), (3, "what does this do?")])
         let reply = response(answers("3.1", vague), answers("3.3", question))
-        let output = try await NoteCoachJob().run(makeContext(capture: capture, response: reply))
+        let output = try await NoteCoachJob().run(noteCoachContext(capture: capture, response: reply))
 
         #expect(output.review == """
         - 3.1: vague. Level 0 0.90, change 0.10, answer 0.10, problem 0.05. Note: "fix this now"
@@ -255,22 +268,140 @@ struct NoteCoachJobTests {
 
     @Test("An error from the asker ends the job")
     func errorPropagates() async {
-        var context = makeContext(capture: makeNoteCapture(notes: [(1, "make this bigger")]))
+        var context = noteCoachContext(capture: makeNoteCapture(notes: [(1, "make this bigger")]))
         context = JevJobContext(
             round: context.round, capture: context.capture, folderURL: context.folderURL, allowed: context.allowed,
-            deadline: context.deadline, jev: JevAsker { _ in throw JevError(.timeout) }, images: context.images
+            deadline: context.deadline, jev: JevAsker { _ in throw JevError(.timeout) }, images: context.images,
+            optionModes: context.optionModes
         )
         await #expect(throws: JevError(.timeout)) {
             _ = try await NoteCoachJob().run(context)
         }
     }
 
-    @Test("The job is registered at version 2, with no consent beyond reviewer text")
+    @Test("The job is registered at version 3, with no consent beyond reviewer text, and its options are its sub-flags")
     func identity() {
         let job = NoteCoachJob()
         #expect(job.id == "noteCoach" && job.flag == .noteCoach)
-        #expect(job.version == 2)
+        #expect(job.version == 3)
         #expect(job.requires.isEmpty)
+        #expect(job.options == [.noteCoachVague, .noteCoachQuestion, .noteCoachEmpty])
+        #expect(job.options == FeatureFlag.subFlags(of: job.flag))
+    }
+}
+
+// MARK: - The sub-flags
+
+/// Three notes: a vague one, an empty one, and a question. The reply labels
+/// items 1 and 3.
+private let subFlagCapture = makeNoteCapture(notes: [(1, "make this bigger"), (2, nil), (3, "what does this do?")])
+private let subFlagReply = response(answers("3.1", vague), answers("3.3", question))
+
+@Suite("Note coach: the sub-flags")
+struct NoteCoachSubFlagTests {
+    private static func run(_ modes: [FeatureFlag: FlagState], sent: RequestLog = RequestLog()) async throws -> JevJobOutput {
+        try await NoteCoachJob().run(noteCoachContext(capture: subFlagCapture, response: subFlagReply, sent: sent, modes: modes))
+    }
+
+    private static let vagueLine = JevRefinedLine(scope: .item(badge: 1), label: "Ask the reviewer first: the note names no change.")
+    private static let emptyLine = JevRefinedLine(scope: .item(badge: 2), label: "Ask the reviewer first: the item has no note.")
+    private static let questionLine = JevRefinedLine(scope: .item(badge: 3), label: "Answer this item. Change no code.")
+
+    @Test("noteCoachVague on writes the vague line only")
+    func vagueOn() async throws {
+        let output = try await Self.run([.noteCoachVague: .on])
+        #expect(output.lines == [Self.vagueLine])
+        // The question and the empty note are left out of the summary and the review.
+        #expect(output.summary == [JevSummaryField(key: "3.1", value: "vague")])
+        let review = try #require(output.review)
+        #expect(review.hasPrefix("- 3.1: vague.") && !review.contains("3.2") && !review.contains("3.3"))
+    }
+
+    @Test("noteCoachQuestion on writes the question line only")
+    func questionOn() async throws {
+        let output = try await Self.run([.noteCoachQuestion: .on])
+        #expect(output.lines == [Self.questionLine])
+        #expect(output.summary == [JevSummaryField(key: "3.3", value: "question")])
+        let review = try #require(output.review)
+        #expect(review.hasPrefix("- 3.3: question.") && !review.contains("3.1") && !review.contains("3.2"))
+    }
+
+    @Test("noteCoachEmpty on writes the empty line only, and sends no request")
+    func emptyOn() async throws {
+        let sent = RequestLog()
+        let output = try await Self.run([.noteCoachEmpty: .on], sent: sent)
+        #expect(await sent.count == 0)
+        #expect(output.lines == [Self.emptyLine])
+        #expect(output.summary == [JevSummaryField(key: "3.2", value: "empty")])
+        let review = try #require(output.review)
+        #expect(review.hasPrefix("- 3.2: empty.") && !review.contains("3.1") && !review.contains("3.3"))
+    }
+
+    @Test("Each sub-flag off leaves its line out and keeps the other two")
+    func eachOff() async throws {
+        let cases: [(off: FeatureFlag, lines: [JevRefinedLine])] = [
+            (.noteCoachVague, [Self.emptyLine, Self.questionLine]),
+            (.noteCoachQuestion, [Self.vagueLine, Self.emptyLine]),
+            (.noteCoachEmpty, [Self.vagueLine, Self.questionLine]),
+        ]
+        for entry in cases {
+            var modes = noteCoachAllOn
+            modes[entry.off] = .off
+            let output = try await Self.run(modes)
+            #expect(output.lines == entry.lines, "\(entry.off) off")
+        }
+    }
+
+    @Test("Every sub-flag off sends no request and returns nothing")
+    func allOff() async throws {
+        for modes: [FeatureFlag: FlagState] in [[:], [.noteCoachVague: .off, .noteCoachQuestion: .off, .noteCoachEmpty: .off]] {
+            let sent = RequestLog()
+            let output = try await Self.run(modes, sent: sent)
+            #expect(await sent.count == 0)
+            #expect(output == .empty)
+        }
+    }
+
+    @Test("A request goes out when either of vague and question is on, and not for empty alone")
+    func requestNeeds() async throws {
+        let cases: [(modes: [FeatureFlag: FlagState], requests: Int)] = [
+            ([.noteCoachVague: .on], 1),
+            ([.noteCoachQuestion: .shadow], 1),
+            ([.noteCoachEmpty: .on], 0),
+            ([.noteCoachEmpty: .shadow], 0),
+            ([:], 0),
+        ]
+        for entry in cases {
+            let sent = RequestLog()
+            _ = try await Self.run(entry.modes, sent: sent)
+            #expect(await sent.count == entry.requests, "\(entry.modes)")
+        }
+    }
+
+    @Test("A sub-flag in shadow records its label and writes no line")
+    func shadowWritesNoLine() async throws {
+        let output = try await Self.run([.noteCoachVague: .shadow, .noteCoachQuestion: .shadow, .noteCoachEmpty: .shadow])
+        #expect(output.lines.isEmpty)
+        #expect(output.summary == [
+            JevSummaryField(key: "3.1", value: "vague"),
+            JevSummaryField(key: "3.2", value: "empty"),
+            JevSummaryField(key: "3.3", value: "question"),
+        ])
+
+        let mixed = try await Self.run([.noteCoachVague: .on, .noteCoachQuestion: .shadow, .noteCoachEmpty: .off])
+        #expect(mixed.lines == [Self.vagueLine])
+        #expect(mixed.summary == [JevSummaryField(key: "3.1", value: "vague"), JevSummaryField(key: "3.3", value: "question")])
+    }
+
+    @Test("A label with no sub-flag is recorded whenever a request was sent")
+    func otherLabelsFollowTheRequest() async throws {
+        let capture = makeNoteCapture(notes: [(1, "this is cut off"), (2, "make this wider")])
+        let partial = (levels: [0.1, 0.8, 0.1], change: 0.4, answer: 0.1)
+        let clear = (levels: [0.05, 0.15, 0.8], change: 0.9, answer: 0.05)
+        let reply = response(answers("3.1", partial), answers("3.2", clear))
+        let output = try await NoteCoachJob().run(noteCoachContext(capture: capture, response: reply, modes: [.noteCoachVague: .on]))
+        #expect(output.lines.isEmpty)
+        #expect(output.summary == [JevSummaryField(key: "3.1", value: "partial"), JevSummaryField(key: "3.2", value: "clear")])
     }
 }
 
@@ -389,6 +520,12 @@ struct NoteCoachRunnerTests {
         StubTransport(fallback: jsonResponse(noteCoachBody(item: "1.1", levels: levels, change: change, answer: answer)))
     }
 
+    /// jevBase on, noteCoach at `state`, and every sub-flag on. The runner caps
+    /// each sub-flag at `state`.
+    private static func flags(_ state: FlagState) -> [FeatureFlag: FlagState] {
+        [.jevBase: .on, .noteCoach: state, .noteCoachVague: .on, .noteCoachQuestion: .on, .noteCoachEmpty: .on]
+    }
+
     @Test("With noteCoach off, or with jevBase off, nothing is sent or written")
     func off() async throws {
         for flags: [FeatureFlag: FlagState] in [[.jevBase: .on], [.noteCoach: .on]] {
@@ -409,12 +546,12 @@ struct NoteCoachRunnerTests {
     func shadow() async throws {
         let bundle = try await Bundle.make()
         let transport = Self.transport()
-        let runner = makeRunner(bundle, jobs: [NoteCoachJob()], flags: [.jevBase: .on, .noteCoach: .shadow], transport: transport)
+        let runner = makeRunner(bundle, jobs: [NoteCoachJob()], flags: Self.flags(.shadow), transport: transport)
         await runCapture(runner, bundle)
 
         #expect(await transport.count == 1)
         let record = try #require(try bundle.record(1))
-        #expect(record.job == "noteCoach" && record.jobVersion == 2 && record.mode == "shadow" && record.status == .done)
+        #expect(record.job == "noteCoach" && record.jobVersion == 3 && record.mode == "shadow" && record.status == .done)
         #expect(record.answers.map(\.id) == ["1.1.clarity", "1.1.names_change", "1.1.asks_answer", "1.1.reports_problem"])
         #expect(record.lines.isEmpty)
         #expect(record.summary == .object([JevSummaryField(key: "1.1", value: "vague")]))
@@ -429,7 +566,7 @@ struct NoteCoachRunnerTests {
     @Test("On writes the vague line under the item in the capture's refined file")
     func on() async throws {
         let bundle = try await Bundle.make()
-        let runner = makeRunner(bundle, jobs: [NoteCoachJob()], flags: [.jevBase: .on, .noteCoach: .on], transport: Self.transport())
+        let runner = makeRunner(bundle, jobs: [NoteCoachJob()], flags: Self.flags(.on), transport: Self.transport())
         await runCapture(runner, bundle)
 
         let record = try #require(try bundle.record(1))
@@ -444,7 +581,7 @@ struct NoteCoachRunnerTests {
     func onQuestion() async throws {
         let bundle = try await Bundle.make()
         let transport = Self.transport(levels: [0.1, 0.2, 0.7], change: 0.1, answer: 0.9)
-        let runner = makeRunner(bundle, jobs: [NoteCoachJob()], flags: [.jevBase: .on, .noteCoach: .on], transport: transport)
+        let runner = makeRunner(bundle, jobs: [NoteCoachJob()], flags: Self.flags(.on), transport: transport)
         await runCapture(runner, bundle)
 
         let refined = try bundle.text(JevRefinedRenderer.captureFileName(for: bundle.capture))
@@ -454,7 +591,7 @@ struct NoteCoachRunnerTests {
     @Test("When Jev fails, the job is not refined and no note coach line appears")
     func failure() async throws {
         let bundle = try await Bundle.make()
-        let runner = makeRunner(bundle, jobs: [NoteCoachJob()], flags: [.jevBase: .on, .noteCoach: .on], transport: StubTransport())
+        let runner = makeRunner(bundle, jobs: [NoteCoachJob()], flags: Self.flags(.on), transport: StubTransport())
         await runCapture(runner, bundle)
 
         let record = try #require(try bundle.record(1))

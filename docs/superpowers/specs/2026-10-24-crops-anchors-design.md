@@ -1,6 +1,6 @@
 # Crops and anchor text: design (draft)
 
-Date: 2026-10-24. Status: design complete; Drew answered every open question on 2026-10-24. The build waits for the Jev base (#36). Issue: #38 (parent #34). Flag: `cropsAnchors` (off, shadow, on). Ideas 7 and 8 in `docs/plans/2026-10-24-jev-image-ideas.md`. The shared design is `docs/superpowers/specs/2026-10-24-jev-handoff-design.md`. This document covers only what is special to crops and anchor text.
+Date: 2026-10-24. Status: design complete; Drew answered every open question on 2026-10-24. The build waits for the Jev base (#36). Issue: #38 (parent #34). Flag: `cropsAnchors` (off, shadow, on), with sub-flags `cropsItemCrops` and `cropsSearchLines` (2026-10-25, #94). Ideas 7 and 8 in `docs/plans/2026-10-24-jev-image-ideas.md`. The shared design is `docs/superpowers/specs/2026-10-24-jev-handoff-design.md`. This document covers only what is special to crops and anchor text.
 
 ## Intent
 
@@ -71,6 +71,20 @@ The Jev base (interface `d1de328`) gives each job a set of allowed data kinds. R
 | shadow or on | yes | yes | A, B, C | Jev target, edge-checked | yes |
 
 - With `cropsAnchors` off, the runner never starts the job. The base's tests prove that no request goes out and the bundle files match today's.
+
+### Sub-flags (2026-10-25, #94)
+
+Each part has its own sub-flag, so Drew can judge one part alone. The runner caps each sub-flag at the state of `cropsAnchors` (the lower of the two, in the order off, shadow, on). A sub-flag alone runs nothing. Both start off in both channels and are dev-only. The table above describes a part with its sub-flag on.
+
+| Sub-flag | Gates | Still needs |
+| --- | --- | --- |
+| `cropsItemCrops` | requests A and B, the two crop PNGs per item, and their lines in the refined file (with the rule line "Open each item's crop before the full image") | `jevSendImages` for requests A and B. Without it, the crops are cut around the marks. |
+| `cropsSearchLines` | request C and the search line per item | `jevSendScreenText` |
+
+- A part whose sub-flag is off sends no request, loads no image, and adds nothing to the `jev.json` summary.
+- A part in shadow sends its requests and records its answers and summary. It writes no crop file and no line.
+- With both sub-flags off, the job runs, sends nothing, and writes nothing.
+- Job version is 2.
 - The client refuses any request that holds a data kind without consent, so a bug in this job cannot send an image or screen text by mistake.
 - The images header goes only on requests A and B.
 
@@ -342,6 +356,7 @@ Light research on 2026-10-24 (four searches), with the TypeSafe docs.
 
 - 2026-10-24: keep the 25% edge growth until about 20 shadow items show a pattern (Drew, after the live test).
 - 2026-10-24: a Jev target crop is never smaller than the marks crop (Drew, after a live crop showed only two words).
+- 2026-10-25: one sub-flag per part: `cropsItemCrops` and `cropsSearchLines`. Each starts off, is dev-only, and runs at the lower of its own state and `cropsAnchors`'s state (Drew, #94). A part whose sub-flag is off sends no request. Job version 2. To trial the job, use `scripts/nextshot-flags.sh feature cropsAnchors shadow`.
 
 ## Live test (2026-10-24, build 561)
 

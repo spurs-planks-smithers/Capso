@@ -39,6 +39,7 @@ The guard is one layer. It lowers risk. It cannot remove it. The base rules in e
 - 2026-10-24: the copied capture prompt still names the original PNG, and the crops job's crops are not covered. A separate follow-up issue closes that gap (Drew).
 - 2026-10-24: the injection check stays quiet on captures of AI chat apps, through the `chat` Noul. A strong local hit still warns (Drew).
 - 2026-10-24: Drew approved this spec, with two choices made in the session: a weak hit with no screen text consent gets no warning, and a local hit covers its whole OCR line.
+- 2026-10-25: every Jev feature gets dev-only sub-flags, each capped by its parent (Drew, #94). The data guard gets a fifth sub-flag, `dataGuardInjection` (#95). With it off, no injection rule runs and no injection question is sent. In shadow, the result goes to `jev.json` and the review file. Only on writes the warning line. The four kind flags now run at the lower of their own state and `dataGuard`'s. PR #83 stays open until Drew's dev-build review.
 - 2026-10-24 (security review, Opus): the Jev request gives up 400 ms before the deadline, because the runner drops a job's whole output at the deadline. A line the runner cut at 200 scalars takes its full text back from `ocrText`. An unresolved cut line is covered in the image sent to Jev. The window title never goes to Jev. Phrases are checked across wrapped line pairs. Cyrillic and Greek look-alike letters fold to Latin. Card and IBAN spans follow whole digit groups. A covered copy that misses data says so. The review script refuses a symlinked output file.
 
 ## Scope
@@ -127,6 +128,7 @@ All five flags are dev-only and start off in both channels, as the flag design r
 | Flag | States | What it does |
 | --- | --- | --- |
 | `dataGuard` | off, shadow, on | Runs the job. Shadow writes `jev.json` and `jev-review/dataGuard.md`. On also writes the refined lines and the covered copy. The injection check always runs with it. |
+| `dataGuardInjection` | off, shadow, on | The check for screen text aimed at an AI agent. Off runs no injection rule. Shadow records only. On writes the warning line. |
 | `dataGuardContact` | off, shadow, on | Emails and phone numbers |
 | `dataGuardNumbers` | off, shadow, on | Card numbers, IBANs, SSNs, and labeled account numbers |
 | `dataGuardSecrets` | off, shadow, on | API keys, tokens, passwords, and private keys |

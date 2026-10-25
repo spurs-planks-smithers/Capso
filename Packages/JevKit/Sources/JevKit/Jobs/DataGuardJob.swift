@@ -107,7 +107,7 @@ public struct DataGuardJob: JevJob {
     public let flag = FeatureFlag.dataGuard
     public let requires: JevDataKinds = []
     public let version = 1
-    public let options: [FeatureFlag] = DataGuardKind.allCases.map(\.flag)
+    public let options: [FeatureFlag] = [.dataGuardInjection] + DataGuardKind.allCases.map(\.flag)
 
     private let faceFinder: DataGuardFaceFinder
 
@@ -167,10 +167,12 @@ public struct DataGuardJob: JevJob {
             let mode = context.optionModes[kind.flag] ?? .off
             if mode != .off { modes[kind] = mode }
         }
-        return try await run(context, modes: modes)
+        // The runner caps each sub-flag at the mode of `dataGuard`.
+        let injection = context.optionModes[.dataGuardInjection] ?? .off
+        return try await run(context, modes: modes, injection: injection)
     }
 
-    func run(_ context: JevJobContext, modes: [DataGuardKind: FlagState]) async throws -> JevJobOutput {
+    func run(_ context: JevJobContext, modes: [DataGuardKind: FlagState], injection: FlagState) async throws -> JevJobOutput {
         let capture = context.capture
         let sources = Self.sources(of: capture, lines: context.screenLines)
 
@@ -183,7 +185,8 @@ public struct DataGuardJob: JevJob {
         var places: [Place] = []
         var lineStrong = Array(repeating: [DataGuardInjectionRule](), count: sources.count)
         for (index, source) in sources.enumerated() {
-            var rules = DataGuardPatterns.injectionRules(in: source.text)
+            // With `dataGuardInjection` off, no injection rule runs.
+            var rules = injection == .off ? [] : DataGuardPatterns.injectionRules(in: source.text)
             if source.place == .app { rules = rules.filter(\.isStrong) }
             guard !rules.isEmpty else { continue }
             if !places.contains(source.place) { places.append(source.place) }
@@ -195,7 +198,7 @@ public struct DataGuardJob: JevJob {
         }
         // A phrase can wrap onto the next OCR line, so each pair of
         // neighbor lines is checked again as one line, for strong rules.
-        for index in sources.indices.dropLast() where sources[index].place == .screen && sources[index + 1].place == .screen {
+        for index in sources.indices.dropLast() where injection != .off && sources[index].place == .screen && sources[index + 1].place == .screen {
             let joined = sources[index].text + " " + sources[index + 1].text
             let found = DataGuardPatterns.injectionRules(in: joined).filter { rule in
                 rule.isStrong && !lineStrong[index].contains(rule) && !lineStrong[index + 1].contains(rule)
@@ -387,7 +390,8 @@ public struct DataGuardJob: JevJob {
         }
 
         var lines: [JevRefinedLine] = []
-        if result == .flagged {
+        // Shadow records the result. Only on writes the warning line.
+        if result == .flagged, injection == .on {
             let fromTitle = flaggedIndexes.contains { sources[$0].place != .screen }
             lines.append(JevRefinedLine(scope: .capture, label: Self.injectionLabel(boxes: injectionBoxes, fromTitle: fromTitle)))
         }

@@ -100,8 +100,9 @@ public actor JevRunner {
         guard started.insert(key).inserted else { return }
 
         // Flags are read once, so a change during a capture has effect at
-        // the next one.
-        let states = Dictionary(uniqueKeysWithValues: FeatureFlag.allCases.map { ($0, flags($0)) })
+        // the next one. A sub-flag reads at the lower of its own state and
+        // its parent's, so a job never compares states itself (#94).
+        let states = Dictionary(uniqueKeysWithValues: FeatureFlag.allCases.map { ($0, FlagResolver.effectiveState(of: $0, state: flags)) })
         let state: @Sendable (FeatureFlag) -> FlagState = { states[$0] ?? .off }
         guard JevGate.mayRun(jobs: jobs, flags: state) else {
             expected.remove(key)

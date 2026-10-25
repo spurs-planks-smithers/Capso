@@ -31,7 +31,8 @@ private struct OptionJob: JevJob {
 struct JobOptionsTests {
     @Test("A job with no options gets none")
     func defaultIsNone() {
-        #expect(NoteCoachJob().options.isEmpty)
+        // A job that declares no options uses the protocol's default.
+        #expect(TestJob(id: "noteCoach", flag: .noteCoach) { _ in .empty }.options.isEmpty)
         #expect(makeContext().optionModes.isEmpty)
     }
 
@@ -61,7 +62,8 @@ struct JobOptionsTests {
         let runner = makeRunner(bundle, jobs: [job], flags: flags)
         await runCapture(runner, bundle)
 
-        #expect(await seen.modes == [.dataGuardContact: .on, .dataGuardFaces: .shadow, .dataGuardSecrets: .off])
+        // Capped at dataGuard's shadow: contact on reads shadow.
+        #expect(await seen.modes == [.dataGuardContact: .shadow, .dataGuardFaces: .shadow, .dataGuardSecrets: .off])
     }
 
     @Test("In the runner, a job with no options gets an empty map, even with kind flags on")
