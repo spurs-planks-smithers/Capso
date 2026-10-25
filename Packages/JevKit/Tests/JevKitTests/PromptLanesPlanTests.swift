@@ -53,6 +53,12 @@ private func makeFile(_ records: [Int: JevJobRecord]) -> JevRecordFile {
     JevRecordFile(captures: records.keys.sorted().map { JevCaptureRecord(capture: $0, jobs: [records[$0]!]) })
 }
 
+/// The flags of a trial with `feature promptLanes <state>`: jevBase on, and
+/// the parent and both sub-flags at `state`.
+private func lanesFlags(_ state: FlagState) -> [FeatureFlag: FlagState] {
+    [.jevBase: .on, .promptLanes: state, .lanesOrder: state, .lanesSplit: state]
+}
+
 private func ids(_ entries: [PromptLanes.Entry]) -> [String] {
     entries.map(\.item)
 }
@@ -368,7 +374,7 @@ struct PromptLanesPlanDiskTests {
             jsonResponse(answerBody(item: "3.1", severity: 2, size: 2, exact: 0.2)),
             jsonResponse(answerBody(item: "4.1", severity: 3, size: 3, exact: 0.9)),
         ])
-        let runner = makeRunner(bundle, jobs: [PromptLanesJob()], flags: [.jevBase: .on, .promptLanes: .shadow], transport: transport)
+        let runner = makeRunner(bundle, jobs: [PromptLanesJob()], flags: lanesFlags(.shadow), transport: transport)
         for index in 1...4 {
             await runCapture(runner, bundle, capture: index)
         }
@@ -417,7 +423,7 @@ struct PromptLanesPlanDiskTests {
             status(400),
             jsonResponse(answerBody(item: "2.1", severity: 2, size: 2, exact: 0.2)),
         ])
-        let runner = makeRunner(bundle, jobs: [PromptLanesJob()], flags: [.jevBase: .on, .promptLanes: .on], transport: transport)
+        let runner = makeRunner(bundle, jobs: [PromptLanesJob()], flags: lanesFlags(.on), transport: transport)
         let round = try #require(FeedbackLibrary.round(named: bundle.folderName, in: bundle.root))
 
         await runCapture(runner, bundle, capture: 1)

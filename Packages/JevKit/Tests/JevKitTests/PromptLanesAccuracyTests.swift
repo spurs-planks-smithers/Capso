@@ -176,7 +176,9 @@ struct PromptLanesAccuracyTests {
                     await recorded.store(result.response, retries: result.retries)
                     return result.response
                 },
-                images: JevImageLoader { _, _, _ in throw NoImages() }
+                images: JevImageLoader { _, _, _ in throw NoImages() },
+                // Both sub-flags on, as a trial with `feature promptLanes on` runs the job.
+                optionModes: [.lanesOrder: .on, .lanesSplit: .on]
             )
             do {
                 _ = try await PromptLanesJob().run(context)

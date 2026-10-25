@@ -76,6 +76,12 @@ public enum PromptLanesRule {
 /// returns no refined lines and no files. Its summary feeds the round plan,
 /// which is built from the whole round. The job returns the same output in
 /// shadow and on. See docs/superpowers/specs/2026-10-24-prompt-lanes-design.md.
+///
+/// The job has two sub-flags (#94): `lanesOrder` and `lanesSplit`. The runner
+/// caps each at the state of `promptLanes`. The one request gives the ratings
+/// for both, so with both off after the cap the job sends no request. The
+/// sub-flags change only the round prompt's section, which `PromptLanesPlan`
+/// builds at round end.
 public struct PromptLanesJob: JevJob {
     public let id = "promptLanes"
     public let flag = FeatureFlag.promptLanes
@@ -84,7 +90,12 @@ public struct PromptLanesJob: JevJob {
     /// `exact` option, and examples that no longer copy test notes.
     /// Version 3 (2026-10-24, Drew's label review): severity levels follow
     /// Drew's line, and a mixed exact and vague note is judgment.
-    public let version = 3
+    /// Version 4 (2026-10-25, #94): the job runs only with `lanesOrder` or
+    /// `lanesSplit` in shadow or on. The questions did not change. A record
+    /// from version 3 is no longer used.
+    public let version = 4
+
+    public var options: [FeatureFlag] { [.lanesOrder, .lanesSplit] }
 
     public init() {}
 
@@ -92,6 +103,10 @@ public struct PromptLanesJob: JevJob {
         let capture = context.capture
         let items = Self.items(in: capture)
         guard !items.isEmpty else { return .empty }
+
+        // Both sub-flags off after the cap: nothing to rate, so no request.
+        let modes = context.optionModes
+        guard (modes[.lanesOrder] ?? .off) != .off || (modes[.lanesSplit] ?? .off) != .off else { return .empty }
 
         let filled = items.filter { Self.isFilled($0.note) }
         var response: JevResponse?

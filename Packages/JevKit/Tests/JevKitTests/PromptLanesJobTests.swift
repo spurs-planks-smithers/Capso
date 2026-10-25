@@ -72,6 +72,9 @@ private func lanesBody(item: String, _ shape: LanesShape) -> String {
     return #"{"model":"\#(JevEndpoint.model)","answers":{\#(answers)},"usage":{"input_tokens":60,"output_tokens":4}}"#
 }
 
+/// Both lanes sub-flags on, as a trial with `feature promptLanes on` runs the job.
+private let lanesBothOn: [FeatureFlag: FlagState] = [.lanesOrder: .on, .lanesSplit: .on]
+
 private func score(_ probabilities: [Double]) -> JevScoreAnswer {
     JevScoreAnswer(score: 1, confidence: 0.9, probabilities: probabilities)
 }
@@ -90,7 +93,7 @@ struct PromptLanesJobTests {
     func requestShape() async throws {
         let capture = makeLanesCapture(notes: [(3, "make the cards line up"), (1, "rename this to Invoice Detail"), (2, nil)])
         let sent = RequestLog()
-        _ = try await PromptLanesJob().run(makeContext(capture: capture, sent: sent))
+        _ = try await PromptLanesJob().run(makeContext(capture: capture, sent: sent, optionModes: lanesBothOn))
 
         let requests = await sent.requests
         #expect(requests.count == 1)
@@ -123,7 +126,7 @@ struct PromptLanesJobTests {
         var bodies: [Data] = []
         for allowed: JevDataKinds in [.reviewerText, [.reviewerText, .screenText, .images]] {
             let sent = RequestLog()
-            _ = try await PromptLanesJob().run(makeContext(capture: capture, allowed: allowed, sent: sent))
+            _ = try await PromptLanesJob().run(makeContext(capture: capture, allowed: allowed, sent: sent, optionModes: lanesBothOn))
             let request = try #require(await sent.requests.first)
             #expect(request.kinds == .reviewerText)
             #expect(!request.needsImagesHeader)
@@ -136,7 +139,7 @@ struct PromptLanesJobTests {
     func questionWording() async throws {
         let capture = makeLanesCapture(notes: [(1, "rename this to Invoice Detail")])
         let sent = RequestLog()
-        _ = try await PromptLanesJob().run(makeContext(capture: capture, sent: sent))
+        _ = try await PromptLanesJob().run(makeContext(capture: capture, sent: sent, optionModes: lanesBothOn))
         let request = try #require(await sent.requests.first)
         #expect(request.questions.count == 3)
 
@@ -186,7 +189,7 @@ struct PromptLanesJobTests {
         #expect(PromptLanesJob.items(in: capture).map(\.note) == ["first words"])
 
         let sent = RequestLog()
-        _ = try await PromptLanesJob().run(makeContext(capture: capture, sent: sent))
+        _ = try await PromptLanesJob().run(makeContext(capture: capture, sent: sent, optionModes: lanesBothOn))
         let request = try #require(await sent.requests.first)
         #expect(request.questions.count == 3)
         let body = String(decoding: try JevRequestEncoder.encode(request).body, as: UTF8.self)
@@ -197,7 +200,7 @@ struct PromptLanesJobTests {
     func allEmpty() async throws {
         let capture = makeLanesCapture(notes: [(1, nil), (2, "   "), (3, "\n")])
         let sent = RequestLog()
-        let output = try await PromptLanesJob().run(makeContext(capture: capture, sent: sent))
+        let output = try await PromptLanesJob().run(makeContext(capture: capture, sent: sent, optionModes: lanesBothOn))
 
         #expect(await sent.count == 0)
         #expect(output.summary == [1, 2, 3].map { JevSummaryField(key: "1.\($0)", value: .fields(["lane": "askFirst"])) })
@@ -215,7 +218,7 @@ struct PromptLanesJobTests {
     @Test("A capture with no badges sends nothing and returns nothing")
     func noItems() async throws {
         let sent = RequestLog()
-        let output = try await PromptLanesJob().run(makeContext(capture: makeLanesCapture(notes: []), sent: sent))
+        let output = try await PromptLanesJob().run(makeContext(capture: makeLanesCapture(notes: []), sent: sent, optionModes: lanesBothOn))
         #expect(output == .empty)
         #expect(await sent.count == 0)
     }
@@ -224,7 +227,7 @@ struct PromptLanesJobTests {
     func outputShape() async throws {
         let capture = makeLanesCapture(notes: [(1, "rename this to Invoice\nDetail"), (2, nil), (3, "make the cards line up")])
         let reply = response(answers("1.1", mechanical), answers("1.3", judgment))
-        let output = try await PromptLanesJob().run(makeContext(capture: capture, response: reply))
+        let output = try await PromptLanesJob().run(makeContext(capture: capture, response: reply, optionModes: lanesBothOn))
 
         #expect(output.lines.isEmpty)
         #expect(output.files.isEmpty)
@@ -251,7 +254,7 @@ struct PromptLanesJobTests {
         var wrongType = answers("1.3", mechanical)
         wrongType["1.3.kind"] = .noul(0.9)
         // Item 4 has no answers at all.
-        let output = try await PromptLanesJob().run(makeContext(capture: capture, response: response(answers("1.1", mechanical), threeLevels, wrongType)))
+        let output = try await PromptLanesJob().run(makeContext(capture: capture, response: response(answers("1.1", mechanical), threeLevels, wrongType), optionModes: lanesBothOn))
 
         #expect(output.summary == [
             JevSummaryField(key: "1.1", value: .fields(["lane": "A", "severity": 1, "size": 1])),
@@ -266,23 +269,69 @@ struct PromptLanesJobTests {
 
     @Test("An error from the asker ends the job")
     func errorPropagates() async {
-        var context = makeContext(capture: makeLanesCapture(notes: [(1, "rename this to Invoice Detail")]))
+        var context = makeContext(capture: makeLanesCapture(notes: [(1, "rename this to Invoice Detail")]), optionModes: lanesBothOn)
         context = JevJobContext(
             round: context.round, capture: context.capture, folderURL: context.folderURL, allowed: context.allowed,
-            deadline: context.deadline, jev: JevAsker { _ in throw JevError(.timeout) }, images: context.images
+            deadline: context.deadline, jev: JevAsker { _ in throw JevError(.timeout) }, images: context.images,
+            optionModes: context.optionModes
         )
         await #expect(throws: JevError(.timeout)) {
             _ = try await PromptLanesJob().run(context)
         }
     }
 
-    @Test("The job is registered at version 3, with no consent beyond reviewer text")
+    @Test("The job is registered at version 4, with no consent beyond reviewer text, and its options are its sub-flags")
     func identity() {
         let job = PromptLanesJob()
         #expect(job.id == "promptLanes" && job.flag == .promptLanes)
-        #expect(job.version == 3)
+        #expect(job.version == 4)
         #expect(job.requires.isEmpty)
-        #expect(JevJobRegistry.all.contains { $0.id == "promptLanes" && $0.version == 3 })
+        #expect(job.options == [.lanesOrder, .lanesSplit])
+        #expect(job.options == FeatureFlag.subFlags(of: job.flag))
+        #expect(JevJobRegistry.all.contains { $0.id == "promptLanes" && $0.version == 4 })
+    }
+
+    @Test("Either sub-flag in shadow or on keeps one request per capture, and the output does not depend on which")
+    func eitherSubFlagAsks() async throws {
+        let capture = makeLanesCapture(notes: [(1, "rename this to Invoice Detail"), (2, nil), (3, "make the cards line up")])
+        let reply = response(answers("1.1", mechanical), answers("1.3", judgment))
+        let both = try await PromptLanesJob().run(makeContext(capture: capture, response: reply, optionModes: lanesBothOn))
+        #expect(both.summary.count == 3)
+
+        let modes: [[FeatureFlag: FlagState]] = [
+            [.lanesOrder: .on], [.lanesSplit: .on],
+            [.lanesOrder: .shadow], [.lanesSplit: .shadow],
+            [.lanesOrder: .on, .lanesSplit: .shadow], [.lanesOrder: .shadow, .lanesSplit: .on],
+            [.lanesOrder: .shadow, .lanesSplit: .shadow],
+            // An explicit off beside an active sub-flag.
+            [.lanesOrder: .off, .lanesSplit: .on], [.lanesOrder: .shadow, .lanesSplit: .off],
+        ]
+        for optionModes in modes {
+            let sent = RequestLog()
+            let output = try await PromptLanesJob().run(makeContext(capture: capture, response: reply, sent: sent, optionModes: optionModes))
+            let count = await sent.count
+            #expect(count == 1, "\(optionModes) sent \(count) requests")
+            #expect(output == both, "\(optionModes) gave another output")
+        }
+    }
+
+    @Test("With both sub-flags off, or none given, the job sends no request and returns nothing")
+    func bothOffAsksNothing() async throws {
+        let capture = makeLanesCapture(notes: [(1, "rename this to Invoice Detail"), (2, nil), (3, "make the cards line up")])
+        let reply = response(answers("1.1", mechanical), answers("1.3", judgment))
+        let modes: [[FeatureFlag: FlagState]] = [
+            [:],
+            [.lanesOrder: .off, .lanesSplit: .off],
+            [.lanesOrder: .off],
+            // A flag that is not a lanes sub-flag does not count.
+            [.noteCoachVague: .on, .promptLanes: .on],
+        ]
+        for optionModes in modes {
+            let sent = RequestLog()
+            let output = try await PromptLanesJob().run(makeContext(capture: capture, response: reply, sent: sent, optionModes: optionModes))
+            #expect(await sent.count == 0, "\(optionModes) sent a request")
+            #expect(output == .empty, "\(optionModes) returned output")
+        }
     }
 }
 
@@ -380,9 +429,17 @@ struct PromptLanesRunnerTests {
         StubTransport(fallback: jsonResponse(lanesBody(item: "1.1", mechanical)))
     }
 
-    @Test("With promptLanes off, or with jevBase off, nothing is sent or written")
+    @Test("With promptLanes off, with jevBase off, or with a sub-flag alone, nothing is sent or written")
     func off() async throws {
-        for flags: [FeatureFlag: FlagState] in [[.jevBase: .on], [.promptLanes: .on]] {
+        let cases: [[FeatureFlag: FlagState]] = [
+            [.jevBase: .on],
+            [.promptLanes: .on],
+            // The sub-flags run nothing without their parent.
+            [.jevBase: .on, .lanesOrder: .on, .lanesSplit: .on],
+            [.jevBase: .on, .promptLanes: .off, .lanesOrder: .on],
+            [.jevBase: .on, .promptLanes: .off, .lanesSplit: .shadow],
+        ]
+        for flags in cases {
             let bundle = try await Bundle.make()
             let transport = Self.transport()
             let runner = makeRunner(bundle, jobs: [PromptLanesJob()], flags: flags, transport: transport)
@@ -400,7 +457,7 @@ struct PromptLanesRunnerTests {
     func shadow() async throws {
         let bundle = try await Bundle.make()
         let transport = Self.transport()
-        let runner = makeRunner(bundle, jobs: [PromptLanesJob()], flags: [.jevBase: .on, .promptLanes: .shadow], transport: transport)
+        let runner = makeRunner(bundle, jobs: [PromptLanesJob()], flags: [.jevBase: .on, .promptLanes: .shadow, .lanesOrder: .shadow, .lanesSplit: .shadow], transport: transport)
         await runCapture(runner, bundle)
 
         #expect(await transport.count == 1)
@@ -420,7 +477,7 @@ struct PromptLanesRunnerTests {
     @Test("On writes the same summary and still no refined line")
     func on() async throws {
         let bundle = try await Bundle.make()
-        let runner = makeRunner(bundle, jobs: [PromptLanesJob()], flags: [.jevBase: .on, .promptLanes: .on], transport: Self.transport())
+        let runner = makeRunner(bundle, jobs: [PromptLanesJob()], flags: [.jevBase: .on, .promptLanes: .on, .lanesOrder: .on, .lanesSplit: .on], transport: Self.transport())
         await runCapture(runner, bundle)
 
         let record = try #require(try bundle.record(1))
@@ -430,5 +487,43 @@ struct PromptLanesRunnerTests {
         let name = JevRefinedRenderer.captureFileName(for: bundle.capture)
         let refined = try bundle.exists(name) ? bundle.text(name) : ""
         #expect(!refined.contains("Item 1.1:"))
+    }
+
+    @Test("One sub-flag on is enough: one request, a record, and the same summary")
+    func oneSubFlag() async throws {
+        for sub in [FeatureFlag.lanesOrder, .lanesSplit] {
+            let bundle = try await Bundle.make()
+            let transport = Self.transport()
+            let runner = makeRunner(bundle, jobs: [PromptLanesJob()], flags: [.jevBase: .on, .promptLanes: .on, sub: .on], transport: transport)
+            await runCapture(runner, bundle)
+
+            #expect(await transport.count == 1, "\(sub)")
+            let record = try #require(try bundle.record(1))
+            #expect(record.status == .done && record.mode == "on", "\(sub)")
+            #expect(record.summary == .object([JevSummaryField(key: "1.1", value: .fields(["lane": "A", "severity": 1, "size": 1]))]), "\(sub)")
+        }
+    }
+
+    @Test("A sub-flag runs at the lower of its state and promptLanes: shadow under a shadow parent, nothing under an on parent with both off")
+    func capAtTheParent() async throws {
+        // The parent is shadow, so a sub-flag set to on still runs in shadow.
+        let bundle = try await Bundle.make()
+        let transport = Self.transport()
+        let runner = makeRunner(bundle, jobs: [PromptLanesJob()], flags: [.jevBase: .on, .promptLanes: .shadow, .lanesOrder: .on], transport: transport)
+        await runCapture(runner, bundle)
+        #expect(await transport.count == 1)
+        #expect(try bundle.record(1)?.mode == "shadow")
+
+        // The parent is on and both sub-flags are off: the job runs, sends
+        // nothing, and records nothing to rate.
+        let idle = try await Bundle.make()
+        let idleTransport = Self.transport()
+        let idleRunner = makeRunner(idle, jobs: [PromptLanesJob()], flags: [.jevBase: .on, .promptLanes: .on], transport: idleTransport)
+        await runCapture(idleRunner, idle)
+        #expect(await idleTransport.count == 0)
+        let idleRecord = try #require(try idle.record(1))
+        #expect(idleRecord.status == .done && idleRecord.requests == 0 && idleRecord.answers.isEmpty)
+        #expect(idleRecord.lines.isEmpty && idleRecord.files.isEmpty)
+        #expect(!idle.exists("jev-review/promptLanes.md"), "a review was written with no sub-flag on")
     }
 }
