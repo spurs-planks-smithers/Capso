@@ -420,10 +420,12 @@ public struct DataGuardJob: JevJob {
     /// "...". A cut line takes its full text back from `ocrText` when a line
     /// there starts the same way. Otherwise it is marked cut.
     static func sources(of capture: FeedbackCapture, lines: [FeedbackTextLine]?) -> [Source] {
-        var fullLines = (capture.ocrText ?? "").split(whereSeparator: \.isNewline).map(String.init)
-        // The last line of a cut block is cut too, so it is no full text.
-        if cutPrefix(capture.ocrText ?? "", limit: ScreenText.maxBlockLength) != nil, !fullLines.isEmpty {
-            fullLines.removeLast()
+        let fullLines = (capture.ocrText ?? "").split(whereSeparator: \.isNewline).map(String.init)
+        // The last line of a cut block is cut too, so it is no full text for
+        // a rejoin. It is still scanned when there are no OCR boxes.
+        var rejoinLines = fullLines
+        if cutPrefix(capture.ocrText ?? "", limit: ScreenText.maxBlockLength) != nil, !rejoinLines.isEmpty {
+            rejoinLines.removeLast()
         }
         var sources: [Source]
         if let lines {
@@ -433,7 +435,7 @@ public struct DataGuardJob: JevJob {
                 }
                 // Only an unambiguous match counts: two long lines can start
                 // the same way and differ at the end.
-                let matches = Set(fullLines.filter { $0.unicodeScalars.count > ScreenText.maxFieldLength && $0.hasPrefix(prefix) })
+                let matches = Set(rejoinLines.filter { $0.unicodeScalars.count > ScreenText.maxFieldLength && $0.hasPrefix(prefix) })
                 if matches.count == 1, let full = matches.first {
                     return Source(text: full, box: line.box, place: .screen)
                 }
