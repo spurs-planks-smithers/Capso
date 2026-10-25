@@ -198,6 +198,22 @@ The base job interface (commit `d1de328`) covers every need of this feature:
 
 This feature edits only `Packages/JevKit/Sources/JevKit/Jobs/DupesConflictsJob.swift` and adds its own test file, as the base requires. It adds the review script under `scripts/`.
 
+## Sub-flags (Drew, 2026-10-25)
+
+Every Jev feature gets sub-flags, each off by default and dev-only (`docs/superpowers/specs/2026-10-25-jev-sub-flags-design.md`, #94). A sub-flag runs at the lower of its own state and its parent's. The runner applies that cap and gives the job `context.optionModes`.
+
+| Sub-flag | Question it needs | Shadow | On |
+| --- | --- | --- | --- |
+| `dupesMerge` | `sameAsk` | summary in `jev.json` only | "Same ask" round lines and "may overlap" item lines |
+| `dupesConflict` | `opposite` | summary in `jev.json` only | "Ask first" round lines |
+
+- The job declares `options = [.dupesMerge, .dupesConflict]` and reads each part's capped mode.
+- A part that is off asks no question and writes nothing. With both parts off, the job sends no request.
+- The guard (my call): with `dupesMerge` not off and `dupesConflict` off, the job still asks `opposite` in the same request. A pair at 0.7 or more then gets no "Same ask" line and no conflict line. This keeps the rule that a conflict wins over a duplicate, so the merge never tells the agent to make one change for two opposite asks. It adds no request and about 40 tokens per pair.
+- The summary lists only the outcomes of parts that are not off.
+- The job version goes to 3, so the review script never mixes these answers with version 2 answers.
+- Trial steps change: `scripts/nextshot-flags.sh feature dupesConflicts on` sets the parent and both sub-flags, then `set dupesConflict off` (for example) turns one part off.
+
 ## Latency and cost
 
 - Requests per capture: one per new entry, at most 8. A capture with 4 items and a note sends 5 requests, 4 at a time.
