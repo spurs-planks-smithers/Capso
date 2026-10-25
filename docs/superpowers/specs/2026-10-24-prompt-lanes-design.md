@@ -1,6 +1,6 @@
 # Lanes and priority: design (draft)
 
-Date: 2026-10-24. Status: draft. Issue: #69 (parent #34). Flag: `promptLanes` (off, shadow, on). Related docs: `docs/plans/2026-10-24-jev-image-ideas.md` (ideas 11 and 12), `docs/superpowers/specs/2026-10-24-jev-handoff-design.md` (Jev design), `docs/superpowers/specs/2026-10-24-jev-base-design.md` (the base), `docs/superpowers/specs/2026-10-24-feature-flags-design.md` (flags).
+Date: 2026-10-24. Status: approved (Drew, 2026-10-24). Issue: #69 (parent #34). Flag: `promptLanes` (off, shadow, on). Related docs: `docs/plans/2026-10-24-jev-image-ideas.md` (ideas 11 and 12), `docs/superpowers/specs/2026-10-24-jev-handoff-design.md` (Jev design), `docs/superpowers/specs/2026-10-24-jev-base-design.md` (the base), `docs/superpowers/specs/2026-10-24-feature-flags-design.md` (flags).
 
 ## Intent
 
