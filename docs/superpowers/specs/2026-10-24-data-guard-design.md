@@ -327,7 +327,7 @@ Code-only facts, so a review script can work without the job's logic:
 
 ```json
 {
-  "injection": { "result": "flagged", "strong": ["override"], "weakLines": 2, "boxes": [[40, 120, 610, 148]], "aimed": 0.91, "chat": 0.08 },
+  "injection": { "result": "flagged", "strong": ["override"], "weak": ["agentName"], "where": ["screen"], "boxes": [[40, 120, 610, 148]] },
   "kinds": [
     { "kind": "contact", "mode": "on", "local": [{ "rule": "email", "box": [40, 200, 380, 224] }], "jev": { "shown": 0.12 } },
     { "kind": "faces", "mode": "shadow", "local": [], "jev": { "shown": 0.81, "box": [900, 40, 1020, 180], "confidence": 0.44, "cover": true } }
