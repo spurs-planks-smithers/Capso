@@ -32,6 +32,7 @@ xcodebuild -project Capso.xcodeproj -scheme Capso -configuration Debug CODE_SIGN
 - One package: `swift test --package-path Packages/<Name>`.
 - CI package set: SharedKit, AnnotationKit, CaptureKit, RecordingKit, OCRKit.
 - Fork package: `swift test --package-path Packages/FeedbackKit`.
+- JevKit in Release, before each trial build: `swift test -c release -Xswiftc -enable-testing --package-path Packages/JevKit`. The installed app is a Release build. On 2026-10-25 an optimizer bug lost a dupes result in Release only, and every Debug test passed (#39).
 - App tests: `xcodebuild test -project Capso.xcodeproj -scheme Capso -configuration Debug CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO -only-testing:CapsoTests`.
 - Run app tests without a `PRODUCT_NAME` override. `TEST_HOST` expects `Capso.app`.
 
@@ -61,7 +62,7 @@ xcodebuild -project Capso.xcodeproj -scheme Capso -configuration Debug CODE_SIGN
 - Work on a feature branch, never on `main`.
 - Stage by explicit path. Use conventional commit prefixes. Add no AI attribution lines.
 - Run `github-route status` before every push. Stop if it exits nonzero.
-- A Jev feature PR merges only after Drew's dev-build review keeps it (`docs/decisions/2026-10-25-jev-review-before-release.md`).
+- Every Jev feature and sub-flag stays off by its flag for the foreseeable future (Drew, 2026-10-25). A flag turns on only after Drew's dev-build review keeps that part (`docs/decisions/2026-10-25-jev-review-before-release.md`, checklist `docs/plans/2026-10-25-jev-dev-build-review.md`).
 
 ## Upstream flow
 
