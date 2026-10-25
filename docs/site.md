@@ -53,10 +53,10 @@ The script stops when the DMG has no stapled notarization ticket, when a file is
 Redesigned 2026-10-24 for the v3.1 video, in the video's words: round, dot, one prompt.
 
 - **Video first.** The video sits under the tagline, as wide as the window height allows, so the whole page fits a 1440 by 900 screen with no scroll. A "Watch the intro" button covers the poster, and the native controls appear once the video plays. Without JavaScript, the video keeps its controls.
-- **Poster.** The site poster is the frame at 56.8 seconds: the Nshot menu open over the round of three captures (Drew, 2026-10-24: "The menu for Nextshot is key."). Until 2026-10-24 it was the note panel frame at 46.6 seconds. The deploy's default poster is the end card, so pass this frame:
+- **Poster.** The site poster is a still made for the site: the lemonade page with red dots 1 to 3 on the left, and the open Nshot menu on the right with "Copy Prompt and End Round" highlighted (Drew, 2026-10-24: "The menu for Nextshot is key."). No single video frame shows both, so `make_poster.mjs` takes the zoomed hand-off menu and lays it over the Mark scene. Drew turned down the 56.8-second menu frame the same day, because its left half is empty. Until then the poster was the note panel frame at 46.6 seconds. The deploy's default poster is the end card, so make the still and pass it:
 
 ```bash
-ffmpeg -v error -y -ss 56.8 -i build/releases/Nextshot-onboarding-2026.10.24.mp4 -frames:v 1 -q:v 3 build/site-poster.jpg
+node scripts/video/nextshot-onboarding/make_poster.mjs build/site-poster.jpg
 ```
 
 ```bash

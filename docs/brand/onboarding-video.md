@@ -25,6 +25,7 @@ Git ignores `build/`. The render names each file by the date of the HEAD commit,
 | `scripts/video/nextshot-onboarding/check_edges.py` | Fails when a voice clip starts or ends on sound (first and last 20 ms must be below -50 dB) |
 | `scripts/video/nextshot-onboarding/index.html` | The HyperFrames composition: all seven scenes on one GSAP timeline that reads `timing.js` |
 | `scripts/video/nextshot-onboarding/render.sh` | Runs everything and writes the video and the poster to `build/releases/` |
+| `scripts/video/nextshot-onboarding/make_poster.mjs` | Makes the nextshot.dev poster still: the lemonade page with its dots and the open Nshot menu (see `docs/site.md`, Poster) |
 | `scripts/video/nextshot-onboarding/make_gif.py` | Renders the composition in GIF mode and cuts the email GIF (see "Email GIF") |
 | `scripts/video/nextshot-onboarding/assets/` | Fonts: Permanent Marker (Apache License 2.0) and Patrick Hand (SIL Open Font License) for the sketch, Inter (SIL Open Font License) for the brand look. GSAP, Rough.js, the Nextshot icon. |
 | `scripts/video/nextshot-onboarding/assets/music/` | The three Mixkit tracks. Not in git (see "Music"). |
