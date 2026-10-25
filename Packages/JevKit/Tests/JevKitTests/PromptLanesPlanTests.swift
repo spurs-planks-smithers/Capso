@@ -408,6 +408,39 @@ struct PromptLanesPlanDiskTests {
         #expect(gated == plan)
     }
 
+    @Test("A failed request leaves its capture not rated, and a later capture of the round still gets a plan")
+    func failedCaptureThroughTheRunner() async throws {
+        let bundle = try await Bundle.make(captures: 2)
+        // HTTP 400 is final: the base never retries it. A retried 500 would count
+        // three slow failures and pause requests, which would stop capture 2 too.
+        let transport = StubTransport([
+            status(400),
+            jsonResponse(answerBody(item: "2.1", severity: 2, size: 2, exact: 0.2)),
+        ])
+        let runner = makeRunner(bundle, jobs: [PromptLanesJob()], flags: [.jevBase: .on, .promptLanes: .on], transport: transport)
+        let round = try #require(FeedbackLibrary.round(named: bundle.folderName, in: bundle.root))
+
+        await runCapture(runner, bundle, capture: 1)
+        #expect(await transport.count == 1)
+        let failed = try #require(try bundle.record(1))
+        #expect(failed.status == .notRefined && failed.reason == .badRequest)
+        let afterFirst = try #require(PromptLanesPlan.loadRecords(folderURL: bundle.folder))
+        // No item is rated, so the prompt would stay plain.
+        #expect(PromptLanesPlan.plan(round: round, file: afterFirst) == nil)
+        #expect(PromptLanesPlan.forPrompt(round: round, file: afterFirst, flags: flagSet([.jevBase: .on, .promptLanes: .on])) == nil)
+
+        await runCapture(runner, bundle, capture: 2)
+        #expect(await transport.count == 2)
+        let afterSecond = try #require(PromptLanesPlan.loadRecords(folderURL: bundle.folder))
+        let plan = try #require(PromptLanesPlan.plan(round: round, file: afterSecond))
+        #expect(plan.laneA.isEmpty)
+        #expect(plan.laneB == [
+            PromptLanes.Entry(item: "2.1", severity: .bug, size: .severalFiles),
+            PromptLanes.Entry(item: "1.1"),
+        ])
+        #expect(plan.askFirst.isEmpty)
+    }
+
     @Test("loadRecords gives nil for a missing file, an unreadable file, and another schema version")
     func unreadableFiles() throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("lanes-plan-\(UUID().uuidString)", isDirectory: true)

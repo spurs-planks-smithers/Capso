@@ -231,11 +231,12 @@ final class FeedbackController {
     /// menu row and Option+Shift+E, comes here too: an ended round's prompt
     /// is on the clipboard and the same toast says so (Drew, 2026-10-24). The round ends
     /// first, so the prompt holds each capture whose save was in progress.
-    /// The prompt comes from the ended round, so it matches the `prompt.md`
-    /// that `end()` writes. Resume in Recent reopens the round. With a Jev
-    /// feature on, the copy waits at most 500 ms for a running capture and
-    /// points to refined.md. With `promptLanes` on, the prompt also ends with
-    /// the Order and lanes section, built after that wait.
+    /// The prompt comes from the ended round, so it holds the same captures
+    /// as the `prompt.md` that `end()` writes. Resume in Recent reopens the
+    /// round. With a Jev feature on, the copy waits at most 500 ms for a
+    /// running capture and points to refined.md. With `promptLanes` on, the
+    /// prompt also ends with the Order and lanes section, built after that
+    /// wait.
     @discardableResult
     func copyPromptAndEndRound() async throws -> String {
         let round = try await endRound()

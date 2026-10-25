@@ -42,7 +42,7 @@ struct PromptLanesSectionTests {
         "Order and lanes:",
         "These labels come from an automated model. The reviewer's words win. Each item appears once.",
     ]
-    private static let laneAHeading = "Lane A, exact edits. After your plan table, hand these items to a subagent on a fast, low-cost model as one batch, with each item's instruction from manifest.md. In Claude Code, set the subagent's model to haiku. With fewer than three items, do them yourself. Check each edit before you start lane B."
+    private static let laneAHeading = "Lane A, exact edits. After your plan table, hand these items to a subagent on a fast, low-cost model as one batch, with each item's instruction from manifest.md and its file from your plan table. In Claude Code, set the subagent's model to haiku. With fewer than three items, do them yourself. Check each edit before you start lane B."
     private static let laneBHeading = "Lane B, needs judgment. Plan these yourself, in this order:"
 
     @Test("The full section reads exactly as the design shows it")
@@ -55,7 +55,7 @@ struct PromptLanesSectionTests {
         #expect(lanes.promptLines.joined(separator: "\n") == """
         Order and lanes:
         These labels come from an automated model. The reviewer's words win. Each item appears once.
-        Lane A, exact edits. After your plan table, hand these items to a subagent on a fast, low-cost model as one batch, with each item's instruction from manifest.md. In Claude Code, set the subagent's model to haiku. With fewer than three items, do them yourself. Check each edit before you start lane B.
+        Lane A, exact edits. After your plan table, hand these items to a subagent on a fast, low-cost model as one batch, with each item's instruction from manifest.md and its file from your plan table. In Claude Code, set the subagent's model to haiku. With fewer than three items, do them yourself. Check each edit before you start lane B.
         - 3.2 polish, one line
         Lane B, needs judgment. Plan these yourself, in this order:
         - 4.1 bug, several files

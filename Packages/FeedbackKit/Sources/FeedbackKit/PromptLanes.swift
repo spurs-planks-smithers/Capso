@@ -48,7 +48,7 @@ public struct PromptLanes: Equatable, Sendable {
         if laneA.isEmpty {
             lines.append("Lane A, exact edits: none.")
         } else {
-            lines.append("Lane A, exact edits. After your plan table, hand these items to a subagent on a fast, low-cost model as one batch, with each item's instruction from manifest.md. In Claude Code, set the subagent's model to haiku. With fewer than three items, do them yourself. Check each edit before you start lane B.")
+            lines.append("Lane A, exact edits. After your plan table, hand these items to a subagent on a fast, low-cost model as one batch, with each item's instruction from manifest.md and its file from your plan table. In Claude Code, set the subagent's model to haiku. With fewer than three items, do them yourself. Check each edit before you start lane B.")
             lines += laneA.map(Self.line)
         }
         if laneB.isEmpty {

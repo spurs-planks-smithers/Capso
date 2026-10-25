@@ -158,7 +158,7 @@ Example for a made-up round of 8 items:
 ```text
 Order and lanes:
 These labels come from an automated model. The reviewer's words win. Each item appears once.
-Lane A, exact edits. After your plan table, hand these items to a subagent on a fast, low-cost model as one batch, with each item's instruction from manifest.md. In Claude Code, set the subagent's model to haiku. With fewer than three items, do them yourself. Check each edit before you start lane B.
+Lane A, exact edits. After your plan table, hand these items to a subagent on a fast, low-cost model as one batch, with each item's instruction from manifest.md and its file from your plan table. In Claude Code, set the subagent's model to haiku. With fewer than three items, do them yourself. Check each edit before you start lane B.
 - 3.2 polish, one line
 - 9.6 polish, one line
 - 2.2 nit, one file
@@ -286,6 +286,7 @@ None open. Drew answered every question that changes what gets built on 2026-10-
 - 2026-10-24 (builder check): the base's refined pointer and round-end wait stay as they are for this feature. No lanes-only gate (my call).
 - 2026-10-24 (builder check): a note that names no concrete change is `judgment`, and the accuracy test checks that no vague note reaches lane A (my call).
 - 2026-10-24 (builder check): the accuracy run gates the on state, not the PR. The plan uses the job's current version, not a fixed number (my call).
+- 2026-10-24 (final review): the lane A sentence also hands over each item's file from the plan table, because the subagent has no image (my call).
 
 ## Left to the builder
 
