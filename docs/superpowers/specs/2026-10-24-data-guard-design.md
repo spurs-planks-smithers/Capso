@@ -1,6 +1,6 @@
 # Injection and data guard: design (draft)
 
-Date: 2026-10-24. Status: draft. Issue: #70 (parent #34). Flags: `dataGuard` and four kind flags.
+Date: 2026-10-24. Status: approved (Drew, 2026-10-24). Issue: #70 (parent #34). Sub-issues: #75 to #80. Follow-up: #81. Flags: `dataGuard` and four kind flags.
 
 ## Intent
 
@@ -37,6 +37,8 @@ The guard is one layer. It lowers risk. It cannot remove it. The base rules in e
 - 2026-10-24: on a private data hit, the prompt points to the covered copy and adds a rule: never copy private data from the screen into code, tests, commits, or messages (Drew).
 - 2026-10-24: this build adds a review page that draws each cover over its capture, for shadow review (Drew).
 - 2026-10-24: the copied capture prompt still names the original PNG, and the crops job's crops are not covered. A separate follow-up issue closes that gap (Drew).
+- 2026-10-24: the injection check stays quiet on captures of AI chat apps, through the `chat` Noul. A strong local hit still warns (Drew).
+- 2026-10-24: Drew approved this spec, with two choices made in the session: a weak hit with no screen text consent gets no warning, and a local hit covers its whole OCR line.
 
 ## Scope
 
@@ -335,9 +337,23 @@ Code-only facts, so a review script can work without the job's logic:
 }
 ```
 
-- `injection.result` is `flagged`, `suspectUnchecked`, `suspectCleared`, or `none`.
-- A local hit with no box has no `box` field, so the summary shows "found, not placed".
-- `covers` counts the covers in the covered copy, so it counts kinds in on only.
+The record's `summary` is this object. Every box is `[x1, y1, x2, y2]` in pixels of the capture's annotated PNG, origin top left, before padding.
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `injection.result` | `flagged`, `suspectUnchecked`, `suspectCleared`, or `none` | The injection outcome |
+| `injection.strong` | array of rule names | Strong rules that matched, in rule order, each once |
+| `injection.weak` | array of rule names | Weak rules that matched, each once |
+| `injection.where` | array of `screen`, `title`, `app` | Where the matched text came from |
+| `injection.boxes` | array of boxes | Boxes of the flagged lines. Empty when the lines have no boxes or nothing is flagged. |
+| `injection.aimed`, `injection.chat` | number | Present only when Jev answered |
+| `kinds` | array | One entry per kind in shadow or on, in the order contact, numbers, secrets, faces |
+| `kinds[].kind` | `contact`, `numbers`, `secrets`, `faces` | |
+| `kinds[].mode` | `shadow` or `on` | The kind flag's mode |
+| `kinds[].local` | array of `{rule, box}` | Local hits. A hit with no box has no `box` field ("found, not placed"). |
+| `kinds[].jev` | `{shown, box, confidence, cover}` | Present only when Jev answered. `box` and `confidence` are present only when the Box answered. `cover` is true when the box passed both thresholds. |
+| `covers` | number | Covers drawn in the covered copy, so kinds in on only |
+| `notAsked` | `time` | Present only when the job skipped its request for lack of time |
 
 ### Review file (shadow and on)
 
@@ -407,18 +423,18 @@ The guard follows the base rule: a failure is silent, and the plain prompt goes 
 
 ## Build tasks (sub-issues)
 
-| Task | Done when |
-| --- | --- |
-| Kind flags and the base hook: four registry entries, `nextshot-flags.sh`, `JevJob.options`, `JevJobContext.optionModes`, and the runner change | FeedbackKit and JevKit tests pass, and a runner test shows a kind flag alone starts nothing |
-| Local detectors and masking (`DataGuardPatterns.swift`) | Pattern tests pass on synthetic text |
-| Faces and covers (`DataGuardFaces.swift`, `DataGuardCovers.swift`) | Cover pixel tests pass. The Vision finder runs on a blank image with no hit. |
-| The job: request, rule, output, summary, and review | Job tests pass, including off means off and local only. The unsigned Debug build passes. |
-| Review page (`scripts/jev-review-data-guard.py`) | It renders a synthetic round with every kind and both box sources |
-| Trial: shadow run on the orchestrator's combined build, then the on decision | Drew reviews the page for real captures and decides on per kind |
+| Issue | Task | Done when |
+| --- | --- | --- |
+| #75 | Kind flags and the base hook: four registry entries, `nextshot-flags.sh`, `JevJob.options`, `JevJobContext.optionModes`, and the runner change | FeedbackKit and JevKit tests pass, and a runner test shows a kind flag alone starts nothing |
+| #76 | Local detectors and masking (`DataGuardPatterns.swift`) | Pattern tests pass on synthetic text |
+| #77 | Faces and covers (`DataGuardFaces.swift`, `DataGuardCovers.swift`) | Cover pixel tests pass. The Vision finder runs on a blank image with no hit. |
+| #78 | The job: request, rule, output, summary, and review | Job tests pass, including off means off and local only. The unsigned Debug build passes. |
+| #79 | Review page (`scripts/jev-review-data-guard.py`) | It renders a synthetic round with every kind and both box sources |
+| #80 | Trial: shadow run on the orchestrator's combined build, then the on decision | Drew reviews the page for real captures and decides on per kind |
 
 ## Follow-ups
 
-- A separate issue: the copied capture and round prompts name `<stem>-covered.png` in place of the original PNG when it exists, and the crops job draws the covers on its item crops. It edits `PromptBuilder` (FeedbackKit) and the crops job.
+- #81 (separate issue): the copied capture and round prompts name `<stem>-covered.png` in place of the original PNG when it exists, and the crops job draws the covers on its item crops. It edits `PromptBuilder` (FeedbackKit) and the crops job.
 - The runner reads the TypeSafe key before it runs any job. So with no key, the guard's local checks do not run. A later base change could let a job with local work run without a key.
 - Names and postal addresses need a model that reads free text. Revisit after the shadow run.
 
