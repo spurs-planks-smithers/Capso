@@ -319,7 +319,8 @@ public actor FeedbackRoundStore {
         return decoder
     }
 
-    private static func encoder() -> JSONEncoder {
+    /// `ZipWriter` uses it too, so a zip's `feedback.json` reads like a bundle's.
+    static func encoder() -> JSONEncoder {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
