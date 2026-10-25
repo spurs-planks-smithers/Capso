@@ -497,11 +497,11 @@ Where the pointer appears:
 | --- | --- | --- |
 | Capture prompt after the last note step | yes | none. The refined file is usually there before the agent reads it. |
 | Copy Last Capture Prompt (Option+Shift+C) | yes | none |
-| Copy Prompt and End Round (Option+Shift+R) | yes | at most 500 ms, after the existing wait for saves |
+| Copy Prompt and End Round (Option+Shift+R), and End Round (Option+Shift+E) | yes | at most 500 ms, after the existing wait for saves |
 | Copy Round Prompt in Recent | yes, when `refined.md` exists | none |
 | Copy N Selected | no, in the base | none |
 
-The round-end wait sits in `copyPromptAndEndRound`, after `endRound()` returns and before the prompt is rendered. End Round (Option+Shift+E) copies nothing, so it never waits.
+The round-end wait sits in `copyPromptAndEndRound`, after `endRound()` returns and before the prompt is rendered. Since 2026-10-24, End Round (Option+Shift+E) also runs `copyPromptAndEndRound`, so it waits the same way (corrected 2026-10-24, after Drew asked End Round to copy the prompt).
 
 ## Flags
 

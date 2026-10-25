@@ -72,7 +72,7 @@
    "see": "The menu bar slides in at the top, and the lemonade page appears as a clean web page. A \"1 Grab\" step label shows at the bottom left. Option, Shift, and F keycaps press one by one, then leave as a crosshair drags a selection over the page. A white flash marks the capture."
   },
   "h": {
-   "see": "A \"2 Mark\" step label and a C keycap show. The cursor clicks the sign, the price, and the Buy button, and red numbered dots 1, 2, 3 drop where it clicks. A Command+S keycap shows with \"saves the capture\". The note panel slides in with \"Circle 1 (1 of 3): what should change?\" and a preview zoomed on dot 1. \"Spell it Lemonade.\" types in while a mic icon pulses. The menu bar shows \"Nshot (1)\" with a green dot. Then \"Circle 2 (2 of 3)\" and \"Make it $3.\""
+   "see": "A \"2 Mark\" step label shows. No key comes first. The cursor clicks the sign, the price, and the Buy button, and red numbered dots 1, 2, 3 drop where it clicks. A Command+S keycap shows with \"saves the capture\". The note panel slides in with \"Circle 1 (1 of 3): what should change?\" and a preview zoomed on dot 1. \"Spell it Lemonade.\" types in while a mic icon pulses. The menu bar shows \"Nshot (1)\" with a green dot. Then \"Circle 2 (2 of 3)\" and \"Make it $3.\""
   },
   "i": {
    "see": "A \"3 Repeat\" step label shows. The first capture shrinks into a teal \"Round\" outline on the left. A Checkout page and a Flavors page appear and flash white."
@@ -99,7 +99,7 @@
     0.25,
     0.97
    ],
-   "see": "The plan and the menu bar fade. The opening sketch of the stand returns, then wipes left to right into the fixed stand as a clean web page: \"Lemonade\", \"$3 a cup\", a big Buy button. On \"Nextshot\", the icon and name pop in on the right. On \"Show\", \"Show AI what you mean.\" rises in, and a teal rule draws under it. Teal checks pop where the three red dots were. Then \"Visual feedback for AI coding agents, on your Mac.\", a teal \"Get it at nextshot.dev\" button, and Option Shift F keycaps with \"starts a round\". No caption runs under the end card."
+   "see": "The plan and the menu bar fade. The opening sketch of the stand returns, then wipes left to right into the fixed stand as a clean web page: \"Lemonade\", \"$3 a cup\", a big Buy button. On \"Nextshot\", the icon and name pop in on the right. On \"Show\", \"Show AI what you mean.\" rises in, and a teal rule draws under it. Teal checks pop where the three red dots were. Then \"Stop describing to AI what to fix. Start pointing at it.\" on two lines, a teal \"Get it at nextshot.dev\" button, and Option Shift F keycaps with \"starts a round\". No caption runs under the end card."
   }
  },
  "cues": {
@@ -124,7 +124,7 @@
   "key_f": "F key",
   "grab": "Selection drag starts",
   "grab_done": "Capture flash",
-  "key_c": "C key, then the cursor clicks",
+  "mark_click": "The cursor appears and starts to click",
   "badge1": "Dot 1 on the sign",
   "badge2": "Dot 2 on the price",
   "badge3": "Dot 3 on Buy",

@@ -149,13 +149,13 @@
         },
         {
           "id": "h",
-          "text": "Hit C, then click to drop a dot on each issue. Then say what should change.",
+          "text": "Click to drop a red dot on each issue. Then say what should change.",
           "captions": [
-            "Hit C, then click to drop a dot on each issue.",
+            "Click to drop a red dot on each issue.",
             "Then say what should change."
           ],
           "pause": 0.2,
-          "direction": "Calm and instructive. Say 'C' as the letter C."
+          "direction": "Calm and instructive."
         }
       ]
     },
@@ -365,21 +365,19 @@
       "sfx": "shutter"
     },
     {
-      "id": "key_c",
-      "line": "h",
-      "word": "C",
-      "sfx": "key"
+      "id": "mark_click",
+      "line": "h"
     },
     {
       "id": "badge1",
       "line": "h",
-      "word": "click",
+      "word": "drop",
       "sfx": "pop"
     },
     {
       "id": "badge2",
       "line": "h",
-      "word": "drop",
+      "word": "dot",
       "sfx": "pop"
     },
     {
