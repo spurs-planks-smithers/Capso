@@ -136,4 +136,16 @@ is_false "a record with a short hash is invalid" record_valid "$tmp/record.json"
 printf '{not json' >"$tmp/broken.json"
 is_false "a broken record is invalid" record_valid "$tmp/broken.json"
 
+# --- R2 functions on the simulated bucket (wrangler --local, no network) ---
+export NEXTSHOT_R2_LOCAL="$tmp/r2"
+r2_login
+printf 'object bytes\n' >"$tmp/obj.txt"
+r2_put releases/Nextshot-0.0.1.json "$tmp/obj.txt" application/json
+is_true "a stored object can be read back" r2_get releases/Nextshot-0.0.1.json "$tmp/obj.out"
+expect "the object read back is the same" "$(cat "$tmp/obj.txt")" "$(cat "$tmp/obj.out" 2>/dev/null)"
+is_false "a missing key is not found" r2_get releases/Nextshot-9.9.9.json "$tmp/none.out"
+r2_delete releases/Nextshot-0.0.1.json
+is_false "a deleted object is gone" r2_get releases/Nextshot-0.0.1.json "$tmp/gone.out"
+unset NEXTSHOT_R2_LOCAL
+
 exit $fail

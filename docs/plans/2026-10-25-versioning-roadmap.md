@@ -74,7 +74,8 @@ Status on 2026-10-25, branch `feature/one-command-releases`:
 | `scripts/release.sh --promote <version>` for rollback. | S | Built and rehearsed: rollback, a declined question, no terminal, an unknown version, and a failed smoke test that restores the earlier pointer. |
 | `site/deploy.sh` deploys the page only. | S | Built. Not run against Cloudflare. |
 | `scripts/release.sh --import-legacy` archives a date build. | S | Built and rehearsed with the 2026.10.24 and 2026.10.25 DMGs. |
-| Create the bucket `nextshot-releases`, give the token R2 permission, import the 2026.10.24 DMG, then deploy the Worker. | M | Waits on Drew: the token needs "Workers R2 Storage Edit". See `docs/site.md`, "Cloudflare access". |
+| Create the bucket `nextshot-releases`, give the token R2 permission limited to it. | M | Done 2026-10-25. The bucket exists (created through the Cloudflare connector). The token reads, writes, and deletes there, a 13 MB round trip works, and the other two buckets answer 403. R2 goes through the S3 interface (see `docs/site.md`, "Cloudflare access"). |
+| Import the 2026.10.24 DMG into the real bucket and point `latest.json` at it, then deploy the Worker. | M | Waits on Drew's yes for each step. The import is invisible to users. The deploy changes the live site. |
 | Run the bridge test: install the 2026.10.24 build, then run the 0.3.0 image copy. | M | Waits on a real 0.3.0 build and Drew's Mac. |
 | Cut 0.3.0 with the command. | S | Waits on both PRs (#107 and the M2 PR) in `main`, and on the bucket. |
 
