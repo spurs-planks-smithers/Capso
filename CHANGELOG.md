@@ -8,6 +8,8 @@ Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This for
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-26
+
 ### Added
 
 - The editor opens on the red dot tool, so the first click drops dot 1 with no key first. It restores your earlier tool when it closes.
