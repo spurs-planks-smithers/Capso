@@ -109,12 +109,16 @@ export async function review(request, env) {
         action === "approve"
           ? await query(
               env,
-              "UPDATE submissions SET approval_json=?,status='received',queued=0,notified=0,notification_claim=NULL,notification_lease_until=NULL WHERE id=? AND status='held' AND fingerprint=? AND review_fingerprint=? AND review_policy=? AND review_expires_at>? RETURNING id",
+              "UPDATE submissions SET approval_json=?,status='received',queued=0,notified=0,notification_claim=NULL,notification_lease_until=NULL WHERE id=? AND status='held' AND fingerprint=? AND review_fingerprint=? AND review_policy=? AND scan_claim IS ? AND reason_codes=? AND review_proof=? AND review_expires_at=? AND review_expires_at>? RETURNING id",
               JSON.stringify(approval),
               id,
               row.fingerprint,
               row.fingerprint,
               COMBINED_POLICY,
+              row.scan_claim ?? null,
+              row.reason_codes,
+              row.review_proof,
+              row.review_expires_at,
               nowSeconds(),
             ).first()
           : await query(

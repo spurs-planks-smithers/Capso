@@ -1048,3 +1048,124 @@ test("an unclaimed disabled worker cannot hold an active scan", async (t) => {
     "scanning",
   );
 });
+
+test("owner approval rejects review evidence replaced between validation and its atomic update", async (t) => {
+  const { generateKeyPair, exportJWK, SignJWT } = await import("jose"),
+    { csrfToken } = await import("../src/access.js");
+  const { publicKey, privateKey } = await generateKeyPair("RS256"),
+    jwk = await exportJWK(publicKey);
+  jwk.kid = "review-cas";
+  jwk.alg = "RS256";
+  const issuer = "https://approval-cas.cloudflareaccess.com",
+    audience = "approval-cas-audience";
+  const jwt = await new SignJWT({ email: "drewschulz1@gmail.com" })
+    .setProtectedHeader({ alg: "RS256", kid: jwk.kid })
+    .setSubject("owner")
+    .setIssuer(issuer)
+    .setAudience(audience)
+    .setIssuedAt()
+    .setExpirationTime("5m")
+    .sign(privateKey);
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    assert.equal(String(url), `${issuer}/cdn-cgi/access/certs`);
+    return new Response(JSON.stringify({ keys: [jwk] }));
+  };
+  t.after(() => {
+    globalThis.fetch = originalFetch;
+  });
+  for (const changedField of [
+    "scan_claim",
+    "reason_codes",
+    "review_proof",
+    "review_expires_at",
+  ]) {
+    const env = environment();
+    t.after(env.close);
+    env.ACCESS_TEAM_DOMAIN = "approval-cas.cloudflareaccess.com";
+    env.ACCESS_AUD = audience;
+    const { receipt } = await reserve(env);
+    await finish(env, receipt);
+    await processSubmission(env, receipt.id, async () => ({
+      version: 1,
+      status: "held",
+      reasonCodes: ["sensitive_private_record"],
+      review: { ...passed("Public license footer."), hardChecksPassed: true },
+    }));
+    const row = await query(
+        env,
+        "SELECT * FROM submissions WHERE id=?",
+        receipt.id,
+      ).first(),
+      csrf = await csrfToken(env, "owner"),
+      queuedBefore = env.JOBS.sent.length;
+    const replacement = {
+      scan_claim: crypto.randomUUID(),
+      reason_codes: JSON.stringify(["credential"]),
+      review_proof: JSON.stringify({
+        ...JSON.parse(row.review_proof),
+        scan: {
+          ...JSON.parse(row.review_proof).scan,
+          definitionsAt: new Date(Date.now() - 1000).toISOString(),
+        },
+      }),
+      review_expires_at: row.review_expires_at - 60,
+    }[changedField];
+    const prepare = env.DB.prepare;
+    let replaced = false;
+    env.DB.prepare = (sql) => {
+      const statement = prepare(sql);
+      if (!sql.startsWith("UPDATE submissions SET approval_json="))
+        return statement;
+      return {
+        ...statement,
+        bind(...args) {
+          const bound = statement.bind(...args);
+          return {
+            ...bound,
+            async first() {
+              if (!replaced) {
+                replaced = true;
+                await prepare(
+                  `UPDATE submissions SET ${changedField}=? WHERE id=?`,
+                )
+                  .bind(replacement, receipt.id)
+                  .run();
+              }
+              return bound.first();
+            },
+          };
+        },
+      };
+    };
+    const result = await review(
+      new Request(
+        `https://feedback.nextshot.dev/review/${receipt.id}/approve`,
+        {
+          method: "POST",
+          headers: {
+            "Cf-Access-Jwt-Assertion": jwt,
+            Origin: "https://feedback.nextshot.dev",
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            csrf,
+            reasons: "sensitive_private_record",
+          }),
+        },
+      ),
+      env,
+    );
+    assert.equal(replaced, true);
+    assert.equal(result.status, 409, changedField);
+    assert.deepEqual(await result.json(), { error: "review_changed" });
+    const current = await query(
+      env,
+      "SELECT * FROM submissions WHERE id=?",
+      receipt.id,
+    ).first();
+    assert.equal(current.status, "held");
+    assert.equal(current.approval_json, null);
+    assert.equal(env.JOBS.sent.length, queuedBefore);
+  }
+});
