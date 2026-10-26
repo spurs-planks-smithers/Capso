@@ -1,6 +1,7 @@
 import { CLASSIFIER_REVISION, validateScan, fail } from "./policy.js";
 import { nowSeconds } from "./store.js";
-export const COMBINED_POLICY = `scanner:1;context:1;classifier:${CLASSIFIER_REVISION}`;
+import { TEXT_MODEL, IMAGE_MODEL, MODEL_CONTRACT_VERSION } from "./models.js";
+export const COMBINED_POLICY = `scanner:1;context:${MODEL_CONTRACT_VERSION};text:${TEXT_MODEL};vision:${IMAGE_MODEL};classifier:${CLASSIFIER_REVISION}`;
 export const SCANNER_SOFT_REASONS = Object.freeze([
   "sensitive_credentials",
   "sensitive_government_id",

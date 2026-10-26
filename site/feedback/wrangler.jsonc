@@ -21,8 +21,8 @@
     "EMAIL_ENABLED": "false",
     "NOTIFICATIONS_ENABLED": "false",
     "TURNSTILE_SITE_KEY": "0x4AAAAAAFnOBF8j5OITOOSP",
-    "ACCESS_TEAM_DOMAIN": "",
-    "ACCESS_AUD": ""
+    "ACCESS_TEAM_DOMAIN": "shrill-math-8862.cloudflareaccess.com",
+    "ACCESS_AUD": "101aa26442da74d5a89dd0c082326db31e05b92792f3fa5e18e0f2965edb10c2"
   },
   "ai": {
     "binding": "AI"
