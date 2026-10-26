@@ -12,7 +12,7 @@
   if (!ctx) return;
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
 
-  const GAP = 24; // CSS pixels between dots
+  const GAP = 15.6; // CSS pixels between dots (24 before 2026-10-25, 35% tighter)
   const SIZE = 4.2; // sprite size at rest; its bright core is about 1.6 pixels
   const BASE = 0.085; // dot opacity at rest
   const WAVE = 0.05; // extra opacity from the slow undulation

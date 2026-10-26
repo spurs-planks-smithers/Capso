@@ -230,7 +230,7 @@ async function stats(env) {
 </head>
 <body class="stats">
 <main>
-  <header class="brand"><img src="/nextshot-icon.png" alt="" width="32" height="32"><span>Nextshot downloads</span></header>
+  <a class="brand" href="/"><img src="/nextshot-icon.png" alt="" width="32" height="32"><span>Nextshot downloads</span></a>
   <p class="total"><strong>${total.people}</strong> downloads by people, plus ${total.bots} from bots and link previews.</p>
   ${table("By day, last 30 days (UTC)", "Day", days.results)}
   ${table("By version", "Version", versions.results)}
