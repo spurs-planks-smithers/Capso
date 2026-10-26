@@ -121,6 +121,8 @@ class Scanner:
             decoded = []
             upload_bytes = 0
             raw_email_count = 0
+            archive_count = 0
+            ordinary_count = 0
             for file in files:
                 if not isinstance(file, dict): raise ScanFailure('invalid_file', True)
                 encoded = file.get('bodyBase64')
@@ -133,13 +135,23 @@ class Scanner:
                     if raw_email_count > 1 or file.get('contentType') != 'message/rfc822' or len(data) > self.limits.email_bytes:
                         raise ScanFailure('invalid_email_original', True)
                 else:
+                    if file.get('role') is not None: raise ScanFailure('unsupported_file_role',True)
+                    if file.get('contentType') not in ('application/zip','image/png','image/jpeg'):
+                        raise ScanFailure('unsupported_type',True)
+                    ordinary_count += 1
+                    if file.get('contentType')=='application/zip': archive_count += 1
                     upload_bytes += len(data)
                     if upload_bytes > self.limits.upload_bytes: raise ScanFailure('upload_limit', True)
                 decoded.append((file, data))
+            if archive_count and (archive_count!=1 or ordinary_count!=1):
+                raise ScanFailure('mixed_archive_upload',True)
+            if not message and not decoded: raise ScanFailure('empty_submission',True)
             metadata = self.engines.ready(job.get('signatureManifest'))
             state.text(message, canonical=True)
+            raw_contents=[data for _,data in decoded]
+            if message: raw_contents.append(message.encode('utf-8'))
+            self.engines.malware_many(raw_contents)
             for file, data in decoded:
-                self.engines.malware(data)
                 if file.get('role') == 'email-original': continue
                 if file.get('role') is not None: raise ScanFailure('unsupported_file_role', True)
                 kind = file.get('contentType')
@@ -276,8 +288,9 @@ class ScanState:
                     with archive.open(entry) as stream:
                         content = stream.read(maximum + 1)
                         if len(content) != entry.file_size or stream.read(1): raise ScanFailure('archive_size_mismatch', True)
-                    self.engines.malware(content)
                     members[parts[-1]] = content
+                if not members: raise ScanFailure('empty_archive',True)
+                self.engines.malware_many(list(members.values()))
                 if 'support.json' in members:
                     self.support(members)
                 elif 'feedback.json' in members:

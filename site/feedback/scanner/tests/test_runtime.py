@@ -60,7 +60,7 @@ class RuntimeCleanupTests(unittest.TestCase):
                 self.assertTrue(target.is_relative_to(root))
                 self.assertEqual(target.read_bytes(),b'private original bytes')
                 self.assertEqual(Path(kwargs['temporary_root']),root)
-                return SimpleNamespace(returncode=0,stdout=b'input: OK',stderr=b'')
+                return SimpleNamespace(returncode=0,stdout=str(target).encode()+b': OK\n',stderr=b'')
             with patch('engines.command',scanned):
                 ProductionEngines(temporary_root=root).malware(b'private original bytes')
             self.assertEqual(list(root.iterdir()),[])

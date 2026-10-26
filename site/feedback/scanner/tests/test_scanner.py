@@ -25,6 +25,9 @@ class Engines:
         self.scanned.append(content)
         if b'EICAR-STANDARD-ANTIVIRUS-TEST-FILE' in content:
             raise ScanFailure('malware_detected')
+    def malware_many(self,contents):
+        if not contents: raise ScanFailure('malware_scan_incomplete')
+        for data in contents: self.malware(data)
     def classify(self, text):
         self.texts.append(text)
     def ocr(self, content):
@@ -258,3 +261,26 @@ class OwnerReviewTests(unittest.TestCase):
         result=Scanner(Engines()).scan(value)
         self.assertEqual(result['reasonCodes'],['malware_detected'])
         self.assertNotIn('review',result); self.assertNotIn('images',result)
+
+class AntivirusBatchPipelineTests(unittest.TestCase):
+    class Batched(Engines):
+        def __init__(self): super().__init__(); self.batches=[]
+        def malware_many(self,contents):
+            self.batches.append(contents)
+            for data in contents: self.malware(data)
+
+    def test_text_only_content_is_also_checked_for_malware(self):
+        result=Scanner(self.Batched()).scan(job(message='EICAR-STANDARD-ANTIVIRUS-TEST-FILE'))
+        self.assertEqual(result['reasonCodes'],['malware_detected'])
+    def test_raw_inputs_use_one_batch_and_archive_members_one_batch(self):
+        engines=self.Batched(); result=Scanner(engines).scan(job(archive(package())))
+        self.assertEqual(result['status'],'passed')
+        self.assertEqual(len(engines.batches),2)
+        self.assertEqual(len(engines.batches[0]),2)
+        self.assertEqual(len(engines.batches[1]),2)
+    def test_archive_and_ordinary_files_cannot_mix(self):
+        value=job(archive(package()))
+        value['files'].append({'id':'other','contentType':'image/jpeg','bodyBase64':base64.b64encode(image_bytes()).decode()})
+        self.assertEqual(Scanner(self.Batched()).scan(value)['status'],'rejected')
+    def test_empty_input_cannot_skip_the_batch(self):
+        self.assertEqual(Scanner(self.Batched()).scan(job(message=''))['status'],'rejected')

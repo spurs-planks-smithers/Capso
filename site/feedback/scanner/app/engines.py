@@ -135,18 +135,37 @@ class ProductionEngines:
         except Exception as error: raise ScanFailure('classifier_unavailable') from error
 
     def malware(self,data):
+        self.malware_many([data])
+
+    def malware_many(self,contents):
         if self.temporary_root is None or not self.temporary_root.is_dir():
             raise ScanFailure('job_directory_missing')
+        if not isinstance(contents,list) or not contents or len(contents)>100 or any(not isinstance(data,bytes) for data in contents):
+            raise ScanFailure('malware_scan_incomplete')
+        if sum(len(data) for data in contents)>50_000_000:
+            raise ScanFailure('malware_scan_incomplete')
         with tempfile.TemporaryDirectory(prefix='av-',dir=self.temporary_root) as folder:
-            target=Path(folder)/'input'; target.write_bytes(data)
+            targets=[]
+            for index,data in enumerate(contents,1):
+                target=Path(folder)/f'input-{index}'
+                target.write_bytes(data); targets.append(str(target))
+            expected=set(targets)
+            if not expected or len(expected)!=len(contents): raise ScanFailure('malware_scan_incomplete')
+            # ClamAV counts internal format layers. The archive parser rejects nested archives.
             result=command(['clamscan','--database',str(self.definitions_dir),'--no-summary','--stdout',
                             '--max-filesize=50M','--max-scansize=50M','--max-files=100',
-                            '--max-recursion=2','--max-scantime=30000','--alert-exceeds-max=yes',
-                            '--alert-encrypted=yes','--tempdir',str(self.temporary_root),str(target)],timeout=40,temporary_root=self.temporary_root)
+                            '--max-recursion=4','--max-scantime=30000','--alert-exceeds-max=yes',
+                            '--alert-encrypted=yes','--tempdir',str(self.temporary_root),*targets],
+                           timeout=40,temporary_root=self.temporary_root)
             output=result.stdout+result.stderr
             if result.returncode==1: raise ScanFailure('malware_detected')
-            if result.returncode!=0 or b': OK' not in output or any(term in output.lower() for term in
+            if result.returncode!=0 or any(term in output.lower() for term in
                     (b'warning',b'error',b'limit exceeded',b'not supported',b'skipped')):
+                raise ScanFailure('malware_scan_incomplete')
+            try: lines=[line for line in result.stdout.decode('utf-8',errors='strict').splitlines() if line]
+            except UnicodeError as error: raise ScanFailure('malware_scan_incomplete') from error
+            completed=[line[:-4] for line in lines if line.endswith(': OK')]
+            if not completed or len(completed)!=len(expected) or set(completed)!=expected or len(lines)!=len(completed):
                 raise ScanFailure('malware_scan_incomplete')
 
     def ocr(self,data):
