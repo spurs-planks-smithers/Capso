@@ -276,7 +276,7 @@ class ScanState:
         text = members[name].decode('utf-8', errors='strict')
         self.text(text)
         model = strict_json(text)
-        if not isinstance(model, dict) or model.get('schemaVersion') != 1:
+        if not isinstance(model, dict) or type(model.get('schemaVersion')) is not int or model['schemaVersion'] != 1:
             raise ScanFailure('unsupported_archive_schema', True)
         captures = model.get('captures')
         if not isinstance(captures,list) or not 1 <= len(captures) <= self.limits.captures:

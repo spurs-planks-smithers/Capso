@@ -161,3 +161,9 @@ class AdditionalBoundaryTests(unittest.TestCase):
         engines=Engines(); result=Scanner(engines).scan(message)
         self.assertEqual(result['status'],'passed'); self.assertTrue(engines.scanned)
         self.assertNotIn('From:',result['inspectionText'])
+
+class SchemaVersionTests(unittest.TestCase):
+    def test_boolean_schema_version_is_rejected(self):
+        files=package(); model=json.loads(files['support/support.json']); model['schemaVersion']=True
+        files['support/support.json']=json.dumps(model)
+        self.assertEqual(Scanner(Engines()).scan(job(archive(files)))['status'],'rejected')
