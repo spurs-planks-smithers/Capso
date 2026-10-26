@@ -17,20 +17,23 @@
 # on: type 1.0.0 yourself when you decide to launch. --profile NAME picks the
 # notary keychain profile (default apple-notary).
 #
-# A release runs these steps and stops at the first failure:
+# App release failures stop the app flow. Guides failures report partial success.
+# A release runs these steps:
 #   1. Preflight. On main, equal to origin/main, clean tree. Tests pass,
 #      JevKit in Release too. Certificate, notary profile, R2, and GitHub
 #      route are ready. CHANGELOG.md has an entry under Unreleased.
 #   2. Bump. Moves Unreleased to the new version in CHANGELOG.md, writes
 #      VERSION, makes the commit "chore: release X.Y.Z" and the tag
 #      nextshot-vX.Y.Z. Both stay local until step 6.
-#   3. Build. scripts/release-notarized.sh: sign, notarize, staple, DMG, zip.
+#   3. Stage Guides (nonblocking), then build the app: sign, notarize, staple.
 #   4. Check the DMG: ticket, Gatekeeper, bundle ID, version, build, signature.
 #   5. Ask once. Shows the version, build, hash, and notes. A closed stdin or
 #      anything but "y" stops here, and the local commit and tag are undone.
 #   6. Archive to R2 (nothing is public yet), push main and the tag, then point
 #      latest.json at the new record. Then the smoke test. If it fails,
 #      latest.json goes back to the version it replaced.
+#   7. Publish the exact staged site. Guide failure restores only the Worker
+#      and reports a site-only retry. The verified app stays live.
 #
 # The terminal asks in step 5, so an unattended job cannot publish.
 # Rehearsal: NEXTSHOT_R2_LOCAL=<folder> uses a simulated bucket for --promote
@@ -95,7 +98,7 @@ if [[ "$mode" == promote ]]; then
   r2_login
   confirm "Point $site_url/download at $promote_version?" || exit 1
   promote_release "$promote_version"
-  echo "release: latest.json now says $promote_version (it said ${release_previous:-nothing})"
+  echo "release: latest.json now says $promote_version (it said ${release_previous:-nothing}). Guides unchanged."
   if ! smoke; then
     restore_latest
     rel_fail "the smoke test failed"
@@ -257,7 +260,8 @@ echo "ok    tests passed"
 # --- Steps 2 to 6 change things. Undo the local commit and tag on any failure
 # before the push.
 orig_head="$(git -C "$repo" rev-parse HEAD)"
-created_commit="" created_tag="" pushed=0
+created_commit="" created_tag="" pushed=0 app_verified=0
+guides_artifact="" guides_status="not staged"
 work="$(mktemp -d)"
 
 shelve_build() {
@@ -279,6 +283,13 @@ on_exit() {
       git -C "$repo" reset --keep "$orig_head" >/dev/null 2>&1 && echo "release: undid the local release commit and tag" >&2
     fi
     shelve_build
+  elif ((status != 0 && app_verified)); then
+    echo "release: partial success. Nextshot $new is live and verified. Guides: $guides_status." >&2
+    if [[ -n "$guides_artifact" ]]; then
+      echo "Retry site only: site/deploy.sh --deploy-staged '$guides_artifact'" >&2
+    else
+      echo "Retry site only after fixing staging: site/deploy.sh" >&2
+    fi
   elif ((status != 0)); then
     echo "release: main and $tag are pushed. Fix the problem, then run: scripts/release.sh --promote $new" >&2
   fi
@@ -296,6 +307,18 @@ created_commit="$(git -C "$repo" rev-parse HEAD)"
 git -C "$repo" tag -a "$tag" -m "Nextshot $new"
 created_tag="$tag"
 echo "ok    commit ${created_commit:0:7} and tag $tag, local only"
+
+# Guides failure never blocks the app build or its existing approval.
+echo
+echo "== Stage Guides (nonblocking for app release)"
+if "$repo/site/deploy.sh" --stage-only >"$work/guides-stage.log" 2>&1; then
+  guides_artifact="$(tail -1 "$work/guides-stage.log")"
+  guides_status="staged at $guides_artifact"
+else
+  guides_status="STAGING FAILED; app release can continue, Guides stay unchanged"
+  cat "$work/guides-stage.log" >&2
+fi
+echo "Guides: $guides_status"
 
 echo
 echo "== Build"
@@ -317,10 +340,11 @@ echo
 echo "== Ask"
 echo "  Version  $new (build $build), commit ${created_commit:0:7}, tag $tag"
 echo "  DMG      $(basename "$dmg"), $(stat -f %z "$dmg") bytes, SHA-256 $(record_field "$work/record.json" sha256)"
+echo "  Guides   $guides_status"
 echo "  Notes"
 sed 's/^/    /' "$work/notes.md"
 echo
-confirm "Archive to R2, push main and $tag to origin, and point $site_url/download at $new?" ||
+confirm "Archive to R2, push main and $tag to origin, point $site_url/download at $new, then publish Guides if staged?" ||
   rel_fail "stopped before anything was published"
 
 echo
@@ -340,5 +364,24 @@ if ! smoke; then
   restore_latest
   rel_fail "the smoke test failed and latest.json was reset. main and $tag stay pushed."
 fi
+app_verified=1
 echo
 echo "Released Nextshot $new (build $build) at $site_url"
+
+# Snapshot only after the new app passes. A guide rollback changes this Worker
+# version alone. It must never restore the app pointer in latest.json.
+if [[ -z "$guides_artifact" ]]; then
+  exit 1
+fi
+echo
+echo "== Publish Guides"
+if ! "$repo/site/worker-deployment.sh" snapshot "$guides_artifact/wrangler.json" "$work/verified-worker.json"; then
+  guides_status="Worker snapshot failed; Guides unchanged"
+  exit 1
+fi
+if ! "$repo/site/deploy.sh" --deploy-staged "$guides_artifact" --rollback-snapshot "$work/verified-worker.json"; then
+  guides_status="publish or smoke failed; app stays live; inspect site deploy output for Worker rollback status"
+  exit 1
+fi
+guides_status="published and verified"
+echo "Released Nextshot $new and Guides at $site_url"
