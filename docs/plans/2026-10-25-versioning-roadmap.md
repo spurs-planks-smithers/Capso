@@ -4,13 +4,13 @@ Date: 2026-10-25. Owner: Drew. The decisions are in [docs/decisions/2026-10-25-v
 
 ## Where we are
 
-If Nextshot went to market today, the build would be 0.3.0. The history reads:
+Nextshot 0.3.0 shipped on 2026-10-25. The history reads:
 
 | Version | What people got | Date |
 |---|---|---|
 | 0.1.0 | The first shared DMG, labeled 2026.10.22 | 2026-10-22 |
 | 0.2.0 | Rounds, flags, and the round rename, labeled 2026.10.24 | 2026-10-24 |
-| 0.3.0 | The in-place DMG installer and update, labeled 2026.10.25 | next release |
+| 0.3.0 | The in-place DMG installer and update (build 751) | 2026-10-25 |
 
 The site shows "Version 2026.10.24" and has served 45 downloads to people (27 for 2026.10.22, 18 for 2026.10.24).
 
@@ -76,8 +76,8 @@ Status on 2026-10-25, branch `feature/one-command-releases`:
 | `scripts/release.sh --import-legacy` archives a date build. | S | Done. Rehearsed, then used on 2026-10-25 for the real bucket. |
 | Create the bucket `nextshot-releases`, give the token R2 permission limited to it. | M | Done 2026-10-25. The bucket exists (created through the Cloudflare connector). The token reads, writes, and deletes there, a 13 MB round trip works, and the other two buckets answer 403. R2 goes through the S3 interface (see `docs/site.md`, "Cloudflare access"). |
 | Import the 2026.10.24 DMG into the real bucket and point `latest.json` at it, then deploy the Worker. | M | Done 2026-10-25, each step on Drew's yes. The bucket holds the DMG (SHA-256 and size match the local file), its checksum, its record, and `latest.json`. The import used `--no-smoke`, because the old Worker had no `latest.json` route. nextshot.dev now serves from the bucket. |
-| Run the bridge test: install the 2026.10.24 build, then run the 0.3.0 image copy. | M | Waits on a real 0.3.0 build and Drew's Mac. |
-| Cut 0.3.0 with the command. | S | Waits on #107 and #108 in `main` (a release runs only from `main`). The command is untested end to end: build, notarize, `git push`, and the real promote. |
+| Run the bridge test: install the 2026.10.24 build, then run the 0.3.0 image copy. | M | Open. The 0.3.0 DMG exists (`build/releases/Nextshot-0.3.0.dmg`). The test waits on Drew's Mac. |
+| Cut 0.3.0 with the command. | S | Done 2026-10-25 on Drew's yes. #107, #108, and the site review (#110) were in `main` first. The tests, the build, notarization, the DMG checks, the R2 archive, the push, the tag `nextshot-v0.3.0`, the promote, and the 16-check smoke test of the live site all passed. 0.3.0 is build 751, commit c23afe6, SHA-256 6f66e436cc941b82e74e8554ac01e59c9f292f138acc30cb4994620c3858a9ad. The command ran from a worktree on `main`. |
 
 If #108 changes in review, deploy the Worker again with `site/deploy.sh`, because the live Worker is the code of commit 93be021. To undo the deploy: `wrangler rollback`.
 
