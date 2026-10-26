@@ -57,7 +57,7 @@ Goal: `scripts/release.sh` takes a bump and ends with a live, archived, rollback
 
 The command runs these steps and stops at the first failure.
 
-1. **Preflight.** HEAD is `main` and equals `origin/main`. The tree is clean. Tests pass for FeedbackKit, JevKit, and CapsoTests. The Developer ID certificate, the notary profile, and the R2 token exist.
+1. **Preflight.** HEAD is `main` and equals `origin/main`. The tree is clean. Tests pass for FeedbackKit, JevKit, and CapsoTests. JevKit also passes in Release (`swift test -c release -Xswiftc -enable-testing --package-path Packages/JevKit`), because an optimizer bug lost a dupes result in Release only on 2026-10-25 and every Debug test passed. The Developer ID certificate, the notary profile, and the R2 token exist.
 2. **Bump.** The command proposes a bump from the commit prefixes since the last tag. Drew confirms. It writes `VERSION`, moves `Unreleased` to the new version with today's date, commits `chore: release X.Y.Z`, and tags `nextshot-vX.Y.Z`.
 3. **Build.** Archive, sign, notarize, staple, and pack the DMG and the zip. This reuses the work in `scripts/release-notarized.sh`, with names from `VERSION`.
 4. **Archive.** Upload the DMG, the zip, the checksum, and the notes to R2 under `releases/`. Verify the uploaded hash.

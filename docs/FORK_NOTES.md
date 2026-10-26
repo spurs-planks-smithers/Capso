@@ -72,9 +72,11 @@ The plan estimated about 35 lines in `CaptureCoordinator.swift`, with the coordi
 | `docs/brand/`, `docs/decisions/2026-10-22-nextshot-icon.md` | The mark's spec and previews, and why it exists |
 | `docs/agents/bundle-guide.md` | How an AI agent reads a feedback bundle |
 | `.github/README.md`, `.github/assets/nextshot-icon.png` | The fork's README. GitHub shows `.github/README.md` before the root `README.md`, so upstream's README stays unedited. |
-| `scripts/build-local.sh`, `scripts/local-project.yml` | Signed local build. `local-project.yml` also sets Nextshot's app icon. Force-added: upstream ignores `scripts/`. |
-| `scripts/nextshot-version.sh` | Nextshot's version (HEAD commit date) and build number (commit count). Both build scripts source it. Force-added. |
-| `scripts/release-notarized.sh` | Developer ID build, notarized and stapled, as a DMG and a zip for another Mac. It ships Capso's `LICENSE` as `Resources/LICENSE.txt` in the app and as `LICENSE.txt` beside it in the DMG and zip. Adapted from upstream's `.github/workflows/build-release.yml`. Force-added. |
+| `scripts/build-local.sh`, `scripts/dev-project.yml` | Signed local build of Nextshot Dev (`com.drewschulz.nextshot.dev`), the copy Drew runs every day. `dev-project.yml` sets the name, bundle ID, icon, and a post-build step that gives the built app the `nextshot-dev://` scheme only, so `App/Resources/Info.plist` stays unedited. Force-added: upstream ignores `scripts/`. |
+| `scripts/local-project.yml` | The production Nextshot target (`com.drewschulz.nextshot`) that `scripts/release-notarized.sh` builds. It also sets Nextshot's app icon. Force-added. |
+| `VERSION`, `CHANGELOG.md` | The last released version (MAJOR.MINOR.PATCH) and the user-facing change list. Only the release step edits `VERSION`. |
+| `scripts/nextshot-version.sh`, `scripts/test-nextshot-version.sh` | Nextshot's version (the `VERSION` file, plus `-dev` for a dev build) and build number (commit count). Both build scripts source it. The test checks the format guard. Force-added. |
+| `scripts/release-notarized.sh` | Developer ID build, notarized and stapled, as a DMG and a zip for another Mac, named `Nextshot-<version>`. It stops when that version already has a file in `build/releases`. It ships Capso's `LICENSE` as `Resources/LICENSE.txt` in the app (not beside it, since 2026-10-25). Adapted from upstream's `.github/workflows/build-release.yml`. Force-added. |
 | `scripts/local-signing.env` | Untracked. Holds `DEVELOPMENT_TEAM`. Listed in `.git/info/exclude`. |
 
 ## Open upstream PRs that touch possible security edits
