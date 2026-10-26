@@ -69,9 +69,12 @@
   "containers": [
     {
       "class_name": "Scanner",
-      "image": "./scanner/Dockerfile",
-      "instance_type": "standard-2",
-      "max_instances": 1
+      "scheduling_policy": "durable_object",
+      "images": {
+        "scanner": {
+          "dockerfile": "./scanner/Dockerfile"
+        }
+      }
     }
   ],
   "durable_objects": {

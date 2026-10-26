@@ -1,4 +1,5 @@
 import { Container, ContainerProxy } from '@cloudflare/containers';
+import { ensureScannerRuntime } from './scanner-runtime.js';
 export { ContainerProxy };
 
 const MAX_JOB = 36_000_000;
@@ -15,7 +16,11 @@ export class Scanner extends Container {
     // One named instance plus this in-memory lease rejects overlapping jobs.
     if (this.scanning) return new Response(JSON.stringify(HOLD('scanner_busy')), { status: 503 });
     this.scanning = true;
-    try { return await this.containerFetch(request); }
+    try {
+      await ensureScannerRuntime(this, this.ctx);
+      await this.startAndWaitForPorts(this.defaultPort, { abort: request.signal });
+      return await this.containerFetch(request);
+    }
     finally { this.scanning = false; }
   }
 }
