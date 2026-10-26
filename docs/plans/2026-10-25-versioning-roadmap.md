@@ -55,28 +55,31 @@ Order inside M1: trunk first, then `VERSION` and `LaunchPlan`, then the Dev app,
 
 Goal: `scripts/release.sh` takes a bump and ends with a live, archived, rollback-ready version.
 
-The command runs these steps and stops at the first failure.
+The command runs these steps and stops at the first failure. Build and check come before the question, so nothing is public until Drew answers. The steps as built (the first draft put the archive before the question):
 
-1. **Preflight.** HEAD is `main` and equals `origin/main`. The tree is clean. Tests pass for FeedbackKit, JevKit, and CapsoTests. JevKit also passes in Release (`swift test -c release -Xswiftc -enable-testing --package-path Packages/JevKit`), because an optimizer bug lost a dupes result in Release only on 2026-10-25 and every Debug test passed. The Developer ID certificate, the notary profile, and the R2 token exist.
-2. **Bump.** The command proposes a bump from the commit prefixes since the last tag. Drew confirms. It writes `VERSION`, moves `Unreleased` to the new version with today's date, commits `chore: release X.Y.Z`, and tags `nextshot-vX.Y.Z`.
-3. **Build.** Archive, sign, notarize, staple, and pack the DMG and the zip. This reuses the work in `scripts/release-notarized.sh`, with names from `VERSION`.
-4. **Archive.** Upload the DMG, the zip, the checksum, and the notes to R2 under `releases/`. Verify the uploaded hash.
-5. **Check.** Run `stapler validate`, `spctl`, and a mount test on the archived DMG.
-6. **Ask once.** The command prints the version, the build, the notes, and the hash. Drew answers yes or no.
-7. **Promote and push.** The command writes `latest.json` in R2, pushes `main` and the tag, and runs the live smoke test.
+1. **Preflight.** HEAD is `main` and equals `origin/main`. The tree is clean. Tests pass for FeedbackKit, JevKit, and CapsoTests. JevKit also passes in Release (`swift test -c release -Xswiftc -enable-testing --package-path Packages/JevKit`), because an optimizer bug lost a dupes result in Release only on 2026-10-25 and every Debug test passed. The Developer ID certificate, the notary profile, the GitHub route, and R2 are ready. `CHANGELOG.md` has an entry under Unreleased.
+2. **Bump.** Drew names the bump (`patch`, `minor`, `major`, or `X.Y.Z`). With no name, the command suggests one from the commit prefixes since the last tag and stops. It moves `Unreleased` to the new version with today's date, writes `VERSION`, commits `chore: release X.Y.Z`, and tags `nextshot-vX.Y.Z`. Both stay local.
+3. **Build.** `scripts/release-notarized.sh`: sign, notarize, staple, DMG, zip.
+4. **Check.** Stapled ticket, Gatekeeper, and a mount test: bundle ID, version, build, and signature of the app inside the image.
+5. **Ask once.** The version, build, hash, and notes. Anything but `y`, a closed stdin, or no terminal stops the run, and the local commit and tag are undone.
+6. **Archive, push, promote.** Upload the files to R2 and read the DMG back. Push `main` and the tag. Point `latest.json` at the new record. Run the smoke test. If it fails, `latest.json` goes back to the version it replaced.
 
-| Task | Size | Done when |
+Status on 2026-10-25, branch `feature/one-command-releases`:
+
+| Task | Size | State |
 |---|---|---|
-| Create the R2 bucket and bind it to the Worker. Serve `/releases/<file>` from R2 with Range support. Make `/download` follow `latest.json`. | M | `curl` on `/download` redirects to the file named in `latest.json`. The hash matches. |
-| Group `/stats` by the new version strings. Keep the legacy date versions as their own rows. | S | `/stats` shows 0.3.0 apart from 2026.10.24. |
-| Write `scripts/release.sh` with the seven steps and a `--dry-run` that stops before step 4. | L | A dry run on a scratch clone prints the plan and changes no remote. |
-| Add `scripts/release.sh --promote <version>` to point `latest.json` at an older version. | S | A rollback test flips `/download` back and forth in under a minute. |
-| Replace the date glob in `site/deploy.sh` with the pointer file. The script then deploys the page only. | S | A page change deploys without touching a DMG. |
-| Run the bridge test: install the 2026.10.24 build, then run the 0.3.0 image copy. | M | The 2026.10.24 copy quits. 0.3.0 replaces it in place and opens. The old image ejects. Screen recording stays granted. |
-| Cut 0.3.0 with the command. | S | nextshot.dev shows "Version 0.3.0". The R2 archive holds the file, the zip, and the checksum. |
-| Move the two shipped date DMGs to `releases/legacy/` in R2. | S | The old links, if any, still resolve. |
+| Serve `/releases/<file>` from R2 with Range support. Make `/download`, the page, and `/stats` follow `latest.json`. | M | Done. Rehearsed against a simulated bucket, then deployed to nextshot.dev on 2026-10-25 from commit 93be021 (PR #108, not yet merged). The live smoke test passed all 16 checks. |
+| Group `/stats` by the new version strings. | S | Needs no change: `/stats` groups by the stored version, so 0.3.0 and 2026.10.24 are separate rows. |
+| Write `scripts/release.sh` with `--dry-run`. | L | Built. The dry run works on the real repo. The full run (build, notarize, push) is untested: it needs `main` and a real release. |
+| `scripts/release.sh --promote <version>` for rollback. | S | Built and rehearsed: rollback, a declined question, no terminal, an unknown version, and a failed smoke test that restores the earlier pointer. |
+| `site/deploy.sh` deploys the page only. | S | Done. It ran against Cloudflare on 2026-10-25 (with the live video and poster, `--poster build/site-poster.jpg`: a plain run would replace the poster). The token can deploy a Worker with an R2 binding. |
+| `scripts/release.sh --import-legacy` archives a date build. | S | Done. Rehearsed, then used on 2026-10-25 for the real bucket. |
+| Create the bucket `nextshot-releases`, give the token R2 permission limited to it. | M | Done 2026-10-25. The bucket exists (created through the Cloudflare connector). The token reads, writes, and deletes there, a 13 MB round trip works, and the other two buckets answer 403. R2 goes through the S3 interface (see `docs/site.md`, "Cloudflare access"). |
+| Import the 2026.10.24 DMG into the real bucket and point `latest.json` at it, then deploy the Worker. | M | Done 2026-10-25, each step on Drew's yes. The bucket holds the DMG (SHA-256 and size match the local file), its checksum, its record, and `latest.json`. The import used `--no-smoke`, because the old Worker had no `latest.json` route. nextshot.dev now serves from the bucket. |
+| Run the bridge test: install the 2026.10.24 build, then run the 0.3.0 image copy. | M | Waits on a real 0.3.0 build and Drew's Mac. |
+| Cut 0.3.0 with the command. | S | Waits on #107 and #108 in `main` (a release runs only from `main`). The command is untested end to end: build, notarize, `git push`, and the real promote. |
 
-Until M2 ends, a release uses the existing scripts with the new names, by hand. Drew can do that for 0.3.0 if the command is late.
+If #108 changes in review, deploy the Worker again with `site/deploy.sh`, because the live Worker is the code of commit 93be021. To undo the deploy: `wrangler rollback`.
 
 ### M3: Automatic Updates
 

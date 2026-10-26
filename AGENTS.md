@@ -173,7 +173,10 @@ Agent access:
 
 ## Website (nextshot.dev)
 
-- nextshot.dev is the download page: the intro video, the notarized DMG, and download counts at `/stats`. It is one Cloudflare Worker (`nextshot-site`) with static assets and a D1 database. The guide is `docs/site.md`.
-- Publish with `site/deploy.sh`. It takes the newest DMG and video in `build/releases`, deploys, and smoke-tests the live site. Run it after each `scripts/release-notarized.sh` and each new video cut.
-- The deploy reads the Cloudflare token from the Keychain item `CLOUDFLARE_API_TOKEN_NEXTSHOT`. `wrangler` stays signed out.
+- nextshot.dev is the download page: the intro video, the notarized DMG, and download counts at `/stats`. It is one Cloudflare Worker (`nextshot-site`) with static assets, a D1 database, and a private R2 bucket (`nextshot-releases`) that holds every released DMG. The guide is `docs/site.md`.
+- A new app version is cut with `scripts/release.sh <patch|minor|major|X.Y.Z>` from `main`, in a terminal (Drew, 2026-10-25). It tests, bumps `VERSION` and `CHANGELOG.md`, tags `nextshot-vX.Y.Z`, builds and notarizes, checks the DMG, asks once, archives to R2, pushes, points `latest.json` at the new record, and smoke-tests. `--dry-run`, `--promote <version>` (also the rollback), and `--import-legacy` are in the script header. The bucket and the Worker that reads it have been live since 2026-10-25, with the 2026.10.24 build as the first record. The script itself is untested end to end (build, notarize, push) until the first real release (M2 in `docs/plans/2026-10-25-versioning-roadmap.md`).
+- Redeploy the page with the live video and poster: `site/deploy.sh --video build/releases/Nextshot-onboarding-2026.10.24.mp4 --poster build/site-poster.jpg`. A plain `site/deploy.sh` replaces the poster with an end-card frame (checked 2026-10-25: the live poster equals `build/site-poster.jpg`).
+- Publish a page or video change with `site/deploy.sh`. It deploys the page and the Worker only, and smoke-tests the live site with `site/smoke.sh`. It needs a valid `latest.json` in R2.
+- A released file is never replaced. A bad build gets a new PATCH number.
+- The deploy and the release command read the Cloudflare token from the Keychain item `CLOUDFLARE_API_TOKEN_NEXTSHOT`. Its R2 permission is limited to the bucket `nextshot-releases` (Bucket Item Read and Write), so it cannot touch Drew's other buckets. R2 calls use the S3 interface with curl, not wrangler (`docs/site.md`, "Cloudflare access"). `wrangler` stays signed out.
 - The site stays free. Its footer reads "Free for personal use and internal use only." It shows no Capso credit or license link (Drew, 2026-10-23). The license notice ships inside the DMG, as BSL 1.1 requires.

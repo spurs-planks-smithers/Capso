@@ -12,6 +12,10 @@
     "binding": "ASSETS",
     "run_worker_first": true
   },
+  // The private bucket that holds every released DMG and zip, and latest.json.
+  // scripts/release.sh writes to it. Nothing in it is public except through
+  // this Worker.
+  "r2_buckets": [{ "binding": "RELEASES", "bucket_name": "nextshot-releases" }],
   "d1_databases": [
     {
       "binding": "DB",
