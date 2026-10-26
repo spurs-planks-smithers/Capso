@@ -3,7 +3,18 @@ import SwiftUI
 import SupportKit
 
 @MainActor
-final class FeedbackSupportPanel {
+protocol FeedbackSupportPresenting: AnyObject {
+    var onSubmit: ((String, String) -> Void)? { get set }
+    var onClosed: (() -> Void)? { get set }
+    func show(captureCount: Int)
+    func bringForward()
+    func setSending(_ status: String)
+    func fail(_ status: String, prepared: Bool)
+    func received(_ identifier: String)
+}
+
+@MainActor
+final class FeedbackSupportPanel: FeedbackSupportPresenting {
     var onSubmit: ((String, String) -> Void)?
     var onClosed: (() -> Void)?
     private var panel: SupportKeyPanel?
