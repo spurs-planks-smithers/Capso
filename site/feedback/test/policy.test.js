@@ -143,3 +143,12 @@ test("a stalled upload has a bounded read deadline", async () => {
     (error) => error.code === "upload_timeout",
   );
 });
+
+test("public reservations cannot contain owner waivers or policy overrides", () => {
+  for (const extra of [
+    { approvedReasons: ["prompt_injection"] },
+    { approval_json: "{}" },
+    { review_policy: "old" },
+  ])
+    assert.throws(() => validateReservation({ ...request(), ...extra }));
+});

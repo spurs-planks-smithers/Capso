@@ -41,10 +41,17 @@ function verdict(value) {
       ? value.reasons
       : ["uncertain"];
 }
-export async function contextualScreen(env, text, images = []) {
+export async function contextualScreen(
+  env,
+  text,
+  images = [],
+  beforeCall = async () => {},
+) {
   bounded(text);
-  const findings = preliminaryFindings(text);
-  if (findings.length) return findings;
+  const findings = preliminaryFindings(text).map((code) =>
+    code === "government_identifier" ? "sensitive_government_id" : code,
+  );
+  await beforeCall();
   const result = await env.AI.run(TEXT_MODEL, {
     messages: [
       { role: "system", content: instruction },
@@ -53,12 +60,12 @@ export async function contextualScreen(env, text, images = []) {
     max_tokens: 512,
     temperature: 0,
   });
-  const reasons = verdict(modelJSON(result));
-  if (reasons.length) return reasons;
+  const reasons = [...findings, ...verdict(modelJSON(result))];
   for (const image of images) {
     const bytes = Uint8Array.from(atob(image.bodyBase64), (v) =>
       v.charCodeAt(0),
     );
+    await beforeCall();
     const result = await env.AI.run(IMAGE_MODEL, {
       prompt:
         instruction +
@@ -68,11 +75,16 @@ export async function contextualScreen(env, text, images = []) {
       temperature: 0,
     });
     reasons.push(...verdict(modelJSON(result)));
-    if (reasons.length) break;
   }
   return [...new Set(reasons)];
 }
-export async function issueDraft(env, text, imageNames) {
+export async function issueDraft(
+  env,
+  text,
+  imageNames,
+  beforeCall = async () => {},
+) {
+  await beforeCall();
   const result = await env.AI.run(TEXT_MODEL, {
     messages: [
       {

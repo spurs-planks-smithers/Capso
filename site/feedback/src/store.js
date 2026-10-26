@@ -85,16 +85,20 @@ export async function reserveBudget(env, microdollars) {
   if (!row) fail("processing_budget", 503);
   return row.reserved_microdollars;
 }
-export async function hold(env, id, codes, status = "held") {
+export async function hold(env, id, codes, status = "held", claim = null) {
   const row = await submission(env, id);
   if (!row) return;
   await query(
     env,
-    "UPDATE submissions SET status=?,reason_codes=?,scan_lease_until=NULL,expires_at=MIN(expires_at,created_at+?) WHERE id=? AND status!='screened'",
+    "UPDATE submissions SET status=?,reason_codes=?,scan_lease_until=NULL,expires_at=MIN(expires_at,created_at+?) WHERE id=? AND status!='screened' AND ((? IS NULL AND status='received') OR (scan_claim=? AND scan_lease_until>? AND expires_at>?))",
     status,
     JSON.stringify(codes),
     LIMITS.heldDays * 86400,
     id,
+    claim,
+    claim,
+    nowSeconds(),
+    nowSeconds(),
   ).run();
 }
 export async function audit(env, id, action) {
@@ -124,6 +128,13 @@ export async function purgeExpired(env) {
   ).results;
   for (const row of rows) {
     const originals = await listFiles(env, row.id),
+      attempts = (
+        await query(
+          env,
+          "SELECT raw_key FROM upload_attempts WHERE submission_id=?",
+          row.id,
+        ).all()
+      ).results,
       rebuilt = (
         await query(
           env,
@@ -131,11 +142,15 @@ export async function purgeExpired(env) {
           row.id,
         ).all()
       ).results;
-    for (const file of originals) await env.RAW.delete(file.raw_key);
+    for (const key of new Set(
+      [...originals, ...attempts].map((file) => file.raw_key),
+    ))
+      await env.RAW.delete(key);
     for (const file of rebuilt) await env.REBUILT.delete(file.storage_key);
     await env.DB.batch([
       query(env, "DELETE FROM audit WHERE submission_id=?", row.id),
       query(env, "DELETE FROM derivatives WHERE submission_id=?", row.id),
+      query(env, "DELETE FROM upload_attempts WHERE submission_id=?", row.id),
       query(env, "DELETE FROM files WHERE submission_id=?", row.id),
       query(env, "DELETE FROM submissions WHERE id=?", row.id),
     ]);

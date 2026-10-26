@@ -28,7 +28,7 @@ The image built from the repository has no licensed classifier weights. It holds
 | CONTACT_NOTIFY | Verified destination `drewschulz1@gmail.com` only |
 | EDGE_LIMITER | 60 requests per minute per keyed IP identifier |
 
-Replace the zero D1 ID after provisioning. Keep all R2 public access disabled. Disable workers.dev and preview URLs. Configure Cloudflare Access for `/review` and `/review/*`, restricted to Drew. The application also verifies the JWT issuer, audience, signature, expiration, and exact email address.
+Replace the zero D1 ID after provisioning. A fresh database uses `schema.sql`. A database initialized with the original feedback schema applies `migrations/0002_recovery_and_owner_review.sql` once instead. Do not apply that upgrade after loading the current schema. Keep all R2 public access disabled. Disable workers.dev and preview URLs. Configure Cloudflare Access for `/review` and `/review/*`, restricted to Drew. The application also verifies the JWT issuer, audience, signature, expiration, and exact email address.
 
 Store `INTAKE_SECRET` and `TURNSTILE_SECRET` in the macOS Keychain and Worker secret bindings. `INTAKE_SECRET` needs at least 32 random characters. Never commit secret values. Set the public Turnstile site key, Access team domain, and Access audience in the deployed configuration.
 
@@ -49,7 +49,7 @@ The mirror uses `manifest.json` and immutable `definitions/<sha256>/<name>` obje
 
 Reservations permit new writes for ten minutes. Identical retries return the same IDs. Already-stored files acknowledge repeat uploads without overwriting or reopening them. Receipt tokens grant no file download access.
 
-The owner page exposes only rebuilt JPEGs after screening completes. Original uploads have no download route. Requesting a recheck reruns all controls and never bypasses a malware or file-validation failure.
+The owner page exposes rebuilt JPEGs after screening completes. It also permits private inspection of held derivatives only after every required file, OCR, classifier, and contextual check completes. Original uploads have no download route. Owner approval selects exact false-positive findings. It binds the actor, content fingerprint, policy version, and a maximum 24-hour expiry. Every check runs again. New findings remain held. Malware, failed or incomplete engines, uncertain results, and prohibited content cannot be approved. Issue-draft output inherits no approval.
 
 ## Limits and retention
 
@@ -57,7 +57,7 @@ Admission starts at five submissions per hour and twenty per day per keyed IP id
 
 Each scan reserves a conservative cost estimate before work begins. A $35 variable-work allowance plus the $5 plan minimum pauses processing near $40. Reservations are not refunded. This can pause work before actual costs reach $40. Provider billing alerts at $25, $40, and $50 remain a separate launch requirement. This is not a provider billing cap.
 
-Held material expires thirty days after receipt. Screened material expires ninety days after receipt. The hourly maintenance handler deletes raw objects, rebuilt objects, content, drafts, and audit rows. Queue messages contain IDs only. Retries do not extend expiration. Delivered Gmail text follows Gmail's retention settings.
+Held material expires thirty days after receipt. Screened material expires ninety days after receipt. The hourly maintenance handler deletes raw objects, every upload attempt, all rebuilt artifact generations, content, drafts, and audit rows. Interrupted upload and notification claims have recovery deadlines. Upload retries verify stored bytes before recovery. Notifications can duplicate after uncertain delivery; they are retried instead of silently lost. Scanner publication requires its current ownership nonce and live lease. A stale scan cannot change a replacement result or expose its artifacts. Queue messages contain IDs only. Retries do not extend expiration. Delivered Gmail text follows Gmail's retention settings.
 
 ## Inbound email
 

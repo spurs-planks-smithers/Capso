@@ -1,3 +1,4 @@
+import { upload } from "./uploads.js";
 import {
   LIMITS,
   IntakeError,
@@ -156,53 +157,6 @@ async function reservationResponse(env, row, status = 200) {
     },
     status,
   );
-}
-async function upload(request, env, id, fileID) {
-  if (!enabled(env, "INTAKE_ENABLED")) fail("intake_unavailable", 503);
-  checkOrigin(request, env);
-  const row = await authorized(env, id, request);
-  const file = await query(
-    env,
-    "SELECT * FROM files WHERE id=? AND submission_id=?",
-    fileID,
-    id,
-  ).first();
-  if (!file) fail("not_found", 404);
-  if (file.status === "uploaded") {
-    await request.body?.cancel();
-    return response({ received: true });
-  }
-  if (row.status !== "reserved" || row.reservation_expires_at < nowSeconds())
-    fail("reservation_expired", 410);
-  const lease = await query(
-    env,
-    "UPDATE files SET status='uploading' WHERE id=? AND status='pending' RETURNING id",
-    fileID,
-  ).first();
-  if (!lease) fail("upload_in_progress", 409);
-  try {
-    const data = await uploadBytes(request.body, file.bytes);
-    if (data.length !== file.bytes || (await digest(data)) !== file.sha256)
-      fail("file_mismatch", 422);
-    await env.RAW.put(file.raw_key, data, {
-      httpMetadata: { contentType: "application/octet-stream" },
-      customMetadata: { submission: id },
-    });
-    await query(
-      env,
-      "UPDATE files SET status='uploaded' WHERE id=? AND status='uploading'",
-      fileID,
-    ).run();
-    return response({ received: true });
-  } catch (error) {
-    await env.RAW.delete(file.raw_key);
-    await query(
-      env,
-      "UPDATE files SET status='pending' WHERE id=? AND status='uploading'",
-      fileID,
-    ).run();
-    throw error;
-  }
 }
 async function complete(request, env, id) {
   if (!enabled(env, "INTAKE_ENABLED")) fail("intake_unavailable", 503);

@@ -198,6 +198,7 @@ export function validateScan(result, now = Date.now()) {
     "inspectionText",
     "images",
     "scan",
+    "review",
   ]);
   if (
     result.version !== 1 ||
@@ -213,6 +214,7 @@ export function validateScan(result, now = Date.now()) {
     if (!result.reasonCodes.length) fail("invalid_scan", 503);
     return result;
   }
+  if (result.review !== undefined) fail("invalid_scan", 503);
   if (
     result.reasonCodes.length ||
     !result.scan ||

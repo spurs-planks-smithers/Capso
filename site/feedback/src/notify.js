@@ -1,11 +1,15 @@
 import { enabled, safeText } from "./policy.js";
-import { query } from "./store.js";
+import { query, nowSeconds } from "./store.js";
 export async function notifyScreened(env, row) {
   if (!enabled(env, "NOTIFICATIONS_ENABLED") || !env.CONTACT_NOTIFY) return;
+  const claim = crypto.randomUUID();
   const lease = await query(
     env,
-    "UPDATE submissions SET notified=2 WHERE id=? AND status='screened' AND notified=0 RETURNING id",
+    "UPDATE submissions SET notified=2,notification_claim=?,notification_lease_until=? WHERE id=? AND status='screened' AND notified=0 AND expires_at>? RETURNING id",
+    claim,
+    nowSeconds() + 300,
     row.id,
+    nowSeconds(),
   ).first();
   if (!lease) return;
   const text = [
@@ -28,14 +32,16 @@ export async function notifyScreened(env, row) {
     });
     await query(
       env,
-      "UPDATE submissions SET notified=1 WHERE id=?",
+      "UPDATE submissions SET notified=1,notification_claim=NULL,notification_lease_until=NULL WHERE id=? AND notification_claim=?",
       row.id,
+      claim,
     ).run();
   } catch {
     await query(
       env,
-      "UPDATE submissions SET notified=0 WHERE id=?",
+      "UPDATE submissions SET notified=0,notification_claim=NULL,notification_lease_until=NULL WHERE id=? AND notification_claim=?",
       row.id,
+      claim,
     ).run();
   }
 }
@@ -49,11 +55,15 @@ export async function notifyHeld(env) {
   ).results;
   if (!rows.length) return;
   const claims = [];
+  const digestClaim = crypto.randomUUID();
   for (const row of rows) {
     const claim = await query(
       env,
-      "UPDATE submissions SET notified=2 WHERE id=? AND notified=0 RETURNING id",
+      "UPDATE submissions SET notified=2,notification_claim=?,notification_lease_until=? WHERE id=? AND status IN ('held','rejected') AND notified=0 AND expires_at>? RETURNING id",
+      digestClaim,
+      nowSeconds() + 300,
       row.id,
+      nowSeconds(),
     ).first();
     if (claim) claims.push(row);
   }
@@ -84,15 +94,25 @@ export async function notifyHeld(env) {
     for (const row of claims)
       await query(
         env,
-        "UPDATE submissions SET notified=1 WHERE id=?",
+        "UPDATE submissions SET notified=1,notification_claim=NULL,notification_lease_until=NULL WHERE id=? AND notification_claim=?",
         row.id,
+        digestClaim,
       ).run();
   } catch {
     for (const row of claims)
       await query(
         env,
-        "UPDATE submissions SET notified=0 WHERE id=?",
+        "UPDATE submissions SET notified=0,notification_claim=NULL,notification_lease_until=NULL WHERE id=? AND notification_claim=?",
         row.id,
+        digestClaim,
       ).run();
   }
+}
+
+export async function recoverNotificationClaims(env) {
+  await query(
+    env,
+    "UPDATE submissions SET notified=0,notification_claim=NULL,notification_lease_until=NULL WHERE notified=2 AND COALESCE(notification_lease_until,0)<=?",
+    nowSeconds(),
+  ).run();
 }
