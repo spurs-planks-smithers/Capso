@@ -22,17 +22,21 @@ enum LaunchPlan: Equatable {
     /// build or newer. Open the installed copy and exit.
     case openInstalled
 
-    /// A Nextshot build, ordered by version date first, then build number.
-    /// The build number is the commit count on the branch that made it, so
-    /// two branches give numbers that do not compare: on 2026-10-25 a local
-    /// build from a trial branch was 665, and the release from a later commit
-    /// was 618. The version is the HEAD commit date
-    /// (`docs/decisions/2026-10-22-nextshot-versions.md`).
+    /// A Nextshot build, ordered by build number first. The build number is
+    /// the commit count on main at the release commit, so releases rise in
+    /// order (`docs/decisions/2026-10-25-versioning-and-releases.md`). The
+    /// version text is for display and breaks a tie only. Until 2026-10-25 the
+    /// order went by version date first, because the dev builds and the
+    /// releases shared a bundle ID and counted commits on different branches:
+    /// a local trial build was 665 and the release from a later commit was
+    /// 618. Nextshot Dev has its own bundle ID, so that mix cannot happen. A
+    /// copy still compares correctly with the date builds in the field: the
+    /// last of them, 2026.10.24, is build 524.
     struct Build: Comparable, CustomStringConvertible {
         var version: [Int]
         var number: Int
 
-        /// `version` is CFBundleShortVersionString, for example "2026.10.25".
+        /// `version` is CFBundleShortVersionString, for example "0.3.0".
         init(version: String, number: Int) {
             self.version = version.split(separator: ".").map { Int($0) ?? 0 }
             self.number = number
@@ -41,8 +45,8 @@ enum LaunchPlan: Equatable {
         static let unknown = Build(version: "", number: 0)
 
         static func < (a: Build, b: Build) -> Bool {
-            if a.version != b.version { return a.version.lexicographicallyPrecedes(b.version) }
-            return a.number < b.number
+            if a.number != b.number { return a.number < b.number }
+            return a.version.lexicographicallyPrecedes(b.version)
         }
 
         var description: String {
