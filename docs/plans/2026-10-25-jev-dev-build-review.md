@@ -4,10 +4,10 @@ For Drew, 2026-10-25. Every Jev PR is merged into `feature/feedback-sessions` (D
 
 ## How to turn a feature on
 
-Run the flags script from the review worktree. Set one feature at a time, and reset it before the next.
+Run the flags script from the repository root, on a checkout that has the sub-flags (`main` since 2026-10-25). Set one feature at a time, and reset it before the next.
 
 ```bash
-/Users/drewschulz/Developer/capso/.claude/worktrees/jev-integration/scripts/nextshot-flags.sh set jevBase on
+scripts/nextshot-flags.sh set jevBase on
 ```
 
 - A whole feature: `nextshot-flags.sh feature <parent> shadow`, then `feature <parent> on`, then `feature <parent> reset`.
