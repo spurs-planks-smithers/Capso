@@ -25,6 +25,37 @@ def token_windows(ids):
         yield ids[start:start+510]
 
 
+def classifier_windows(tokenizer,text):
+    ids=tokenizer.encode(text,add_special_tokens=False,truncation=False)
+    if len(ids)>100_000: raise ScanFailure('classifier_input_limit')
+    encoded=tokenizer(text,add_special_tokens=True,truncation=True,max_length=512,stride=64,
+                      return_overflowing_tokens=True,return_special_tokens_mask=True,
+                      return_attention_mask=True,padding=False)
+    windows=encoded.get('input_ids',[])
+    masks=encoded.get('special_tokens_mask',[])
+    fields={key:encoded[key] for key in ('input_ids','attention_mask','token_type_ids') if key in encoded}
+    if not windows or len(masks)!=len(windows) or any(len(value)!=len(windows) for value in fields.values()):
+        raise ScanFailure('classifier_unavailable')
+    prepared=[]; covered=0
+    for index,window in enumerate(windows):
+        mask=masks[index]
+        if len(window)>512 or len(mask)!=len(window) or any(value not in (0,1) for value in mask):
+            raise ScanFailure('classifier_input_limit')
+        body=[token for token,special in zip(window,mask) if not special]
+        start=max(0,covered-64) if index else 0
+        # Compare against the untruncated encoding before any inference. This
+        # catches a dropped tail, changed overlap, or incomplete overflow list.
+        if body!=ids[start:start+len(body)] or (index and start+len(body)<=covered):
+            raise ScanFailure('classifier_unavailable')
+        covered=start+len(body)
+        inputs={key:value[index] for key,value in fields.items()}
+        if any(len(value)!=len(window) for value in inputs.values()):
+            raise ScanFailure('classifier_unavailable')
+        prepared.append(inputs)
+    if covered!=len(ids): raise ScanFailure('classifier_unavailable')
+    return prepared
+
+
 def now_seconds(): return datetime.now(timezone.utc).timestamp()
 
 
@@ -179,13 +210,11 @@ class ProductionEngines:
     def classify(self,text):
         if self.model is None or self.tokenizer is None: raise ScanFailure('classifier_unavailable')
         import torch
-        # Keep every token, including the tail. Windows overlap by 64 tokens.
-        ids=self.tokenizer.encode(text,add_special_tokens=False,truncation=False)
-        if len(ids)>100_000: raise ScanFailure('classifier_input_limit')
+        # Keep every overflow window. Run one window at a time to bound memory.
+        windows=classifier_windows(self.tokenizer,text)
         detected=False
-        for window in token_windows(ids):
-            encoded=self.tokenizer.prepare_for_model(window,add_special_tokens=True,return_tensors='pt',truncation=False)
-            if encoded['input_ids'].shape[-1]>512: raise ScanFailure('classifier_input_limit')
+        for window in windows:
+            encoded={key:torch.tensor([value],dtype=torch.long) for key,value in window.items()}
             with torch.inference_mode(): scores=torch.softmax(self.model(**encoded).logits,dim=-1)[0]
             labels={int(key):value.lower() for key,value in self.model.config.id2label.items()}
             malicious=[index for index,label in labels.items() if label in ('malicious','jailbreak','injection','label_1')]
