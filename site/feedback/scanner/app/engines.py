@@ -2,6 +2,7 @@
 import hashlib
 import io
 import json
+import math
 import os
 import re
 import resource
@@ -162,6 +163,7 @@ class ProductionEngines:
         # Keep every token, including the tail. Windows overlap by 64 tokens.
         ids=self.tokenizer.encode(text,add_special_tokens=False,truncation=False)
         if len(ids)>100_000: raise ScanFailure('classifier_input_limit')
+        detected=False
         for window in token_windows(ids):
             encoded=self.tokenizer.prepare_for_model(window,add_special_tokens=True,return_tensors='pt',truncation=False)
             if encoded['input_ids'].shape[-1]>512: raise ScanFailure('classifier_input_limit')
@@ -169,4 +171,7 @@ class ProductionEngines:
             labels={int(key):value.lower() for key,value in self.model.config.id2label.items()}
             malicious=[index for index,label in labels.items() if label in ('malicious','jailbreak','injection','label_1')]
             if len(malicious)!=1: raise ScanFailure('classifier_label_mismatch')
-            if float(scores[malicious[0]])>=0.5: raise ScanFailure('prompt_injection')
+            if len(scores)!=len(labels) or not all(math.isfinite(float(value)) for value in scores):
+                raise ScanFailure('classifier_output_invalid')
+            if float(scores[malicious[0]])>=0.5: detected=True
+        if detected: raise ScanFailure('prompt_injection')

@@ -16,6 +16,8 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 
 POLICY_VERSION = '1'
 CLASSIFIER_REVISION = '11614a155199674a0a95e6602d6ab0417b790ed0'
+SOFT_REASONS = frozenset({'sensitive_credentials','sensitive_government_id','sensitive_payment',
+                          'sensitive_private_record','prompt_injection','hidden_control_text'})
 
 
 @dataclass(frozen=True)
@@ -109,6 +111,9 @@ class Scanner:
             if not isinstance(job, dict) or not isinstance(job.get('submission'), dict):
                 raise ScanFailure('invalid_job', True)
             submission = job['submission']
+            approved = job.get('approvedReasons',[])
+            if not isinstance(approved,list) or len(approved)>len(SOFT_REASONS) or any(not isinstance(reason,str) or reason not in SOFT_REASONS for reason in approved) or len(set(approved))!=len(approved):
+                raise ScanFailure('invalid_approval',True)
             message = bounded_string(submission.get('message', ''))
             files = job.get('files')
             if not isinstance(files, list) or len(files) > 21:
@@ -143,11 +148,17 @@ class Scanner:
                 else: raise ScanFailure('unsupported_type', True)
             inspection = '\n'.join(state.inspection)
             reasons = sensitive_reasons(inspection)
-            if reasons: raise ScanFailure(sorted(reasons)[0])
-            self.engines.classify(inspection)
+            try: self.engines.classify(inspection)
+            except ScanFailure as finding:
+                if finding.reason!='prompt_injection': raise
+                reasons.add('prompt_injection')
             result = {'version':1,'status':'passed','reasonCodes':[],
                       'text':'\n'.join(state.canonical),'inspectionText':inspection,
                       'images':state.images,'scan':metadata}
+            remaining = reasons-set(approved)
+            if remaining:
+                result = {'version':1,'status':'held','reasonCodes':sorted(remaining),'scan':metadata,
+                          'review':{**result,'hardChecksPassed':True}}
             if len(json.dumps(result).encode()) > self.limits.response_bytes:
                 raise ScanFailure('rebuilt_output_limit')
             return result

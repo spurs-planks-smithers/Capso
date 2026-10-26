@@ -210,3 +210,51 @@ class CaptureMappingTests(unittest.TestCase):
         self.assertEqual(result['status'],'passed')
         self.assertIn('Capture 3 is capture-1.jpg',result['text'])
         self.assertIn('3.1: Widen the button.',result['text'])
+
+class OwnerReviewTests(unittest.TestCase):
+    def test_soft_finding_produces_only_private_rebuilt_review(self):
+        out=io.BytesIO(); exif=Image.Exif(); exif[270]='Original window title'
+        Image.new('RGB',(24,24),'white').save(out,'JPEG',exif=exif)
+        original=out.getvalue(); engines=Engines()
+        result=Scanner(engines).scan(job(original,'image/jpeg',message='password = example-value'))
+        self.assertEqual(result['status'],'held')
+        self.assertNotIn('text',result); self.assertNotIn('images',result)
+        review=result['review']; self.assertTrue(review['hardChecksPassed'])
+        self.assertEqual(review['status'],'passed'); self.assertEqual(review['reasonCodes'],[])
+        self.assertTrue(engines.texts,'Classifier must run after a local positive finding.')
+        rebuilt=base64.b64decode(review['images'][0]['bodyBase64'])
+        self.assertNotEqual(original,rebuilt)
+        with Image.open(io.BytesIO(rebuilt)) as image: self.assertEqual(len(image.getexif()),0)
+        self.assertNotIn('original',review)
+
+    def test_approval_waives_only_the_selected_finding(self):
+        value=job(message='password = example-value\nSocial Security Number: 123-45-6789')
+        value['approvedReasons']=['sensitive_credentials']
+        result=Scanner(Engines()).scan(value)
+        self.assertEqual(result['status'],'held')
+        self.assertEqual(result['reasonCodes'],['sensitive_government_id'])
+        self.assertIn('review',result)
+        value['approvedReasons'].append('sensitive_government_id')
+        self.assertEqual(Scanner(Engines()).scan(value)['status'],'passed')
+
+    def test_classifier_failure_is_not_hidden_by_a_local_finding_or_approval(self):
+        class Failed(Engines):
+            def classify(self,text): raise ScanFailure('classifier_unavailable')
+        value=job(message='password = example-value'); value['approvedReasons']=['sensitive_credentials']
+        result=Scanner(Failed()).scan(value)
+        self.assertEqual(result['status'],'held'); self.assertEqual(result['reasonCodes'],['classifier_unavailable'])
+        self.assertNotIn('review',result)
+
+    def test_completed_classifier_positive_is_reviewable(self):
+        class Positive(Engines):
+            def classify(self,text): raise ScanFailure('prompt_injection')
+        result=Scanner(Positive()).scan(job())
+        self.assertEqual(result['reasonCodes'],['prompt_injection'])
+        self.assertTrue(result['review']['hardChecksPassed'])
+
+    def test_hard_failure_never_has_review_or_approval_bypass(self):
+        value=job(b'EICAR-STANDARD-ANTIVIRUS-TEST-FILE','image/jpeg',message='password = example-value')
+        value['approvedReasons']=['sensitive_credentials','prompt_injection']
+        result=Scanner(Engines()).scan(value)
+        self.assertEqual(result['reasonCodes'],['malware_detected'])
+        self.assertNotIn('review',result); self.assertNotIn('images',result)

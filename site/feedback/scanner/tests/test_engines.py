@@ -26,3 +26,27 @@ class EngineBoundaryTests(unittest.TestCase):
             with self.assertRaises(ScanFailure) as raised:
                 ProductionEngines(model_dir=folder).prepare_classifier()
             self.assertEqual(raised.exception.reason,'classifier_unavailable')
+
+class ClassifierCompletionTests(unittest.TestCase):
+    def test_positive_window_does_not_hide_a_later_engine_failure(self):
+        import contextlib
+        import types
+        from unittest.mock import patch
+        class Tokenizer:
+            def encode(self,*args,**kwargs): return list(range(1000))
+            def prepare_for_model(self,*args,**kwargs):
+                return {'input_ids':types.SimpleNamespace(shape=(1,512))}
+        class Model:
+            config=types.SimpleNamespace(id2label={0:'BENIGN',1:'MALICIOUS'})
+            calls=0
+            def __call__(self,**kwargs):
+                self.calls+=1
+                if self.calls==2: raise ScanFailure('classifier_unavailable')
+                return types.SimpleNamespace(logits=None)
+        fake=types.SimpleNamespace(inference_mode=contextlib.nullcontext,
+                                   softmax=lambda *args,**kwargs:[[0.01,0.99]])
+        engine=ProductionEngines(); engine.tokenizer=Tokenizer(); engine.model=Model()
+        with patch.dict(sys.modules,{'torch':fake}), self.assertRaises(ScanFailure) as raised:
+            engine.classify('A bounded document with several windows.')
+        self.assertEqual(raised.exception.reason,'classifier_unavailable')
+        self.assertEqual(engine.model.calls,2)
