@@ -173,7 +173,9 @@ Agent access:
 
 ## Website (nextshot.dev)
 
-- nextshot.dev is the download page: the intro video, the notarized DMG, and download counts at `/stats`. It is one Cloudflare Worker (`nextshot-site`) with static assets and a D1 database. The guide is `docs/site.md`.
-- Publish with `site/deploy.sh`. It takes the newest DMG and video in `build/releases`, deploys, and smoke-tests the live site. Run it after each `scripts/release-notarized.sh` and each new video cut.
-- The deploy reads the Cloudflare token from the Keychain item `CLOUDFLARE_API_TOKEN_NEXTSHOT`. `wrangler` stays signed out.
+- nextshot.dev is the download page: the intro video, the notarized DMG, and download counts at `/stats`. It is one Cloudflare Worker (`nextshot-site`) with static assets, a D1 database, and a private R2 bucket (`nextshot-releases`) that holds every released DMG. The guide is `docs/site.md`.
+- A new app version is cut with `scripts/release.sh <patch|minor|major|X.Y.Z>` from `main`, in a terminal (Drew, 2026-10-25). It tests, bumps `VERSION` and `CHANGELOG.md`, tags `nextshot-vX.Y.Z`, builds and notarizes, checks the DMG, asks once, archives to R2, pushes, points `latest.json` at the new record, and smoke-tests. `--dry-run`, `--promote <version>` (also the rollback), and `--import-legacy` are in the script header. The script is untested end to end until the first real release: the bucket does not exist yet (M2 in `docs/plans/2026-10-25-versioning-roadmap.md`).
+- Publish a page or video change with `site/deploy.sh`. It deploys the page and the Worker only, and smoke-tests the live site with `site/smoke.sh`. It needs a valid `latest.json` in R2.
+- A released file is never replaced. A bad build gets a new PATCH number.
+- The deploy and the release command read the Cloudflare token from the Keychain item `CLOUDFLARE_API_TOKEN_NEXTSHOT`. It needs the permission Workers R2 Storage Edit for the bucket. `wrangler` stays signed out.
 - The site stays free. Its footer reads "Free for personal use and internal use only." It shows no Capso credit or license link (Drew, 2026-10-23). The license notice ships inside the DMG, as BSL 1.1 requires.

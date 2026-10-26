@@ -1,14 +1,15 @@
 # nextshot.dev
 
-nextshot.dev is the one-page download site for Nextshot. People in internal organizations watch the intro video there and download the notarized DMG. It runs on Drew's Cloudflare account as one Worker with static assets and one D1 database, all on the free plan. Set up 2026-10-23.
+nextshot.dev is the one-page download site for Nextshot. People in internal organizations watch the intro video there and download the notarized DMG. It runs on Drew's Cloudflare account as one Worker with static assets, one D1 database, and (since the versioning work of 2026-10-25) one private R2 bucket that holds every released DMG. Set up 2026-10-23.
 
 ## What it serves
 
 | Path | What it does |
 |---|---|
 | `/` | The landing page: the tagline "Show AI what you mean.", the intro video, the Download button, the round steps (Grab, Mark, Repeat, Hand off), install steps, and the footer "Free for personal use and internal use only." A slow gradient and an interactive dot field sit behind it (see "Page design"). |
-| `/download` | Stores one row in D1 (time, version, country, bot flag; no IP address), then redirects to the DMG |
-| `/releases/<dmg>` | The notarized DMG under its versioned name |
+| `/download` | Reads `latest.json` from R2, stores one row in D1 (time, version, country, bot flag; no IP address), then redirects to `/releases/<file>`. It answers 503 when R2 holds no valid `latest.json`. |
+| `/releases/<file>` | One published file from R2: `Nextshot-<version>.dmg`, `.zip`, `.dmg.sha256`, or `.json`, and the date builds (`Nextshot-2026.10.24-9d3afc7.dmg`). R2 handles Range and conditional requests. A name that is not a published file name gets a 404 and never reaches R2 as a path. A direct link to a file is not counted in D1: only `/download` counts. |
+| `/latest.json` | The record that says which version `/download` serves: version, build, file, size, SHA-256, commit, release time, and the release notes. Public and never cached. |
 | `/media/<video>.mp4` | The intro video. The Worker answers Range requests with 206, which Safari needs. It streams only the asked-for bytes and never holds a file in memory. |
 | `/stats` | Download counts by day (last 30 days, UTC) and by version. People and bots show apart. Anyone with the link can open it. |
 | `/LICENSE.txt` | Capso's Business Source License 1.1, copied from the repo `LICENSE`. The page does not link it. |
@@ -22,31 +23,54 @@ The bot flag comes from a user-agent pattern in `site/src/worker.js`: bots, craw
 
 | Path | What it is |
 |---|---|
-| `site/wrangler.jsonc` | Worker `nextshot-site`: account, assets folder `../build/site`, D1 binding `DB`, custom domains |
+| `site/wrangler.jsonc` | Worker `nextshot-site`: account, assets folder `../build/site`, D1 binding `DB`, R2 binding `RELEASES` (bucket `nextshot-releases`), custom domains |
 | `site/src/worker.js` | The Worker. Plain JavaScript, no build step. |
+| `site/src/releases.mjs`, `site/test/releases.test.mjs` | Pure helpers: which file names the Worker may serve, what `latest.json` must hold, and which ranges are out of bounds. `node --test site/test/releases.test.mjs` runs the tests. |
 | `site/schema.sql` | The `downloads` table |
 | `site/public/` | `index.html` (with `{{...}}` placeholders), `site.css`, and `dots.js` (the background dot field). The deploy copies every file in this folder. |
-| `site/deploy.sh` | Stages `build/site`, deploys, and runs the smoke test |
+| `site/deploy.sh` | Stages `build/site`, deploys the page, and runs the smoke test |
+| `site/smoke.sh` | The smoke test, for the live site or a local Worker. `deploy.sh` and `scripts/release.sh` both run it. |
 
-`build/site` is generated and git-ignored, so the DMG and the video never reach git.
+`build/site` is generated and git-ignored, so the video never reaches git. The DMGs are not in `build/site` at all.
+
+## Where the DMGs live
+
+The private R2 bucket `nextshot-releases` holds them. Nothing in it is public except through the Worker.
+
+| Key | What it is |
+|---|---|
+| `releases/Nextshot-<v>.dmg`, `.zip`, `.dmg.sha256` | The files of one release |
+| `releases/Nextshot-<v>.json` | The record of that release: version, build, file, size, SHA-256, commit, tag, release time, notes |
+| `latest.json` | A copy of one record. `/download`, the page's "Version" line, and `/stats` read it. |
+
+Nobody replaces a published file. A bad build gets a new PATCH number. A rollback points `latest.json` at an older record: `scripts/release.sh --promote <version>`. The page shows `n/a` for the version while R2 holds no valid `latest.json`.
 
 ## Publish a change
+
+**A new app version** is cut with one command, from `main`, in a terminal:
+
+```bash
+scripts/release.sh minor
+```
+
+The steps and the checks are at the top of `scripts/release.sh`, and the plan is milestone M2 in `docs/plans/2026-10-25-versioning-roadmap.md`. `scripts/release.sh` alone shows the suggested bump. `--dry-run <bump>` runs every check and prints the plan without changing anything. `--promote <version>` moves the live version, forward or back. `--import-legacy` archives a date build that shipped before versions.
+
+**A page or video change** is a deploy:
 
 ```bash
 site/deploy.sh
 ```
 
-The script picks the newest `build/releases/Nextshot-20*.dmg` and the newest `build/releases/Nextshot-onboarding-20*.mp4`, and skips the music option cuts (`-musicB.mp4`, `-musicC.mp4`). It takes the video poster from the video itself, 1 second before the end, where the end card is complete. Flags override each input:
+The script picks the newest `build/releases/Nextshot-onboarding-20*.mp4` and skips the music option cuts (`-musicB.mp4`, `-musicC.mp4`). It takes the video poster from the video itself, 1 second before the end, where the end card is complete. Flags override each input:
 
 ```bash
 site/deploy.sh --video build/releases/<new cut>.mp4 --poster <image>
 ```
 
-The script stops when the DMG has no stapled notarization ticket, when a file is 25 MiB or larger (the static asset limit), or when `LICENSE` is missing. After the deploy it checks the live site: page, noindex header, the `/download` redirect, the DMG SHA-256 hash, a video Range request (206), the www redirect, and `/stats`.
+The script stops when a file is 25 MiB or larger (the static asset limit), when `LICENSE` is missing, or when R2 holds no valid `latest.json` (the new Worker would have nothing to serve). After the deploy it runs `site/smoke.sh`: page, noindex header, `/latest.json`, the "Version" line, the `/download` redirect, the DMG SHA-256 and size, Range replies (206, and 416 past the end), that a path cannot leave `releases/`, a video Range request, the www redirect, and `/stats`.
 
-- New app build: run `scripts/release-notarized.sh`, then `site/deploy.sh`.
 - New video cut: render it, then run `site/deploy.sh`.
-- Local check: `site/deploy.sh --stage-only`, then start the `nextshot-site` entry in `.claude/launch.json` (`wrangler dev` on port 8787 with a local D1).
+- Local check: `site/deploy.sh --stage-only`, then start the `nextshot-site` entry in `.claude/launch.json`. It runs `wrangler dev` on port 8787 with a simulated D1 and a simulated R2 bucket in one folder (`--persist-to`). Fill the bucket with `NEXTSHOT_R2_LOCAL=<that folder> scripts/release.sh --import-legacy ...`, and point `site/smoke.sh --url http://127.0.0.1:8787` at the result.
 
 ## Page design
 
@@ -75,7 +99,7 @@ site/deploy.sh --video build/releases/Nextshot-onboarding-2026.10.24.mp4 --poste
 ## Cloudflare access
 
 - The deploy reads the account API token from the Keychain item `CLOUDFLARE_API_TOKEN_NEXTSHOT`, in memory only.
-- Token permissions: Workers Scripts Edit, D1 Edit, Account Settings Read; on the nextshot.dev zone, Workers Routes Edit, DNS Edit, Zone Read.
+- Token permissions: Workers Scripts Edit, D1 Edit, Account Settings Read; on the nextshot.dev zone, Workers Routes Edit, DNS Edit, Zone Read. The releases need one more: **Workers R2 Storage Edit** (Account). Without it, `wrangler r2 bucket list` answers `Authentication error [code: 10000]`, as seen on 2026-10-25. Editing a token's permissions in the dashboard keeps its value, so the Keychain item stays as it is.
 - Revoke or roll it in the Cloudflare dashboard under Manage Account, Account API Tokens, `nextshot-site deploy`.
 - `wrangler` itself stays signed out.
 - The zone's Minimum TLS Version is 1.2 (set 2026-10-24 in SSL/TLS, Edge Certificates). TLS 1.0 and 1.1 connections get a protocol-version alert. The token cannot change zone settings, so this one is a dashboard setting.
