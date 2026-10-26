@@ -10,6 +10,8 @@
 #   scripts/release.sh --promote X.Y.Z  point /download at an archived version (also the rollback)
 #   scripts/release.sh --import-legacy FILE --version V --build N [--commit C] [--and-promote]
 #                                       archive a date build that shipped before versions
+#   Add --no-smoke to --promote or --import-legacy only while the Worker that
+#   reads latest.json is not deployed yet. A release never skips the test.
 #
 # <bump> is patch, minor, major, or an exact X.Y.Z. major works only from 1.0.0
 # on: type 1.0.0 yourself when you decide to launch. --profile NAME picks the
@@ -45,7 +47,7 @@ dry_run=0
 mode="release"
 bump=""
 promote_version=""
-legacy_file="" legacy_version="" legacy_build="" legacy_commit="" and_promote=0
+legacy_file="" legacy_version="" legacy_build="" legacy_commit="" and_promote=0 no_smoke=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -57,6 +59,7 @@ while [[ $# -gt 0 ]]; do
     --build) legacy_build="$2"; shift 2 ;;
     --commit) legacy_commit="$2"; shift 2 ;;
     --and-promote) and_promote=1; shift ;;
+    --no-smoke) no_smoke=1; shift ;;
     -h | --help) sed -n '2,40p' "$0"; exit 0 ;;
     -*) rel_fail "unknown option: $1" ;;
     *) [[ -z "$bump" ]] || rel_fail "one bump only: '$bump' and '$1'"; bump="$1"; shift ;;
@@ -74,7 +77,16 @@ confirm() {
   [[ "$answer" == y || "$answer" == Y || "$answer" == yes ]]
 }
 
-smoke() { "$repo/site/smoke.sh" --url "$site_url"; }
+# --no-smoke is for one step: filling the bucket before the Worker that reads
+# it is deployed. The live site has no /latest.json route yet, so the test
+# would fail and put the pointer back. A release never skips the test.
+smoke() {
+  if ((no_smoke)); then
+    echo "release: smoke test skipped (--no-smoke). Run site/smoke.sh after the Worker is deployed."
+    return 0
+  fi
+  "$repo/site/smoke.sh" --url "$site_url"
+}
 
 # --- Mode: promote -----------------------------------------------------------
 
@@ -121,6 +133,7 @@ fi
 # --- Mode: release -----------------------------------------------------------
 
 [[ -z "${NEXTSHOT_R2_LOCAL:-}" ]] || rel_fail "a release does not run with NEXTSHOT_R2_LOCAL set: the rehearsal bucket is not the site"
+((no_smoke == 0)) || rel_fail "a release always runs the smoke test: --no-smoke is for --promote and --import-legacy only"
 
 # With no bump the command only suggests one, as a dry run does.
 [[ -n "$bump" ]] || dry_run=1
