@@ -39,18 +39,16 @@ struct RelativePathModeTests {
         #expect(spans.allSatisfy { !$0.contains("/") }, "a span holds a path: \(spans)")
     }
 
-    @Test("A relative manifest says paths are relative and gives a Codex command with Z")
+    @Test("A relative manifest says paths are relative and lists images by file name")
     func relativeManifestFolderLine() {
         let round = FeedbackFixtures.round(captures: [FeedbackFixtures.pricingCapture()])
         let manifest = ManifestWriter.render(round, paths: Self.relative, timeZone: FeedbackFixtures.timeZone)
 
         #expect(manifest.contains("Folder: the folder that holds this file. Every path in this folder is relative to it."))
-        #expect(manifest.contains("Run it in the target repository. If you unzipped the folder somewhere else, change Z first."))
-        #expect(manifest.contains(#"Z="$HOME/Downloads/nextshot-round-2026-10-20-1912-1-capture""#))
-        #expect(manifest.contains(#"codex --image "$Z/1914-pricing-acme.png" "#))
-        #expect(manifest.contains(#""$(printf 'The export folder is %s.\n\n' "$Z"; cat "$Z/README.md")""#))
+        #expect(manifest.contains("## Images\n\nOne annotated image per capture."))
+        #expect(manifest.contains("\n- `1914-pricing-acme.png`\n"))
+        #expect(!manifest.contains("$Z"))
         #expect(!manifest.contains("/Users/"))
-        #expect(!manifest.contains("prompt.md\""))
     }
 
     @Test("Header lines go right after the Captures line")

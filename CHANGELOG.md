@@ -20,6 +20,7 @@ Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This for
 
 ### Changed
 
+- `manifest.md` lists the annotated images under Images and no longer holds a Codex command, so any AI agent reads a bundle the same way. Older bundles keep their old section.
 - Version numbers are plain numbers such as 0.3.0, not dates.
 - The help box moved to the bottom right, so it no longer covers the Nshot menu.
 - Toasts stay three times longer.

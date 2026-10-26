@@ -163,6 +163,7 @@ How to read the bundle:
 - The `Folder:` line becomes: "Folder: the folder that holds this file. Every path in this folder is relative to it."
 - The image file names are the zip's names (`K-<stem>.jpg`).
 - Every box and point is in pixels of the zip's image, not of the bundle's PNG. See "Coordinates".
+- **Correction (2026-10-25, Drew, #109): this bullet and the block below no longer hold.** The manifest lists the images under `## Images` by file name, with no shell variable and no command. The Codex command lives in `docs/agents/bundle-guide.md`. The original text follows for the record.
 - The Codex command names the folder through a shell variable, so it holds no source-Mac path, and it tells Codex where the folder is:
 
 ```bash
@@ -333,7 +334,7 @@ Guidance for the builder. The builder may change names.
 - Round zips also use the K prefix on file names, so both kinds of zip read the same way.
 - The round slug stays out of the zip name.
 - A taken name gets a suffix. Nextshot never overwrites a file in Downloads.
-- The Codex command assumes the folder is in `~/Downloads`, and says to change it otherwise.
+- The Codex command assumes the folder is in `~/Downloads`, and says to change it otherwise. (Superseded 2026-10-25, #109: the manifest holds no command.)
 - A capture with a missing PNG is left out and named in the README.
 - Clean copies stay in the zip at every step of the ladder.
 - `NSDownloadsFolderUsageDescription` goes in `Info.plist`.

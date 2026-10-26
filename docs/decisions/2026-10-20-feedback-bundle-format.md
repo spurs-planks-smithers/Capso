@@ -66,6 +66,8 @@ Each feedback session writes one folder under `~/Feedback/`:
 | Give a check the agent can run, such as a screenshot compared with the target. Be specific: files, symptoms, constraints. | Anthropic, [Claude Code best practices](https://code.claude.com/docs/en/best-practices) | A located-items table before edits, then a screenshot comparison where the UI can render. |
 | Feedback tools built for agents (Agentation, AgentEcho, Markagent, MarkUp, SenAnnotate) export numbered marks plus a Markdown report with locators the agent can search for. | Product pages, 2025 to 2026 | OCR text under each mark is the locator. Browser URL and DOM selectors come later. |
 
+**Correction (2026-10-25, Drew, #109):** the row above says `manifest.md` holds a ready `codex --image` command. That put one agent's name in every bundle. Nextshot works with any agent, so `manifest.md` now lists the annotated images under Images and names no agent. The Codex command lives in `docs/agents/bundle-guide.md`. The cited guidance still holds: the prompt names what each image shows, and the images come with their paths.
+
 Two rules come from judgment, not from a cited result:
 
 1. Keep a clean copy of each capture, because marks can hide the content they point at.
