@@ -167,3 +167,46 @@ class SchemaVersionTests(unittest.TestCase):
         files=package(); model=json.loads(files['support/support.json']); model['schemaVersion']=True
         files['support/support.json']=json.dumps(model)
         self.assertEqual(Scanner(Engines()).scan(job(archive(files)))['status'],'rejected')
+
+class NormalizedImageTests(unittest.TestCase):
+    @staticmethod
+    def transparent_image():
+        from PIL import ImageDraw
+        image=Image.new('RGBA',(160,32),(255,255,255,0))
+        ImageDraw.Draw(image).text((1,1),'Hidden private text',fill=(0,0,0,0))
+        out=io.BytesIO(); image.save(out,'PNG'); return out.getvalue()
+
+    def test_transparency_is_white_and_ocr_uses_returned_pixels(self):
+        class Recording(Engines):
+            def __init__(self): super().__init__(); self.ocr_inputs=[]
+            def ocr(self,content): self.ocr_inputs.append(content); return ''
+        source=self.transparent_image(); engines=Recording()
+        result=Scanner(engines).scan(job(source,'image/png'))
+        self.assertEqual(result['status'],'passed')
+        rebuilt=base64.b64decode(result['images'][0]['bodyBase64'])
+        with Image.open(io.BytesIO(rebuilt)) as image:
+            self.assertGreaterEqual(min(value for pixel in image.getdata() for value in pixel),250)
+        self.assertIn(source,engines.ocr_inputs)
+        self.assertEqual(engines.ocr_inputs[-1],rebuilt)
+
+    def test_private_text_found_on_rebuilt_image_holds_output(self):
+        class NormalizedPrivate(Engines):
+            def ocr(self,content):
+                with Image.open(io.BytesIO(content)) as image:
+                    return 'Social Security Number: 123-45-6789' if image.format=='JPEG' else ''
+        result=Scanner(NormalizedPrivate()).scan(job(self.transparent_image(),'image/png'))
+        self.assertEqual(result['status'],'held')
+        self.assertNotIn('images',result)
+        self.assertIn('sensitive_government_id',result['reasonCodes'])
+
+class CaptureMappingTests(unittest.TestCase):
+    def test_nonconsecutive_capture_id_maps_to_rebuilt_filename(self):
+        files=package(); model=json.loads(files['support/support.json'])
+        model['captures'][0]['index']=3; model['captures'][0]['imageFile']='capture-3.jpg'
+        model['captures'][0]['items'][0]['id']='3.1'
+        files['support/support.json']=json.dumps(model)
+        files['support/capture-3.jpg']=files.pop('support/capture-1.jpg')
+        result=Scanner(Engines()).scan(job(archive(files)))
+        self.assertEqual(result['status'],'passed')
+        self.assertIn('Capture 3 is capture-1.jpg',result['text'])
+        self.assertIn('3.1: Widen the button.',result['text'])

@@ -3,6 +3,9 @@ import json
 import multiprocessing
 import os
 import signal
+import shutil
+import tempfile
+from pathlib import Path
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 from engines import ProductionEngines
@@ -12,28 +15,64 @@ MAX_REQUEST=36_000_000
 MAX_RESPONSE=24_000_000
 
 
+JOB_PARENT='/tmp'
+CLEANUP_FAILED=False
+
+
+def held(reason):
+    return {'version':1,'status':'held','reasonCodes':[reason]}
+
+
 def child(connection,job):
-    try: connection.send_bytes(json.dumps(Scanner(ProductionEngines()).scan(job)).encode())
-    except BaseException: connection.send_bytes(b'{"version":1,"status":"held","reasonCodes":["scanner_error"]}')
+    try:
+        root=Path(os.environ['TMPDIR'])
+        engines=ProductionEngines(temporary_root=root)
+        connection.send_bytes(json.dumps(Scanner(engines).scan(job)).encode())
+    except BaseException: connection.send_bytes(json.dumps(held('scanner_error')).encode())
     finally: connection.close()
 
 
 def run_job(job):
-    # A job gets a fresh process. Timeout terminates its parser and all child tools.
+    global CLEANUP_FAILED
+    if CLEANUP_FAILED: return held('scanner_cleanup_failed')
+    try: root=Path(tempfile.mkdtemp(prefix='nextshot-job-',dir=JOB_PARENT))
+    except OSError: return held('scanner_temporary_storage')
     context=multiprocessing.get_context('fork')
     receive,send=context.Pipe(duplex=False)
     def isolated(connection,value):
         os.setsid()
+        os.environ['TMPDIR']=str(root)
+        tempfile.tempdir=str(root)
         child(connection,value)
-    process=context.Process(target=isolated,args=(send,job)); process.start(); send.close()
+    process=context.Process(target=isolated,args=(send,job))
+    result=held('scanner_error')
+    started=False
     try:
-        if receive.poll(120): return strict_json(receive.recv_bytes(MAX_RESPONSE))
-        return {'version':1,'status':'held','reasonCodes':['scanner_timeout']}
+        process.start(); started=True; send.close()
+        if receive.poll(120): result=strict_json(receive.recv_bytes(MAX_RESPONSE))
+        else: result=held('scanner_timeout')
+    except (OSError,EOFError,ValueError): result=held('scanner_error')
     finally:
-        if process.is_alive():
+        send.close()
+        if started:
+            # Kill the process group even after its main process exits. A tool
+            # must not keep a private file open while the parent removes it.
             try: os.killpg(process.pid,signal.SIGKILL)
             except ProcessLookupError: pass
-        process.join(timeout=2); receive.close()
+            except OSError: CLEANUP_FAILED=True
+            if process.is_alive():
+                try: process.kill()
+                except OSError: CLEANUP_FAILED=True
+            try: process.join(timeout=2)
+            except (OSError,ValueError): CLEANUP_FAILED=True
+            if process.is_alive(): CLEANUP_FAILED=True
+        try: receive.close()
+        except OSError: CLEANUP_FAILED=True
+        try: shutil.rmtree(root)
+        except OSError: CLEANUP_FAILED=True
+    # A cleanup failure disables later jobs until the container is replaced.
+    if CLEANUP_FAILED: return held('scanner_cleanup_failed')
+    return result
 
 
 class Handler(BaseHTTPRequestHandler):

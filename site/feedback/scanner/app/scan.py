@@ -188,22 +188,26 @@ class ScanState:
                 self.pixels += width * height
                 if self.pixels > self.limits.total_pixels: raise ScanFailure('image_pixel_limit', True)
                 if dimensions and (width,height) != dimensions: raise ScanFailure('image_dimensions_mismatch', True)
+                image.verify()
+                image = Image.open(io.BytesIO(data))
+                image.load()
                 metadata = []
                 for value in image.info.values():
                     if isinstance(value,str): metadata.append(value)
                 for value in image.getexif().values():
                     if isinstance(value,str): metadata.append(value)
                 for value in metadata: self.text(value)
-                image.verify()
-                image = Image.open(io.BytesIO(data))
-                image.load()
-                image = ImageOps.exif_transpose(image).convert('RGB')
+                rgba = ImageOps.exif_transpose(image).convert('RGBA')
+                background = Image.new('RGBA',rgba.size,(255,255,255,255))
+                image = Image.alpha_composite(background,rgba).convert('RGB')
                 image.thumbnail((1568,1568), Image.Resampling.LANCZOS)
                 output = io.BytesIO()
                 # No EXIF, ICC, PNG text, source name, or archive metadata survives.
                 image.save(output, 'JPEG', quality=80, optimize=True)
                 rebuilt = output.getvalue()
             self.text(self.engines.ocr(data))
+            # Inspect the exact JPEG bytes that the reviewer and model receive.
+            self.text(self.engines.ocr(rebuilt))
             if emit:
                 self.capture_count += 1
                 if self.capture_count > self.limits.captures: raise ScanFailure('capture_limit', True)
@@ -305,6 +309,7 @@ class ScanState:
             if name not in members: raise ScanFailure('missing_capture_image',True)
             dimensions = self.dimensions(capture.get('width'),capture.get('height'))
             self.image(members[name],'image/jpeg',True,dimensions)
+            self.text(f'Capture {index} is {self.images[-1]["name"]}',canonical=True)
             if capture.get('note') is not None: self.text(capture['note'],canonical=True)
             items = capture.get('items')
             if not isinstance(items,list) or len(items)>200: raise ScanFailure('invalid_items',True)
@@ -346,6 +351,7 @@ class ScanState:
             if not isinstance(size,dict): raise ScanFailure('invalid_image_dimensions',True)
             dimensions=self.dimensions(size.get('width'),size.get('height'))
             self.image(members[image],'image/jpeg',True,dimensions)
+            self.text(f'Capture {index} is {self.images[-1]["name"]}',canonical=True)
             self.image(members[clean],'image/jpeg',False,dimensions)
             if capture.get('note') is not None: self.text(capture['note'],True)
             marks=capture.get('marks')

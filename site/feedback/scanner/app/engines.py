@@ -39,17 +39,19 @@ def child_limits():
     resource.setrlimit(resource.RLIMIT_CORE,(0,0))
 
 
-def command(args, timeout=40, input_data=None):
+def command(args, timeout=40, input_data=None, temporary_root=None):
     try:
         return subprocess.run(args,input=input_data,stdout=subprocess.PIPE,stderr=subprocess.PIPE,
                               timeout=timeout,check=False,preexec_fn=child_limits,
-                              env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8','OMP_THREAD_LIMIT':'1','OMP_NUM_THREADS':'1'})
+                              env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8','OMP_THREAD_LIMIT':'1','OMP_NUM_THREADS':'1',
+                                   **({'TMPDIR':str(temporary_root)} if temporary_root is not None else {})})
     except (OSError, subprocess.TimeoutExpired) as error: raise ScanFailure('engine_unavailable') from error
 
 
 class ProductionEngines:
-    def __init__(self, model_dir='/opt/prompt-guard', definitions_dir='/tmp/definitions'):
+    def __init__(self, model_dir='/opt/prompt-guard', definitions_dir='/tmp/definitions', temporary_root=None):
         self.model_dir=Path(model_dir); self.definitions_dir=Path(definitions_dir)
+        self.temporary_root=Path(temporary_root) if temporary_root is not None else None
         self.definition_version=None; self.model=None; self.tokenizer=None
 
     def ready(self, manifest):
@@ -132,12 +134,14 @@ class ProductionEngines:
         except Exception as error: raise ScanFailure('classifier_unavailable') from error
 
     def malware(self,data):
-        with tempfile.TemporaryDirectory(prefix='av-',dir='/tmp') as folder:
+        if self.temporary_root is None or not self.temporary_root.is_dir():
+            raise ScanFailure('job_directory_missing')
+        with tempfile.TemporaryDirectory(prefix='av-',dir=self.temporary_root) as folder:
             target=Path(folder)/'input'; target.write_bytes(data)
             result=command(['clamscan','--database',str(self.definitions_dir),'--no-summary','--stdout',
                             '--max-filesize=50M','--max-scansize=50M','--max-files=100',
                             '--max-recursion=2','--max-scantime=30000','--alert-exceeds-max=yes',
-                            '--alert-encrypted=yes',str(target)],timeout=40)
+                            '--alert-encrypted=yes','--tempdir',str(self.temporary_root),str(target)],timeout=40,temporary_root=self.temporary_root)
             output=result.stdout+result.stderr
             if result.returncode==1: raise ScanFailure('malware_detected')
             if result.returncode!=0 or b': OK' not in output or any(term in output.lower() for term in
@@ -145,7 +149,9 @@ class ProductionEngines:
                 raise ScanFailure('malware_scan_incomplete')
 
     def ocr(self,data):
-        result=command(['tesseract','stdin','stdout','-l','eng','--psm','11'],timeout=20,input_data=data)
+        if self.temporary_root is None or not self.temporary_root.is_dir():
+            raise ScanFailure('job_directory_missing')
+        result=command(['tesseract','stdin','stdout','-l','eng','--psm','11'],timeout=20,input_data=data,temporary_root=self.temporary_root)
         if result.returncode!=0 or len(result.stdout)>100_000: raise ScanFailure('ocr_incomplete')
         try: return result.stdout.decode('utf-8',errors='strict')
         except UnicodeError as error: raise ScanFailure('ocr_incomplete') from error
