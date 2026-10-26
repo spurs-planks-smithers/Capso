@@ -5,10 +5,11 @@
 # with hardened runtime and a secure timestamp. Sends the app to Apple's
 # notary service through the keychain profile that
 # `xcrun notarytool store-credentials` made, and staples the ticket. Then it
-# packs the app with Capso's LICENSE as a disk image (also notarized) and a
-# zip. The license is also inside the app (Resources/LICENSE.txt). The stapled
-# ticket lets Gatekeeper accept the app with no network. Needs create-dmg
-# (brew install create-dmg).
+# packs the app as a disk image (also notarized) and a zip. Capso's license
+# ships inside the app (Resources/LICENSE.txt), not beside it (Drew,
+# 2026-10-25). The stapled ticket lets Gatekeeper accept the app with no
+# network. The disk image comes from dmgbuild, which the script installs into
+# build/tools/dmgbuild on first use (needs python3).
 #
 # The steps follow upstream's .github/workflows/build-release.yml. The name
 # and bundle ID come from scripts/local-project.yml. DEVELOPMENT_TEAM comes
@@ -46,9 +47,13 @@ if ! xcrun notarytool history --keychain-profile "$profile" >/dev/null 2>&1; the
   exit 1
 fi
 
-if ! command -v create-dmg >/dev/null; then
-  echo "create-dmg is missing. Install it: brew install create-dmg" >&2
-  exit 1
+# dmgbuild writes the Finder view settings itself. create-dmg scripted Finder,
+# and lost the background on a Mac where Finder opens windows as tabs.
+dmgbuild_version="1.6.7"
+dmgbuild="$repo/build/tools/dmgbuild/bin/dmgbuild"
+if ! "$repo/build/tools/dmgbuild/bin/pip" show dmgbuild 2>/dev/null | grep -qx "Version: $dmgbuild_version"; then
+  python3 -m venv "$repo/build/tools/dmgbuild"
+  "$repo/build/tools/dmgbuild/bin/pip" install --quiet "dmgbuild==$dmgbuild_version"
 fi
 
 commit="$(git -C "$repo" rev-parse --short HEAD)"
@@ -154,31 +159,29 @@ version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/
 name="$product_name-$version-$commit"
 stem="$repo/build/releases/$name"
 
-# The stapled app with the license next to it, for the DMG and the zip.
+# The stapled app alone, for the DMG and the zip. The license is inside it.
 stage="$work/$name"
 mkdir -p "$stage"
 ditto "$app" "$stage/$product_name.app"
-cp "$repo/LICENSE" "$stage/LICENSE.txt"
 
 # 5. A zip of that folder, as a fallback.
 rm -f "$stem.zip"
 ditto -c -k --keepParent "$stage" "$stem.zip"
 
 # 6. A disk image with a link to Applications, signed, notarized, and
-# stapled too, so Gatekeeper accepts the image itself. create-dmg copies the
-# folder's contents: the app and the license.
+# stapled too, so Gatekeeper accepts the image itself. The volume name holds
+# the version, as the top row of the Nshot menu does, so Finder's sidebar
+# tells images apart. The background says to drag, and how to update.
+build="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app/Contents/Info.plist")"
+background="$work/dmg-background.tiff"
+swift "$repo/scripts/brand/make_dmg_background.swift" "$background"
 rm -f "$stem.dmg"
-create-dmg \
-  --volname "$product_name" \
-  --window-pos 200 120 \
-  --window-size 660 460 \
-  --icon-size 128 \
-  --icon "$product_name.app" 180 170 \
-  --app-drop-link 480 170 \
-  --icon LICENSE.txt 330 330 \
-  --hide-extension "$product_name.app" \
-  "$stem.dmg" \
-  "$stage"
+"$dmgbuild" \
+  -s "$repo/scripts/dmg-settings.py" \
+  -D app="$stage/$product_name.app" \
+  -D background="$background" \
+  "$product_name $version ($build)" \
+  "$stem.dmg"
 codesign --force --sign "$sign_id" --timestamp "$stem.dmg"
 notarize "$stem.dmg"
 staple "$stem.dmg"
