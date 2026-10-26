@@ -68,18 +68,18 @@ Status on 2026-10-25, branch `feature/one-command-releases`:
 
 | Task | Size | State |
 |---|---|---|
-| Serve `/releases/<file>` from R2 with Range support. Make `/download`, the page, and `/stats` follow `latest.json`. | M | Built. Rehearsed against a simulated bucket (the smoke test passes). Not deployed. |
+| Serve `/releases/<file>` from R2 with Range support. Make `/download`, the page, and `/stats` follow `latest.json`. | M | Done. Rehearsed against a simulated bucket, then deployed to nextshot.dev on 2026-10-25 from commit 93be021 (PR #108, not yet merged). The live smoke test passed all 16 checks. |
 | Group `/stats` by the new version strings. | S | Needs no change: `/stats` groups by the stored version, so 0.3.0 and 2026.10.24 are separate rows. |
 | Write `scripts/release.sh` with `--dry-run`. | L | Built. The dry run works on the real repo. The full run (build, notarize, push) is untested: it needs `main` and a real release. |
 | `scripts/release.sh --promote <version>` for rollback. | S | Built and rehearsed: rollback, a declined question, no terminal, an unknown version, and a failed smoke test that restores the earlier pointer. |
-| `site/deploy.sh` deploys the page only. | S | Built. Not run against Cloudflare. |
-| `scripts/release.sh --import-legacy` archives a date build. | S | Built and rehearsed with the 2026.10.24 and 2026.10.25 DMGs. |
+| `site/deploy.sh` deploys the page only. | S | Done. It ran against Cloudflare on 2026-10-25 (with the live video and poster, `--poster build/site-poster.jpg`: a plain run would replace the poster). The token can deploy a Worker with an R2 binding. |
+| `scripts/release.sh --import-legacy` archives a date build. | S | Done. Rehearsed, then used on 2026-10-25 for the real bucket. |
 | Create the bucket `nextshot-releases`, give the token R2 permission limited to it. | M | Done 2026-10-25. The bucket exists (created through the Cloudflare connector). The token reads, writes, and deletes there, a 13 MB round trip works, and the other two buckets answer 403. R2 goes through the S3 interface (see `docs/site.md`, "Cloudflare access"). |
-| Import the 2026.10.24 DMG into the real bucket and point `latest.json` at it, then deploy the Worker. | M | Waits on Drew's yes for each step. The import is invisible to users. The deploy changes the live site. |
+| Import the 2026.10.24 DMG into the real bucket and point `latest.json` at it, then deploy the Worker. | M | Done 2026-10-25, each step on Drew's yes. The bucket holds the DMG (SHA-256 and size match the local file), its checksum, its record, and `latest.json`. The import used `--no-smoke`, because the old Worker had no `latest.json` route. nextshot.dev now serves from the bucket. |
 | Run the bridge test: install the 2026.10.24 build, then run the 0.3.0 image copy. | M | Waits on a real 0.3.0 build and Drew's Mac. |
-| Cut 0.3.0 with the command. | S | Waits on both PRs (#107 and the M2 PR) in `main`, and on the bucket. |
+| Cut 0.3.0 with the command. | S | Waits on #107 and #108 in `main` (a release runs only from `main`). The command is untested end to end: build, notarize, `git push`, and the real promote. |
 
-Until the bucket exists, nothing about the live site changes.
+If #108 changes in review, deploy the Worker again with `site/deploy.sh`, because the live Worker is the code of commit 93be021. To undo the deploy: `wrangler rollback`.
 
 ### M3: Automatic Updates
 
