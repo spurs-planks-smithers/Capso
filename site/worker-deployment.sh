@@ -12,7 +12,7 @@ case "$command" in
     ;;
   rollback)
     version="$(node "$repo/site/src/staged-site.mjs" snapshot-version "$snapshot")"
-    wrangler rollback "$version" --config "$config" --env-file /dev/null --yes --message "Restore verified Worker after Guides smoke failure"
+    wrangler rollback "$version" --config "$config" --env-file /dev/null --yes --message "Restore verified Worker after Guides deployment failure"
     ;;
   *) echo "Use snapshot or rollback" >&2; exit 2 ;;
 esac

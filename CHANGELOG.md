@@ -8,6 +8,10 @@ Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This for
 
 ## [Unreleased]
 
+### Added
+
+- Website Guides with a visual first-handoff lesson, task references, local site search, and a printable shortcut sheet.
+
 ### Changed
 
 - `manifest.md` lists the annotated images under Images and no longer holds a Codex command, so any AI agent reads a bundle the same way. Older bundles keep their old section.

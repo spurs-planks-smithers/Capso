@@ -1,0 +1,5 @@
+---
+interface Props { keys: string[]; }
+const { keys } = Astro.props;
+---
+<span class="shortcut" aria-label={keys.join(' plus ')}>{keys.map(key => <kbd>{key}</kbd>)}</span>

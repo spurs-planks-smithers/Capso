@@ -284,7 +284,8 @@ on_exit() {
     fi
     shelve_build
   elif ((status != 0 && app_verified)); then
-    echo "release: partial success. Nextshot $new is live and verified. Guides: $guides_status." >&2
+    echo "release: partial success. Nextshot $new passed its app checks before the site deploy. Guides: $guides_status." >&2
+    echo "The app files and latest.json remain published in R2. Check the site recovery result above." >&2
     if [[ -n "$guides_artifact" ]]; then
       echo "Retry site only: site/deploy.sh --deploy-staged '$guides_artifact'" >&2
     else
@@ -315,7 +316,7 @@ if "$repo/site/deploy.sh" --stage-only >"$work/guides-stage.log" 2>&1; then
   guides_artifact="$(tail -1 "$work/guides-stage.log")"
   guides_status="staged at $guides_artifact"
 else
-  guides_status="STAGING FAILED; app release can continue, Guides stay unchanged"
+  guides_status="STAGING FAILED; app release can continue. Guides unchanged"
   cat "$work/guides-stage.log" >&2
 fi
 echo "Guides: $guides_status"
@@ -380,7 +381,7 @@ if ! "$repo/site/worker-deployment.sh" snapshot "$guides_artifact/wrangler.json"
   exit 1
 fi
 if ! "$repo/site/deploy.sh" --deploy-staged "$guides_artifact" --rollback-snapshot "$work/verified-worker.json"; then
-  guides_status="publish or smoke failed; app stays live; inspect site deploy output for Worker rollback status"
+  guides_status="publish or smoke failed; inspect the verified Worker recovery result above"
   exit 1
 fi
 guides_status="published and verified"

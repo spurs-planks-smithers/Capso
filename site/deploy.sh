@@ -79,7 +79,7 @@ restore_worker() {
 site_failure() {
   echo "deploy: $1 Restoring the saved Worker version." >&2
   if restore_worker; then
-    echo "deploy: the app release stays live." >&2
+    echo "Guide deployment rolled back. The app release stays live." >&2
   fi
   echo "deploy: app release files and R2 latest.json stay unchanged. Artifact: $artifact" >&2
   echo "Retry site only: site/deploy.sh --deploy-staged '$artifact'" >&2
