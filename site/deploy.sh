@@ -34,10 +34,13 @@ fail() { echo "deploy: $*" >&2; exit 1; }
 # The newest file for a glob, by modification time. Empty when none match.
 newest() { ls -t $1 2>/dev/null | head -1 || true; }
 
-# Default inputs: the newest dated DMG and video. The 1.2.5 DMGs and the Codex
-# video drafts do not match these globs. Music option cuts (-musicB.mp4) are
-# skipped: they are newer than the main cut but are not the published choice.
-[[ -n "$dmg" ]] || dmg="$(newest "$releases/Nextshot-20*.dmg")"
+# Default inputs: the newest versioned DMG and the newest dated video. A
+# versioned DMG is Nextshot-<MAJOR>.<MINOR>.<PATCH>.dmg with a one or two digit
+# MAJOR, for example Nextshot-0.4.0.dmg. The date builds (Nextshot-2026.10.24-*),
+# the Capso 1.2.5 DMGs (in legacy/), and the Codex video drafts do not match.
+# Pass --dmg for a legacy file. Music option cuts (-musicB.mp4) are skipped:
+# they are newer than the main cut but are not the published choice.
+[[ -n "$dmg" ]] || dmg="$(newest "$releases/Nextshot-[0-9].[0-9]*.dmg $releases/Nextshot-[0-9][0-9].[0-9]*.dmg")"
 [[ -n "$video" ]] || video="$(ls -t "$releases"/Nextshot-onboarding-20*.mp4 2>/dev/null | grep -v -- '-music' | head -1 || true)"
 
 for f in "$dmg" "$video" ${poster:+"$poster"} "$repo/LICENSE"; do
@@ -49,8 +52,13 @@ done
 xcrun stapler validate "$dmg" >/dev/null 2>&1 || fail "$(basename "$dmg") has no stapled notarization ticket"
 
 dmg_name="$(basename "$dmg")"
+# The version is the file name between "Nextshot-" and ".dmg". A date build
+# also ends in -<commit>, which is cut off. A dirty build is never published.
 version="${dmg_name#Nextshot-}"
-version="${version%%-*}"
+version="${version%.dmg}"
+[[ "$version" != *-dirty ]] || fail "$dmg_name was built from uncommitted changes"
+version="${version%-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]}"
+[[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "$dmg_name does not hold a MAJOR.MINOR.PATCH version"
 video_name="$(basename "$video")"
 if [[ -n "$poster" ]]; then
   poster_name="${video_name%.mp4}-poster.${poster##*.}"

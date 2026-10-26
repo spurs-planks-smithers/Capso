@@ -17,7 +17,7 @@ import os
 @MainActor
 enum DiskImageInstaller {
     nonisolated static let appName = "Nextshot.app"
-    nonisolated private static let logger = Logger(subsystem: "com.drewschulz.nextshot", category: "Launch")
+    nonisolated private static let logger = Logger(subsystem: ForkBranding.logSubsystem, category: "Launch")
 
     // MARK: - Facts about a copy
 

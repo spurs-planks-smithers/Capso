@@ -108,6 +108,61 @@ struct FeedbackLibraryTests {
         #expect(listing.rounds == [good])
     }
 
+    /// Rewrites a round's `feedback.json` the way a newer Nextshot would:
+    /// a higher `schemaVersion`, a field this copy does not know, and a
+    /// changed field this copy cannot decode.
+    @discardableResult
+    private func writeFromNewerSchema(_ round: FeedbackRound, breakingChange: Bool = false) throws -> Data {
+        try write(round)
+        let file = root.appendingPathComponent(round.folderName).appendingPathComponent("feedback.json")
+        var json = try #require(JSONSerialization.jsonObject(with: Data(contentsOf: file)) as? [String: Any])
+        json["schemaVersion"] = FeedbackRound.currentSchemaVersion + 1
+        json["futureField"] = "only a newer Nextshot knows this"
+        if breakingChange {
+            json["captures"] = "now a different shape"
+        }
+        let data = try JSONSerialization.data(withJSONObject: json, options: [.sortedKeys])
+        try data.write(to: file)
+        return data
+    }
+
+    @Test("Refuses a round from a newer schema and names it apart from unreadable ones")
+    func refusesNewerSchema() throws {
+        defer { try? fileManager.removeItem(at: root) }
+        let good = try write(ended(day: 12))
+        let compatible = ended(day: 13)
+        let compatibleBytes = try writeFromNewerSchema(compatible)
+        let incompatible = ended(day: 14)
+        try writeFromNewerSchema(incompatible, breakingChange: true)
+
+        let listing = FeedbackLibrary.recent(in: root)
+        #expect(listing.rounds == [good])
+        #expect(listing.newerSchema == [compatible.folderName, incompatible.folderName])
+        #expect(listing.unreadable.isEmpty)
+        // This copy never rewrites a file it refused.
+        let file = root.appendingPathComponent(compatible.folderName).appendingPathComponent("feedback.json")
+        #expect(try Data(contentsOf: file) == compatibleBytes)
+    }
+
+    @Test("Loads no single round from a newer schema")
+    func loadsNoNewerSchemaRound() throws {
+        defer { try? fileManager.removeItem(at: root) }
+        let newer = ended(day: 13)
+        try writeFromNewerSchema(newer)
+
+        #expect(FeedbackLibrary.round(named: newer.folderName, in: root) == nil)
+        #expect(!FeedbackLibrary.bundleFilesNeedRepair(folderName: newer.folderName, in: root))
+    }
+
+    @Test("Reads the schema number before the rest of the round")
+    func readsSchemaFirst() {
+        let future = Data(#"{"schemaVersion": 99, "name": 7, "captures": "x"}"#.utf8)
+        #expect(FeedbackLibrary.read(future) == .newerSchema(99))
+        #expect(FeedbackLibrary.read(Data("{not json".utf8)) == .unreadable)
+        let current = Data(#"{"schemaVersion": 1}"#.utf8)
+        #expect(FeedbackLibrary.read(current) == .unreadable)
+    }
+
     @Test("Ignores plain files and folders without feedback.json")
     func ignoresStrayEntries() throws {
         defer { try? fileManager.removeItem(at: root) }

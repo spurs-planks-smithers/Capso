@@ -16,11 +16,16 @@
 # "feature" sets the parent and every sub-flag in one step, or removes all
 # their overrides.
 #
+# The script edits the settings of Nextshot Dev (com.drewschulz.nextshot.dev),
+# the copy Drew runs every day. The Jev flags are dev-only, so they run only
+# there (docs/decisions/2026-10-25-versioning-and-releases.md).
+#
 # NEXTSHOT_FLAGS_DOMAIN replaces the defaults domain. Use it to try the script
-# without touching the real overrides.
+# without touching the real overrides, or to set a flag for the production app
+# with NEXTSHOT_FLAGS_DOMAIN=com.drewschulz.nextshot.
 set -euo pipefail
 
-domain="${NEXTSHOT_FLAGS_DOMAIN:-com.drewschulz.nextshot}"
+domain="${NEXTSHOT_FLAGS_DOMAIN:-com.drewschulz.nextshot.dev}"
 
 # One entry per flag: <flag>:<allowed states>. Keep this line in step with
 # FeatureFlag in Packages/FeedbackKit/Sources/FeedbackKit/FeatureFlags.swift.

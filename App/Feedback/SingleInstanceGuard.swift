@@ -13,7 +13,7 @@ import os
 /// the rules.
 @MainActor
 enum SingleInstanceGuard {
-    private static let logger = Logger(subsystem: "com.drewschulz.nextshot", category: "Launch")
+    private static let logger = Logger(subsystem: ForkBranding.logSubsystem, category: "Launch")
 
     /// The installer copy passes its process ID after this argument, so the
     /// installed copy waits for it to exit before it decides anything.

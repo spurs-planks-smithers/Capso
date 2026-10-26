@@ -225,6 +225,30 @@ struct FeedbackRoundStoreTests {
         #expect(await restarted.activeRound?.captures.count == 1)
     }
 
+    @Test("Leaves an active round from a newer schema alone after a restart")
+    func leavesNewerSchemaActiveRound() async throws {
+        defer { try? fileManager.removeItem(at: root) }
+        let store = makeStore()
+        let round = try await store.start(name: "feedback")
+        try await store.addCapture(input())
+
+        // Another copy of Nextshot, with a newer schema, saved this round.
+        let file = root.appendingPathComponent(round.folderName).appendingPathComponent("feedback.json")
+        var json = try #require(JSONSerialization.jsonObject(with: Data(contentsOf: file)) as? [String: Any])
+        json["schemaVersion"] = FeedbackRound.currentSchemaVersion + 1
+        json["futureField"] = "kept on disk"
+        let newer = try JSONSerialization.data(withJSONObject: json, options: [.sortedKeys])
+        try newer.write(to: file)
+
+        let restarted = makeStore()
+        #expect(await restarted.activeRound == nil)
+        // Reading it must not change the file, and a new round must not reuse it.
+        #expect(try Data(contentsOf: file) == newer)
+        let fresh = try await restarted.start(name: "feedback")
+        #expect(fresh.folderName != round.folderName)
+        #expect(try Data(contentsOf: file) == newer)
+    }
+
     @Test("Ends the round and clears the active marker")
     func endsRound() async throws {
         defer { try? fileManager.removeItem(at: root) }
