@@ -15,8 +15,13 @@
 # and bundle ID come from scripts/local-project.yml. DEVELOPMENT_TEAM comes
 # from scripts/local-signing.env, which git ignores.
 #
+# The version comes from the VERSION file (scripts/nextshot-version.sh). Edit
+# it in a `chore: release X.Y.Z` commit before this script runs. The script
+# stops when build/releases already holds that version.
+#
 # Usage: scripts/release-notarized.sh [keychain-profile]   (default: apple-notary)
-# Output: build/releases/Nextshot-<version>-<commit>.dmg and .zip
+# Output: build/releases/Nextshot-<version>.dmg and .zip (plus -dirty after
+#         the version when the tree has uncommitted changes)
 set -euo pipefail
 
 repo="$(cd "$(dirname "$0")/.." && pwd)"
@@ -57,11 +62,27 @@ if ! "$repo/build/tools/dmgbuild/bin/pip" show dmgbuild 2>/dev/null | grep -qx "
 fi
 
 commit="$(git -C "$repo" rev-parse --short HEAD)"
+dirty=""
 if [[ -n "$(git -C "$repo" status --porcelain)" ]]; then
-  commit="$commit-dirty"
+  dirty="-dirty"
 fi
+# A release build shows the VERSION file as it is, with no -dev suffix.
+nextshot_channel=release
 # shellcheck source=scripts/nextshot-version.sh
 source "$repo/scripts/nextshot-version.sh"
+
+# The file name holds the version and nothing else (docs/decisions/
+# 2026-10-25-versioning-and-releases.md). Nobody replaces a published file, so
+# the script stops when this version already has a DMG. Fix a bad build with a
+# new PATCH number, or move the old files away on purpose.
+name="$product_name-$nextshot_version$dirty"
+stem="$repo/build/releases/$name"
+for existing in "$stem.dmg" "$stem.zip"; do
+  if [[ -e "$existing" ]]; then
+    echo "$existing already exists. Raise VERSION, or move the old files away." >&2
+    exit 1
+  fi
+done
 
 rm -rf "$work"
 mkdir -p "$work/export" "$repo/build/releases"
@@ -156,17 +177,23 @@ staple "$app"
 spctl --assess --type execute --verbose=2 "$app"
 
 version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist")"
-name="$product_name-$version-$commit"
-stem="$repo/build/releases/$name"
+if [[ "$version" != "$nextshot_version" ]]; then
+  echo "The built app says $version, not $nextshot_version from VERSION." >&2
+  exit 1
+fi
 
 # The stapled app alone, for the DMG and the zip. The license is inside it.
 stage="$work/$name"
 mkdir -p "$stage"
 ditto "$app" "$stage/$product_name.app"
 
+# The files are built under $work and move to build/releases only when every
+# step has passed, so a failed run leaves no half-made release behind.
+built="$work/out/$name"
+mkdir -p "$work/out"
+
 # 5. A zip of that folder, as a fallback.
-rm -f "$stem.zip"
-ditto -c -k --keepParent "$stage" "$stem.zip"
+ditto -c -k --keepParent "$stage" "$built.zip"
 
 # 6. A disk image with a link to Applications, signed, notarized, and
 # stapled too, so Gatekeeper accepts the image itself. The volume name holds
@@ -175,17 +202,25 @@ ditto -c -k --keepParent "$stage" "$stem.zip"
 build="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app/Contents/Info.plist")"
 background="$work/dmg-background.tiff"
 swift "$repo/scripts/brand/make_dmg_background.swift" "$background"
-rm -f "$stem.dmg"
 "$dmgbuild" \
   -s "$repo/scripts/dmg-settings.py" \
   -D app="$stage/$product_name.app" \
   -D background="$background" \
   "$product_name $version ($build)" \
-  "$stem.dmg"
-codesign --force --sign "$sign_id" --timestamp "$stem.dmg"
-notarize "$stem.dmg"
-staple "$stem.dmg"
-spctl --assess --type open --context context:primary-signature --verbose=2 "$stem.dmg"
+  "$built.dmg"
+codesign --force --sign "$sign_id" --timestamp "$built.dmg"
+notarize "$built.dmg"
+staple "$built.dmg"
+spctl --assess --type open --context context:primary-signature --verbose=2 "$built.dmg"
+
+# 7. Publish to build/releases. mv -n refuses to replace a file that appeared
+# since the check at the top.
+mv -n "$built.dmg" "$stem.dmg"
+mv -n "$built.zip" "$stem.zip"
+[[ -f "$stem.dmg" && -f "$stem.zip" && ! -e "$built.dmg" && ! -e "$built.zip" ]] || {
+  echo "A file in build/releases changed during the build. Nothing was replaced." >&2
+  exit 1
+}
 
 shasum -a 256 "$stem.dmg" "$stem.zip"
-echo "Notarized and stapled: $stem.dmg (and $stem.zip)"
+echo "Notarized and stapled: $stem.dmg (and $stem.zip), built from $commit$dirty"
