@@ -59,17 +59,37 @@ fi
 node "$repo/site/src/staged-site.mjs" snapshot-version "$snapshot" >/dev/null || fail "invalid Worker rollback snapshot"
 # Keep the snapshot beside the artifact, outside its sealed inventory.
 cp "$snapshot" "$artifact.rollback.json"
-if ! wrangler deploy --config "$artifact/wrangler.json" --env-file /dev/null; then
-  echo "deploy: Worker publish failed. The app release stays live. Artifact: $artifact" >&2
+# A failed CLI command can follow successful activation. Restore first, then
+# verify the active version through a separate Cloudflare read.
+restore_worker() {
+  local rollback_status=0 wanted observed=""
+  wanted="$(node "$repo/site/src/staged-site.mjs" snapshot-version "$artifact.rollback.json")" || return 1
+  "$repo/site/worker-deployment.sh" rollback "$artifact/wrangler.json" "$artifact.rollback.json" || rollback_status=$?
+  if "$repo/site/worker-deployment.sh" snapshot "$artifact/wrangler.json" "$work/worker-after-rollback.json"; then
+    observed="$(node "$repo/site/src/staged-site.mjs" snapshot-version "$work/worker-after-rollback.json")" || observed=""
+  fi
+  if [[ "$observed" == "$wanted" ]]; then
+    echo "deploy: Worker rollback verified: active version $wanted" >&2
+    return 0
+  fi
+  echo "deploy: WORKER ROLLBACK FAILED OR UNVERIFIED (rollback command status $rollback_status). The new site may still be active." >&2
+  echo "Inspect Worker: wrangler deployments list --config '$artifact/wrangler.json' --json" >&2
+  return 1
+}
+site_failure() {
+  echo "deploy: $1 Restoring the saved Worker version." >&2
+  if restore_worker; then
+    echo "deploy: the app release stays live." >&2
+  fi
+  echo "deploy: app release files and R2 latest.json stay unchanged. Artifact: $artifact" >&2
   echo "Retry site only: site/deploy.sh --deploy-staged '$artifact'" >&2
   exit 1
+}
+if ! wrangler deploy --config "$artifact/wrangler.json" --env-file /dev/null; then
+  site_failure "Worker publish returned an error; activation is uncertain."
 fi
 video_name="$(printf '%s' "$metadata" | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["video"])')"
 if ! "$repo/site/smoke.sh" --url "${NEXTSHOT_SITE_URL:-https://nextshot.dev}" --video "$video_name" --guides; then
-  echo "deploy: guide smoke failed. Restoring the verified Worker deployment only." >&2
-  "$repo/site/worker-deployment.sh" rollback "$artifact/wrangler.json" "$artifact.rollback.json" || echo "deploy: WORKER ROLLBACK FAILED; inspect Cloudflare deployments" >&2
-  echo "deploy: the app and R2 latest.json stay unchanged. Artifact: $artifact" >&2
-  echo "Retry site only: site/deploy.sh --deploy-staged '$artifact'" >&2
-  exit 1
+  site_failure "Guide smoke failed."
 fi
 echo "Published homepage and Guides from $artifact"

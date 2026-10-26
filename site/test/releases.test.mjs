@@ -108,7 +108,7 @@ test("parseLatest refuses a record with a missing or wrong field", () => {
 
 
 // The same deploy path runs against fixture commands. Nothing reaches Cloudflare.
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, cpSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, cpSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -137,12 +137,19 @@ function fixture() {
   }
   put("bin/npm", '#!/bin/bash\necho npm >>"$FIXTURE_ROOT/calls"\nexit "${NPM_FAIL:-0}"\n', true);
   put("bin/git", '#!/bin/bash\necho abc1234567890\n', true);
+  const activated = { ...deployment, id: "33333333-3333-3333-3333-333333333333", created_on: "2026-10-26T00:01:00Z", versions: [{ version_id: "44444444-4444-4444-4444-444444444444", percentage: 100 }] };
   put("bin/wrangler", `#!/bin/bash
 printf 'wrangler %s\\n' "$*" >>"$FIXTURE_ROOT/calls"
 case "$1 $2" in
-  "deployments list") echo '${JSON.stringify([deployment])}' ;;
-  "deploy --config") exit "\${DEPLOY_FAIL:-0}" ;;
-  "rollback "*) exit "\${ROLLBACK_FAIL:-0}" ;;
+  "deployments list")
+    if [[ -f "$FIXTURE_ROOT/activated" ]]; then echo '${JSON.stringify([activated])}'; else echo '${JSON.stringify([deployment])}'; fi ;;
+  "deploy --config")
+    if [[ "\${DEPLOY_FAIL:-0}" == 0 || "\${DEPLOY_ACTIVATES_ON_FAILURE:-0}" == 1 ]]; then touch "$FIXTURE_ROOT/activated"; fi
+    exit "\${DEPLOY_FAIL:-0}" ;;
+  "rollback "*)
+    [[ "\${ROLLBACK_FAIL:-0}" == 0 ]] || exit 1
+    [[ "\${ROLLBACK_NO_EFFECT:-0}" == 1 ]] || rm -f "$FIXTURE_ROOT/activated"
+    exit "\${ROLLBACK_ERROR_AFTER_RESTORE:-0}" ;;
 esac
 `, true);
   put("scripts/release-lib.sh", `r2_login() { :; }
@@ -219,7 +226,7 @@ test("failed Guides smoke restores the recorded Worker version and keeps the exa
     assert.equal(result.status, 1);
     const calls = readFileSync(join(f.root, "calls"), "utf8");
     assert.match(calls, /wrangler rollback 22222222-2222-2222-2222-222222222222/);
-    assert.match(result.stderr, /app and R2 latest.json stay unchanged/);
+    assert.match(result.stderr, /app release files and R2 latest.json stay unchanged/);
     assert.match(result.stderr, /Retry site only: site\/deploy.sh --deploy-staged/);
     assert.doesNotMatch(result.stderr, /--promote/);
     assert.equal(verify(artifact).version, "0.4.0");
@@ -377,5 +384,64 @@ test("app smoke failure restores latest.json and never deploys Guides", () => {
     const calls = readFileSync(join(f.root, "calls"), "utf8");
     assert.match(calls, /restore_latest/);
     assert.doesNotMatch(calls, /wrangler deployments list|wrangler deploy --config/);
+  } finally { f.clean(); }
+});
+
+
+test("deploy error after activation restores and verifies the saved Worker version without rebuilding", () => {
+  const f = fixture();
+  try {
+    const artifact = staged(f);
+    const result = spawnSync("bash", [join(f.root, "site/deploy.sh"), "--deploy-staged", artifact], { env: { ...f.env, DEPLOY_FAIL: "1", DEPLOY_ACTIVATES_ON_FAILURE: "1" }, input: "", encoding: "utf8" });
+    assert.equal(result.status, 1);
+    const calls = readFileSync(join(f.root, "calls"), "utf8");
+    assert.match(calls, /wrangler rollback 22222222-2222-2222-2222-222222222222/);
+    assert.equal((calls.match(/wrangler deployments list/g) || []).length, 2);
+    assert.equal(existsSync(join(f.root, "activated")), false);
+    assert.match(result.stderr, /Worker rollback verified/);
+    assert.doesNotMatch(calls, /--guides/);
+    assert.equal((calls.match(/^npm$/gm) || []).length, 2);
+    assert.equal(verify(artifact).version, "0.4.0");
+    assert.match(result.stderr, /Retry site only/);
+    assert.doesNotMatch(result.stderr, /--promote/);
+  } finally { f.clean(); }
+});
+
+test("rollback failure reports unverified Worker state after deploy errors and guide smoke errors", () => {
+  for (const failure of [{ DEPLOY_FAIL: "1", DEPLOY_ACTIVATES_ON_FAILURE: "1" }, { GUIDE_SMOKE_FAIL: "1" }]) {
+    const f = fixture();
+    try {
+      const artifact = staged(f);
+      const result = spawnSync("bash", [join(f.root, "site/deploy.sh"), "--deploy-staged", artifact], { env: { ...f.env, ...failure, ROLLBACK_FAIL: "1" }, input: "", encoding: "utf8" });
+      assert.equal(result.status, 1);
+      assert.equal(existsSync(join(f.root, "activated")), true);
+      assert.match(result.stderr, /WORKER ROLLBACK FAILED OR UNVERIFIED/);
+      assert.match(result.stderr, /new site may still be active/);
+      assert.doesNotMatch(result.stderr, /Worker rollback verified|app release stays live/);
+      assert.equal(verify(artifact).version, "0.4.0");
+    } finally { f.clean(); }
+  }
+});
+
+test("rollback command success cannot pass when the active Worker version is different", () => {
+  const f = fixture();
+  try {
+    const artifact = staged(f);
+    const result = spawnSync("bash", [join(f.root, "site/deploy.sh"), "--deploy-staged", artifact], { env: { ...f.env, GUIDE_SMOKE_FAIL: "1", ROLLBACK_NO_EFFECT: "1" }, input: "", encoding: "utf8" });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /WORKER ROLLBACK FAILED OR UNVERIFIED/);
+    assert.doesNotMatch(result.stderr, /Worker rollback verified/);
+  } finally { f.clean(); }
+});
+
+test("rollback error after recovery uses the observed active version to verify restoration", () => {
+  const f = fixture();
+  try {
+    const artifact = staged(f);
+    const result = spawnSync("bash", [join(f.root, "site/deploy.sh"), "--deploy-staged", artifact], { env: { ...f.env, GUIDE_SMOKE_FAIL: "1", ROLLBACK_ERROR_AFTER_RESTORE: "1" }, input: "", encoding: "utf8" });
+    assert.equal(result.status, 1);
+    assert.equal(existsSync(join(f.root, "activated")), false);
+    assert.match(result.stderr, /Worker rollback verified/);
+    assert.doesNotMatch(result.stderr, /WORKER ROLLBACK FAILED OR UNVERIFIED/);
   } finally { f.clean(); }
 });
