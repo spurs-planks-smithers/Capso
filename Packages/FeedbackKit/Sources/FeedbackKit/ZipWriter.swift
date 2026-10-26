@@ -60,8 +60,8 @@ public enum ZipWriter {
         let time = kind == .round ? first.round.startedAt : now
         let base = ZipName.base(kind: kind, time: time, captureCount: present.count, timeZone: timeZone)
         // A folder left from an earlier unzip takes the name too: Archive
-        // Utility would unzip into "<name> 2", and the manifest's Codex
-        // command would read the old folder.
+        // Utility would unzip into "<name> 2", and the person would open the
+        // old folder.
         let name = FeedbackNaming.uniqueName(base) {
             fileManager.fileExists(atPath: destination.appendingPathComponent("\($0).zip").path)
                 || fileManager.fileExists(atPath: destination.appendingPathComponent($0, isDirectory: true).path)

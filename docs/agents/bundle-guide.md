@@ -57,5 +57,7 @@ A person can also send a round, or a set of captures, as a zip file. It comes fr
 ## Access to the bundle folder
 
 - **Claude Code:** add the folder once, with `permissions.additionalDirectories` in your settings, or start with `claude --add-dir "$HOME/Library/Application Support/Nextshot"`.
-- **Codex:** `manifest.md` starts with a `codex --image ...` command. Run it in the target repository. It attaches every annotated PNG.
-- **Other agents:** give the agent read access to the folder, or attach the annotated PNGs and paste the prompt.
+- **Codex:** run `codex --image "<annotated PNG paths, separated by commas>" "$(cat "<bundle folder>/prompt.md")"` in the target repository. The paths are the ones that `manifest.md` lists under Images. For a zip, read `README.md` in place of `prompt.md`.
+- **Other agents:** give the agent read access to the folder, or attach the annotated images that `manifest.md` lists under Images and paste the prompt.
+
+`manifest.md` and the prompts name no agent product (#109). Per-agent commands live here, in this guide, so every agent reads the same bundle.

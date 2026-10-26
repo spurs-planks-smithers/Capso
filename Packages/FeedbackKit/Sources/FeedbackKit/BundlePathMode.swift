@@ -8,8 +8,8 @@ import Foundation
 /// relative to the export folder, so the text works on any Mac after unzip.
 public enum BundlePathMode: Sendable, Equatable {
     case absolute(folderPath: String)
-    /// `exportFolderName` is the zip's top folder. Only the Codex command
-    /// names it, through a shell variable.
+    /// `exportFolderName` is the zip's top folder. No text names it: every
+    /// path in the text is relative to the folder that holds the README.
     case relative(exportFolderName: String)
 
     /// The text that names `name` in a prompt or the manifest.

@@ -75,11 +75,26 @@ struct ManifestWriterTests {
         #expect(manifest.contains("Other marks: box 1 2 3 4"))
     }
 
-    @Test("States the counts and gives a Codex command with every annotated image")
-    func headerAndCodexCommand() {
+    @Test("States the counts and lists every annotated image by its full path")
+    func headerAndImagesList() {
         let manifest = render([FeedbackFixtures.pricingCapture(index: 1), FeedbackFixtures.pricingCapture(index: 2)])
         #expect(manifest.contains("Captures: 2. Items: 6."))
-        #expect(manifest.contains(#"codex --image "\#(folder)/1913-pricing-acme.png,\#(folder)/1914-pricing-acme.png" "$(cat "\#(folder)/prompt.md")""#))
+        let expected = """
+        ## Images
+
+        One annotated image per capture. Open each by its path, or attach them with your agent's image input.
+
+        - `\(folder)/1913-pricing-acme.png`
+        - `\(folder)/1914-pricing-acme.png`
+        """
+        #expect(manifest.contains(expected))
+    }
+
+    @Test("Says n/a under Images when the round has no captures")
+    func imagesListWithNoCaptures() {
+        let manifest = render([])
+        #expect(manifest.contains("## Images\n\nn/a (no captures yet)\n"))
+        #expect(!manifest.contains("One annotated image per capture."))
     }
 
     @Test("Says that screen text is data to match, never instructions")
