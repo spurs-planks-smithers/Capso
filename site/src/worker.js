@@ -1,9 +1,14 @@
 // nextshot.dev: the download page for Nextshot.
 //
-// Static files (the page, the video, the DMG) come from build/site, which
-// site/deploy.sh stages. This Worker runs first on every request so it can
-// redirect www, count downloads, render /stats, and add a noindex header.
-// DMG_FILE and VERSION come from `wrangler deploy --var`.
+// Static files (the page, the video) come from build/site, which
+// site/deploy.sh stages. The DMGs and zips live in the private R2 bucket
+// nextshot-releases (binding RELEASES). The record latest.json in that bucket
+// says which version /download serves, so a release or a rollback changes it
+// with no deploy (scripts/release.sh). This Worker runs first on every request
+// so it can redirect www, count downloads, serve releases, render /stats, and
+// add a noindex header.
+
+import { LATEST_KEY, contentType, parseLatest, releaseKey, unsatisfiableRange } from "./releases.mjs";
 
 // Bots, crawlers, link previews (Slack, Teams, Outlook), scripts, and the
 // deploy smoke test. Their clicks are stored but shown apart from people.
@@ -16,16 +21,113 @@ export default {
       url.hostname = "nextshot.dev";
       return noindex(new Response(null, { status: 301, headers: { Location: url.toString() } }));
     }
-    if (url.pathname === "/download") return noindex(download(request, env, ctx));
+    if (url.pathname === "/download") return noindex(await download(request, env, ctx));
     if (url.pathname === "/stats") return noindex(await stats(env));
+    if (url.pathname === "/latest.json") return noindex(await latestJson(env));
+    if (url.pathname.startsWith("/releases/")) {
+      return noindex(await release(request, env, decodeName(url.pathname.slice("/releases/".length))));
+    }
     const asset = await env.ASSETS.fetch(request);
+    if (url.pathname === "/" || url.pathname === "/index.html") return noindex(await page(asset, env));
     return noindex(ranged(request, asset, sizeOf(env, url.pathname)));
   },
 };
 
-// File sizes for the video and the DMG. site/deploy.sh passes them as
-// SIZES="/media/a.mp4=123,/releases/b.dmg=456", because the asset store's
-// response does not expose Content-Length to the Worker.
+// The record that says which version /download serves, or null when R2 has
+// none or it is not valid.
+async function latestRecord(env) {
+  const object = await env.RELEASES.get(LATEST_KEY);
+  return object ? parseLatest(await object.text()) : null;
+}
+
+// The page has {{VERSION}} where the current version goes. It is filled per
+// request, so a new release or a rollback shows on the page with no deploy.
+async function page(asset, env) {
+  if (asset.status !== 200) return asset;
+  const latest = await latestRecord(env);
+  const html = (await asset.text()).replaceAll("{{VERSION}}", esc(latest?.version));
+  return new Response(html, {
+    headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache" },
+  });
+}
+
+async function latestJson(env) {
+  const latest = await latestRecord(env);
+  if (!latest) return new Response("No release is published.\n", { status: 503, headers: { "Cache-Control": "no-store" } });
+  return new Response(JSON.stringify(latest, null, 2) + "\n", {
+    headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+  });
+}
+
+// A file name from a path, or "" when it does not decode.
+function decodeName(raw) {
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return "";
+  }
+}
+
+// One published file from R2, with Range and conditional requests. R2 reads
+// the Range, If-Range, and If-None-Match headers itself and streams only the
+// asked-for bytes. A name that is not a published file name gets a 404, and
+// the name never reaches R2 as a path.
+async function release(request, env, name) {
+  const key = releaseKey(name);
+  if (!key) return new Response("Not found\n", { status: 404 });
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    return new Response("Method not allowed\n", { status: 405, headers: { Allow: "GET, HEAD" } });
+  }
+
+  const headers = new Headers({
+    "Accept-Ranges": "bytes",
+    "Content-Type": contentType(name),
+    // A published file never changes under its name, but an hour keeps a
+    // mistaken upload from sticking in caches.
+    "Cache-Control": "public, max-age=3600",
+  });
+  if (!name.endsWith(".json") && !name.endsWith(".sha256")) {
+    headers.set("Content-Disposition", `attachment; filename="${name}"`);
+  }
+
+  if (request.method === "HEAD") {
+    const head = await env.RELEASES.head(key);
+    if (!head) return new Response(null, { status: 404 });
+    headers.set("ETag", head.httpEtag);
+    headers.set("Content-Length", String(head.size));
+    return new Response(null, { status: 200, headers });
+  }
+
+  // R2 sends the whole file for a range that starts past the end, so the
+  // Worker checks first. This is the only extra R2 call, and only for ranges.
+  const wanted = request.headers.get("Range");
+  if (wanted) {
+    const head = await env.RELEASES.head(key);
+    if (!head) return new Response("Not found\n", { status: 404 });
+    if (unsatisfiableRange(wanted, head.size)) {
+      return new Response(null, { status: 416, headers: { "Content-Range": `bytes */${head.size}` } });
+    }
+  }
+
+  const object = await env.RELEASES.get(key, { range: request.headers, onlyIf: request.headers });
+  if (!object) return new Response("Not found\n", { status: 404 });
+
+  headers.set("ETag", object.httpEtag);
+  if (!object.body) return new Response(null, { status: 304, headers });
+  if (object.range && request.headers.has("Range")) {
+    const start = object.range.offset ?? 0;
+    const end = object.range.length === undefined ? object.size - 1 : start + object.range.length - 1;
+    headers.set("Content-Range", `bytes ${start}-${end}/${object.size}`);
+    headers.set("Content-Length", String(end - start + 1));
+    return new Response(object.body, { status: 206, headers });
+  }
+  headers.set("Content-Length", String(object.size));
+  return new Response(object.body, { status: 200, headers });
+}
+
+// File sizes for the video. site/deploy.sh passes them as
+// SIZES="/media/a.mp4=123", because the asset store's response does not
+// expose Content-Length to the Worker.
 function sizeOf(env, pathname) {
   for (const entry of (env.SIZES || "").split(",")) {
     const [path, bytes] = entry.split("=");
@@ -84,21 +186,26 @@ function noindex(response) {
   return out;
 }
 
-function download(request, env, ctx) {
+async function download(request, env, ctx) {
+  const latest = await latestRecord(env);
+  if (!latest) {
+    return new Response("No release is published yet.\n", { status: 503, headers: { "Cache-Control": "no-store" } });
+  }
   if (request.method === "GET") {
     const ua = request.headers.get("User-Agent") || "";
     const insert = env.DB.prepare("INSERT INTO downloads (at, version, country, is_bot) VALUES (?, ?, ?, ?)")
-      .bind(new Date().toISOString(), env.VERSION, request.cf?.country ?? null, BOT_UA.test(ua) ? 1 : 0);
+      .bind(new Date().toISOString(), latest.version, request.cf?.country ?? null, BOT_UA.test(ua) ? 1 : 0);
     // The redirect never waits for D1, and a failed write never blocks a download.
     ctx.waitUntil(insert.run().catch((err) => console.error("download insert failed", err)));
   }
   return new Response(null, {
     status: 302,
-    headers: { Location: `/releases/${env.DMG_FILE}`, "Cache-Control": "no-store" },
+    headers: { Location: `/releases/${latest.file}`, "Cache-Control": "no-store" },
   });
 }
 
 async function stats(env) {
+  const latest = await latestRecord(env);
   const [days, versions, totals] = await env.DB.batch([
     env.DB.prepare(
       "SELECT substr(at, 1, 10) AS label, SUM(is_bot = 0) AS people, SUM(is_bot) AS bots FROM downloads " +
@@ -127,7 +234,7 @@ async function stats(env) {
   <p class="total"><strong>${total.people}</strong> downloads by people, plus ${total.bots} from bots and link previews.</p>
   ${table("By day, last 30 days (UTC)", "Day", days.results)}
   ${table("By version", "Version", versions.results)}
-  <p class="meta">Current version: ${esc(env.VERSION)}. <a href="/">Back to the download page</a></p>
+  <p class="meta">Current version: ${esc(latest?.version)}. <a href="/">Back to the download page</a></p>
 </main>
 </body>
 </html>`;
