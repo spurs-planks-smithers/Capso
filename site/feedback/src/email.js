@@ -1,3 +1,5 @@
+import { metadata, commitPayload } from "./payload.js";
+import { createRetention, requireRetention } from "./retention.js";
 import PostalMime from "postal-mime";
 import {
   LIMITS,
@@ -109,10 +111,11 @@ export async function inbound(message, env) {
     files = [];
   }
   const status = reasons.length ? "held" : "received";
+  await createRetention(env, id, now);
   await env.DB.batch([
     query(
       env,
-      "INSERT INTO submissions(id,source,category,identity_hash,idempotency_key,fingerprint,token_hash,message,contact_email,status,created_at,reservation_expires_at,expires_at,reason_codes) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+      "INSERT INTO submissions(id,source,category,identity_hash,idempotency_key,fingerprint,token_hash,status,created_at,reservation_expires_at,expires_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
       id,
       "email",
       "other",
@@ -120,13 +123,10 @@ export async function inbound(message, env) {
       id,
       await digest(raw),
       "",
-      text,
-      contact,
       status,
       now,
       now,
       now + LIMITS.heldDays * 86400,
-      JSON.stringify(reasons),
     ),
     query(
       env,
@@ -140,10 +140,26 @@ export async function inbound(message, env) {
       "email-original",
     ),
   ]);
+  const record = await metadata(env, id);
+  if (
+    !(await commitPayload(
+      env,
+      record,
+      {
+        message: text,
+        contact_email: contact,
+        reason_codes: JSON.stringify(reasons),
+      },
+      { expected: { status } },
+    ))
+  )
+    fail("payload_changed", 409);
   // Each object has a database record before its write so expiration can delete partial jobs.
+  await requireRetention(env, record);
   await env.RAW.put(originalKey, raw, {
     httpMetadata: { contentType: "application/octet-stream" },
   });
+  await requireRetention(env, record);
   await query(
     env,
     "UPDATE files SET status='uploaded' WHERE id=?",
@@ -161,9 +177,11 @@ export async function inbound(message, env) {
       await digest(file.data),
       key,
     ).run();
+    await requireRetention(env, record);
     await env.RAW.put(key, file.data, {
       httpMetadata: { contentType: "application/octet-stream" },
     });
+    await requireRetention(env, record);
     await query(
       env,
       "UPDATE files SET status='uploaded' WHERE id=?",

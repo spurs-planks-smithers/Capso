@@ -1,3 +1,5 @@
+import { metadata, readRow, commitPayload } from "./payload.js";
+import { requireRetention, markHeld, markScreened } from "./retention.js";
 import { recoverExpiredUploads } from "./uploads.js";
 import {
   enabled,
@@ -31,7 +33,18 @@ import {
   softReasons,
   reviewCandidate,
 } from "./approval.js";
+function engineProof(scan) {
+  return {
+    engine: "ClamAV",
+    definitionsAt: new Date(Date.parse(scan.definitionsAt)).toISOString(),
+    classifierRevision: scan.classifierRevision,
+    policyVersion: "1",
+  };
+}
 async function renew(env, id, claim) {
+  const current = await metadata(env, id);
+  if (!current) fail("scan_replaced", 409);
+  await requireRetention(env, current);
   const now = nowSeconds(),
     owned = await query(
       env,
@@ -49,7 +62,7 @@ async function beginScan(env, id, claim) {
   // Keep prior generations tracked until expiration. A stale job never deletes a replacement's objects.
   await query(
     env,
-    "UPDATE submissions SET review_text=NULL,review_proof=NULL,review_fingerprint=NULL,review_policy=NULL,review_expires_at=NULL WHERE id=? AND status='scanning' AND scan_claim=? AND scan_lease_until>?",
+    "UPDATE submissions SET review_proof=NULL,review_fingerprint=NULL,review_policy=NULL,review_expires_at=NULL WHERE id=? AND status='scanning' AND scan_claim=? AND scan_lease_until>?",
     id,
     claim,
     nowSeconds(),
@@ -103,27 +116,34 @@ async function heldForReview(env, row, claim, candidate, reasons) {
     Math.floor(Date.parse(candidate.scan.definitionsAt) / 1000) +
       LIMITS.signaturesSeconds,
   );
-  const stored = await query(
+  const stored = await commitPayload(
     env,
-    "UPDATE submissions SET status='held',reason_codes=?,scan_metadata=?,review_text=?,review_proof=?,review_fingerprint=?,review_policy=?,review_expires_at=?,scan_lease_until=NULL,expires_at=MIN(expires_at,created_at+?) WHERE id=? AND status='scanning' AND scan_claim=? AND scan_lease_until>? AND expires_at>? RETURNING id",
-    JSON.stringify(reasons),
-    JSON.stringify(candidate.scan),
-    candidate.text,
-    JSON.stringify({
-      hardChecksPassed: true,
-      contextChecksCompleted: true,
-      scanClaim: claim,
-      scan: candidate.scan,
-    }),
-    row.fingerprint,
-    COMBINED_POLICY,
-    expires,
-    LIMITS.heldDays * 86400,
-    row.id,
-    claim,
-    nowSeconds(),
-    nowSeconds(),
-  ).first();
+    row,
+    { reason_codes: JSON.stringify(reasons), review_text: candidate.text },
+    {
+      metadata: {
+        status: "held",
+        scan_metadata: JSON.stringify(engineProof(candidate.scan)),
+        review_proof: JSON.stringify({
+          hardChecksPassed: true,
+          contextChecksCompleted: true,
+          scanClaim: claim,
+          scan: engineProof(candidate.scan),
+        }),
+        review_fingerprint: row.fingerprint,
+        review_policy: COMBINED_POLICY,
+        review_expires_at: expires,
+        scan_lease_until: null,
+        expires_at: Math.min(
+          row.expires_at,
+          row.created_at + LIMITS.heldDays * 86400,
+        ),
+      },
+      expected: { status: "scanning", scan_claim: claim },
+      lease: true,
+      beforeCommit: () => markHeld(env, row, row._retention),
+    },
+  );
   if (!stored) fail("scan_replaced", 409);
 }
 export async function processSubmission(env, id, scan) {
@@ -197,6 +217,7 @@ export async function processSubmission(env, id, scan) {
         result.reasonCodes,
         result.status === "rejected" ? "rejected" : "held",
         claim,
+        row._retention,
       );
       return;
     }
@@ -213,7 +234,7 @@ export async function processSubmission(env, id, scan) {
       approved.length &&
       approved.some((code) => !currentApproved.includes(code))
     ) {
-      await hold(env, id, ["approval_expired"], "held", claim);
+      await hold(env, id, ["approval_expired"], "held", claim, row._retention);
       return;
     }
     const findings = [
@@ -225,7 +246,7 @@ export async function processSubmission(env, id, scan) {
     if (findings.length) {
       if (softReasons(findings))
         await heldForReview(env, row, claim, candidate, findings);
-      else await hold(env, id, findings, "held", claim);
+      else await hold(env, id, findings, "held", claim, row._retention);
       return;
     }
     await storeImages(env, id, claim, candidate.images, false);
@@ -269,23 +290,50 @@ export async function processSubmission(env, id, scan) {
       approved.length &&
       approved.some((code) => !activeApproval(row).includes(code))
     ) {
-      await hold(env, id, ["approval_expired"], "held", claim);
+      await hold(env, id, ["approval_expired"], "held", claim, row._retention);
       return;
     }
-    const published = await query(
+    const published = await commitPayload(
       env,
-      "UPDATE submissions SET status='screened',screened_text=?,draft_json=?,draft_status=?,scan_metadata=?,scan_lease_until=NULL,expires_at=created_at+? WHERE id=? AND status='scanning' AND scan_claim=? AND scan_lease_until>? AND expires_at>? RETURNING id",
-      candidate.text,
-      draft ? JSON.stringify(draft) : null,
-      draftStatus,
-      JSON.stringify(candidate.scan),
-      LIMITS.screenedDays * 86400,
+      row,
+      {
+        screened_text: candidate.text,
+        draft_json: draft ? JSON.stringify(draft) : null,
+        review_text: null,
+        reason_codes: "[]",
+      },
+      {
+        metadata: {
+          status: "screened",
+          scan_claim: claim,
+          draft_status: draftStatus,
+          scan_metadata: JSON.stringify(engineProof(candidate.scan)),
+          expires_at: row.created_at + LIMITS.screenedDays * 86400,
+        },
+        expected: { status: "scanning", scan_claim: claim },
+        lease: true,
+      },
+    );
+    if (!published) fail("scan_replaced", 409);
+    const owned = await query(
+      env,
+      "SELECT id FROM submissions WHERE id=? AND status='screened' AND scan_claim=? AND payload_id=? AND scan_lease_until>?",
       id,
       claim,
-      nowSeconds(),
+      published.payload_id,
       nowSeconds(),
     ).first();
-    if (!published) fail("scan_replaced", 409);
+    if (!owned) fail("scan_replaced", 409);
+    await markScreened(env, published, row._retention);
+    const completed = await query(
+      env,
+      "UPDATE submissions SET scan_lease_until=NULL WHERE id=? AND status='screened' AND scan_claim=? AND payload_id=? AND scan_lease_until>? RETURNING id",
+      id,
+      claim,
+      published.payload_id,
+      nowSeconds(),
+    ).first();
+    if (!completed) fail("scan_replaced", 409);
     await notifyScreened(env, await submission(env, id));
   } catch (error) {
     if (error?.code === "scan_replaced") return;
@@ -294,19 +342,57 @@ export async function processSubmission(env, id, scan) {
     )
       ? [error.code]
       : ["screening_incomplete"];
-    await hold(env, id, codes, "held", claim);
+    try {
+      await hold(env, id, codes, "held", claim, row._retention);
+    } catch {
+      /* Missing or expired R2 authority cannot publish content. */
+    }
   }
 }
 export async function maintenance(env) {
   await recoverNotificationClaims(env);
   await recoverExpiredUploads(env);
   await purgeExpired(env);
-  await query(
-    env,
-    "UPDATE submissions SET status='held',reason_codes='[\"scan_interrupted\"]',scan_lease_until=NULL,review_text=NULL,review_proof=NULL,review_fingerprint=NULL,review_policy=NULL,review_expires_at=NULL,expires_at=MIN(expires_at,created_at+?) WHERE status='scanning' AND scan_lease_until<?",
-    LIMITS.heldDays * 86400,
-    nowSeconds(),
-  ).run();
+  const interrupted = (
+    await query(
+      env,
+      "SELECT * FROM submissions WHERE status IN ('scanning','screened') AND scan_lease_until IS NOT NULL AND scan_lease_until<? LIMIT 50",
+      nowSeconds(),
+    ).all()
+  ).results;
+  for (const raw of interrupted) {
+    try {
+      // Interrupted publication needs a full recheck. Metadata cannot prove a completed live lease.
+      const row = await readRow(env, raw, { allowUnconfirmed: true });
+      await commitPayload(
+        env,
+        row,
+        { reason_codes: '["scan_interrupted"]', review_text: null },
+        {
+          metadata: {
+            status: "held",
+            scan_lease_until: null,
+            review_proof: null,
+            review_fingerprint: null,
+            review_policy: null,
+            review_expires_at: null,
+            expires_at: Math.min(
+              row.expires_at,
+              row.created_at + LIMITS.heldDays * 86400,
+            ),
+          },
+          expected: {
+            status: raw.status,
+            scan_claim: raw.scan_claim,
+            scan_lease_until: raw.scan_lease_until,
+          },
+          beforeCommit: () => markHeld(env, row, row._retention),
+        },
+      );
+    } catch {
+      /* Expired or unavailable content cannot be restored from metadata. */
+    }
+  }
   if (enabled(env, "PROCESSING_ENABLED")) {
     const outbox = (
       await query(

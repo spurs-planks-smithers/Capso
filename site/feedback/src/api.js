@@ -1,3 +1,5 @@
+import { metadata, commitPayload } from "./payload.js";
+import { createRetention } from "./retention.js";
 import { upload } from "./uploads.js";
 import {
   LIMITS,
@@ -89,7 +91,16 @@ async function reservation(request, env) {
       previous.reservation_expires_at < nowSeconds()
     )
       fail("reservation_expired", 410);
-    return reservationResponse(env, previous);
+    if (!previous.payload_id) {
+      const initialized = await commitPayload(
+        env,
+        previous,
+        { message: value.message, contact_email: value.contactEmail },
+        { expected: { status: "reserved" } },
+      );
+      if (!initialized) fail("payload_changed", 409);
+    }
+    return reservationResponse(env, await submission(env, previous.id));
   }
   if (value.source === "web")
     await verifyTurnstile(request, env, input.turnstileToken);
@@ -97,10 +108,11 @@ async function reservation(request, env) {
   const id = crypto.randomUUID(),
     token = await tokenFor(env, id, value.idempotencyKey),
     now = nowSeconds();
+  await createRetention(env, id, now);
   const statements = [
     query(
       env,
-      "INSERT INTO submissions(id,source,category,identity_hash,idempotency_key,fingerprint,token_hash,message,contact_email,created_at,reservation_expires_at,expires_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+      "INSERT INTO submissions(id,source,category,identity_hash,idempotency_key,fingerprint,token_hash,created_at,reservation_expires_at,expires_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
       id,
       value.source,
       value.category,
@@ -108,8 +120,6 @@ async function reservation(request, env) {
       value.idempotencyKey,
       fingerprint,
       await digest(token),
-      value.message,
-      value.contactEmail,
       now,
       now + LIMITS.reservationSeconds,
       now + LIMITS.heldDays * 86400,
@@ -141,9 +151,16 @@ async function reservation(request, env) {
       value.idempotencyKey,
     ).first();
     if (existing && existing.fingerprint === fingerprint)
-      return reservationResponse(env, existing);
+      return reservationResponse(env, await submission(env, existing.id));
     throw new IntakeError("storage_unavailable", 503);
   }
+  const initialized = await commitPayload(
+    env,
+    await metadata(env, id),
+    { message: value.message, contact_email: value.contactEmail },
+    { expected: { status: "reserved" } },
+  );
+  if (!initialized) fail("payload_changed", 409);
   return reservationResponse(env, await submission(env, id), 201);
 }
 async function reservationResponse(env, row, status = 200) {

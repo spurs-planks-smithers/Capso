@@ -1,7 +1,12 @@
 import { enabled, safeText } from "./policy.js";
-import { query, nowSeconds } from "./store.js";
+import { query, nowSeconds, submission } from "./store.js";
 export async function notifyScreened(env, row) {
   if (!enabled(env, "NOTIFICATIONS_ENABLED") || !env.CONTACT_NOTIFY) return;
+  try {
+    row = await submission(env, row.id);
+  } catch {
+    return;
+  }
   const claim = crypto.randomUUID();
   const lease = await query(
     env,
@@ -50,13 +55,19 @@ export async function notifyHeld(env) {
   const rows = (
     await query(
       env,
-      "SELECT id,status,reason_codes FROM submissions WHERE status IN ('held','rejected') AND notified=0 LIMIT 100",
+      "SELECT id,status FROM submissions WHERE status IN ('held','rejected') AND notified=0 LIMIT 100",
     ).all()
   ).results;
   if (!rows.length) return;
   const claims = [];
   const digestClaim = crypto.randomUUID();
-  for (const row of rows) {
+  for (const metadataRow of rows) {
+    let row;
+    try {
+      row = await submission(env, metadataRow.id);
+    } catch {
+      continue;
+    }
     const claim = await query(
       env,
       "UPDATE submissions SET notified=2,notification_claim=?,notification_lease_until=? WHERE id=? AND status IN ('held','rejected') AND notified=0 AND expires_at>? RETURNING id",

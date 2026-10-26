@@ -1,50 +1,11 @@
+import { environment, rawFileCount } from "./fixture.js";
+import { submission } from "../src/store.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
 import { readFileSync } from "node:fs";
 import { inbound } from "../src/email.js";
-function env() {
-  const sql = new DatabaseSync(":memory:");
-  sql.exec(readFileSync(new URL("../schema.sql", import.meta.url), "utf8"));
-  const statement = (text, args = []) => ({
-    bind(...a) {
-      return statement(text, a);
-    },
-    async first() {
-      return sql.prepare(text).get(...args) || null;
-    },
-    async all() {
-      return { results: sql.prepare(text).all(...args) };
-    },
-    async run() {
-      return sql.prepare(text).run(...args);
-    },
-  });
-  const data = new Map();
-  return {
-    sql,
-    DB: {
-      prepare: statement,
-      async batch(ss) {
-        for (const s of ss) await s.run();
-      },
-    },
-    RAW: {
-      data,
-      async put(k, v) {
-        data.set(k, new Uint8Array(v));
-      },
-    },
-    JOBS: {
-      sent: [],
-      async send(v) {
-        this.sent.push(v);
-      },
-    },
-    EMAIL_ENABLED: "true",
-    INTAKE_SECRET: "test-secret-with-at-least-thirty-two-characters",
-  };
-}
+const env = environment;
 function mail(body, to = "hi@nextshot.dev") {
   const data = new TextEncoder().encode(body);
   return {
@@ -68,11 +29,14 @@ test("plain inbound email is privately queued without trusting submitted auth he
     "From: sender@example.com\r\nTo: hi@nextshot.dev\r\nAuthentication-Results: fake; spf=pass\r\nSubject: Save button\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nSave stays disabled.",
   );
   await inbound(m, e);
-  const row = e.sql.prepare("SELECT * FROM submissions").get();
+  const row = await submission(
+    e,
+    e.sql.prepare("SELECT id FROM submissions").get().id,
+  );
   assert.equal(row.status, "received");
   assert.match(row.message, /Save stays disabled/);
   assert.doesNotMatch(row.message, /spf=pass/);
-  assert.equal(e.RAW.data.size, 1);
+  assert.equal(rawFileCount(e), 1);
   assert.equal(e.JOBS.sent.length, 1);
   assert.equal(
     e.sql.prepare("SELECT role FROM files").get().role,
@@ -86,12 +50,15 @@ test("unsupported inline attachments hold the entire email and never forward it"
     'From: sender@example.com\r\nSubject: Report\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=x\r\n\r\n--x\r\nContent-Type: text/plain\r\n\r\nA report.\r\n--x\r\nContent-Type: application/pdf\r\nContent-Disposition: inline; filename="report.pdf"\r\nContent-Transfer-Encoding: base64\r\n\r\nJVBERi0=\r\n--x--',
   );
   await inbound(m, e);
-  const row = e.sql.prepare("SELECT * FROM submissions").get();
+  const row = await submission(
+    e,
+    e.sql.prepare("SELECT id FROM submissions").get().id,
+  );
   assert.equal(row.status, "held");
   assert.equal(row.message, "");
   assert.match(row.reason_codes, /email_attachment_type/);
   assert.equal(e.JOBS.sent.length, 0);
-  assert.equal(e.RAW.data.size, 1);
+  assert.equal(rawFileCount(e), 1);
 });
 test("exact address and email enable gate reject mail without reading or forwarding it", async (t) => {
   const e = env();

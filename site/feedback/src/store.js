@@ -1,3 +1,5 @@
+import { metadata, readRow, commitPayload } from "./payload.js";
+import { markHeld, purgeRetention, sweepOrphans } from "./retention.js";
 import { digest, hex, fail, LIMITS } from "./policy.js";
 export const nowSeconds = () => Math.floor(Date.now() / 1000);
 export const query = (env, sql, ...args) => env.DB.prepare(sql).bind(...args);
@@ -15,8 +17,8 @@ export async function hmac(secret, value) {
     await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(value)),
   );
 }
-export const submission = (env, id) =>
-  query(env, "SELECT * FROM submissions WHERE id=?", id).first();
+export const submission = async (env, id, options) =>
+  readRow(env, await metadata(env, id), options);
 export const listFiles = async (env, id) =>
   (
     await query(
@@ -32,10 +34,10 @@ export async function authorized(env, id, request) {
     .get("Authorization")
     ?.match(/^Bearer ([a-f0-9]{64})$/)?.[1];
   if (!token) fail("not_found", 404);
-  const row = await submission(env, id);
+  const row = await metadata(env, id);
   if (!row || (await digest(token)) !== row.token_hash) fail("not_found", 404);
   if (row.expires_at <= nowSeconds()) fail("not_found", 404);
-  return row;
+  return readRow(env, row);
 }
 export async function increment(env, key, limit, expiresAt) {
   const row = await query(
@@ -85,21 +87,45 @@ export async function reserveBudget(env, microdollars) {
   if (!row) fail("processing_budget", 503);
   return row.reserved_microdollars;
 }
-export async function hold(env, id, codes, status = "held", claim = null) {
-  const row = await submission(env, id);
-  if (!row) return;
-  await query(
+export async function hold(
+  env,
+  id,
+  codes,
+  status = "held",
+  claim = null,
+  capturedMarker = null,
+) {
+  const raw = await metadata(env, id);
+  if (!raw) return;
+  if (
+    claim
+      ? raw.scan_claim !== claim || raw.scan_lease_until <= nowSeconds()
+      : raw.status !== "received"
+  )
+    return;
+  const row = await readRow(env, raw, { allowUnconfirmed: true });
+  return commitPayload(
     env,
-    "UPDATE submissions SET status=?,reason_codes=?,scan_lease_until=NULL,expires_at=MIN(expires_at,created_at+?) WHERE id=? AND status!='screened' AND ((? IS NULL AND status='received') OR (scan_claim=? AND scan_lease_until>? AND expires_at>?))",
-    status,
-    JSON.stringify(codes),
-    LIMITS.heldDays * 86400,
-    id,
-    claim,
-    claim,
-    nowSeconds(),
-    nowSeconds(),
-  ).run();
+    row,
+    { reason_codes: JSON.stringify(codes), review_text: null },
+    {
+      metadata: {
+        status,
+        scan_lease_until: null,
+        review_proof: null,
+        review_fingerprint: null,
+        review_policy: null,
+        review_expires_at: null,
+        expires_at: Math.min(
+          row.expires_at,
+          row.created_at + LIMITS.heldDays * 86400,
+        ),
+      },
+      expected: { status: row.status, ...(claim ? { scan_claim: claim } : {}) },
+      lease: !!claim,
+      beforeCommit: () => markHeld(env, row, capturedMarker || row._retention),
+    },
+  );
 }
 export async function audit(env, id, action) {
   await query(
@@ -119,42 +145,9 @@ export async function enqueue(env, id) {
   ).run();
 }
 export async function purgeExpired(env) {
-  const rows = (
-    await query(
-      env,
-      "SELECT id FROM submissions WHERE expires_at<=? LIMIT 100",
-      nowSeconds(),
-    ).all()
-  ).results;
-  for (const row of rows) {
-    const originals = await listFiles(env, row.id),
-      attempts = (
-        await query(
-          env,
-          "SELECT raw_key FROM upload_attempts WHERE submission_id=?",
-          row.id,
-        ).all()
-      ).results,
-      rebuilt = (
-        await query(
-          env,
-          "SELECT storage_key FROM derivatives WHERE submission_id=?",
-          row.id,
-        ).all()
-      ).results;
-    for (const key of new Set(
-      [...originals, ...attempts].map((file) => file.raw_key),
-    ))
-      await env.RAW.delete(key);
-    for (const file of rebuilt) await env.REBUILT.delete(file.storage_key);
-    await env.DB.batch([
-      query(env, "DELETE FROM audit WHERE submission_id=?", row.id),
-      query(env, "DELETE FROM derivatives WHERE submission_id=?", row.id),
-      query(env, "DELETE FROM upload_attempts WHERE submission_id=?", row.id),
-      query(env, "DELETE FROM files WHERE submission_id=?", row.id),
-      query(env, "DELETE FROM submissions WHERE id=?", row.id),
-    ]);
-  }
+  const count = await purgeRetention(env);
+  await sweepOrphans(env, env.RAW, "raw");
+  await sweepOrphans(env, env.REBUILT, "rebuilt");
   await query(
     env,
     "DELETE FROM counters WHERE expires_at<=?",
@@ -170,5 +163,5 @@ export async function purgeExpired(env) {
     "DELETE FROM audit WHERE at<?",
     nowSeconds() - 90 * 86400,
   ).run();
-  return rows.length;
+  return count;
 }

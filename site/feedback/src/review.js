@@ -1,3 +1,4 @@
+import { commitPayload } from "./payload.js";
 import { owner, csrfToken, verifyCsrf } from "./access.js";
 import {
   esc,
@@ -105,27 +106,33 @@ export async function review(request, env) {
           .flatMap((value) => value.split(","));
         approval = approveReasons(row, codes, claims);
       }
-      const changed =
-        action === "approve"
-          ? await query(
-              env,
-              "UPDATE submissions SET approval_json=?,status='received',queued=0,notified=0,notification_claim=NULL,notification_lease_until=NULL WHERE id=? AND status='held' AND fingerprint=? AND review_fingerprint=? AND review_policy=? AND scan_claim IS ? AND reason_codes=? AND review_proof=? AND review_expires_at=? AND review_expires_at>? RETURNING id",
-              JSON.stringify(approval),
-              id,
-              row.fingerprint,
-              row.fingerprint,
-              COMBINED_POLICY,
-              row.scan_claim ?? null,
-              row.reason_codes,
-              row.review_proof,
-              row.review_expires_at,
-              nowSeconds(),
-            ).first()
-          : await query(
-              env,
-              "UPDATE submissions SET status='received',queued=0,notified=0,notification_claim=NULL,notification_lease_until=NULL WHERE id=? AND status='held' RETURNING id",
-              id,
-            ).first();
+      const changed = await commitPayload(
+        env,
+        row,
+        action === "approve" ? { approval_json: JSON.stringify(approval) } : {},
+        {
+          metadata: {
+            status: "received",
+            queued: 0,
+            notified: 0,
+            notification_claim: null,
+            notification_lease_until: null,
+          },
+          expected: {
+            status: "held",
+            ...(action === "approve"
+              ? {
+                  fingerprint: row.fingerprint,
+                  review_fingerprint: row.fingerprint,
+                  review_policy: COMBINED_POLICY,
+                  scan_claim: row.scan_claim,
+                  review_proof: row.review_proof,
+                  review_expires_at: row.review_expires_at,
+                }
+              : {}),
+          },
+        },
+      );
       if (!changed) fail("review_changed", 409);
       await audit(
         env,

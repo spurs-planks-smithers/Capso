@@ -1,7 +1,8 @@
+import { environment, rawFileCount } from "./fixture.js";
+import { submission } from "../src/store.js";
+import { commitPayload } from "../src/payload.js";
 import test from "node:test";
 import assert from "node:assert/strict";
-import { DatabaseSync } from "node:sqlite";
-import { readFileSync } from "node:fs";
 import { api } from "../src/api.js";
 import { processSubmission, maintenance } from "../src/pipeline.js";
 import {
@@ -12,97 +13,6 @@ import {
 } from "../src/store.js";
 import { digest, CLASSIFIER_REVISION } from "../src/policy.js";
 import { review } from "../src/review.js";
-function environment() {
-  const sql = new DatabaseSync(":memory:");
-  sql.exec(readFileSync(new URL("../schema.sql", import.meta.url), "utf8"));
-  const statement = (text, args = []) => ({
-    bind(...a) {
-      return statement(text, a);
-    },
-    async first() {
-      return sql.prepare(text).get(...args) || null;
-    },
-    async all() {
-      return { results: sql.prepare(text).all(...args) };
-    },
-    async run() {
-      const out = sql.prepare(text).run(...args);
-      return { meta: { changes: Number(out.changes) } };
-    },
-  });
-  const DB = {
-    prepare: statement,
-    async batch(statements) {
-      sql.exec("BEGIN");
-      try {
-        const out = [];
-        for (const s of statements) out.push(await s.run());
-        sql.exec("COMMIT");
-        return out;
-      } catch (e) {
-        sql.exec("ROLLBACK");
-        throw e;
-      }
-    },
-  };
-  const bucket = () => {
-    const data = new Map();
-    return {
-      data,
-      async put(key, body) {
-        data.set(key, new Uint8Array(body));
-      },
-      async get(key) {
-        const value = data.get(key);
-        return value
-          ? {
-              size: value.length,
-              arrayBuffer: async () => value.slice().buffer,
-              body: new Response(value).body,
-            }
-          : null;
-      },
-      async delete(key) {
-        data.delete(key);
-      },
-    };
-  };
-  const notices = [];
-  return {
-    DB,
-    EDGE_LIMITER: {
-      async limit() {
-        return { success: true };
-      },
-    },
-    RAW: bucket(),
-    REBUILT: bucket(),
-    INTAKE_SECRET: "test-only-secret-with-at-least-thirty-two-characters",
-    INTAKE_ENABLED: "true",
-    NATIVE_ENABLED: "true",
-    PROCESSING_ENABLED: "true",
-    AI_SCREENING_ENABLED: "true",
-    NOTIFICATIONS_ENABLED: "true",
-    JOBS: {
-      sent: [],
-      async send(value) {
-        this.sent.push(value);
-      },
-    },
-    AI: {
-      async run() {
-        return { response: JSON.stringify({ decision: "pass", reasons: [] }) };
-      },
-    },
-    CONTACT_NOTIFY: {
-      async send(message) {
-        notices.push(message);
-      },
-    },
-    notices,
-    close: () => sql.close(),
-  };
-}
 const request = (path, method = "GET", value, token) =>
   new Request(`https://feedback.nextshot.dev${path}`, {
     method,
@@ -219,7 +129,7 @@ test("a changed idempotency payload and wrong upload bytes cannot replace a rese
     ).status,
     422,
   );
-  assert.equal(env.RAW.data.size, 0);
+  assert.equal(rawFileCount(env), 0);
   assert.equal(
     (
       await api(
@@ -282,11 +192,7 @@ test("scanner outages and incomplete model checks keep text and originals out of
   await processSubmission(env, receipt.id, async () => {
     throw new Error("scanner unavailable");
   });
-  const row = await query(
-    env,
-    "SELECT * FROM submissions WHERE id=?",
-    receipt.id,
-  ).first();
+  const row = await submission(env, receipt.id);
   assert.equal(row.status, "held");
   assert.equal(env.notices.length, 0);
   assert.equal(env.REBUILT.data.size, 0);
@@ -327,11 +233,7 @@ test("completed screening permits reconstructed text only and suppresses malform
   await processSubmission(env, receipt.id, async () =>
     passed("Save stays disabled."),
   );
-  const row = await query(
-    env,
-    "SELECT * FROM submissions WHERE id=?",
-    receipt.id,
-  ).first();
+  const row = await submission(env, receipt.id);
   assert.equal(row.status, "screened");
   assert.equal(row.draft_status, "held");
   assert.equal(env.notices.length, 1);
@@ -360,11 +262,11 @@ test("expiration removes originals, rebuilt files, content, drafts, and audit ro
     crypto.randomUUID(),
     receipt.id,
     "capture-1.jpg",
-    "rebuilt-key",
+    `${receipt.id}/rebuilt-key`,
     3,
     "a".repeat(64),
   ).run();
-  await env.REBUILT.put("rebuilt-key", data[0]);
+  await env.REBUILT.put(`${receipt.id}/rebuilt-key`, data[0]);
   await query(
     env,
     "INSERT INTO audit(submission_id,action,at) VALUES(?,?,?)",
@@ -374,22 +276,14 @@ test("expiration removes originals, rebuilt files, content, drafts, and audit ro
   ).run();
   await query(
     env,
-    "UPDATE submissions SET expires_at=?,draft_json=? WHERE id=?",
+    "UPDATE submissions SET expires_at=? WHERE id=?",
     nowSeconds() - 1,
-    "private draft",
     receipt.id,
   ).run();
   assert.equal(await purgeExpired(env), 1);
   assert.equal(env.RAW.data.size, 0);
   assert.equal(env.REBUILT.data.size, 0);
-  assert.equal(
-    await query(
-      env,
-      "SELECT * FROM submissions WHERE id=?",
-      receipt.id,
-    ).first(),
-    null,
-  );
+  assert.equal(await submission(env, receipt.id), null);
   assert.equal(
     (await query(env, "SELECT * FROM audit").all()).results.length,
     0,
@@ -436,7 +330,7 @@ test("an upload interrupted after storage verifies its original bytes before ack
     file.id,
   ).run();
   await finish(env, receipt, data);
-  assert.equal(env.RAW.data.size, 1);
+  assert.equal(rawFileCount(env), 1);
 });
 
 test("interrupted notification claims recover before send and after an uncertain send", async (t) => {
@@ -444,9 +338,13 @@ test("interrupted notification claims recover before send and after an uncertain
   t.after(env.close);
   const { receipt } = await reserve(env);
   await finish(env, receipt);
+  await processSubmission(env, receipt.id, async () =>
+    passed("Screened feedback"),
+  );
+  env.notices.length = 0;
   await query(
     env,
-    "UPDATE submissions SET status='screened',screened_text='Screened feedback',notified=2 WHERE id=?",
+    "UPDATE submissions SET notified=2 WHERE id=?",
     receipt.id,
   ).run();
   await maintenance(env);
@@ -563,11 +461,7 @@ test("owner inspection and exact approval rerun checks without forwarding held c
         };
   };
   await processSubmission(env, receipt.id, scanner);
-  let row = await query(
-    env,
-    "SELECT * FROM submissions WHERE id=?",
-    receipt.id,
-  ).first();
+  let row = await submission(env, receipt.id);
   assert.equal(row.status, "held");
   assert.equal(env.notices.length, 0);
   assert.equal(row.draft_json, null);
@@ -623,19 +517,11 @@ test("owner inspection and exact approval rerun checks without forwarding held c
     env,
   );
   assert.equal(approved.status, 303);
-  row = await query(
-    env,
-    "SELECT * FROM submissions WHERE id=?",
-    receipt.id,
-  ).first();
+  row = await submission(env, receipt.id);
   assert.equal(row.status, "received");
   assert.equal(JSON.parse(row.approval_json).actor, "drewschulz1@gmail.com");
   await processSubmission(env, receipt.id, scanner);
-  row = await query(
-    env,
-    "SELECT * FROM submissions WHERE id=?",
-    receipt.id,
-  ).first();
+  row = await submission(env, receipt.id);
   assert.equal(row.status, "screened");
   assert.equal(row.draft_status, "held");
   assert.equal(env.notices.length, 1);
@@ -665,33 +551,25 @@ test("a new finding and a hard failure remain held despite an earlier owner appr
     reasonCodes: ["sensitive_private_record"],
     review: nested,
   }));
-  let row = await query(
-    env,
-    "SELECT * FROM submissions WHERE id=?",
-    receipt.id,
-  ).first();
+  let row = await submission(env, receipt.id);
   assert.equal(row.status, "held");
   const approval = approveReasons(row, JSON.parse(row.reason_codes), {
     email: "drewschulz1@gmail.com",
     sub: "owner",
   });
-  await query(
+  await commitPayload(
     env,
-    "UPDATE submissions SET approval_json=?,status='received' WHERE id=?",
-    JSON.stringify(approval),
-    receipt.id,
-  ).run();
+    await submission(env, receipt.id),
+    { approval_json: JSON.stringify(approval) },
+    { metadata: { status: "received" } },
+  );
   env.AI.run = async () => ({
     response: JSON.stringify({ decision: "hold", reasons: ["credential"] }),
   });
   await processSubmission(env, receipt.id, async () =>
     passed("Public footer wording."),
   );
-  row = await query(
-    env,
-    "SELECT * FROM submissions WHERE id=?",
-    receipt.id,
-  ).first();
+  row = await submission(env, receipt.id);
   assert.equal(row.status, "held");
   assert.deepEqual(JSON.parse(row.reason_codes), ["credential"]);
   assert.equal(env.notices.length, 0);
@@ -705,11 +583,7 @@ test("a new finding and a hard failure remain held despite an earlier owner appr
     status: "held",
     reasonCodes: ["scanner_unavailable"],
   }));
-  row = await query(
-    env,
-    "SELECT * FROM submissions WHERE id=?",
-    receipt.id,
-  ).first();
+  row = await submission(env, receipt.id);
   assert.equal(row.status, "held");
   assert.equal(inspectableReview(row), false);
   assert.equal(row.review_proof, null);
@@ -722,11 +596,7 @@ test("unmatched or expired stored approval never enters a scanner job", async (t
   const { COMBINED_POLICY } = await import("../src/approval.js");
   const { receipt } = await reserve(env);
   await finish(env, receipt);
-  const row = await query(
-    env,
-    "SELECT * FROM submissions WHERE id=?",
-    receipt.id,
-  ).first();
+  const row = await submission(env, receipt.id);
   for (const changes of [
     { fingerprint: "changed" },
     { policy: "scanner:old" },
@@ -743,12 +613,12 @@ test("unmatched or expired stored approval never enters a scanner job", async (t
       reasons: ["prompt_injection"],
       ...changes,
     };
-    await query(
+    await commitPayload(
       env,
-      "UPDATE submissions SET status='received',approval_json=? WHERE id=?",
-      JSON.stringify(approval),
-      receipt.id,
-    ).run();
+      await submission(env, receipt.id),
+      { approval_json: JSON.stringify(approval) },
+      { metadata: { status: "received" } },
+    );
     let received;
     await processSubmission(env, receipt.id, async (_env, job) => {
       received = job;
@@ -928,11 +798,7 @@ test("an upload completion cannot delete an object already adopted by recovery",
       nowSeconds() - 1,
       receipt.uploads[0].id,
     ).run();
-    const row = await query(
-        env,
-        "SELECT * FROM submissions WHERE id=?",
-        receipt.id,
-      ).first(),
+    const row = await submission(env, receipt.id),
       file = await query(
         env,
         "SELECT * FROM files WHERE id=?",
@@ -990,11 +856,7 @@ test("a positive soft signal cannot hide a later required image-model failure", 
     reasonCodes: ["sensitive_private_record"],
     review: { ...candidate, hardChecksPassed: true },
   }));
-  const row = await query(
-    env,
-    "SELECT * FROM submissions WHERE id=?",
-    receipt.id,
-  ).first();
+  const row = await submission(env, receipt.id);
   assert.equal(calls, 3);
   assert.equal(row.status, "held");
   assert.equal(row.review_proof, null);
@@ -1013,11 +875,7 @@ test("a hard scanner failure cannot smuggle a review candidate into owner access
     reasonCodes: ["scanner_unavailable"],
     review: { ...passed("Untrusted candidate"), hardChecksPassed: true },
   }));
-  const row = await query(
-    env,
-    "SELECT * FROM submissions WHERE id=?",
-    receipt.id,
-  ).first();
+  const row = await submission(env, receipt.id);
   assert.equal(row.status, "held");
   assert.equal(row.review_proof, null);
   assert.equal(row.review_text, null);
@@ -1076,7 +934,7 @@ test("owner approval rejects review evidence replaced between validation and its
   });
   for (const changedField of [
     "scan_claim",
-    "reason_codes",
+    "payload_id",
     "review_proof",
     "review_expires_at",
   ]) {
@@ -1092,16 +950,12 @@ test("owner approval rejects review evidence replaced between validation and its
       reasonCodes: ["sensitive_private_record"],
       review: { ...passed("Public license footer."), hardChecksPassed: true },
     }));
-    const row = await query(
-        env,
-        "SELECT * FROM submissions WHERE id=?",
-        receipt.id,
-      ).first(),
+    const row = await submission(env, receipt.id),
       csrf = await csrfToken(env, "owner"),
       queuedBefore = env.JOBS.sent.length;
     const replacement = {
       scan_claim: crypto.randomUUID(),
-      reason_codes: JSON.stringify(["credential"]),
+      payload_id: "private payload replacement",
       review_proof: JSON.stringify({
         ...JSON.parse(row.review_proof),
         scan: {
@@ -1115,7 +969,7 @@ test("owner approval rejects review evidence replaced between validation and its
     let replaced = false;
     env.DB.prepare = (sql) => {
       const statement = prepare(sql);
-      if (!sql.startsWith("UPDATE submissions SET approval_json="))
+      if (!sql.startsWith("UPDATE submissions SET payload_id="))
         return statement;
       return {
         ...statement,
@@ -1126,11 +980,24 @@ test("owner approval rejects review evidence replaced between validation and its
             async first() {
               if (!replaced) {
                 replaced = true;
-                await prepare(
-                  `UPDATE submissions SET ${changedField}=? WHERE id=?`,
-                )
-                  .bind(replacement, receipt.id)
-                  .run();
+                if (changedField === "payload_id") {
+                  const interceptor = env.DB.prepare;
+                  env.DB.prepare = prepare;
+                  try {
+                    assert.ok(
+                      await commitPayload(env, row, {
+                        reason_codes: '["prompt_injection"]',
+                      }),
+                    );
+                  } finally {
+                    env.DB.prepare = interceptor;
+                  }
+                } else
+                  await prepare(
+                    `UPDATE submissions SET ${changedField}=? WHERE id=?`,
+                  )
+                    .bind(replacement, receipt.id)
+                    .run();
               }
               return bound.first();
             },
@@ -1159,11 +1026,7 @@ test("owner approval rejects review evidence replaced between validation and its
     assert.equal(replaced, true);
     assert.equal(result.status, 409, changedField);
     assert.deepEqual(await result.json(), { error: "review_changed" });
-    const current = await query(
-      env,
-      "SELECT * FROM submissions WHERE id=?",
-      receipt.id,
-    ).first();
+    const current = await submission(env, receipt.id);
     assert.equal(current.status, "held");
     assert.equal(current.approval_json, null);
     assert.equal(env.JOBS.sent.length, queuedBefore);

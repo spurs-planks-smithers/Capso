@@ -1,3 +1,4 @@
+import { requireRetention } from "./retention.js";
 import { fail, uploadBytes, digest, response, enabled } from "./policy.js";
 import { query, authorized, nowSeconds } from "./store.js";
 const LEASE_SECONDS = 120;
@@ -10,11 +11,13 @@ export async function recoverUpload(env, row, file) {
     (file.upload_lease_until ?? 0) > now
   )
     return false;
+  await requireRetention(env, row);
   const object = await env.RAW.get(file.raw_key);
   if (!object || object.size !== file.bytes) return false;
   const data = new Uint8Array(await object.arrayBuffer());
   if (data.length !== file.bytes || (await digest(data)) !== file.sha256)
     return false;
+  await requireRetention(env, row);
   const recovered = await query(
     env,
     "UPDATE files SET status='uploaded',upload_claim=NULL,upload_lease_until=NULL WHERE id=? AND status='uploading' AND upload_claim IS ? AND COALESCE(upload_lease_until,0)<=? AND EXISTS(SELECT 1 FROM submissions WHERE id=? AND status='reserved' AND reservation_expires_at>?) RETURNING id",
@@ -41,7 +44,11 @@ export async function recoverExpiredUploads(env) {
       "SELECT * FROM submissions WHERE id=?",
       file.submission_id,
     ).first();
-    if (await recoverUpload(env, row, file)) continue;
+    try {
+      if (await recoverUpload(env, row, file)) continue;
+    } catch {
+      continue;
+    }
     await query(
       env,
       "UPDATE files SET status='pending',upload_claim=NULL,upload_lease_until=NULL WHERE id=? AND status='uploading' AND upload_claim IS ? AND COALESCE(upload_lease_until,0)<=?",
@@ -124,6 +131,7 @@ export async function upload(request, env, id, fileID) {
       httpMetadata: { contentType: "application/octet-stream" },
       customMetadata: { submission: id },
     });
+    await requireRetention(env, row);
     const stored = await query(
       env,
       "UPDATE files SET status='uploaded',upload_claim=NULL,upload_lease_until=NULL WHERE id=? AND status='uploading' AND upload_claim=? AND upload_lease_until>? AND EXISTS(SELECT 1 FROM submissions WHERE id=? AND status='reserved' AND reservation_expires_at>?) RETURNING id",
