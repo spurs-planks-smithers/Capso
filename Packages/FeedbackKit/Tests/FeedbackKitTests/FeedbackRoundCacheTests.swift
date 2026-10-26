@@ -92,6 +92,32 @@ struct FeedbackRoundCacheTests {
         #expect(listing.unreadable == ["2026-10-19-0900-broken"])
     }
 
+    @Test("Names a newer-schema round apart from unreadable ones, and reads it again after a change")
+    func namesNewerSchema() throws {
+        defer { try? fileManager.removeItem(at: root) }
+        let good = try write(ended(day: 12))
+        let newer = ended(day: 13)
+        try write(newer)
+        var json = try #require(JSONSerialization.jsonObject(with: Data(contentsOf: file(newer))) as? [String: Any])
+        json["schemaVersion"] = FeedbackRound.currentSchemaVersion + 1
+        try JSONSerialization.data(withJSONObject: json).write(to: file(newer))
+        try setModified(stamp, of: file(newer))
+
+        var cache = FeedbackRoundCache()
+        var listing = cache.recent(in: root)
+        #expect(listing.rounds == [good])
+        #expect(listing.newerSchema == [newer.folderName])
+        #expect(listing.unreadable.isEmpty)
+        // The second call comes from the cache and says the same.
+        #expect(cache.recent(in: root) == listing)
+
+        // The same round saved again under the current schema is listed.
+        try write(newer, modified: stamp.addingTimeInterval(60))
+        listing = cache.recent(in: root)
+        #expect(listing.rounds.map(\.folderName) == [newer.folderName, good.folderName])
+        #expect(listing.newerSchema.isEmpty)
+    }
+
     @Test("Reuses a decoded round while feedback.json is unchanged")
     func reusesWhileUnchanged() throws {
         defer { try? fileManager.removeItem(at: root) }

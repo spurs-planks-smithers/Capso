@@ -306,7 +306,8 @@ public actor FeedbackRoundStore {
             let roundData = try? Data(contentsOf: rootURL
                 .appendingPathComponent(marker.folderName, isDirectory: true)
                 .appendingPathComponent(roundFileName)),
-            let round = try? decoder.decode(FeedbackRound.self, from: roundData),
+            // A round with a newer schema is left alone, as in FeedbackLibrary.
+            let round = FeedbackLibrary.read(roundData).round,
             round.endedAt == nil
         else { return nil }
         return round

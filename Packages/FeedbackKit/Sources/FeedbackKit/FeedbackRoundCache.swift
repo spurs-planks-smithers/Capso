@@ -16,8 +16,7 @@ public struct FeedbackRoundCache: Sendable {
 
     private struct Entry: Sendable {
         var stamp: Stamp
-        /// Nil when the file failed to decode.
-        var round: FeedbackRound?
+        var read: FeedbackLibrary.RoundRead
     }
 
     private var rootURL: URL?
@@ -48,6 +47,7 @@ public struct FeedbackRoundCache: Sendable {
         var kept: [String: Entry] = [:]
         var rounds: [FeedbackRound] = []
         var unreadable: [String] = []
+        var newerSchema: [String] = []
         for folder in folders {
             guard (try? folder.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true else { continue }
             let file = folder.appendingPathComponent(FeedbackRoundStore.roundFileName)
@@ -57,19 +57,26 @@ public struct FeedbackRoundCache: Sendable {
             // reads leaves an old stamp and the next call decodes again.
             let name = folder.lastPathComponent
             let stamp = Self.stamp(of: file)
-            let round: FeedbackRound?
+            let read: FeedbackLibrary.RoundRead
             if let stamp, let cached = entries[name], cached.stamp == stamp {
-                round = cached.round
+                read = cached.read
                 kept[name] = cached
             } else {
-                round = FeedbackLibrary.load(file)
+                read = FeedbackLibrary.read(file: file)
                 if let stamp {
-                    kept[name] = Entry(stamp: stamp, round: round)
+                    kept[name] = Entry(stamp: stamp, read: read)
                 }
             }
 
-            guard let round else {
+            let round: FeedbackRound
+            switch read {
+            case .round(let decoded):
+                round = decoded
+            case .unreadable:
                 unreadable.append(name)
+                continue
+            case .newerSchema:
+                newerSchema.append(name)
                 continue
             }
             if round.endedAt != nil, !round.captures.isEmpty {
@@ -86,7 +93,11 @@ public struct FeedbackRoundCache: Sendable {
             let rhsEnd = rhs.endedAt ?? .distantPast
             return lhsEnd != rhsEnd ? lhsEnd > rhsEnd : lhs.folderName > rhs.folderName
         }
-        return FeedbackLibrary.Listing(rounds: Array(rounds.prefix(max(limit, 0))), unreadable: unreadable.sorted())
+        return FeedbackLibrary.Listing(
+            rounds: Array(rounds.prefix(max(limit, 0))),
+            unreadable: unreadable.sorted(),
+            newerSchema: newerSchema.sorted()
+        )
     }
 
     /// Nil when the file's date or size cannot be read. The file is then

@@ -10,11 +10,55 @@ public enum FeedbackLibrary {
         public var rounds: [FeedbackRound]
         /// Folder names whose `feedback.json` could not be read or decoded.
         public var unreadable: [String]
+        /// Folder names whose `feedback.json` has a newer `schemaVersion` than
+        /// this copy knows. Another copy of Nextshot wrote them. This copy
+        /// leaves them alone: loading one and saving it would drop the fields
+        /// it does not know.
+        public var newerSchema: [String]
 
-        public init(rounds: [FeedbackRound], unreadable: [String]) {
+        public init(rounds: [FeedbackRound], unreadable: [String], newerSchema: [String] = []) {
             self.rounds = rounds
             self.unreadable = unreadable
+            self.newerSchema = newerSchema
         }
+    }
+
+    /// What a `feedback.json` holds, as far as this copy can tell.
+    enum RoundRead: Equatable, Sendable {
+        case round(FeedbackRound)
+        /// Missing, not JSON, or not a round.
+        case unreadable
+        /// A round written under a newer schema than `FeedbackRound.currentSchemaVersion`.
+        case newerSchema(Int)
+
+        var round: FeedbackRound? {
+            if case .round(let round) = self { return round }
+            return nil
+        }
+    }
+
+    /// Only the schema number, read before the whole round. A newer schema
+    /// can change other fields, so the probe must not depend on them.
+    private struct SchemaProbe: Decodable {
+        var schemaVersion: Int?
+    }
+
+    /// Reads one `feedback.json`. A round with a newer schema is refused, even
+    /// if it would decode: a copy that saved it again would lose the fields it
+    /// does not know (`docs/decisions/2026-10-25-versioning-and-releases.md`).
+    static func read(_ data: Data) -> RoundRead {
+        let decoder = FeedbackRoundStore.decoder()
+        if let version = (try? decoder.decode(SchemaProbe.self, from: data))?.schemaVersion,
+           version > FeedbackRound.currentSchemaVersion {
+            return .newerSchema(version)
+        }
+        guard let round = try? decoder.decode(FeedbackRound.self, from: data) else { return .unreadable }
+        return .round(round)
+    }
+
+    static func read(file: URL) -> RoundRead {
+        guard let data = try? Data(contentsOf: file) else { return .unreadable }
+        return read(data)
     }
 
     /// Ended rounds that hold at least one capture, newest end first, at
@@ -50,9 +94,10 @@ public enum FeedbackLibrary {
         }
     }
 
+    /// The round in a `feedback.json`, or nil when it is unreadable or has a
+    /// newer schema.
     static func load(_ file: URL) -> FeedbackRound? {
-        guard let data = try? Data(contentsOf: file) else { return nil }
-        return try? FeedbackRoundStore.decoder().decode(FeedbackRound.self, from: data)
+        read(file: file).round
     }
 
     // MARK: - Row labels
