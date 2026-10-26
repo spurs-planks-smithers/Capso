@@ -15,6 +15,9 @@ struct FeedbackMenuState {
     var rootURL: URL
     /// Shows Zip Round and Zip N Selected (`zipHandoff` flag, #85).
     var zipEnabled = false
+    /// Rounds that another copy of Nextshot saved under a newer schema. This
+    /// copy hides them, so the menu says how many.
+    var newerSchemaCount = 0
 
     /// What the menu shows when no provider is set.
     static let empty = FeedbackMenuState(
@@ -226,6 +229,14 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
                 roundRows.append(row)
                 menu.addItem(row.item)
             }
+        }
+        // A round from a newer copy is never opened or saved here, so it
+        // cannot lose fields this copy does not know. Say why it is missing.
+        if state.newerSchemaCount > 0 {
+            let count = state.newerSchemaCount
+            menu.addItem(grayLine("\(count) \(count == 1 ? "round was" : "rounds were") saved by a newer \(ForkBranding.name) and \(count == 1 ? "is" : "are") hidden"))
+        }
+        if !recent.isEmpty || state.newerSchemaCount > 0 {
             menu.addItem(.separator())
         }
 

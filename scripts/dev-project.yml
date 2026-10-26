@@ -1,0 +1,42 @@
+# Fork: the Nextshot Dev app. It is the copy Drew runs every day. It has its
+# own name, bundle ID, screen recording grant, and URL scheme, so a production
+# install never replaces it or quits it, and it never claims the production
+# app's nextshot:// links. See docs/decisions/2026-10-25-versioning-and-releases.md.
+#
+# Used by scripts/build-local.sh, which generates CapsoDev.xcodeproj in the
+# repo root (git ignores *.xcodeproj). The production app is a different spec,
+# scripts/local-project.yml, which scripts/release-notarized.sh uses.
+name: CapsoDev
+
+include:
+  - project.yml
+
+targets:
+  Capso:
+    # Same icon as production for now. A Dev badge on the icon is still open.
+    sources:
+      - path: Branding/Nextshot.icon
+        type: file
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.drewschulz.nextshot.dev
+        PRODUCT_NAME: Nextshot Dev
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: Apple Development
+        ASSETCATALOG_COMPILER_APPICON_NAME: Nextshot
+        # The script below edits the built Info.plist.
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+    postBuildScripts:
+      # Info.plist is upstream's file, so the Dev change happens on the built
+      # copy, before Xcode signs the app. Dev answers to nextshot-dev:// only.
+      - name: Nextshot Dev URL scheme
+        basedOnDependencyAnalysis: false
+        script: |
+          set -euo pipefail
+          plist="${TARGET_BUILD_DIR}/${INFOPLIST_PATH}"
+          buddy=/usr/libexec/PlistBuddy
+          "$buddy" -c "Set :CFBundleURLTypes:0:CFBundleURLName 'Nextshot Dev Automation'" "$plist"
+          "$buddy" -c "Delete :CFBundleURLTypes:0:CFBundleURLSchemes" "$plist"
+          "$buddy" -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes array" "$plist"
+          "$buddy" -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string nextshot-dev" "$plist"

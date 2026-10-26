@@ -6,9 +6,9 @@ import os
 
 /// Fork: Jev results in the macOS system log. Public fields only: job ids,
 /// capture numbers, statuses, times, and token counts.
-/// Read with: /usr/bin/log show --last 10m --predicate 'subsystem == "com.drewschulz.nextshot" AND category == "Jev"'
+/// Read with: /usr/bin/log show --last 10m --predicate 'subsystem BEGINSWITH "com.drewschulz.nextshot" AND category == "Jev"'
 enum JevLog {
-    static let logger = Logger(subsystem: "com.drewschulz.nextshot", category: "Jev")
+    static let logger = Logger(subsystem: ForkBranding.logSubsystem, category: "Jev")
 }
 
 /// Fork: connects JevKit's runner to the feedback controller. Every call

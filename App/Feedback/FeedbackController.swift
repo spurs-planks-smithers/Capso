@@ -9,9 +9,11 @@ import os
 import SharedKit
 
 /// Fork: timing and state of the feedback path, in the macOS system log.
-/// Read with: log show --last 10m --predicate 'subsystem == "com.drewschulz.nextshot"'
+/// Read with: /usr/bin/log show --last 10m --predicate 'subsystem BEGINSWITH "com.drewschulz.nextshot"'
+/// The subsystem is the running app's bundle ID, so Nextshot Dev logs under
+/// com.drewschulz.nextshot.dev.
 enum FeedbackLog {
-    static let logger = Logger(subsystem: "com.drewschulz.nextshot", category: "Feedback")
+    static let logger = Logger(subsystem: ForkBranding.logSubsystem, category: "Feedback")
 }
 
 /// Fork: owns feedback rounds. Each saved capture goes into the active
@@ -65,6 +67,8 @@ final class FeedbackController {
     /// The unreadable folders named in the last log line, so an unchanged list
     /// logs once, not on every menu open.
     private var loggedUnreadable: [String] = []
+    /// The newer-schema folders named in the last log line, for the same reason.
+    private var loggedNewerSchema: [String] = []
     private static let promptCopiedToast = "Prompt copied. Paste it into your agent."
     private static let promptCopiedRoundEndedToast = "Prompt copied. Round ended.\nResume it from Recent Rounds in the \(ForkBranding.shortName) menu."
 
@@ -424,12 +428,14 @@ final class FeedbackController {
     private func connectHistoryMenu() {
         statusItem.stateProvider = { [weak self] in
             guard let self else { return .empty }
+            let listing = self.recentListing()
             return FeedbackMenuState(
                 active: self.round,
-                recent: self.recentRounds(),
+                recent: listing.rounds,
                 basket: self.basket,
                 rootURL: self.store.rootURL,
-                zipEnabled: Flags.isOn(.zipHandoff)
+                zipEnabled: Flags.isOn(.zipHandoff),
+                newerSchemaCount: listing.newerSchema.count
             )
         }
         statusItem.onZipRecentRound = { [weak self] round in
@@ -479,8 +485,9 @@ final class FeedbackController {
 
     /// The last ended rounds. The cache reads only the folders whose
     /// `feedback.json` changed. Unreadable folders are logged when the list
-    /// differs from the last one logged.
-    private func recentRounds() -> [FeedbackRound] {
+    /// differs from the last one logged. Rounds saved under a newer schema
+    /// are logged the same way and counted in the menu.
+    private func recentListing() -> FeedbackLibrary.Listing {
         let listing = roundCache.recent(in: store.rootURL)
         let unreadable = listing.unreadable.sorted()
         if unreadable != loggedUnreadable {
@@ -490,7 +497,14 @@ final class FeedbackController {
                 FeedbackLog.logger.error("recent rounds: \(unreadable.count, privacy: .public) unreadable: \(unreadable.joined(separator: ", "), privacy: .private)")
             }
         }
-        return listing.rounds
+        let newerSchema = listing.newerSchema.sorted()
+        if newerSchema != loggedNewerSchema {
+            loggedNewerSchema = newerSchema
+            if !newerSchema.isEmpty {
+                FeedbackLog.logger.notice("recent rounds: \(newerSchema.count, privacy: .public) saved by a newer Nextshot, hidden: \(newerSchema.joined(separator: ", "), privacy: .private)")
+            }
+        }
+        return listing
     }
 
     private func openAllRounds() {
