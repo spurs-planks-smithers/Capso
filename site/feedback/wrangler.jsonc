@@ -20,7 +20,7 @@
     "AI_SCREENING_ENABLED": "false",
     "EMAIL_ENABLED": "false",
     "NOTIFICATIONS_ENABLED": "false",
-    "TURNSTILE_SITE_KEY": "",
+    "TURNSTILE_SITE_KEY": "0x4AAAAAAFnOBF8j5OITOOSP",
     "ACCESS_TEAM_DOMAIN": "",
     "ACCESS_AUD": ""
   },
@@ -45,7 +45,7 @@
     {
       "binding": "DB",
       "database_name": "nextshot-feedback",
-      "database_id": "00000000-0000-0000-0000-000000000000"
+      "database_id": "08e03222-27df-4ac6-947a-3e0586f2c7a0"
     }
   ],
   "queues": {

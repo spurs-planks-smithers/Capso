@@ -4,12 +4,13 @@
 - Code: upstream `8f07fb6` (v1.2.5), the fork base
 - Status: Drew approved the recommendations on 2026-10-20. Applied: 1 (Sparkle off), 2 as "hide now" (the picker lists only Apple; full removal of the provider code moves to its own branch after Phase 1), 3 (Cloud Share tab hidden), 4 (nettop check at verification), 5 (no change).
 - Update 2026-10-24: the Jev base (#36) adds the fork's only network code, in `Packages/JevKit`. Drew confirmed the new local-only rule on 2026-10-24. The threat model is in `docs/superpowers/specs/2026-10-24-jev-base-design.md`.
+- Update 2026-10-26: Drew approves an explicit support submission path through SupportKit. Its release-capable flag starts off. Public intake remains disabled until live scanner, access, and delivery checks pass. The approved design is [[2026-10-26-secure-feedback-intake]].
 
 ## Summary
 
 Capso has one outbound network call that needs no user setup: Sparkle's daily update check. Translation and cloud sharing make network calls only after the user picks a cloud provider or sets up a share destination. There is no analytics SDK, telemetry, crash reporter, socket server, or web view.
 
-The fork's feedback code has one network path, the Jev package (JevKit). It calls only `https://api.typesafe.ai`, only when `jevBase` and a Jev feature flag are on, and only in a dev build. Every Jev flag starts off, and a release build ignores every Jev override. All other feedback code makes no network call.
+The fork's feedback code has two restricted network paths. JevKit calls only `https://api.typesafe.ai`, only when `jevBase` and a Jev feature flag are on, and only in a dev build. Every Jev flag starts off, and a release build ignores every Jev override. SupportKit calls only `https://feedback.nextshot.dev`, only after an explicit Submit with `supportSubmission` on. That flag starts off in both channels. Other feedback code makes no network call.
 
 ## Outbound network code
 
@@ -19,7 +20,8 @@ The fork's feedback code has one network path, the Jev package (JevKit). It call
 | Cloud translation | `Packages/TranslationKit/Sources/TranslationKit/ProviderTranslationService.swift` | OpenAI-compatible, DeepSeek, OpenRouter, custom endpoint, DeepL, or Google Cloud | Only when the user picks a cloud provider and enters a key. |
 | Apple translation | same file, provider `.apple` (the default) | On-device Apple Translation | The OS can download language packs. |
 | Cloud Share | `Packages/ShareKit/Sources/ShareKit/` (S3, R2, Aliyun OSS, Tencent COS) | SigV4-signed uploads to the configured bucket | Only when Cloud Share is set up. `R2Destination` and `ShareDestinationFactory` also make a check request in `validateConfig()`. |
-| Jev (fork, #36) | `Packages/JevKit/Sources/JevKit/Client/URLSessionTransport.swift`, the only fork file that opens a connection | `POST https://api.typesafe.ai/v1/systemone`, model `jev-1.14.0` | Only in a dev build, with `jevBase` and a Jev feature flag on, after a capture's notes are final. All flags start off. |
+| Jev (fork, #36) | `Packages/JevKit/Sources/JevKit/Client/URLSessionTransport.swift`, the Jev transport | `POST https://api.typesafe.ai/v1/systemone`, model `jev-1.14.0` | Only in a dev build, with `jevBase` and a Jev feature flag on, after a capture's notes are final. All flags start off. |
+| Support submission (fork, 2026-10-26) | `Packages/SupportKit/Sources/SupportKit/SupportTransport.swift` | Reservation, bounded upload, and completion at `https://feedback.nextshot.dev` | Only after Submit with `supportSubmission` on. Ephemeral URL session, no redirects, cookies, stored credentials, cache, or unattended retries. |
 
 ### Jev requests
 
@@ -73,7 +75,9 @@ The feedback work adds no dependency. JevKit uses only Apple frameworks (Foundat
 
 - Bundles hold screenshots of work documents.
 - They stay on disk in `~/Library/Application Support/Nextshot` (before 2026-10-21: `CapsoFeedback`). Only an agent that Drew starts reads them.
-- FeedbackKit and `App/Feedback/` make no network call. JevKit makes the only one, under the rules in "Jev requests".
+- FeedbackKit and `App/Feedback/` make no network call. JevKit and SupportKit own the two restricted transports.
+- The support archive has a separate schema. It includes annotated JPEGs, notes, and app version information. It excludes clean images, OCR fields, window-title fields, source filenames, generated prompts, and Jev files. A support note does not change the saved round.
+- Every submitted value remains untrusted after screening. The service never gives a submitted prompt authority over tools, repository access, publication, or email recipients.
 - With a Jev feature in shadow or on, a bundle also holds `jev.json` (answers and timings). With a feature on, it also holds the refined files, which can quote screen text.
 
 ## Recommendations (none applied until Drew approves)

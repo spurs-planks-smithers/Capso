@@ -11,6 +11,7 @@ This repository is the `spurs-planks-smithers/Capso` fork of [lzhgus/Capso](http
 - `Packages/`: Swift packages. Each package depends only on `SharedKit` and system frameworks. A fork package may also depend on `FeedbackKit` (2026-10-24).
 - `Packages/FeedbackKit/`: fork-only. Foundation only, no UI. It holds the round model, the store, image sizing, the note parser, the manifest and prompt writers, and the feature flag registry.
 - `Packages/JevKit/`: fork-only, no UI. The Jev base (#36): the TypeSafe client, typed request content and answers, the job interface and registry, the background job runner, and the `jev.json` and refined-file writer. It depends on FeedbackKit. Spec: `docs/superpowers/specs/2026-10-24-jev-base-design.md`.
+- `Packages/SupportKit/`: fork-only. Reduced support archives, local privacy checks, and the fixed-host feedback transport. The transport runs only after Submit with `supportSubmission` on. This flag starts off in both channels.
 
 ## Build
 
@@ -42,8 +43,9 @@ xcodebuild -project Capso.xcodeproj -scheme Capso -configuration Debug CODE_SIGN
 
 ### Local only
 
-- Only the Jev package (`Packages/JevKit`) makes outbound requests. It calls only `https://api.typesafe.ai`. It runs only when `jevBase` and a Jev feature flag are on, and only in a dev build (Drew, 2026-10-24).
-- All other feedback code stays local: no network code, no outbound requests, and no sockets. `NetworkSourceScanTests` in JevKit fails on network code anywhere else in `App/Feedback`, `Packages/FeedbackKit`, or `Packages/JevKit`.
+- Two narrow network paths exist (Drew, 2026-10-26). JevKit calls only `https://api.typesafe.ai`, only with `jevBase` and a Jev feature on, only in dev builds. SupportKit calls only `https://feedback.nextshot.dev`, only after the user presses Submit with `supportSubmission` on. It uses an ephemeral URL session and refuses redirects.
+- All other feedback code stays local: no network code, outbound requests, or sockets. `NetworkSourceScanTests` covers `App/Feedback`, FeedbackKit, JevKit, and SupportKit. Only the exact transport and endpoint files have exceptions. Never add upload code to JevKit or reuse its consent flags for support submissions.
+- A support submission uses a separate reduced schema. It excludes clean images, OCR fields, window-title fields, source filenames, generated prompts, and Jev files. Visible screenshots and notes can still hold private data. Local screening runs before an upload. The server must complete all required checks before releasing rebuilt files.
 - Reviewer text (Drew's notes) is the only data that leaves the Mac by default. Screen text needs `jevSendScreenText`, and images need `jevSendImages`. Every value in a Jev request carries its kind, and the runner refuses a request with a kind that has no consent.
 - Nextshot's TypeSafe key is the Keychain item `TYPESAFE_API_KEY_NEXTSHOT`. It is never written to a file, a log, or a DMG.
 - Handle any URL scheme in-process.
