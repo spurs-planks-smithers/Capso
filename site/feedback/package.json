@@ -1,0 +1,1 @@
+{"name":"nextshot-feedback","private":true,"type":"module","scripts":{"test":"node --test test/*.test.js","check":"wrangler deploy --dry-run --outdir build/worker"},"dependencies":{"@cloudflare/containers":"0.3.7","jose":"6.2.13","postal-mime":"4.1.4"},"devDependencies":{"wrangler":"4.153.0"}}

@@ -1,0 +1,126 @@
+{
+  "name": "nextshot-feedback",
+  "account_id": "2afca1b8aab7ec4024bdb7cb2fec47c0",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-10-26",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "workers_dev": false,
+  "preview_urls": false,
+  "assets": {
+    "directory": "public",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "vars": {
+    "INTAKE_ENABLED": "false",
+    "NATIVE_ENABLED": "false",
+    "PROCESSING_ENABLED": "false",
+    "AI_SCREENING_ENABLED": "false",
+    "EMAIL_ENABLED": "false",
+    "NOTIFICATIONS_ENABLED": "false",
+    "TURNSTILE_SITE_KEY": "",
+    "ACCESS_TEAM_DOMAIN": "",
+    "ACCESS_AUD": ""
+  },
+  "ai": {
+    "binding": "AI"
+  },
+  "r2_buckets": [
+    {
+      "binding": "RAW",
+      "bucket_name": "nextshot-feedback-raw"
+    },
+    {
+      "binding": "REBUILT",
+      "bucket_name": "nextshot-feedback-rebuilt"
+    },
+    {
+      "binding": "SIGNATURES",
+      "bucket_name": "nextshot-feedback-signatures"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "nextshot-feedback",
+      "database_id": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "JOBS",
+        "queue": "nextshot-feedback-scan"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "nextshot-feedback-scan",
+        "max_batch_size": 1,
+        "max_batch_timeout": 5,
+        "max_retries": 2,
+        "dead_letter_queue": "nextshot-feedback-dead",
+        "max_concurrency": 1
+      }
+    ]
+  },
+  "containers": [
+    {
+      "class_name": "Scanner",
+      "image": "./scanner/Dockerfile",
+      "instance_type": "standard-2",
+      "max_instances": 1
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "SCANNER",
+        "class_name": "Scanner"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "Scanner"
+      ]
+    }
+  ],
+  "send_email": [
+    {
+      "name": "CONTACT_NOTIFY",
+      "destination_address": "drewschulz1@gmail.com"
+    }
+  ],
+  "triggers": {
+    "crons": [
+      "17 * * * *"
+    ]
+  },
+  "limits": {
+    "cpu_ms": 30000
+  },
+  "observability": {
+    "enabled": false
+  },
+  "routes": [
+    {
+      "pattern": "feedback.nextshot.dev",
+      "custom_domain": true
+    }
+  ],
+  "ratelimits": [
+    {
+      "name": "EDGE_LIMITER",
+      "namespace_id": "100117",
+      "simple": {
+        "limit": 60,
+        "period": 60
+      }
+    }
+  ]
+}
