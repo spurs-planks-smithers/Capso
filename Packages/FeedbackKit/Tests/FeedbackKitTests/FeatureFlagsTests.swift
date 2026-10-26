@@ -28,7 +28,7 @@ private func resolve(_ channel: BuildChannel, override: String?) -> FlagState {
 
 @Suite("FeatureFlags")
 struct FeatureFlagsTests {
-    @Test("Lists the twenty-four flags with their issue numbers")
+    @Test("Lists the twenty-five flags with their issue numbers")
     func registryContents() {
         #expect(FeatureFlag.allCases.map(\.rawValue) == [
             "jevBase", "noteCoach", "noteCoachVague", "noteCoachQuestion", "noteCoachEmpty",
@@ -36,11 +36,11 @@ struct FeatureFlagsTests {
             "dupesConflicts", "dupesMerge", "dupesConflict",
             "oneBreath", "promptLanes", "lanesOrder", "lanesSplit", "dataGuard",
             "dataGuardInjection", "dataGuardContact", "dataGuardNumbers", "dataGuardSecrets", "dataGuardFaces",
-            "jevSendImages", "jevSendScreenText", "zipHandoff",
+            "jevSendImages", "jevSendScreenText", "zipHandoff", "supportSubmission",
         ])
         // A sub-flag carries its parent's issue. The two consent flags belong
         // to the Jev base, #36.
-        #expect(FeatureFlag.allCases.map(\.spec.issue) == [36, 37, 37, 37, 37, 38, 38, 38, 39, 39, 39, 40, 69, 69, 69, 70, 70, 70, 70, 70, 70, 36, 36, 85])
+        #expect(FeatureFlag.allCases.map(\.spec.issue) == [36, 37, 37, 37, 37, 38, 38, 38, 39, 39, 39, 40, 69, 69, 69, 70, 70, 70, 70, 70, 70, 36, 36, 85, 0])
     }
 
     @Test("The lane sub-flags sit right after promptLanes, carry its issue, and are dev-only and off by default")
@@ -155,7 +155,7 @@ struct FeatureFlagsTests {
     }
 
     /// Flags that are not Jev features. They may turn on in a release build.
-    private static let nonJevFlags: Set<FeatureFlag> = [.zipHandoff]
+    private static let nonJevFlags: Set<FeatureFlag> = [.zipHandoff, .supportSubmission]
 
     @Test("The zip handoff flag is not dev-only and starts off")
     func zipHandoffFlag() {

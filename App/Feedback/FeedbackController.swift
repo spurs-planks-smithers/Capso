@@ -17,9 +17,9 @@ enum FeedbackLog {
 }
 
 /// Fork: owns feedback rounds. Each saved capture goes into the active
-/// round's folder under `defaultRootURL`. This code makes no network calls.
-/// It tells `FeedbackJev` when a capture is ready. Only JevKit sends a
-/// request, and only with Jev flags on.
+/// round's folder under `defaultRootURL`. Ordinary capture stays local.
+/// JevKit sends only with Jev flags on. SupportKit sends only after an
+/// explicit Submit action and local privacy checks.
 @MainActor
 final class FeedbackController {
     static let shared = FeedbackController()
@@ -58,6 +58,7 @@ final class FeedbackController {
     private var basket = FeedbackBasket()
     /// Zip Round and Zip N Selected (#85). Made in `start`.
     private var zip: FeedbackZip?
+    private var supportSubmission: FeedbackSupportSubmission?
     private let quickLook = FeedbackQuickLook()
     /// The Recent list as read from disk. The menu asks for it on every open
     /// and every submenu open. The cache decodes a `feedback.json` only when
@@ -146,6 +147,12 @@ final class FeedbackController {
             showToast: { [weak self] message in self?.showToast(message, screen: nil) },
             showShare: { [weak self] url in self?.statusItem.showSharePicker(for: url) },
             report: { [weak self] error, context in self?.report(error, context: context) }
+        )
+        supportSubmission = FeedbackSupportSubmission(
+            rootURL: store.rootURL,
+            waitForSaves: { [weak self] in await self?.waitForSaves() },
+            captureIsOpen: { [weak self] in self?.hasOpenCapture ?? true },
+            showToast: { [weak self] message in self?.showToast(message, screen: nil) }
         )
         connectHistoryMenu()
         notePanel.onClosed = { [weak self] in
@@ -383,12 +390,16 @@ final class FeedbackController {
     /// note panel before its last answer is saved. The menu rows still end
     /// the round, because a click is deliberate. C and O change nothing, so
     /// they stay active.
+    private var hasOpenCapture: Bool {
+        (selectionPhase != .none && captureCoordinator?.isCaptureSelectionActive == true)
+            || inlineEditor != nil || fullEditor != nil || notePanel.isOpen
+    }
+
     private func roundEndKeyAllowed() -> Bool {
         // `selectionPhase` stays `.starting` when the coordinator does not
         // start the selection, and then no end notification comes. The
         // coordinator's live state confirms that a selection is up.
-        let selecting = selectionPhase != .none && captureCoordinator?.isCaptureSelectionActive == true
-        let captureOpen = selecting || inlineEditor != nil || fullEditor != nil || notePanel.isOpen
+        let captureOpen = hasOpenCapture
         if captureOpen {
             FeedbackLog.logger.notice("round end key refused: a capture is open")
             NSSound.beep()
@@ -435,8 +446,12 @@ final class FeedbackController {
                 basket: self.basket,
                 rootURL: self.store.rootURL,
                 zipEnabled: Flags.isOn(.zipHandoff),
+                supportSubmissionEnabled: Flags.isOn(.supportSubmission),
                 newerSchemaCount: listing.newerSchema.count
             )
+        }
+        statusItem.onSubmitRecentRound = { [weak self] round in
+            self?.supportSubmission?.show(round: round)
         }
         statusItem.onZipRecentRound = { [weak self] round in
             FeedbackLog.logger.notice("menu: Zip Round")
