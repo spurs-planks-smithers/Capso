@@ -10,6 +10,8 @@ Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This for
 
 ### Added
 
+- Optional screenshot copy with Option+Shift+4, Annotate Last Screenshot with Option+Shift+A, and combined image history with explicit Add to Round. The capability stays off by default during Dev review.
+
 - Public website feedback for bug reports, feature requests, questions, and optional screenshots or Nextshot exports, with private screening and owner review.
 - Native round submission for 0.5.0, activated through the release checklist after the live transport and Dev app review.
 

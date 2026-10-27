@@ -34,7 +34,9 @@ final class AnnotationEditorWindow: NSPanel, NSWindowDelegate {
         onSave: @escaping (CGImage) -> Bool,
         onCopy: @escaping (CGImage) -> Void,
         onPin: @escaping (CGImage, CGRect?) -> Void,
-        onClose: @escaping () -> Void
+        onClose: @escaping () -> Void,
+        copyResult: ((CGImage) -> Bool)? = nil,
+        onAddToRound: ((CGImage) -> Void)? = nil
     ) {
         let imgW = CGFloat(image.width)
         let imgH = CGFloat(image.height)
@@ -121,13 +123,18 @@ final class AnnotationEditorWindow: NSPanel, NSWindowDelegate {
                 }
             },
             onCopy: { [weak self] rendered in
-                onCopy(rendered)
+                if let copyResult {
+                    guard copyResult(rendered) else { return }
+                } else {
+                    onCopy(rendered)
+                }
                 MainActor.assumeIsolated {
                     self?.close()
                 }
             },
             onPin: { [weak self] rendered in
                 MainActor.assumeIsolated {
+                    guard self?.document.allowsPin == true else { return }
                     onPin(rendered, self?.frame)
                     self?.close()
                 }
@@ -144,7 +151,8 @@ final class AnnotationEditorWindow: NSPanel, NSWindowDelegate {
             },
             onCancel: { [weak self] in
                 self?.requestClose()
-            }
+            },
+            onAddToRound: onAddToRound
         )
 
         let hostingView = NSHostingView(rootView: view)

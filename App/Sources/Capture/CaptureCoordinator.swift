@@ -44,6 +44,7 @@ final class CaptureCoordinator {
 
     var isCaptureSelectionActive: Bool {
         isSelectionFlowStarting
+            || feedbackRequestID != nil
             || !overlayWindows.isEmpty
             || allInOneToolbarWindow != nil
             || selfTimerHUD != nil
@@ -58,6 +59,9 @@ final class CaptureCoordinator {
 
     /// Fork: receives `.feedback` captures. Set by `FeedbackController` (App/Feedback).
     var feedbackSink: ((CaptureResult) -> Void)?
+    /// A request remains pending while fallback image capture awaits its result.
+    private var feedbackRequestID: UUID?
+    var feedbackCaptureCancelled: (() -> Void)?
 
     /// Post-capture action override. When set, ignores Settings toggles.
     private(set) var pendingAction: PostCaptureAction = .default
@@ -432,15 +436,27 @@ final class CaptureCoordinator {
     }
 
     /// Fork: area capture whose result goes to `feedbackSink`.
-    func captureAreaForFeedback() {
+    @discardableResult
+    func captureAreaForFeedback() -> Bool {
+        guard feedbackRequestID == nil, !isCaptureSelectionActive else { return false }
         startAreaCapture(action: .feedback)
+        guard isSelectionFlowStarting else { return false }
+        feedbackRequestID = UUID()
+        return true
+    }
+
+    private func cancelFeedbackCapture(requestID: UUID? = nil) {
+        guard let current = feedbackRequestID, requestID == nil || requestID == current else { return }
+        feedbackRequestID = nil
+        pendingAction = .default
+        feedbackCaptureCancelled?()
     }
 
     private func startAreaCapture(action: PostCaptureAction) {
         if !capabilities.standaloneCapture {
             guard case .feedback = action else { return }
         }
-        guard !isCaptureSelectionActive else { return }
+        guard !isCaptureSelectionActive, feedbackRequestID == nil else { return }
         pendingAction = action
         isSelectionFlowStarting = true
         rememberSourceApplication()
@@ -461,7 +477,7 @@ final class CaptureCoordinator {
     }
 
     func captureFullscreen() {
-        guard capabilities.standaloneCapture else { return }
+        guard capabilities.standaloneCapture, feedbackRequestID == nil else { return }
         rememberSourceApplication()
         // Capture the display the user is currently looking at (the one
         // containing the mouse cursor), not unconditionally the primary.
@@ -542,7 +558,7 @@ final class CaptureCoordinator {
     }
 
     func captureWindow() {
-        guard capabilities.standaloneCapture else { return }
+        guard capabilities.standaloneCapture, feedbackRequestID == nil else { return }
         isSelectionFlowStarting = true
         pendingSourceApplication = nil
         // Enumerate windows first (async, no focus change), then freeze the
@@ -590,7 +606,7 @@ final class CaptureCoordinator {
     }
 
     func replayLastCapture() {
-        guard capabilities.standaloneCapture else { return }
+        guard capabilities.standaloneCapture, feedbackRequestID == nil else { return }
         guard let selection = settings.lastCaptureSelection else { return }
         switch selection {
         case let .area(x, y, width, height, screenID):
@@ -659,12 +675,14 @@ final class CaptureCoordinator {
                 self?.performMultiWindowCapture(windowIDs: windowIDs)
             }
             overlay.onCancelled = { [weak self] in
+                self?.cancelFeedbackCapture()
                 self?.pendingSourceApplication = nil
                 self?.dismissOverlay()
             }
             overlay.activate(mode: mode)
             overlayWindows.append(overlay)
         }
+        if overlayWindows.isEmpty { cancelFeedbackCapture() }
     }
 
     private func showFrozenAllInOneOverlay() {
@@ -706,6 +724,7 @@ final class CaptureCoordinator {
                 self?.performMultiWindowCapture(windowIDs: windowIDs)
             }
             overlay.onCancelled = { [weak self] in
+                self?.cancelFeedbackCapture()
                 self?.pendingSourceApplication = nil
                 self?.dismissOverlay()
             }
@@ -982,6 +1001,8 @@ final class CaptureCoordinator {
                     areaSelected(rect, screen)
                 } else if let result = self.frozenAreaResult(rect: rect, screen: screen, frozenImage: frozenImage) {
                     self.handleCaptureResult(result)
+                } else {
+                    self.cancelFeedbackCapture()
                 }
             }
             overlay.onWindowSelected = { [weak self] windowID in
@@ -1004,6 +1025,7 @@ final class CaptureCoordinator {
                 self?.performMultiWindowCapture(windowIDs: windowIDs)
             }
             overlay.onCancelled = { [weak self] in
+                self?.cancelFeedbackCapture()
                 self?.pendingSourceApplication = nil
                 self?.pendingAction = .default // Fork: a cancelled selection must not pass its action to the next capture
                 self?.dismissOverlay()
@@ -1390,6 +1412,7 @@ final class CaptureCoordinator {
     }
 
     private func performAreaCapture(rect: CGRect, screen: NSScreen) {
+        let requestID = feedbackRequestID
         Task {
             do {
                 let screenFrame = screen.frame
@@ -1407,8 +1430,13 @@ final class CaptureCoordinator {
                     displayID: displayID,
                     showsCursor: settings.screenshotShowsCursor
                 )
+                if let requestID {
+                    guard feedbackRequestID == requestID else { return }
+                    pendingAction = .feedback
+                }
                 handleCaptureResult(result)
             } catch {
+                if let requestID { cancelFeedbackCapture(requestID: requestID) }
                 print("Area capture failed: \(error)")
             }
         }
@@ -1663,6 +1691,7 @@ final class CaptureCoordinator {
         case .inlineAnnotate:
             openInlineAnnotationEditor(outputResult, anchorScreen: screenFor(result: result))
         case .feedback:
+            feedbackRequestID = nil
             feedbackSink?(outputResult)
         case .ocr:
             ocrCoordinator?.startVisualOCR(image: result.image, anchorScreen: screenFor(result: result))

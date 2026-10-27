@@ -21,6 +21,7 @@ struct AnnotationEditorView: View {
     let onDragStarted: () -> Void
     let onDragEnded: () -> Void
     let onCancel: () -> Void
+    let onAddToRound: ((CGImage) -> Void)?
 
     /// The working image shown in the canvas. Starts equal to
     /// `initialSourceImage` and is swapped if a crop commit includes a
@@ -41,7 +42,8 @@ struct AnnotationEditorView: View {
         onPin: @escaping (CGImage) -> Void,
         onDragStarted: @escaping () -> Void,
         onDragEnded: @escaping () -> Void,
-        onCancel: @escaping () -> Void
+        onCancel: @escaping () -> Void,
+        onAddToRound: ((CGImage) -> Void)? = nil
     ) {
         self.initialSourceImage = sourceImage
         self.document = document
@@ -57,6 +59,7 @@ struct AnnotationEditorView: View {
         self.onDragStarted = onDragStarted
         self.onDragEnded = onDragEnded
         self.onCancel = onCancel
+        self.onAddToRound = onAddToRound
         self._sourceImage = State(initialValue: sourceImage)
     }
 
@@ -92,6 +95,9 @@ struct AnnotationEditorView: View {
     /// re-editing via double-click).
     @State private var isEditingText = false
     @State private var beautifySettings = BeautifySettings.saved()
+    private var effectiveBeautifySettings: BeautifySettings {
+        document.allowsCanvasResize ? beautifySettings : BeautifySettings()
+    }
     @State private var showBeautifyPanel = false
     @State private var refreshTrigger = 0
     @State private var zoomScale: CGFloat = 1.0
@@ -113,7 +119,7 @@ struct AnnotationEditorView: View {
     /// The image, grown to hold annotations drawn past its edges. A crop turns growing off.
     private var canvasRect: CGRect {
         let imageSize = CGSize(width: sourceImage.width, height: sourceImage.height)
-        guard document.cropRect == nil else { return CGRect(origin: .zero, size: imageSize) }
+        guard document.allowsCanvasResize, document.cropRect == nil else { return CGRect(origin: .zero, size: imageSize) }
         return AnnotationRenderer.canvasRect(imageSize: imageSize, objects: document.objects)
     }
 
@@ -138,15 +144,15 @@ struct AnnotationEditorView: View {
     }
 
     private var previewContentWidth: CGFloat {
-        beautifySettings.isEnabled ? effectiveImageWidth + beautifySettings.outerInset * 2 : effectiveImageWidth
+        effectiveBeautifySettings.isEnabled ? effectiveImageWidth + effectiveBeautifySettings.outerInset * 2 : effectiveImageWidth
     }
 
     private var previewContentHeight: CGFloat {
-        beautifySettings.isEnabled ? effectiveImageHeight + beautifySettings.outerInset * 2 : effectiveImageHeight
+        effectiveBeautifySettings.isEnabled ? effectiveImageHeight + effectiveBeautifySettings.outerInset * 2 : effectiveImageHeight
     }
 
     private var previewOuterInset: CGFloat {
-        beautifySettings.isEnabled ? beautifySettings.outerInset * zoomScale : 0
+        effectiveBeautifySettings.isEnabled ? effectiveBeautifySettings.outerInset * zoomScale : 0
     }
 
     private var previewWidth: CGFloat {
@@ -310,7 +316,7 @@ struct AnnotationEditorView: View {
             toolbar
             Divider()
 
-            if showBeautifyPanel {
+            if document.allowsCanvasResize && showBeautifyPanel {
                 BeautifyPanel(settings: beautifySettingsBinding)
                 Divider()
             }
@@ -350,11 +356,16 @@ struct AnnotationEditorView: View {
             onDragEnded: onDragEnded,
             isDragDisabled: isEditingText,
             onCancel: onCancel,
-            onCrop: { isCropMode = true },
+            onCrop: { if document.allowsCanvasResize { isCropMode = true } },
             presets: presets,
             onApplyPreset: applyPreset,
             onSavePreset: saveCurrentStyleAsPreset,
-            onRemovePreset: removePreset
+            onRemovePreset: removePreset,
+            allowsCanvasResize: document.allowsCanvasResize,
+            allowsPin: document.allowsPin,
+            onAddToRound: onAddToRound.map { action in
+                { renderForRound(action) }
+            }
         )
     }
 
@@ -384,7 +395,7 @@ struct AnnotationEditorView: View {
 
     private var previewCanvas: some View {
         ZStack {
-            if beautifySettings.isEnabled {
+            if effectiveBeautifySettings.isEnabled {
                 beautifyBackground
                     .frame(width: previewWidth, height: previewHeight)
             }
@@ -392,8 +403,8 @@ struct AnnotationEditorView: View {
             annotationCanvas
         }
         .frame(
-            width: beautifySettings.isEnabled ? previewWidth : effectiveImageWidth * zoomScale,
-            height: beautifySettings.isEnabled ? previewHeight : effectiveImageHeight * zoomScale
+            width: effectiveBeautifySettings.isEnabled ? previewWidth : effectiveImageWidth * zoomScale,
+            height: effectiveBeautifySettings.isEnabled ? previewHeight : effectiveImageHeight * zoomScale
         )
     }
 
@@ -462,19 +473,19 @@ struct AnnotationEditorView: View {
     }
 
     private var canvasCornerRadius: CGFloat {
-        beautifySettings.isEnabled ? beautifySettings.clampedCornerRadius * zoomScale : 0
+        effectiveBeautifySettings.isEnabled ? effectiveBeautifySettings.clampedCornerRadius * zoomScale : 0
     }
 
     private var canvasShadowColor: Color {
-        .black.opacity(beautifySettings.isEnabled && beautifySettings.shadowEnabled ? 0.25 : 0)
+        .black.opacity(effectiveBeautifySettings.isEnabled && effectiveBeautifySettings.shadowEnabled ? 0.25 : 0)
     }
 
     private var canvasShadowRadius: CGFloat {
-        beautifySettings.clampedShadowRadius * zoomScale
+        effectiveBeautifySettings.clampedShadowRadius * zoomScale
     }
 
     private var canvasShadowOffsetY: CGFloat {
-        beautifySettings.isEnabled && beautifySettings.shadowEnabled ? 6 * zoomScale : 0
+        effectiveBeautifySettings.isEnabled && effectiveBeautifySettings.shadowEnabled ? 6 * zoomScale : 0
     }
 
     private var beautifySettingsBinding: Binding<BeautifySettings> {
@@ -493,6 +504,7 @@ struct AnnotationEditorView: View {
     }
 
     private func commitCrop(newImage: CGImage?, newRect: CGRect?, newOutputSize: CGSize?) {
+        guard document.allowsCanvasResize else { return }
         if let newImage {
             sourceImage = newImage
             document.replaceImage(size: CGSize(width: newImage.width, height: newImage.height))
@@ -663,14 +675,14 @@ struct AnnotationEditorView: View {
             sourceImage: sourceImage,
             objects: document.objects,
             cropRect: document.cropRect,
-            expandsCanvas: true
+            expandsCanvas: document.allowsCanvasResize
         ) else {
             return nil
         }
-        guard let rendered = BeautifyRenderer.render(image: annotated, settings: beautifySettings) else {
+        guard let rendered = BeautifyRenderer.render(image: annotated, settings: effectiveBeautifySettings) else {
             return nil
         }
-        guard let outputSize else { return rendered }
+        guard document.allowsCanvasResize, let outputSize else { return rendered }
 
         let width = max(1, Int(outputSize.width.rounded()))
         let height = max(1, Int(outputSize.height.rounded()))
@@ -765,7 +777,17 @@ struct AnnotationEditorView: View {
         }
     }
 
+    private func renderForRound(_ action: @escaping (CGImage) -> Void) {
+        commitEditingTrigger += 1
+        DispatchQueue.main.async {
+            if let rendered = renderedOutputImage() {
+                action(rendered)
+            }
+        }
+    }
+
     private func pin() {
+        guard document.allowsPin else { return }
         commitEditingTrigger += 1
         DispatchQueue.main.async {
             if let rendered = renderedOutputImage() {

@@ -13,6 +13,7 @@ public struct FeedbackCaptureInput: Sendable {
     public var windowTitle: String?
     public var ocrText: String?
     public var marks: [FeedbackMark]
+    public var note: String?
 
     public init(
         annotatedPNG: Data,
@@ -22,7 +23,8 @@ public struct FeedbackCaptureInput: Sendable {
         sourceApp: String? = nil,
         windowTitle: String? = nil,
         ocrText: String? = nil,
-        marks: [FeedbackMark] = []
+        marks: [FeedbackMark] = [],
+        note: String? = nil
     ) {
         self.annotatedPNG = annotatedPNG
         self.cleanPNG = cleanPNG
@@ -32,6 +34,7 @@ public struct FeedbackCaptureInput: Sendable {
         self.windowTitle = windowTitle
         self.ocrText = ocrText
         self.marks = marks
+        self.note = note
     }
 }
 
@@ -176,6 +179,7 @@ public actor FeedbackRoundStore {
             // Screen text is cleaned once here, so every bundle file gets clean text.
             sourceApp: ScreenText.field(input.sourceApp),
             windowTitle: ScreenText.field(input.windowTitle),
+            note: input.note,
             ocrText: ScreenText.field(input.ocrText, singleLine: false, maxScalars: ScreenText.maxBlockLength),
             marks: input.marks.map { mark in
                 var mark = mark

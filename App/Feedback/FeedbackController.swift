@@ -31,6 +31,10 @@ final class FeedbackController {
 
     private weak var captureCoordinator: CaptureCoordinator?
     private var settings: AppSettings?
+    private var screenshot: ScreenshotWorkflow?
+    private var capturePurpose: ScreenshotCapturePurpose?
+    private var clipboardRevision: UInt64 = 0
+    private var editorResult: CaptureResult?
     private var inlineEditor: InlineAnnotationEditorWindow?
     private var fullEditor: AnnotationEditorWindow?
     private var keyMonitor: Any?
@@ -111,8 +115,50 @@ final class FeedbackController {
     func start(captureCoordinator: CaptureCoordinator, settings: AppSettings) {
         self.captureCoordinator = captureCoordinator
         self.settings = settings
+        if Capabilities.current.screenshotCopy {
+            do {
+                screenshot = try ScreenshotWorkflow(settings: settings, rootURL: store.rootURL,
+                    rounds: { [weak self] in
+                        guard let self else { return [] }
+                        var rounds = self.historyListing().rounds
+                        if let active = await self.store.activeRound {
+                            rounds.removeAll { $0.folderName == active.folderName }
+                            rounds.append(active)
+                        }
+                        return rounds
+                    }, promote: { [weak self] input in
+                        guard let self else { throw CocoaError(.userCancelled) }
+                        try await self.promoteScreenshot(input)
+                    }, imageIntent: { [weak self] in self?.clipboardRevision &+= 1 },
+                    toast: { [weak self] text in self?.showToast(text, screen: nil) })
+            } catch { report(error, context: "Screenshot history could not start") }
+            if FeedbackShortcutGuard.isAvailable(.screenshotCapture) {
+                KeyboardShortcuts.onKeyDown(for: .screenshotCapture) { [weak self] in self?.captureScreenshot() }
+            }
+            if FeedbackShortcutGuard.isAvailable(.screenshotAnnotate) {
+                KeyboardShortcuts.onKeyDown(for: .screenshotAnnotate) { [weak self] in self?.annotateScreenshot() }
+            }
+            statusItem.onScreenshotCapture = { [weak self] in self?.captureScreenshot() }
+            statusItem.onScreenshotAnnotate = { [weak self] in self?.annotateScreenshot() }
+            statusItem.onScreenshotHistory = { [weak self] in self?.screenshot?.showHistory() }
+        }
+        captureCoordinator.feedbackCaptureCancelled = { [weak self] in
+            self?.capturePurpose = nil
+            self?.selectionPhase = .none
+            self?.updateHelp()
+        }
         captureCoordinator.feedbackSink = { [weak self] result in
-            self?.openEditor(for: result)
+            guard let self else { return }
+            let purpose = self.capturePurpose
+            self.capturePurpose = nil
+            if purpose == .instantScreenshot, let screenshot = self.screenshot {
+                let underneath = result.windowName == nil ? FeedbackWindowTitle.window(for: result) : nil
+                let identified = CaptureResult(image: result.image, mode: result.mode, captureRect: result.captureRect,
+                    windowName: result.windowName ?? underneath?.title, appName: underneath?.ownerName ?? result.appName,
+                    appBundleIdentifier: underneath == nil ? result.appBundleIdentifier : nil,
+                    timestamp: result.timestamp, displayID: result.displayID)
+                screenshot.copyFresh(identified.image, result: identified, objects: [])
+            } else { self.openEditor(for: result) }
         }
         KeyboardShortcuts.onKeyDown(for: .feedbackCapture) { [weak self] in
             FeedbackLog.logger.notice("hotkey pressed")
@@ -184,6 +230,44 @@ final class FeedbackController {
         jev.warmUp()
     }
 
+    private func captureScreenshot() {
+        guard screenshot != nil, !hasOpenCapture else { NSSound.beep(); return }
+        capturePurpose = .instantScreenshot
+        guard captureCoordinator?.captureAreaForFeedback() == true else { capturePurpose = nil; return }
+        selectionPhase = .starting
+        watchSelection()
+    }
+
+    private func annotateScreenshot() {
+        guard !hasOpenCapture else { NSSound.beep(); return }
+        screenshot?.annotateLatest()
+    }
+
+    private func promoteScreenshot(_ input: FeedbackPromotionInput) async throws {
+        guard inlineEditor == nil, fullEditor == nil, !notePanel.isOpen,
+              captureCoordinator?.isCaptureSelectionActive != true else { throw CocoaError(.userCancelled) }
+        let result = CaptureResult(image: input.clean, mode: .area,
+            captureRect: CGRect(x: 0, y: 0, width: input.clean.width, height: input.clean.height),
+            windowName: input.metadata.windowTitle, appName: input.metadata.appName,
+            timestamp: input.metadata.capturedAt)
+        guard let task = save(rendered: input.rendered, objects: [], result: result, promotion: input),
+              await task.value != nil else { throw CocoaError(.fileWriteUnknown) }
+    }
+
+    private func writeScreenshotMetadata(capture index: Int, reliable: Bool? = nil) async throws {
+        guard let round = await store.activeRound,
+              let capture = round.captures.first(where: { $0.index == index }) else { return }
+        let url = store.rootURL.appendingPathComponent(round.folderName)
+            .appendingPathComponent("\(capture.fileStem)-screenshot.json")
+        let old = (try? Data(contentsOf: url)).flatMap { try? JSONDecoder().decode(ScreenshotMetadata.self, from: $0) }
+        let safe = reliable ?? old?.hasReliableBadges ?? false
+        let metadata = ScreenshotMetadata(id: old?.id ?? UUID(), createdAt: capture.capturedAt,
+            capturedAt: capture.capturedAt, size: capture.size, appName: capture.sourceApp,
+            windowTitle: capture.windowTitle, marks: capture.marks, note: capture.note,
+            hasReliableCleanImage: safe, hasReliableBadges: safe)
+        try JSONEncoder().encode(metadata).write(to: url, options: .atomic)
+    }
+
     // MARK: - Round actions (hotkey, status menu, App Intents)
 
     @discardableResult
@@ -197,6 +281,10 @@ final class FeedbackController {
     /// "feedback" when none is active, so a screenshot copied with Esc leaves
     /// no empty round behind.
     func capture() {
+        if Capabilities.current.screenshotCopy {
+            guard !hasOpenCapture else { NSSound.beep(); return }
+            capturePurpose = .feedback
+        }
         FeedbackLog.logger.notice("area capture requested")
         let previousPhase = selectionPhase
         let previousScreen = helpScreen
@@ -204,7 +292,7 @@ final class FeedbackController {
         help.hide()
         selectionPhase = .starting
         helpScreen = NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) } ?? NSScreen.main
-        captureCoordinator?.captureAreaForFeedback()
+        let accepted = captureCoordinator?.captureAreaForFeedback() == true
         // The coordinator starts no selection when one is already up, or
         // when it is gone. Then no end notification comes, and `.starting`
         // would hide the help box until a later capture (#27). A selection
@@ -212,8 +300,9 @@ final class FeedbackController {
         // returns. When one was already up, the phase it had comes back, so
         // a selection of ours still shows its keys. The screen comes back
         // too, so a pointer on another display does not move the box (#28).
-        if selectionWasUp || captureCoordinator?.isCaptureSelectionActive != true {
+        if !accepted {
             FeedbackLog.logger.notice("area capture not started: a selection is up or the coordinator is gone")
+            capturePurpose = nil
             selectionPhase = selectionWasUp ? previousPhase : .none
             helpScreen = previousScreen
             updateHelp()
@@ -259,6 +348,7 @@ final class FeedbackController {
     /// Order, or Lanes section, built after that wait.
     @discardableResult
     func copyPromptAndEndRound() async throws -> String {
+        clipboardRevision &+= 1
         let round = try await endRound()
         let folder = store.rootURL.appendingPathComponent(round.folderName, isDirectory: true)
         await jev.settle(folderName: round.folderName)
@@ -391,8 +481,9 @@ final class FeedbackController {
     /// the round, because a click is deliberate. C and O change nothing, so
     /// they stay active.
     private var hasOpenCapture: Bool {
-        (selectionPhase != .none && captureCoordinator?.isCaptureSelectionActive == true)
-            || inlineEditor != nil || fullEditor != nil || notePanel.isOpen
+        captureCoordinator?.isCaptureSelectionActive == true
+            || inlineEditor != nil || fullEditor != nil || notePanel.isOpen || screenshot?.editorIsOpen == true || screenshot?.isBusy == true
+            || (Capabilities.current.screenshotCopy && capturePurpose != nil)
     }
 
     private func roundEndKeyAllowed() -> Bool {
@@ -553,6 +644,7 @@ final class FeedbackController {
     /// either way. It clears before the repair, so a second click while the
     /// repair runs finds an empty basket and copies nothing.
     private func copySelected() {
+        clipboardRevision &+= 1
         let selection = basket
         basket.removeAll()
         Task { @MainActor in
@@ -575,6 +667,7 @@ final class FeedbackController {
     }
 
     private func copyRecentRoundPrompt(_ round: FeedbackRound) {
+        clipboardRevision &+= 1
         Task { @MainActor in
             await self.repairBundles(inFolders: [round.folderName])
             let folder = self.store.rootURL.appendingPathComponent(round.folderName, isDirectory: true)
@@ -655,6 +748,7 @@ final class FeedbackController {
     // MARK: - Editor
 
     private func openEditor(for captured: CaptureResult) {
+        editorResult = captured
         // Area captures carry no window title. Read the window under the
         // selection now, before the editor covers the screen.
         // The app name and window title must name the same window. The
@@ -719,6 +813,12 @@ final class FeedbackController {
                 self?.inlineEditor = nil
                 self?.removeKeyMonitor()
                 self?.updateHelp()
+            },
+            copyResult: screenshot == nil ? nil : { [weak self] image in
+                guard let self, let window = self.inlineEditor else { return false }
+                self.screenshot?.copyFresh(image, result: result, objects: window.document.objects,
+                                          close: { [weak window] in window?.close() })
+                return false
             }
         )
         inlineEditor?.show()
@@ -815,6 +915,10 @@ final class FeedbackController {
     /// The image itself, in the user's clipboard format, so it pastes into an
     /// email body. A failed copy keeps the editor open, so the capture is not lost.
     private func copyScreenshotAndClose(_ editor: InlineAnnotationEditorWindow, image: CGImage, screen: NSScreen) {
+        if let screenshot, let result = editorResult {
+            screenshot.copyFresh(image, result: result, objects: [], close: { [weak editor] in editor?.close() })
+            return
+        }
         let copied = ImageUtilities.copyToPasteboard(image, format: settings?.screenshotClipboardFormat ?? .png)
         FeedbackLog.logger.notice("Esc on an empty editor: screenshot copied \(copied)")
         guard copied else {
@@ -866,6 +970,12 @@ final class FeedbackController {
                 defaultTool.restore()
                 self?.fullEditor = nil
                 self?.updateHelp()
+            },
+            copyResult: screenshot == nil ? nil : { [weak self] image in
+                guard let self, let window = self.fullEditor else { return false }
+                self.screenshot?.copyFresh(image, result: result, objects: window.document.objects,
+                                          close: { [weak window] in window?.close() })
+                return false
             }
         )
         fullEditor?.show()
@@ -881,21 +991,38 @@ final class FeedbackController {
     /// before the capture is stored is held in `PendingAnswers` and saved
     /// right after. When the note panel finishes, the capture's prompt goes
     /// on the clipboard.
-    private func save(rendered: CGImage, objects: [any AnnotationObject], result: CaptureResult) {
+    @discardableResult
+    private func save(rendered: CGImage, objects: [any AnnotationObject], result: CaptureResult,
+                      promotion: FeedbackPromotionInput? = nil) -> Task<Int?, Never>? {
         FeedbackLog.logger.notice("save started, \(objects.count) marks")
         let source = PixelSize(width: rendered.width, height: rendered.height)
         let target = ImageSizing.resizedSize(source, limits: .feedbackExport)
         // Mark coordinates match the rendered image only when the editor kept
         // the capture's size. The inline editor never crops or grows the canvas.
         let sameGeometry = result.image.width == rendered.width && result.image.height == rendered.height
-        let marks = sameGeometry ? FeedbackMarkMapper.marks(from: objects, source: source, target: target) : []
+        let marks: [FeedbackMark]
+        if let promotion {
+            marks = promotion.metadata.marks.map { original in
+                var mark = original
+                let box = mark.box
+                mark.box = ImageSizing.scale(CGRect(x: box.x1, y: box.y1, width: box.x2 - box.x1, height: box.y2 - box.y1), from: source, to: target)
+                if let point = mark.point {
+                    mark.point = ImageSizing.scale(CGPoint(x: point.x, y: point.y), from: source, to: target)
+                }
+                return mark
+            }
+        } else {
+            marks = sameGeometry ? FeedbackMarkMapper.marks(from: objects, source: source, target: target) : []
+        }
 
         // The clean copy keeps Redact marks applied, so redacted content never
         // reaches the bundle. When marks cannot be mapped, the rendered image
         // is the clean copy too.
         let redactions = objects.filter { $0 is PixelateObject }
         let clean: CGImage
-        if !sameGeometry {
+        if let promotion {
+            clean = promotion.clean
+        } else if !sameGeometry {
             clean = rendered
         } else if redactions.isEmpty {
             clean = result.image
@@ -903,11 +1030,13 @@ final class FeedbackController {
             clean = redacted
         } else {
             report(CocoaError(.fileWriteUnknown), context: "Feedback capture was not saved: redaction failed")
-            return
+            return nil
         }
 
         // `self` is the app-lifetime singleton, so strong captures are safe.
         let pending = PendingAnswers()
+        pending.clipboardRevision = clipboardRevision
+        pending.inheritedNote = promotion?.metadata.note
         let name = FeedbackNaming.captureName(
             windowTitle: result.windowName,
             sourceApp: result.appName,
@@ -941,11 +1070,16 @@ final class FeedbackController {
                     capturedAt: result.timestamp,
                     sourceApp: result.appName,
                     windowTitle: result.windowName,
-                    marks: marks
+                    marks: marks,
+                    note: promotion?.metadata.note
                 ))
                 // File names hold window-title text, so the log keeps only the number.
                 FeedbackLog.logger.notice("capture \(capture.index) stored")
                 pending.captureIndex = capture.index
+                if Capabilities.current.screenshotCopy {
+                    try? await writeScreenshotMetadata(capture: capture.index,
+                        reliable: promotion?.metadata.hasReliableBadges ?? sameGeometry)
+                }
                 pending.folderName = await store.activeRound?.folderName
                 if let folderName = pending.folderName {
                     jev.captureStored(folderName: folderName, capture: capture.index)
@@ -959,6 +1093,7 @@ final class FeedbackController {
                 return capture.index
             } catch {
                 report(error, context: "Feedback capture was not saved")
+                if promotion != nil { notePanel.close() }
                 // The round may have started before the failure, so the
                 // menu must show it.
                 await refresh()
@@ -969,13 +1104,19 @@ final class FeedbackController {
         let screen = NSScreen.screens.first { $0.displayID == result.displayID }
         notePanel.show(
             title: name,
-            badges: Set(marks.compactMap(\.badge)).sorted(),
-            previews: circlePreviews(rendered: rendered, objects: sameGeometry ? objects : [], result: result),
+            badges: Set(marks.filter { promotion == nil || ($0.instruction?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true) }.compactMap(\.badge)).sorted(),
+            previews: circlePreviews(rendered: rendered, objects: sameGeometry ? objects : [], result: result,
+                                     inheritedMarks: promotion?.metadata.marks),
             overview: rendered,
             onAnswer: { step, text in
-                pending.answers.append((step, text))
+                let answer: String
+                if case .note = step, let inherited = pending.inheritedNote, !inherited.isEmpty {
+                    let newNote = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                    answer = newNote.isEmpty ? inherited : "Earlier note:\n\(inherited)\n\nNew note:\n\(newNote)"
+                } else { answer = text }
+                pending.answers.append((step, answer))
                 if let index = pending.captureIndex {
-                    pending.writes.append(Task { await self.saveAnswer(step, text, capture: index) })
+                    pending.writes.append(Task { await self.saveAnswer(step, answer, capture: index) })
                 }
             },
             onFinish: {
@@ -1015,9 +1156,11 @@ final class FeedbackController {
             } catch {
                 report(error, context: "Feedback screen text was not saved")
             }
+            if Capabilities.current.screenshotCopy { try? await writeScreenshotMetadata(capture: index) }
             await refresh()
         }
         saveTasks[saveID] = pending.screenText
+        return pending.stored
     }
 
     /// Jev starts when the notes are final (the note panel ended) and the
@@ -1045,6 +1188,7 @@ final class FeedbackController {
             NSSound.beep()
             return
         }
+        guard pending.clipboardRevision == clipboardRevision else { return }
         putOnClipboard(capture, in: round, screen: screen)
     }
 
@@ -1052,6 +1196,7 @@ final class FeedbackController {
     /// capture's prompt again, for when something else (such as a dictation
     /// tool) replaced the clipboard.
     func copyLastCapturePrompt() async {
+        clipboardRevision &+= 1
         guard let round = await store.activeRound, let capture = round.captures.last else {
             NSSound.beep()
             return
@@ -1067,6 +1212,7 @@ final class FeedbackController {
     }
 
     private func copyToClipboard(_ text: String, toast message: String, screen: NSScreen?) {
+        clipboardRevision &+= 1
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
         showToast(message, screen: screen)
@@ -1081,9 +1227,10 @@ final class FeedbackController {
 
     /// One crop of the annotated capture per circle, in the capture's own
     /// pixels, with about 150 points of context around each circle.
-    private func circlePreviews(rendered: CGImage, objects: [any AnnotationObject], result: CaptureResult) -> [Int: CGImage] {
+    private func circlePreviews(rendered: CGImage, objects: [any AnnotationObject], result: CaptureResult,
+                                inheritedMarks: [FeedbackMark]? = nil) -> [Int: CGImage] {
         let size = PixelSize(width: rendered.width, height: rendered.height)
-        let marks = FeedbackMarkMapper.marks(from: objects, source: size, target: size)
+        let marks = inheritedMarks ?? FeedbackMarkMapper.marks(from: objects, source: size, target: size)
         let pixelsPerPoint = max(Double(result.image.width) / max(Double(result.captureRect.width), 1), 1)
         let crops = PreviewCrop.cropsByBadge(
             marks: marks,
@@ -1104,6 +1251,7 @@ final class FeedbackController {
             case .note:
                 try await store.setNote(capture: index, text: text)
             }
+            if Capabilities.current.screenshotCopy { try await writeScreenshotMetadata(capture: index) }
         } catch {
             report(error, context: "Feedback answer was not saved")
         }
@@ -1115,6 +1263,8 @@ final class FeedbackController {
     @MainActor
     private final class PendingAnswers {
         var answers: [(FeedbackNoteStep, String)] = []
+        var clipboardRevision: UInt64 = 0
+        var inheritedNote: String?
         var captureIndex: Int?
         /// Stores the capture. Its value is the capture index, or nil when the save failed.
         var stored: Task<Int?, Never>?

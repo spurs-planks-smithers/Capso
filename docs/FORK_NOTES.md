@@ -142,3 +142,21 @@ Issue: [Simplify Settings for feedback rounds](https://github.com/spurs-planks-s
 | `App/Tests/QuickAccessWindowPresentationTests.swift` | Explicit enabled profiles for existing optional-tool checks | 111, 146, 172, 278 | Existing AppDelegate/menu/shortcut hook overlap; other upstream risk not refreshed in this change |
 | `App/Tests/RecordingSelectionModeTests.swift` | Explicit enabled profiles for existing optional-tool checks | 156, 179, 200, 220 | Existing AppDelegate/menu/shortcut hook overlap; other upstream risk not refreshed in this change |
 | `App/Tests/ScreenshotClipboardContentTests.swift` | Explicit enabled profiles for existing optional-tool checks | 19, 44, 63, 87, 113, 151, 188, 229 | Existing AppDelegate/menu/shortcut hook overlap; other upstream risk not refreshed in this change |
+
+### October 27, 2026: Screenshot image copy, issue 123
+
+The isolated screenshot capability starts off in both channels. New screenshot storage, indexing, browsing, and orchestration stay in fork files under App/Feedback.
+
+| Upstream file | Hook and reason | Merge risk |
+| --- | --- | --- |
+| AnnotationEditorWindow.swift | Optional failure-aware Copy and Add to Round callbacks; guard unavailable Pin | Other window callback changes |
+| InlineAnnotationEditorWindow.swift | Optional failure-aware Copy callback | Inline lifecycle changes |
+| AnnotationEditorView.swift | Forward promotion and document action policies; keep screenshot geometry fixed | Editor toolbar and export changes |
+| AnnotationToolbar.swift | Optional Add to Round; hide unavailable geometry and Pin actions | Toolbar layout changes |
+| AnnotationCanvasNSView.swift | Allocate and adjust badges around inherited reservations | Counter editing changes |
+| AnnotationDocument.swift | Reserve inherited badge numbers; prevent duplicate/paste collisions; guard geometry and Pin policy | Annotation model changes |
+| ShortcutSettingsView.swift | Refuse collisions with enabled fork shortcuts | Open upstream shortcut edits may conflict |
+
+CaptureCoordinator.swift receives only the explicit feedback request lifecycle hook needed to preserve instant capture across fallback capture. FeedbackRoundStore.swift accepts an optional initial general note, so inherited notes and images commit together. Their exact final diff is reviewed with the controller integration.
+
+Existing feedback shortcuts and disabled capability behavior remain intact. Search stays separate in issue 125. No release version or public Guide reviewedFor value changes in this work.

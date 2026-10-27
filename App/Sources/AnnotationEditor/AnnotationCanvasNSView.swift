@@ -272,7 +272,7 @@ final class AnnotationCanvasNSView: NSView {
         let maxNumber = doc.objects
             .compactMap { ($0 as? CounterObject)?.number }
             .max() ?? 0
-        return maxNumber + 1
+        return max(maxNumber, doc.reservedCounterNumbers.max() ?? 0) + 1
     }
 
     // MARK: - Handle Hit Testing
@@ -935,15 +935,26 @@ final class AnnotationCanvasNSView: NSView {
             case .delete:
                 doc.removeSelected()
             case .incrementCounter:
+                let occupied = doc.reservedCounterNumbers.union(doc.objects.compactMap { object in
+                    object.id == selected.id ? nil : (object as? CounterObject)?.number
+                })
+                var number = selected.number + 1
+                while occupied.contains(number) { number += 1 }
                 doc.beginDrag()
-                selected.number += 1
+                selected.number = number
             case .decrementCounter:
                 guard selected.number > 1 else {
                     needsDisplay = true
                     return
                 }
+                let occupied = doc.reservedCounterNumbers.union(doc.objects.compactMap { object in
+                    object.id == selected.id ? nil : (object as? CounterObject)?.number
+                })
+                var number = selected.number - 1
+                while number > 0 && occupied.contains(number) { number -= 1 }
+                guard number > 0 else { return }
                 doc.beginDrag()
-                selected.number -= 1
+                selected.number = number
             }
             needsDisplay = true
             onDocumentChanged?()

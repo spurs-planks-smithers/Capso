@@ -17,6 +17,10 @@ struct FeedbackShortcutSettingsSection: View {
     var body: some View {
         SettingGroup(title: LocalizedStringKey(ForkBranding.name)) {
             SettingCard {
+                if Capabilities.current.screenshotCopy {
+                    row("Copy Screenshot", name: .screenshotCapture)
+                    row("Annotate Latest Screenshot", name: .screenshotAnnotate)
+                }
                 row("Start Round or Capture Area", name: .feedbackCapture)
                 row("Copy Last Capture Prompt", name: .feedbackCopyLastCapture, roundOnly: true)
                 row("Copy Prompt and End Round", name: .feedbackCopyPromptAndEndRound, roundOnly: true)

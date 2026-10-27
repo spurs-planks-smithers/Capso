@@ -45,6 +45,7 @@ extension KeyboardShortcuts.Name {
 
 struct ShortcutSettingsView: View {
     @Bindable var viewModel: PreferencesViewModel
+    @State private var shortcutRefusal: String?
     private struct ContextualShortcut: Identifiable {
         let id: String
         let scope: LocalizedStringKey
@@ -91,6 +92,11 @@ struct ShortcutSettingsView: View {
             )
 
             FeedbackShortcutSettingsSection()
+            if let shortcutRefusal { Text(verbatim: shortcutRefusal).font(.system(size: 12)).foregroundStyle(.orange) }
+            if Capabilities.screenshotShortcutConflicts(with: .captureText) {
+                Text("Capture Text keeps its saved shortcut. Copy Screenshot uses that key while screenshot copy is on.")
+                    .font(.system(size: 12)).foregroundStyle(.secondary)
+            }
 
             if Capabilities.current.standaloneCapture {
                 SystemScreenshotShortcutsCard()
@@ -190,7 +196,9 @@ struct ShortcutSettingsView: View {
         help: LocalizedStringKey? = nil
     ) -> some View {
         let row = SettingRow(label: label, showDivider: showDivider) {
-            KeyboardShortcuts.Recorder(for: name)
+            KeyboardShortcuts.Recorder(for: name) { shortcut in
+                shortcutRefusal = FeedbackShortcutGuard.check(shortcut, for: name, label: "Shortcut")
+            }
                 .controlSize(.small)
         }
 
