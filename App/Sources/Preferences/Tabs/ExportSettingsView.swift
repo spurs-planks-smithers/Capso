@@ -91,8 +91,9 @@ struct ExportSettingsView: View {
                             .toggleStyle(.switch)
                             .controlSize(.small)
                     }
-                    filenameTemplateEditor
-                        .settingsVisibility(.exportSaveLocationScreenshotFilename)
+                    if SettingsVisibility.hasVisibleContent(.exportSaveLocationScreenshotFilename) {
+                        filenameTemplateEditor
+                    }
                 }
             }
 
