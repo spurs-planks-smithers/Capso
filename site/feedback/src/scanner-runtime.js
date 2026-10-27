@@ -81,7 +81,12 @@ export async function ensureScannerRuntime(ctx, signal) {
   signal?.throwIfAborted();
   if (!container.running)
     try {
-      container.start({ image, instance: "standard-2", enableInternet: false });
+    container.start({
+      image,
+      instance: "standard-2",
+      entrypoint: ["/usr/local/bin/python", "/app/server.py"],
+      enableInternet: false,
+    });
     } catch {
       throw runtimeError("scanner_runtime_start_failed");
     }

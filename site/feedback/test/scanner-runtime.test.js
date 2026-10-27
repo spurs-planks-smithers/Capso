@@ -69,7 +69,7 @@ test("native scanner pins its image, resources, denied internet, fixed proxy, an
   const s = runtime();
   await ensureScannerRuntime(s.ctx);
   assert.deepEqual(s.starts, [
-    { image, instance: "standard-2", enableInternet: false },
+    { image, instance: "standard-2", entrypoint: ["/usr/local/bin/python", "/app/server.py"], enableInternet: false },
   ]);
   assert.deepEqual(s.intercepts, [
     { host: "signatures.nextshot.internal", handler: s.proxy },
