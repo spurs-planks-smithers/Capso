@@ -74,7 +74,7 @@ export async function ensureScannerRuntime(ctx, signal) {
     () =>
       container.interceptOutboundHttp(
         "signatures.nextshot.internal",
-        ctx.exports.ContainerProxy(),
+      ctx.exports.ContainerProxy({ props: {} }),
       ),
     signal,
   );

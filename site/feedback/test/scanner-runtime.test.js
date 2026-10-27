@@ -58,7 +58,7 @@ function runtime({ running = false, info = null, reference = image } = {}) {
     id: { toString: () => "single-scanner-id" },
     exports: {
       ContainerProxy(...args) {
-        assert.equal(args.length, 0);
+        assert.deepEqual(args, [{ props: {} }]);
         return proxy;
       },
     },
