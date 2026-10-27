@@ -6,7 +6,9 @@ Implementation plan: [[2026-10-26-secure-feedback-intake]]. Security rules: [[SE
 
 The implementation stays disabled until live verification completes. Local unit tests, a successful app build, and a successful container build do not establish production readiness.
 
-The dedicated private storage, D1 schema, queues, and Turnstile widget are provisioned. The setup token expires on November 2, 2026. Workers Paid, owner Access, destination verification, approved model artifacts, and live scanning remain launch requirements.
+The dedicated private storage, D1 schema, queues, Turnstile widget, Workers Paid plan, and owner Access application are provisioned. The setup token expires on November 2, 2026. Gmail ownership and pinned model artifacts are verified. The owner signs into the deployed review page successfully. Full live processing checks remain launch requirements.
+
+Protected staging temporarily applies owner-only Access to the whole feedback hostname. All six intake switches remain false. Restore Access to `/review` and its children only after the public launch checks pass.
 
 The existing Nextshot deployment token cannot administer the new storage, Containers, Access, or Email Routing resources. Its existing release-bucket access remains unchanged. Use a separate feedback deployment credential. Store it as `CLOUDFLARE_API_TOKEN_NEXTSHOT_FEEDBACK` in Keychain. Never put a credential in chat.
 
@@ -37,6 +39,8 @@ The source checkout contains no model weights. Meta requires approved download a
 The security/privacy page includes the required Built with Llama notice. Confirm the applicable model licenses before activation. Cloudflare's image model also needs its documented account activation.
 
 The scanner uses no public internet access. Its fixed internal host reads immutable definition objects from the signature bucket. The updater is a separate trusted task with public internet access and no submissions.
+
+The signed definition mirror is published and hash-verified. A real remote refresh succeeds with the separate bucket-only credential and closed stdin. The recurring workflow remains disabled until its reviewed code and secret are configured in GitHub.
 
 ## Signature refresh
 
@@ -70,6 +74,8 @@ Gmail receives screened plain text and an Access-protected review link. Suspecte
 Private review can inspect rebuilt material after required hard checks finish. A false-positive approval applies only to the exact submission, selected warning, and policy version. It reruns required controls. New findings hold again. Model-generated issue drafts inherit no exception and receive their own screening.
 
 Held files expire 30 days after receipt. Screened files expire 90 days after receipt. Reprocessing does not restart retention. Delivered Gmail text follows Gmail's own settings.
+
+D1 stores metadata only. Submission text, findings, drafts, and approvals live in versioned private R2 payloads. An R2 retention marker limits every payload generation and derivative. Restoring D1 metadata cannot extend that marker or recreate deleted content.
 
 ## Verification evidence
 

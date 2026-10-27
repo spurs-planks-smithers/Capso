@@ -22,7 +22,7 @@ CHECKS = {
     "d1": f"/accounts/{ACCOUNT}/d1/database",
     "access": f"/accounts/{ACCOUNT}/access/apps",
     "email_destinations": f"/accounts/{ACCOUNT}/email/routing/addresses",
-    "email_routing": f"/zones/{ZONE}/email/routing",
+    "email_routing_rules": f"/zones/{ZONE}/email/routing/rules",
     "billing": f"/accounts/{ACCOUNT}/subscriptions",
 }
 
@@ -82,7 +82,7 @@ def main():
         "credentialLength": len(token),
         "checks": results,
         "launchReady": False,
-        "remaining": "Verify deployed scanner engines, model artifacts, isolation, owner access, cost controls, and synthetic delivery separately.",
+        "remaining": "Verify deployed scanner engines, model artifacts, isolation, owner access, inbound MX and routing activation, cost controls, and synthetic delivery separately.",
     }, indent=2))
     return 0 if all(result["ok"] for result in results) else 1
 
