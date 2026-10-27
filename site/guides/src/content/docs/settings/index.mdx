@@ -1,0 +1,40 @@
+---
+title: Settings overview
+description: Find the controls for startup, screen access, capture, and keys.
+reviewedFor: 0.4.0
+minVersion: 0.4.0
+---
+
+import Step from '../../../components/Step.astro';
+import GuideImage from '../../../components/GuideImage.astro';
+
+Default settings support a complete feedback round. Change a setting only when you need a different result.
+
+These screenshots use Nextshot Dev. The controls are the same in Nextshot.
+
+<GuideImage src="/guides/media/settings-general.png" alt="Nextshot Settings with General selected and four tabs in the sidebar." caption="Settings groups the controls for feedback rounds into four tabs." />
+
+<Step number={1} title="Open Settings">
+
+Open the **Nshot** menu in the menu bar. Choose **Settings**.
+
+</Step>
+
+<Step number={2} title="Choose the task">
+
+| Tab | What you can change | Guide |
+| --- | --- | --- |
+| General | Startup, version, support links, local diagnostics | [Startup and support](/guides/settings/general/) |
+| Permissions | Screen Recording access | [Screen access](/guides/settings/permissions/) |
+| Screenshots | Cursor, clipboard image format, timestamp, selection presets | [Capture and image copy](/guides/settings/capture/) |
+| Shortcuts | The five Nextshot keys and selection detail | [Keyboard shortcuts](/guides/shortcuts/#change-a-shortcut) |
+
+</Step>
+
+## Where rounds stay
+
+Round files stay in `~/Library/Application Support/Nextshot`. Open the current folder with **Open Round Folder** in the Nshot menu.
+
+Nextshot and Nextshot Dev share this folder. They keep separate settings and separate screen access grants.
+
+[Connect your agent](/guides/connect-agent/) explains how to give it access to the round files.

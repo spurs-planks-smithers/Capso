@@ -1,6 +1,6 @@
 # Settings guide and feature gates
 
-Date: October 27, 2026. Status: implementation approved. Native code passes review and its existing checks. Guide media and release verification remain in progress. Drew selects feedback rounds first for the next release. Detailed source catalog: [[2026-10-27-settings-catalog]].
+Date: October 27, 2026. Status: native implementation released in 0.4.0. Live checks pass. Guide publication is tracked in [issue 119](https://github.com/spurs-planks-smithers/Capso/issues/119). Drew selects feedback rounds first for the next release. Detailed source catalog: [[2026-10-27-settings-catalog]].
 
 ### Outcome
 
@@ -74,7 +74,7 @@ Keep shared coordinator objects if required by existing references. Gate their o
 | Core round shortcuts follow 21 standalone actions | `ShortcutSettingsView.swift` | Put Nextshot first and filter rows by enabled capability. |
 | Clipboard Format hides under an unrelated setting | Screenshot Clipboard Content controls visibility, while round Escape always copies an image | Decouple visibility in round-focused Settings. Retain its selected format. |
 | Timestamp changes round pixels | CaptureCoordinator applies it before feedbackSink | Keep off by default and explain its effect in Advanced. Do not silently reset an existing choice. |
-| Custom preset validation accepts nonpositive dimensions | Add button and model append check only integer parsing | Fix positive-dimension validation before recommending custom presets. No fix is made in this planning session. |
+| Custom preset validation accepts nonpositive dimensions | Add button and model append check only integer parsing | Fix positive-dimension validation before recommending custom presets. Implementation now requires positive dimensions. |
 | Camera/Microphone Open label calls request again | PermissionSettingsView and PreferencesViewModel | Repair before exposing those tools again. Keep the separate system-settings icon documented internally. |
 | Older instructions omit TIFF clipboard support | AGENTS copy description differs from current enum and image encoder | October 27 source/doc discrepancy. Confirm intended formats before changing instructions or public copy. |
 
