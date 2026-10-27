@@ -5,12 +5,14 @@ import SharedKit
 
 struct AutomationCommandItem: Identifiable {
     let id: String
+    let visibility: SettingsVisibilityFlag
     let name: LocalizedStringKey
     let urlString: String
 }
 
 struct AutomationCommandSection: Identifiable {
     let id: String
+    let visibility: SettingsVisibilityFlag
     let title: LocalizedStringKey
     let items: [AutomationCommandItem]
 }
@@ -23,70 +25,77 @@ struct AutomationURLsSheetView: View {
     private let sections: [AutomationCommandSection] = [
         AutomationCommandSection(
             id: "screenshots",
+            visibility: .generalAutomationCommandsSectionScreenshots,
             title: "Screenshots",
             items: [
-                AutomationCommandItem(id: "all-in-one", name: "All-in-One", urlString: "nextshot://grab/all-in-one"),
-                AutomationCommandItem(id: "area", name: "Capture Area", urlString: "nextshot://grab/area"),
-                AutomationCommandItem(id: "fullscreen", name: "Capture Fullscreen", urlString: "nextshot://grab/fullscreen"),
-                AutomationCommandItem(id: "window", name: "Capture Window", urlString: "nextshot://grab/window"),
-                AutomationCommandItem(id: "scrolling", name: "Scrolling Capture", urlString: "nextshot://grab/scrolling"),
-                AutomationCommandItem(id: "self-timer", name: "Self-Timer", urlString: "nextshot://grab/self-timer"),
-                AutomationCommandItem(id: "last-area", name: "Capture Previous Area", urlString: "nextshot://grab/last-area"),
-                AutomationCommandItem(id: "clipboard", name: "Capture Area to Clipboard", urlString: "nextshot://grab/clipboard"),
-                AutomationCommandItem(id: "share", name: "Capture and Share to Cloud", urlString: "nextshot://grab/share"),
-                AutomationCommandItem(id: "annotate", name: "Capture Area & Annotate", urlString: "nextshot://grab/annotate"),
-                AutomationCommandItem(id: "area-and-pin", name: "Capture Area & Pin", urlString: "nextshot://grab/area-and-pin")
+                AutomationCommandItem(id: "all-in-one", visibility: .generalAutomationCommandsAllInOne, name: "All-in-One", urlString: "nextshot://grab/all-in-one"),
+                AutomationCommandItem(id: "area", visibility: .generalAutomationCommandsArea, name: "Capture Area", urlString: "nextshot://grab/area"),
+                AutomationCommandItem(id: "fullscreen", visibility: .generalAutomationCommandsFullscreen, name: "Capture Fullscreen", urlString: "nextshot://grab/fullscreen"),
+                AutomationCommandItem(id: "window", visibility: .generalAutomationCommandsWindow, name: "Capture Window", urlString: "nextshot://grab/window"),
+                AutomationCommandItem(id: "scrolling", visibility: .generalAutomationCommandsScrolling, name: "Scrolling Capture", urlString: "nextshot://grab/scrolling"),
+                AutomationCommandItem(id: "self-timer", visibility: .generalAutomationCommandsSelfTimer, name: "Self-Timer", urlString: "nextshot://grab/self-timer"),
+                AutomationCommandItem(id: "last-area", visibility: .generalAutomationCommandsLastArea, name: "Capture Previous Area", urlString: "nextshot://grab/last-area"),
+                AutomationCommandItem(id: "clipboard", visibility: .generalAutomationCommandsClipboard, name: "Capture Area to Clipboard", urlString: "nextshot://grab/clipboard"),
+                AutomationCommandItem(id: "share", visibility: .generalAutomationCommandsShare, name: "Capture and Share to Cloud", urlString: "nextshot://grab/share"),
+                AutomationCommandItem(id: "annotate", visibility: .generalAutomationCommandsAnnotate, name: "Capture Area & Annotate", urlString: "nextshot://grab/annotate"),
+                AutomationCommandItem(id: "area-and-pin", visibility: .generalAutomationCommandsAreaAndPin, name: "Capture Area & Pin", urlString: "nextshot://grab/area-and-pin")
             ]
         ),
         AutomationCommandSection(
             id: "clipboard",
+            visibility: .generalAutomationCommandsSectionClipboard,
             title: "Clipboard",
             items: [
-                AutomationCommandItem(id: "pin", name: "Pin from Clipboard", urlString: "nextshot://grab/pin"),
-                AutomationCommandItem(id: "edit-clipboard", name: "Edit Clipboard Image", urlString: "nextshot://grab/edit-clipboard"),
-                AutomationCommandItem(id: "open-image", name: "Open Image File", urlString: "nextshot://grab/open-image")
+                AutomationCommandItem(id: "pin", visibility: .generalAutomationCommandsPin, name: "Pin from Clipboard", urlString: "nextshot://grab/pin"),
+                AutomationCommandItem(id: "edit-clipboard", visibility: .generalAutomationCommandsEditClipboard, name: "Edit Clipboard Image", urlString: "nextshot://grab/edit-clipboard"),
+                AutomationCommandItem(id: "open-image", visibility: .generalAutomationCommandsOpenImage, name: "Open Image File", urlString: "nextshot://grab/open-image")
             ]
         ),
         AutomationCommandSection(
             id: "ocr-translation",
+            visibility: .generalAutomationCommandsSectionOcrTranslation,
             title: "Text & Translation",
             items: [
-                AutomationCommandItem(id: "ocr", name: "Capture Text (OCR)", urlString: "nextshot://grab/ocr"),
-                AutomationCommandItem(id: "translate", name: "Capture & Translate", urlString: "nextshot://grab/translate"),
-                AutomationCommandItem(id: "translate-selection", name: "Translate Selected Text", urlString: "nextshot://grab/translate-selection"),
-                AutomationCommandItem(id: "translate-text", name: "Translate Typed Text", urlString: "nextshot://grab/translate-text")
+                AutomationCommandItem(id: "ocr", visibility: .generalAutomationCommandsOcr, name: "Capture Text (OCR)", urlString: "nextshot://grab/ocr"),
+                AutomationCommandItem(id: "translate", visibility: .generalAutomationCommandsTranslate, name: "Capture & Translate", urlString: "nextshot://grab/translate"),
+                AutomationCommandItem(id: "translate-selection", visibility: .generalAutomationCommandsTranslateSelection, name: "Translate Selected Text", urlString: "nextshot://grab/translate-selection"),
+                AutomationCommandItem(id: "translate-text", visibility: .generalAutomationCommandsTranslateText, name: "Translate Typed Text", urlString: "nextshot://grab/translate-text")
             ]
         ),
         AutomationCommandSection(
             id: "recording",
+            visibility: .generalAutomationCommandsSectionRecording,
             title: "Recording",
             items: [
-                AutomationCommandItem(id: "record", name: "Record Area", urlString: "nextshot://grab/record"),
-                AutomationCommandItem(id: "record-fullscreen", name: "Record Full Screen", urlString: "nextshot://grab/record-fullscreen")
+                AutomationCommandItem(id: "record", visibility: .generalAutomationCommandsRecord, name: "Record Area", urlString: "nextshot://grab/record"),
+                AutomationCommandItem(id: "record-fullscreen", visibility: .generalAutomationCommandsRecordFullscreen, name: "Record Full Screen", urlString: "nextshot://grab/record-fullscreen")
             ]
         ),
         AutomationCommandSection(
             id: "desktop",
+            visibility: .generalAutomationCommandsSectionDesktop,
             title: "Desktop",
             items: [
-                AutomationCommandItem(id: "hide-desktop-icons", name: "Hide Desktop Icons", urlString: "nextshot://grab/hide-desktop-icons"),
-                AutomationCommandItem(id: "show-desktop-icons", name: "Show Desktop Icons", urlString: "nextshot://grab/show-desktop-icons"),
-                AutomationCommandItem(id: "toggle-desktop-icons", name: "Toggle Desktop Icons", urlString: "nextshot://grab/toggle-desktop-icons")
+                AutomationCommandItem(id: "hide-desktop-icons", visibility: .generalAutomationCommandsHideDesktopIcons, name: "Hide Desktop Icons", urlString: "nextshot://grab/hide-desktop-icons"),
+                AutomationCommandItem(id: "show-desktop-icons", visibility: .generalAutomationCommandsShowDesktopIcons, name: "Show Desktop Icons", urlString: "nextshot://grab/show-desktop-icons"),
+                AutomationCommandItem(id: "toggle-desktop-icons", visibility: .generalAutomationCommandsToggleDesktopIcons, name: "Toggle Desktop Icons", urlString: "nextshot://grab/toggle-desktop-icons")
             ]
         ),
         AutomationCommandSection(
             id: "app-history",
+            visibility: .generalAutomationCommandsSectionAppHistory,
             title: "History & Settings",
             items: [
-                AutomationCommandItem(id: "history", name: "Screenshot History", urlString: "nextshot://grab/history"),
-                AutomationCommandItem(id: "preferences", name: "Preferences", urlString: "nextshot://grab/preferences")
+                AutomationCommandItem(id: "history", visibility: .generalAutomationCommandsHistory, name: "Screenshot History", urlString: "nextshot://grab/history"),
+                AutomationCommandItem(id: "preferences", visibility: .generalAutomationCommandsPreferences, name: "Preferences", urlString: "nextshot://grab/preferences")
             ]
         )
     ]
 
     private func availableItems(_ section: AutomationCommandSection) -> [AutomationCommandItem] {
-        section.items.filter { item in
-            URL(string: item.urlString).flatMap(AutomationURLAction.init(url:)).map(Capabilities.allowsAutomation) ?? false
+        guard SettingsVisibility.isVisible(section.visibility) else { return [] }
+        return section.items.filter { item in
+            SettingsVisibility.isVisible(item.visibility) && (URL(string: item.urlString).flatMap(AutomationURLAction.init(url:)).map(Capabilities.allowsAutomation) ?? false)
         }
     }
 
@@ -105,6 +114,7 @@ struct AutomationURLsSheetView: View {
                     copyAllURLs()
                 }
                 .controlSize(.small)
+                .settingsVisibility(.generalAutomationCommandsCopyAll)
             }
 
             ScrollView {
@@ -137,6 +147,7 @@ struct AutomationURLsSheetView: View {
                 }
                 .keyboardShortcut(.defaultAction)
                 .controlSize(.regular)
+                .settingsVisibility(.generalAutomationCommandsDone)
             }
         }
         .padding(20)
@@ -144,7 +155,7 @@ struct AutomationURLsSheetView: View {
     }
 
     private func commandRow(item: AutomationCommandItem, showDivider: Bool) -> some View {
-        SettingRow(label: item.name, showDivider: showDivider) {
+        SettingRow(visibility: item.visibility, label: item.name, showDivider: showDivider) {
             Button {
                 copyURL(item.urlString)
             } label: {
@@ -184,7 +195,7 @@ struct AutomationURLsSheetView: View {
     private func copyAllURLs() {
         var lines: [String] = []
         for section in sections {
-            for item in section.items where URL(string: item.urlString).flatMap(AutomationURLAction.init(url:)).map(Capabilities.allowsAutomation) == true {
+            for item in availableItems(section) {
                 lines.append(item.urlString)
             }
         }
