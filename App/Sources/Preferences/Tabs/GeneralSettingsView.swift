@@ -126,11 +126,6 @@ struct GeneralSettingsView: View {
                             openURL("https://feedback.nextshot.dev") // Fork: Nextshot's feature feedback
                         }
                     }
-                    SettingRow(visibility: .generalAboutSourceCode, label: "Source Code", sublabel: "View on GitHub", showDivider: true) {
-                        ExternalLinkButton(title: "Open", icon: "chevron.left.forwardslash.chevron.right") {
-                            openURL("https://github.com/spurs-planks-smithers/Capso") // Fork: Nextshot's source
-                        }
-                    }
 
                 }
             }
