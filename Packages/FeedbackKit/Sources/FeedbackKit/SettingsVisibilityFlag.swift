@@ -177,8 +177,6 @@ public enum SettingsVisibilityFlag: String, Sendable, CaseIterable {
     case shortcutsContextualQuickAccessAnnotate = "shortcuts.contextual.quickAccessAnnotate"
     case shortcutsContextualQuickAccessPin = "shortcuts.contextual.quickAccessPin"
 
-    case generalAboutSourceCode = "general.about.sourceCode"
-
     case shortcutsCustomizable = "shortcuts.customizable"
 
     case generalAutomationCommandsAllInOne = "general.automation.commands.screenshots.all-in-one"
