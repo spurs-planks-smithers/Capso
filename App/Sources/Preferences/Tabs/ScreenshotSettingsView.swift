@@ -18,12 +18,14 @@ struct ScreenshotSettingsView: View {
 
             if !Capabilities.current.standaloneCapture {
                 FeedbackCaptureSettingsSection(viewModel: viewModel)
-                DisclosureGroup("Advanced") {
-                    VStack(alignment: .leading, spacing: 20) {
-                        timestampSettings
-                        presetSettings
+                if SettingsVisibility.hasVisibleContent(.screenshotsAdvanced) {
+                    DisclosureGroup("Advanced") {
+                        VStack(alignment: .leading, spacing: 20) {
+                            timestampSettings
+                            presetSettings
+                        }
+                        .padding(.top, 12)
                     }
-                    .padding(.top, 12)
                 }
             } else {
                 timestampSettings
