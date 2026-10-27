@@ -10,19 +10,19 @@ struct RecordingSettingsView: View {
             Text("Recording")
                 .font(.system(size: 20, weight: .bold))
 
-            SettingGroup(title: "Cursor") {
+            SettingGroup(visibility: .recordingCursor, title: "Cursor") {
                 SettingCard {
-                    SettingRow(label: "Show Cursor") {
+                    SettingRow(visibility: .recordingCursorShowCursor, label: "Show Cursor") {
                         Toggle("", isOn: $viewModel.showCursor)
                             .toggleStyle(.switch)
                             .controlSize(.small)
                     }
-                    SettingRow(label: "Highlight Clicks", sublabel: "Radial pulse on mouse click", showDivider: true) {
+                    SettingRow(visibility: .recordingCursorHighlightClicks, label: "Highlight Clicks", sublabel: "Radial pulse on mouse click", showDivider: true) {
                         Toggle("", isOn: $viewModel.highlightClicks)
                             .toggleStyle(.switch)
                             .controlSize(.small)
                     }
-                    SettingRow(
+                    SettingRow(visibility: .recordingCursorShowKeyPresses,
                         label: "Show Key Presses",
                         sublabel: "KeyCastr-style overlay of keys while recording. Requires Input Monitoring. Off by default.",
                         showDivider: true
@@ -43,24 +43,24 @@ struct RecordingSettingsView: View {
                 }
             }
 
-            SettingGroup(title: "Behavior") {
+            SettingGroup(visibility: .recordingBehavior, title: "Behavior") {
                 SettingCard {
-                    SettingRow(label: "Show Countdown", sublabel: "3-second countdown before recording") {
+                    SettingRow(visibility: .recordingBehaviorShowCountdown, label: "Show Countdown", sublabel: "3-second countdown before recording") {
                         Toggle("", isOn: $viewModel.showCountdown)
                             .toggleStyle(.switch)
                             .controlSize(.small)
                     }
-                    SettingRow(label: "Hide Desktop Icons", sublabel: "Cover desktop icons with the wallpaper while recording", showDivider: true) {
+                    SettingRow(visibility: .recordingBehaviorHideDesktopIcons, label: "Hide Desktop Icons", sublabel: "Cover desktop icons with the wallpaper while recording", showDivider: true) {
                         Toggle("", isOn: $viewModel.hideDesktopIconsWhileRecording)
                             .toggleStyle(.switch)
                             .controlSize(.small)
                     }
-                    SettingRow(label: "Open Editor After Recording", sublabel: "Edit, trim, and add effects before exporting", showDivider: true) {
+                    SettingRow(visibility: .recordingBehaviorOpenEditorAfterRecording, label: "Open Editor After Recording", sublabel: "Edit, trim, and add effects before exporting", showDivider: true) {
                         Toggle("", isOn: $viewModel.openEditorAfterRecording)
                             .toggleStyle(.switch)
                             .controlSize(.small)
                     }
-                    SettingRow(
+                    SettingRow(visibility: .recordingBehaviorCopyToClipboard,
                         label: "Copy to Clipboard",
                         sublabel: "Copy the finished recording as an MP4 or GIF file",
                         showDivider: true
@@ -78,7 +78,7 @@ struct RecordingSettingsView: View {
                     //         .toggleStyle(.switch)
                     //         .controlSize(.small)
                     // }
-                    SettingRow(label: "Remember Last Recording Area", showDivider: true) {
+                    SettingRow(visibility: .recordingBehaviorRememberLastRecordingArea, label: "Remember Last Recording Area", showDivider: true) {
                         Toggle("", isOn: $viewModel.rememberLastRecordingArea)
                             .toggleStyle(.switch)
                             .controlSize(.small)
@@ -86,9 +86,9 @@ struct RecordingSettingsView: View {
                 }
             }
 
-            SettingGroup(title: "Camera PiP") {
+            SettingGroup(visibility: .recordingCameraPiP, title: "Camera PiP") {
                 SettingCard {
-                    SettingRow(
+                    SettingRow(visibility: .recordingCameraPiPFadeOnHover,
                         label: "Fade on Hover",
                         sublabel: "Solid until you hover — then nearly transparent so you can see behind it. Stays solid in fullscreen. Recorded output matches what you see."
                     ) {
@@ -96,7 +96,7 @@ struct RecordingSettingsView: View {
                             .toggleStyle(.switch)
                             .controlSize(.small)
                     }
-                    SettingRow(
+                    SettingRow(visibility: .recordingCameraPiPClickThroughPiP,
                         label: "Click Through PiP",
                         sublabel: "While the pointer is over the small camera view, clicks pass through to whatever is behind it. Independent of Fade on Hover. Never applies in fullscreen.",
                         showDivider: true

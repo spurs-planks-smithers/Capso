@@ -29,15 +29,15 @@ struct GeneralSettingsView: View {
             Text("General")
                 .font(.system(size: 20, weight: .bold))
 
-            SettingGroup(title: "Startup") {
+            SettingGroup(visibility: .generalStartup, title: "Startup") {
                 SettingCard {
-                    SettingRow(label: "Launch at Login", sublabel: "Start Capso when you log in") {
+                    SettingRow(visibility: .generalStartupLaunchAtLogin, label: "Launch at Login", sublabel: "Start Capso when you log in") {
                         LaunchAtLogin.Toggle { Text("") }
                             .toggleStyle(.switch)
                             .controlSize(.small)
                     }
                     if Capabilities.current.standaloneCapture {
-                        SettingRow(label: "Show Capture Menu", sublabel: "Show the extra menu for standalone capture tools", showDivider: true) {
+                        SettingRow(visibility: .generalStartupShowCaptureMenu, label: "Show Capture Menu", sublabel: "Show the extra menu for standalone capture tools", showDivider: true) {
                             Toggle("", isOn: menuBarToggleBinding)
                                 .toggleStyle(.switch)
                                 .controlSize(.small)
@@ -47,9 +47,9 @@ struct GeneralSettingsView: View {
             }
 
             if Capabilities.current.automationURLs {
-                SettingGroup(title: "Automation") {
+                SettingGroup(visibility: .generalAutomation, title: "Automation") {
                     SettingCard {
-                        SettingRow(
+                        SettingRow(visibility: .generalAutomationAutomationURLs,
                             label: "Automation URLs",
                             sublabel: "Allow Alfred, Raycast, Shortcuts, and other apps to trigger captures"
                         ) {
@@ -57,7 +57,7 @@ struct GeneralSettingsView: View {
                                 .toggleStyle(.switch)
                                 .controlSize(.small)
                         }
-                        SettingRow(
+                        SettingRow(visibility: .generalAutomationSupportedURLs,
                             label: "Supported URLs",
                             sublabel: "View all commands for Raycast, Alfred, and Shortcuts",
                             showDivider: true
@@ -72,9 +72,9 @@ struct GeneralSettingsView: View {
             }
 
             if Capabilities.current.standaloneCapture {
-                SettingGroup(title: "Sound") {
+                SettingGroup(visibility: .generalSound, title: "Sound") {
                     SettingCard {
-                        SettingRow(label: "Shutter Sound", sublabel: "Play sound after capture") {
+                        SettingRow(visibility: .generalSoundShutterSound, label: "Shutter Sound", sublabel: "Play sound after capture") {
                             Toggle("", isOn: $viewModel.playShutterSound)
                                 .toggleStyle(.switch)
                                 .controlSize(.small)
@@ -88,14 +88,14 @@ struct GeneralSettingsView: View {
             }
 
             if Capabilities.current.standaloneCapture {
-                SettingGroup(title: "Screenshot History") {
+                SettingGroup(visibility: .generalScreenshotHistory, title: "Screenshot History") {
                     SettingCard {
-                        SettingRow(label: "Save to History", sublabel: "Automatically save all captures") {
+                        SettingRow(visibility: .generalScreenshotHistorySaveToHistory, label: "Save to History", sublabel: "Automatically save all captures") {
                             Toggle("", isOn: $viewModel.historyEnabled)
                                 .toggleStyle(.switch)
                                 .controlSize(.small)
                         }
-                        SettingRow(label: "Keep History", sublabel: "Auto-delete older captures", showDivider: true) {
+                        SettingRow(visibility: .generalScreenshotHistoryKeepHistory, label: "Keep History", sublabel: "Auto-delete older captures", showDivider: true) {
                             Picker("", selection: $viewModel.historyRetention) {
                                 Text("1 Week").tag("oneWeek")
                                 Text("2 Weeks").tag("twoWeeks")
@@ -108,44 +108,46 @@ struct GeneralSettingsView: View {
                 }
             }
 
-            SettingGroup(title: "About") {
+            SettingGroup(visibility: .generalAbout, title: "About") {
                 SettingCard {
-                    SettingRow(label: "Version") {
+                    SettingRow(visibility: .generalAboutVersion, label: "Version") {
                         Text(viewModel.appVersion)
                             .font(.system(size: 12))
                             .foregroundStyle(.tertiary)
                             .fontDesign(.monospaced)
                     }
-                    SettingRow(label: "Report a Bug", sublabel: "Found something broken?", showDivider: true) {
+                    SettingRow(visibility: .generalAboutReportABug, label: "Report a Bug", sublabel: "Found something broken?", showDivider: true) {
                         ExternalLinkButton(title: "Report", icon: "ladybug") {
-                            openURL("https://github.com/spurs-planks-smithers/Capso/issues/new?template=bug_report.yml&labels=bug") // Fork: Nextshot's issues
+                            openURL("https://feedback.nextshot.dev")
                         }
                     }
-                    SettingRow(label: "Request a Feature", sublabel: "Have an idea?", showDivider: true) {
+                    SettingRow(visibility: .generalAboutRequestAFeature, label: "Request a Feature", sublabel: "Have an idea?", showDivider: true) {
                         ExternalLinkButton(title: "Request", icon: "lightbulb") {
-                            openURL("https://github.com/spurs-planks-smithers/Capso/issues/new?template=feature_request.yml&labels=enhancement") // Fork: Nextshot's issues
+                            openURL("https://feedback.nextshot.dev") // Fork: Nextshot's feature feedback
                         }
                     }
 
                 }
             }
 
-            DisclosureGroup("Diagnostics") {
-                SettingGroup(title: "Diagnostics") {
-                    SettingCard {
-                        SettingRow(label: "Diagnostic Logging", sublabel: "Write local troubleshooting logs when enabled") {
-                            Toggle("", isOn: $viewModel.diagnosticLoggingEnabled)
-                                .toggleStyle(.switch)
-                                .controlSize(.small)
-                        }
-                        SettingRow(label: "Diagnostic Logs", sublabel: "Open Capso's local log folder", showDivider: true) {
-                            ExternalLinkButton(title: "Open", icon: "folder") {
-                                openDiagnosticLogs()
+            if SettingsVisibility.hasVisibleContent(.generalDiagnostics) {
+                DisclosureGroup("Diagnostics") {
+                    SettingGroup(visibility: .generalDiagnostics, title: "Diagnostics") {
+                        SettingCard {
+                            SettingRow(visibility: .generalDiagnosticsDiagnosticLogging, label: "Diagnostic Logging", sublabel: "Write local troubleshooting logs when enabled") {
+                                Toggle("", isOn: $viewModel.diagnosticLoggingEnabled)
+                                    .toggleStyle(.switch)
+                                    .controlSize(.small)
                             }
-                        }
-                        SettingRow(label: "Crash Reports", sublabel: "Open macOS DiagnosticReports", showDivider: true) {
-                            ExternalLinkButton(title: "Open", icon: "doc.text.magnifyingglass") {
-                                openCrashReports()
+                            SettingRow(visibility: .generalDiagnosticsDiagnosticLogs, label: "Diagnostic Logs", sublabel: "Open Capso's local log folder", showDivider: true) {
+                                ExternalLinkButton(title: "Open", icon: "folder") {
+                                    openDiagnosticLogs()
+                                }
+                            }
+                            SettingRow(visibility: .generalDiagnosticsCrashReports, label: "Crash Reports", sublabel: "Open macOS DiagnosticReports", showDivider: true) {
+                                ExternalLinkButton(title: "Open", icon: "doc.text.magnifyingglass") {
+                                    openCrashReports()
+                                }
                             }
                         }
                     }
