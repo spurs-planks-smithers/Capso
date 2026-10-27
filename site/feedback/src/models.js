@@ -1,7 +1,25 @@
 import { bounded, fail, validDraft, preliminaryFindings } from "./policy.js";
 export const TEXT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 export const IMAGE_MODEL = "@cf/meta/llama-4-scout-17b-16e-instruct";
-export const MODEL_CONTRACT_VERSION = "2";
+export const MODEL_CONTRACT_VERSION = "3";
+// Count JSON-escaped UTF-8 bytes, which conservatively bound byte-fallback tokens.
+// Each request leaves ample room in the model's 24,000-token context.
+function textChunks(text) {
+  if (!text) return [""];
+  const points = Array.from(text), encoder = new TextEncoder();
+  const sizes = points.map(point => encoder.encode(JSON.stringify(point)).length - 2);
+  const chunks = [];
+  for (let start = 0; start < points.length;) {
+    let end = start, size = 0;
+    while (end < points.length && size + sizes[end] <= 8000) size += sizes[end++];
+    chunks.push(points.slice(start, end).join(""));
+    if (end === points.length) break;
+    let next = end, overlap = 0;
+    while (next > start && overlap + sizes[next - 1] <= 512) overlap += sizes[--next];
+    start = next;
+  }
+  return chunks;
+}
 const REASONS = [
   "private_record",
   "credential",
@@ -74,17 +92,20 @@ export async function contextualScreen(
   const findings = preliminaryFindings(text).map((code) =>
     code === "government_identifier" ? "sensitive_government_id" : code,
   );
-  await beforeCall();
-  const result = await env.AI.run(TEXT_MODEL, {
-    messages: [
-      { role: "system", content: instruction },
-      { role: "user", content: JSON.stringify({ submittedData: text }) },
-    ],
-    response_format: jsonFormat(VERDICT_SCHEMA),
-    max_tokens: 512,
-    temperature: 0,
-  });
-  const reasons = [...findings, ...verdict(modelJSON(result))];
+  const reasons = [...findings];
+  for (const chunk of textChunks(text)) {
+    await beforeCall();
+    const result = await env.AI.run(TEXT_MODEL, {
+      messages: [
+        { role: "system", content: instruction },
+        { role: "user", content: JSON.stringify({ submittedData: chunk }) },
+      ],
+      response_format: jsonFormat(VERDICT_SCHEMA),
+      max_tokens: 512,
+      temperature: 0,
+    });
+    reasons.push(...verdict(modelJSON(result)));
+  }
   for (const image of images) {
     await beforeCall();
     const result = await env.AI.run(IMAGE_MODEL, {
@@ -128,6 +149,9 @@ export async function issueDraft(
     )
   )
     fail("invalid_draft", 503);
+  const submitted = JSON.stringify({ feedback: text, captures: imageNames });
+  if (new TextEncoder().encode(submitted).length > 12000)
+    fail("draft_context_limit", 503);
   const fields = {
     title: { type: "string", minLength: 1, maxLength: 160 },
     category: { type: "string", enum: ["bug", "feature", "question", "other"] },
@@ -160,7 +184,7 @@ export async function issueDraft(
       },
       {
         role: "user",
-        content: JSON.stringify({ feedback: text, captures: imageNames }),
+        content: submitted,
       },
     ],
     response_format: jsonFormat({

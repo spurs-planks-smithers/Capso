@@ -141,3 +141,43 @@ test("model tool calls and fenced draft output never receive authority", async (
     { message: "model_invalid" },
   );
 });
+
+test("contextual screening covers escaped Unicode and the final text without an oversized model request", async () => {
+  const text = Array.from({ length: 3500 }, (_, n) => `${n}:雪🦊\u0001\n`).join("") + "TAIL-INJECTION-MARKER";
+  const chunks = [];
+  let reservations = 0;
+  const env = { AI: { run: async (_model, input) => {
+    const serialized = input.messages[1].content;
+    assert.ok(new TextEncoder().encode(serialized).length <= 8040);
+    const chunk = JSON.parse(serialized).submittedData;
+    assert.ok(chunk.length > 0);
+    chunks.push(chunk);
+    return { response: chunk.includes("TAIL-INJECTION-MARKER")
+      ? { decision: "hold", reasons: ["prompt_injection"] } : clean };
+  } } };
+  const reasons = await contextualScreen(env, text, [], async () => { reservations++; });
+  assert.ok(chunks.length > 1);
+  assert.equal(reservations, chunks.length);
+  let covered = 0;
+  for (const chunk of chunks) {
+    const start = text.indexOf(chunk, Math.max(0, covered - 1024));
+    assert.ok(start >= 0 && start <= covered);
+    covered = Math.max(covered, start + chunk.length);
+  }
+  assert.equal(covered, text.length);
+  assert.ok(reasons.includes("prompt_injection"));
+});
+
+test("a late contextual chunk failure prevents a successful result", async () => {
+  let calls = 0;
+  const env = { AI: { run: async () => ({ response: ++calls === 1 ? clean : "not JSON" }) } };
+  await assert.rejects(contextualScreen(env, "a".repeat(20000)), { message: "model_invalid" });
+  assert.equal(calls, 2);
+});
+
+test("drafts exceeding the documented context budget stop before reserving or calling a model", async () => {
+  let calls = 0;
+  const env = { AI: { run: async () => { calls++; return { response: draft }; } } };
+  await assert.rejects(issueDraft(env, "a".repeat(15000), ["capture-1.jpg"], async () => { calls++; }), { message: "draft_context_limit" });
+  assert.equal(calls, 0);
+});
