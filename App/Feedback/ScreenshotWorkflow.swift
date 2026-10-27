@@ -117,7 +117,8 @@ final class ScreenshotWorkflow {
                 let metadata = ScreenshotMetadata(
                     createdAt: result.timestamp, capturedAt: result.timestamp, size: size,
                     appName: result.appName, windowTitle: result.windowName, marks: marks, note: nil,
-                    hasReliableCleanImage: clean != nil, hasReliableBadges: sameSize
+                    hasReliableCleanImage: clean != nil,
+                    hasReliableBadges: sameSize && Set(marks.compactMap(\.badge)).count == marks.compactMap(\.badge).count
                 )
                 let write = try encoded(rendered, clean: clean, metadata: metadata)
                 pendingWrite = write
@@ -162,6 +163,7 @@ final class ScreenshotWorkflow {
                 } : nil
             )
             editor?.document.reservedCounterNumbers = Set(item.marks.compactMap(\.badge))
+            editor?.document.enforcesUniqueCounterNumbers = true
             editor?.document.allowsCanvasResize = false
             editor?.document.allowsPin = false
             editor?.show()

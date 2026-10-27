@@ -12,6 +12,8 @@ public final class AnnotationDocument {
     public private(set) var cropRect: CGRect?
     /// Badge numbers already flattened into the source image.
     public var reservedCounterNumbers: Set<Int> = []
+    /// Enabled only by screenshot version editing.
+    public var enforcesUniqueCounterNumbers = false
     /// False when existing image coordinates must remain unchanged.
     public var allowsCanvasResize = true
     /// False for image-only annotation workflows without a pin service.
@@ -42,7 +44,7 @@ public final class AnnotationDocument {
     }
 
     public func addObject(_ object: any AnnotationObject) {
-        if let counter = object as? CounterObject {
+        if enforcesUniqueCounterNumbers, let counter = object as? CounterObject {
             let occupied = reservedCounterNumbers.union(objects.compactMap { ($0 as? CounterObject)?.number })
             if occupied.contains(counter.number) {
                 counter.number = (occupied.max() ?? 0) + 1

@@ -939,7 +939,7 @@ final class AnnotationCanvasNSView: NSView {
                     object.id == selected.id ? nil : (object as? CounterObject)?.number
                 })
                 var number = selected.number + 1
-                while occupied.contains(number) { number += 1 }
+                while doc.enforcesUniqueCounterNumbers && occupied.contains(number) { number += 1 }
                 doc.beginDrag()
                 selected.number = number
             case .decrementCounter:
@@ -951,7 +951,7 @@ final class AnnotationCanvasNSView: NSView {
                     object.id == selected.id ? nil : (object as? CounterObject)?.number
                 })
                 var number = selected.number - 1
-                while number > 0 && occupied.contains(number) { number -= 1 }
+                while doc.enforcesUniqueCounterNumbers && number > 0 && occupied.contains(number) { number -= 1 }
                 guard number > 0 else { return }
                 doc.beginDrag()
                 selected.number = number
