@@ -147,16 +147,17 @@ Issue: [Simplify Settings for feedback rounds](https://github.com/spurs-planks-s
 
 The isolated screenshot capability starts off in both channels. New screenshot storage, indexing, browsing, and orchestration stay in fork files under App/Feedback.
 
-| Upstream file | Hook and reason | Merge risk |
-| --- | --- | --- |
-| AnnotationEditorWindow.swift | Optional failure-aware Copy and Add to Round callbacks; guard unavailable Pin | Other window callback changes |
-| InlineAnnotationEditorWindow.swift | Optional failure-aware Copy callback | Inline lifecycle changes |
-| AnnotationEditorView.swift | Forward promotion and document action policies; keep screenshot geometry fixed | Editor toolbar and export changes |
-| AnnotationToolbar.swift | Optional Add to Round; hide unavailable geometry and Pin actions | Toolbar layout changes |
-| AnnotationCanvasNSView.swift | Allocate and adjust badges around inherited reservations | Counter editing changes |
-| AnnotationDocument.swift | Reserve inherited badge numbers; prevent duplicate/paste collisions; guard geometry and Pin policy | Annotation model changes |
-| ShortcutSettingsView.swift | Refuse collisions with enabled fork shortcuts | Open upstream shortcut edits may conflict |
+| Upstream file | Lines in source commit 7fe0d18 | Hook and reason | Merge risk |
+| --- | --- | --- | --- |
+| App/Sources/AnnotationEditor/AnnotationEditorWindow.swift | 38-39, 126-140, 155 | Failure-aware Copy, Add to Round, unavailable Pin guard | Window callback changes |
+| App/Sources/AnnotationEditor/InlineAnnotationEditorWindow.swift | 22, 70-76 | Failure-aware Copy callback | Inline lifecycle changes |
+| App/Sources/AnnotationEditor/AnnotationEditorView.swift | 98-99, 319, 359-369, 506, 677-684, 779-800 | Promotion, fixed geometry, and Pin policy | Toolbar and export changes |
+| App/Sources/AnnotationEditor/AnnotationToolbar.swift | 44-46, 68-73, 338-350 | Optional Add to Round; hide unavailable actions | Toolbar layout changes |
+| App/Sources/AnnotationEditor/AnnotationCanvasNSView.swift | 275, 938-958 | Inherited badge reservations | Counter editing changes |
+| Packages/AnnotationKit/Sources/AnnotationKit/AnnotationDocument.swift | 13-18, 43-49, 106-130 | Badge collisions and document policies | Annotation model changes |
+| App/Sources/Preferences/Tabs/ShortcutSettingsView.swift | 197-206 | Refuse enabled fork shortcut collisions | Open upstream shortcut edits |
+| App/Sources/Capture/CaptureCoordinator.swift | 47, 64, 435-452, 642-685, 975-1028, 1415-1439, 1694 | Explicit request token through fallback delivery and cancellation | Capture overlay lifecycle changes |
+| Packages/FeedbackKit/Sources/FeedbackKit/FeedbackRoundStore.swift | 6-39, 182 | Commit inherited general note in the initial capture | Fork store input changes |
 
-CaptureCoordinator.swift receives only the explicit feedback request lifecycle hook needed to preserve instant capture across fallback capture. FeedbackRoundStore.swift accepts an optional initial general note, so inherited notes and images commit together. Their exact final diff is reviewed with the controller integration.
-
+The capture hook preserves instant-copy ownership across frozen/live fallback. The store input keeps inherited notes and images in one capture commit. New screenshot code remains in App/Feedback.
 Existing feedback shortcuts and disabled capability behavior remain intact. Search stays separate in issue 125. No release version or public Guide reviewedFor value changes in this work.

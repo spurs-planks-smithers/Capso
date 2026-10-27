@@ -36,6 +36,10 @@ Final existing checks pass: SharedKit 279, AnnotationKit 117, CaptureKit 95, Rec
 
 Signed Release build succeeds. Installed artifact: Nextshot Dev 0.4.0-dev, build 817. The local screenshotCopy override is on. Both registry defaults remain off. Search issue 125 is open.
 
-Live UI review is pending a switch from another chat's running build 827. The native automation target cannot select build 817 while the higher build owns the app identity. No foreign process is quit. There is no current end-to-end UI verification claim.
+Live UI review is pending a switch from another chat's running build 827. Two native automation attempts to select the installed app time out. A separate chat runs the higher build. No foreign process is quit. There is no current end-to-end UI verification claim.
 
 Final review finds four important issues. The fixes hide and guard unavailable Pin, reuse saved versions before retention-source reads, retain capture purpose through fallback delivery, and commit inherited general notes with the round capture.
+
+Implementation and testing handoff: [draft PR 149](https://github.com/spurs-planks-smithers/Capso/pull/149). Search remains tracked in the open issue 125.
+
+The handoff query reports no hosted workflow run for the draft PR. The 1,487-test result refers to the existing local checks.

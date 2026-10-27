@@ -1,6 +1,6 @@
 # Screenshot Image Copy: Requirements and Preparation Plan
 
-Status: product interview complete. Requirements and preparation plan ready for review. Target: candidate for v0.5.0. Prepared October 27, 2026.
+Status: implementation prepared in draft PR 149. Automated checks pass. Native Dev review remains pending. Target: candidate for v0.5.0. Prepared October 27, 2026.
 
 Backlog: [Copy screenshots for pasting, with or without annotations, issue 123](https://github.com/spurs-planks-smithers/Capso/issues/123). Milestone: Later. Labels: enhancement and sev-blocker. Severity rates the unavailable screenshot-only retention workflow, not a crash.
 
@@ -10,7 +10,7 @@ Separate backlog: [Search capture history by app or window title, issue 125](htt
 
 Copy a new or saved screenshot as an image that pastes directly into email and other apps. Choose the visible annotations or a version without them. Screenshot use does not require feedback notes or a round.
 
-This document isolates feature planning from the older-round work in this checkout. It authorizes no implementation, release, push, or capability activation. GitHub holds the backlog record. This document holds the detailed requirements and preparation plan.
+Drew authorizes isolated implementation on October 27, 2026. This record retains the requirements and preparation plan. The execution note below distinguishes completed implementation from pending native review. No release is authorized.
 
 ### Confirmed requirements
 
@@ -126,10 +126,10 @@ Retention applies only within the isolated screenshot store. After a successful 
 - [ ] Show proposed actions against screenshots from the real running app. Confirm labels, clicks, and keyboard behavior.
 - [x] Prepare the build sequence in [[2026-10-27-screenshot-image-copy-implementation]].
 - [ ] Review the complete design and prototype before retaining implementation.
-- [ ] Implement on a dedicated feature branch from current main after design approval. Preserve other local work.
+- [x] Implement on feature/screenshot-image-copy from origin/main. Preserve other local work.
 - [ ] Review in signed Nextshot Dev. Keep the feature isolated until Drew accepts the flow.
-- [ ] Update affected existing tests and run the repository's required checks before a commit. Add no new test framework or broad gate.
-- [ ] Update Guides and release notes after the behavior is verified. Keep public instructions aligned with the released version.
+- [x] Update affected existing expectations and pass all 1,487 existing checks. Add no new test framework or broad gate.
+- [x] Update release notes and internal Dev guidance. Public Guides stay unchanged while the capability defaults off.
 - [ ] Consider the reviewed feature for v0.5.0 through the existing release process.
 
 ### Acceptance criteria to finalize
@@ -169,4 +169,10 @@ Use existing focused coverage where behavior changes, including `App/Tests/Annot
 
 The only native GitHub milestone currently present is Later. Keep this feature in that backlog and record v0.5.0 as the candidate target in the issue body. Do not create a release milestone or change VERSION during preparation.
 
-No product code, installed app, settings, feature flag, public Guide, or release artifact changes during this planning step. The existing modification in `docs/plans/2026-10-26-feedback-progress.md` belongs to other work and stays untouched.
+The initial planning step changes no app code or release artifact. The later implementation record follows below. The existing modification in `docs/plans/2026-10-26-feedback-progress.md` belongs to other work and stays untouched.
+
+### October 27 implementation record
+
+[Draft PR 149](https://github.com/spurs-planks-smithers/Capso/pull/149) contains the isolated implementation. Source commit: 7fe0d18. The signed Dev build is installed as 0.4.0-dev, build 817. Its local screenshotCopy override is on. Registry defaults remain off.
+
+All 1,487 existing tests pass. Review finds and fixes four important cases: unavailable Pin, retry after retention, fallback capture ownership, and atomic inherited-note storage. Native end-to-end review remains pending a switch from another chat's running trial. See [[2026-10-27-screenshot-image-copy-dev-review]].
