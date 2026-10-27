@@ -1,6 +1,6 @@
 # Nextshot feedback service
 
-This Worker accepts website, native-app, and email submissions. It has no release-bucket or GitHub credentials. All launch switches are checked in as false.
+This Worker accepts website, native-app, and email submissions. It has no release-bucket or GitHub credentials. The base configuration keeps every launch switch false. The explicit production profile enables website processing with the approved scanner digest. Native and inbound email admission stay off until their separate launch checks pass.
 
 ## Local verification
 
@@ -33,6 +33,20 @@ Use the provisioned D1 ID in configuration. A fresh database uses `schema.sql`. 
 Store `INTAKE_SECRET` and `TURNSTILE_SECRET` in the macOS Keychain and Worker secret bindings. `INTAKE_SECRET` needs at least 32 random characters. Never commit secret values. Set the public Turnstile site key, Access team domain, and Access audience in the deployed configuration.
 
 Enable the public and native launch switches only after the live feasibility and owner-access checks pass. The six switches are `INTAKE_ENABLED`, `NATIVE_ENABLED`, `PROCESSING_ENABLED`, `AI_SCREENING_ENABLED`, `EMAIL_ENABLED`, and `NOTIFICATIONS_ENABLED`.
+
+## Website deployment and shutdown
+
+Run these commands from the repository root. They use the dedicated Keychain credential and preserve Worker secret bindings. The production profile uses the approved private scanner image. It does not rebuild model artifacts or a Mac app.
+
+```sh
+python3 site/feedback/deploy.py status
+python3 site/feedback/deploy.py web
+python3 site/feedback/deploy.py pause
+```
+
+`web` enables website admission, scanning, contextual checks, and fixed-recipient notifications. It keeps native and inbound email admission off. `pause` stops new admission and processing starts. An in-flight scan can finish within its bounded attempt. Owner review and the hourly retention handler remain available. Keep Access restricted to `/review` and its children. The deploy command verifies the exact owner policy and audience.
+
+Only the app release owner uses `python3 site/feedback/deploy.py native` after the native launch checks pass. That mode also retains website intake. After native activation, use `native` for later service updates that must retain it. `web` deliberately returns native admission to off. Inbound mail remains a separate routing and delivery milestone. The website does not advertise the inactive address.
 
 ## Signature refresh
 

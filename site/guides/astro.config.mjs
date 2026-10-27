@@ -41,6 +41,7 @@ export default defineConfig({
       { label: 'Quick answers', items: [
         { label: 'Keyboard shortcuts', slug: 'shortcuts' },
         { label: 'Fix a problem', slug: 'troubleshooting' },
+        { label: 'Send feedback', slug: 'send-feedback' },
       ] },
     ],
     pagination: true,
