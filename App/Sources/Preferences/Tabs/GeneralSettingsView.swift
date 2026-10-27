@@ -118,12 +118,12 @@ struct GeneralSettingsView: View {
                     }
                     SettingRow(visibility: .generalAboutReportABug, label: "Report a Bug", sublabel: "Found something broken?", showDivider: true) {
                         ExternalLinkButton(title: "Report", icon: "ladybug") {
-                            openURL("https://github.com/spurs-planks-smithers/Capso/issues/new?template=bug_report.yml&labels=bug") // Fork: Nextshot's issues
+                            openURL("https://feedback.nextshot.dev")
                         }
                     }
                     SettingRow(visibility: .generalAboutRequestAFeature, label: "Request a Feature", sublabel: "Have an idea?", showDivider: true) {
                         ExternalLinkButton(title: "Request", icon: "lightbulb") {
-                            openURL("https://github.com/spurs-planks-smithers/Capso/issues/new?template=feature_request.yml&labels=enhancement") // Fork: Nextshot's issues
+                            openURL("https://feedback.nextshot.dev") // Fork: Nextshot's feature feedback
                         }
                     }
                     SettingRow(visibility: .generalAboutSourceCode, label: "Source Code", sublabel: "View on GitHub", showDivider: true) {

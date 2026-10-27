@@ -32,9 +32,16 @@ export default defineConfig({
         { label: 'Multiple captures', slug: 'multiple-captures' },
         { label: 'Find and reuse work', slug: 'reuse-rounds' },
       ] },
+      { label: 'Settings', items: [
+        { label: 'Settings overview', slug: 'settings' },
+        { label: 'Startup and support', slug: 'settings/general' },
+        { label: 'Screen access', slug: 'settings/permissions' },
+        { label: 'Capture and image copy', slug: 'settings/capture' },
+      ] },
       { label: 'Quick answers', items: [
         { label: 'Keyboard shortcuts', slug: 'shortcuts' },
         { label: 'Fix a problem', slug: 'troubleshooting' },
+        { label: 'Send feedback', slug: 'send-feedback' },
       ] },
     ],
     pagination: true,

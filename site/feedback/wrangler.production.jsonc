@@ -1,0 +1,129 @@
+{
+  "name": "nextshot-feedback",
+  "account_id": "2afca1b8aab7ec4024bdb7cb2fec47c0",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-10-26",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "workers_dev": false,
+  "preview_urls": false,
+  "assets": {
+    "directory": "public",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "vars": {
+    "INTAKE_ENABLED": "true",
+    "NATIVE_ENABLED": "false",
+    "PROCESSING_ENABLED": "true",
+    "AI_SCREENING_ENABLED": "true",
+    "EMAIL_ENABLED": "false",
+    "NOTIFICATIONS_ENABLED": "true",
+    "TURNSTILE_SITE_KEY": "0x4AAAAAAFnOBF8j5OITOOSP",
+    "ACCESS_TEAM_DOMAIN": "shrill-math-8862.cloudflareaccess.com",
+    "ACCESS_AUD": "101aa26442da74d5a89dd0c082326db31e05b92792f3fa5e18e0f2965edb10c2"
+  },
+  "ai": {
+    "binding": "AI"
+  },
+  "r2_buckets": [
+    {
+      "binding": "RAW",
+      "bucket_name": "nextshot-feedback-raw"
+    },
+    {
+      "binding": "REBUILT",
+      "bucket_name": "nextshot-feedback-rebuilt"
+    },
+    {
+      "binding": "SIGNATURES",
+      "bucket_name": "nextshot-feedback-signatures"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "nextshot-feedback",
+      "database_id": "08e03222-27df-4ac6-947a-3e0586f2c7a0"
+    }
+  ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "JOBS",
+        "queue": "nextshot-feedback-scan"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "nextshot-feedback-scan",
+        "max_batch_size": 1,
+        "max_batch_timeout": 5,
+        "max_retries": 2,
+        "dead_letter_queue": "nextshot-feedback-dead",
+        "max_concurrency": 1
+      }
+    ]
+  },
+  "containers": [
+    {
+      "class_name": "Scanner",
+      "scheduling_policy": "durable_object",
+      "images": {
+        "scanner": {
+          "image": "registry.cloudflare.com/2afca1b8aab7ec4024bdb7cb2fec47c0/nextshot-feedback-scanner-scanner@sha256:582ec345c20a1db2eddb5193a0b371c15442ad656af59ba7ef1129ef622762e1"
+        }
+      }
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "SCANNER",
+        "class_name": "Scanner"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "Scanner"
+      ]
+    }
+  ],
+  "send_email": [
+    {
+      "name": "CONTACT_NOTIFY",
+      "destination_address": "drewschulz1@gmail.com"
+    }
+  ],
+  "triggers": {
+    "crons": [
+      "17 * * * *"
+    ]
+  },
+  "limits": {
+    "cpu_ms": 30000
+  },
+  "observability": {
+    "enabled": false
+  },
+  "routes": [
+    {
+      "pattern": "feedback.nextshot.dev",
+      "custom_domain": true
+    }
+  ],
+  "ratelimits": [
+    {
+      "name": "EDGE_LIMITER",
+      "namespace_id": "100117",
+      "simple": {
+        "limit": 60,
+        "period": 60
+      }
+    }
+  ]
+}

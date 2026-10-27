@@ -1,12 +1,14 @@
 ---
 title: Keyboard shortcuts
 description: The keys for capture, marks, notes, and the complete handoff.
-reviewedFor: 0.3.0
+reviewedFor: 0.4.0
+minVersion: 0.4.0
 sidebar:
   order: 6
 ---
 
 import Shortcut from '../../components/Shortcut.astro';
+import GuideImage from '../../components/GuideImage.astro';
 
 <a class="primary-link" href="/guides/resources/nextshot-shortcuts.pdf" download>Download the shortcut sheet</a>
 
@@ -59,6 +61,21 @@ The four round keys work only while a round is active. Finish an open capture be
 
 ## Change a shortcut
 
-Open **Settings**, then **Shortcuts**. Find the Nextshot section. Set the key beside the action you want to change.
+Open **Settings**, then **Shortcuts**. The **Nextshot** section comes first. It holds the five actions for starting and managing rounds.
+
+<GuideImage src="/guides/media/settings-shortcuts.png" alt="The Shortcuts tab shows the five Nextshot actions first, with Advanced below." caption="Change a round key beside its action. Open Advanced for the centered-selection key." />
+
+Click the key field beside the action. Press your new key combination. Press Escape while recording to cancel. Press Delete while recording to remove the shortcut.
 
 For the start key alone, choose **Change Start Round Shortcut** in the Nshot menu. Nextshot refuses a key another action already uses.
+
+<details>
+<summary>Advanced: centered square selection</summary>
+
+Open **Advanced** in **Shortcuts**. **Center 1:1 from click** sets the extra key for a square that grows around your first click.
+
+The default extra key is C. Hold Shift during area selection, then hold the extra key shown in this row. Shift stays fixed. Click the extra key field to change that key. Press Escape to cancel.
+
+</details>
+
+[Settings overview](/guides/settings/) covers startup, screen access, and capture preferences.

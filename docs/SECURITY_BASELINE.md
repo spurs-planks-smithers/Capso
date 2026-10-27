@@ -5,6 +5,7 @@
 - Status: Drew approved the recommendations on 2026-10-20. Applied: 1 (Sparkle off), 2 as "hide now" (the picker lists only Apple; full removal of the provider code moves to its own branch after Phase 1), 3 (Cloud Share tab hidden), 4 (nettop check at verification), 5 (no change).
 - Update 2026-10-24: the Jev base (#36) adds the fork's only network code, in `Packages/JevKit`. Drew confirmed the new local-only rule on 2026-10-24. The threat model is in `docs/superpowers/specs/2026-10-24-jev-base-design.md`.
 - Update 2026-10-26: Drew approves an explicit support submission path through SupportKit. Its release-capable flag starts off. Public intake remains disabled until live scanner, access, and delivery checks pass. The approved design is [[2026-10-26-secure-feedback-intake]].
+- Update 2026-10-27: public website intake uses the reviewed private scanner and protected owner routes. Native and email admission remain off. The production profile pins the approved image; `site/feedback/deploy.py pause` stops admission and processing. App activation follows the separate 0.5.0 release handoff.
 
 ## Summary
 

@@ -1,0 +1,56 @@
+---
+title: Startup and support
+description: Start Nextshot at login and find its version and support links.
+reviewedFor: 0.4.0
+minVersion: 0.4.0
+---
+
+import Step from '../../../components/Step.astro';
+import GuideImage from '../../../components/GuideImage.astro';
+
+Use **General** to start Nextshot when you log in, check its version, or find help.
+
+<GuideImage src="/guides/media/settings-general.png" alt="The General tab with Launch at Login, About, and Diagnostics." caption="Daily controls come first. Open Diagnostics only when you need troubleshooting files." />
+
+<Step number={1} title="Choose startup behavior">
+
+Open **Settings**, then **General**. Turn on **Launch at Login** to start Nextshot when you log in to your Mac.
+
+This control does not start a round or make a capture.
+
+</Step>
+
+<Step number={2} title="Check the installed version">
+
+Find the version in **About**. Include it when you report a problem. The Nshot menu also shows the running version and build.
+
+Use **Report a Bug** for a broken action. Use **Request a Feature** for an idea. **Source Code** opens the project on GitHub.
+
+Opening one of these links submits nothing. Review what you share before you post it.
+
+</Step>
+
+| Control | Default | When to use it |
+| --- | --- | --- |
+| Launch at Login | Off | Keep Nextshot available after login. |
+| Version | Installed build | Identify the running copy when you need help. |
+| Report a Bug | n/a | Describe a problem and the steps that cause it. |
+| Request a Feature | n/a | Explain the task you want to complete. |
+| Source Code | n/a | Read the public project. |
+
+<details>
+<summary>Diagnostics: local troubleshooting files</summary>
+
+Open **Diagnostics** to reveal these controls.
+
+| Control | Default | Effect |
+| --- | --- | --- |
+| Diagnostic Logging | Off | Writes local troubleshooting logs when enabled. |
+| Diagnostic Logs | n/a | Reveals the local log file in Finder. |
+| Crash Reports | n/a | Opens the macOS diagnostic reports folder. |
+
+Turn on logging before you repeat a problem. Turn it off afterward. Review files before you share them. Opening a folder uploads nothing.
+
+</details>
+
+Updates use a new installer. [Install an update](/guides/install/#install-an-update) when a newer release is available.

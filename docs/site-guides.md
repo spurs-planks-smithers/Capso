@@ -8,7 +8,7 @@ Guide files live in `site/guides/src/content/docs/`. They use MDX, which is Mark
 
 - Teach one outcome per guide. Use the exact menu labels from the app.
 - Put the result before the steps. Link prerequisites instead of repeating them.
-- Use real screenshots from the released app. Keep personal content out of the demo.
+- Use real screenshots from the released app. On m5pro, use only Nextshot Dev from the matching release source. Record its actual Dev version and build. Keep personal content out of the demo.
 - Set `reviewedFor` to the app version you actually check. Do not raise it after a text-only edit without checking the app.
 - Set `minVersion` only when the task needs a particular release. The page shows a notice when the current download is older.
 - Keep experimental features and disabled flags out of general instructions.
