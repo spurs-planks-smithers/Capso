@@ -346,3 +346,142 @@ test("native runtime reports fixed inspect, destroy, intercept, start, and inact
     code: "scanner_proxy_unavailable",
   });
 });
+test("each scan destroys the prior VM before startup and waits for the complete body before teardown", async () => {
+  const s = runtime({ running: true, info: { image } }),
+    managed = {};
+  let body,
+    received = false,
+    ended = false;
+  const destroy = s.ctx.container.destroy;
+  s.ctx.container.destroy = async () => {
+    if (s.events.filter((v) => v === "destroy").length === 1)
+      assert.equal(ended, true);
+    return destroy.call(s.ctx.container);
+  };
+  s.ctx.container.getTcpPort = () => ({
+    async fetch(url) {
+      if (url.endsWith("/ready")) return new Response('{"ready":true}');
+      received = true;
+      return new Response(
+        new ReadableStream({
+          start(controller) {
+            body = controller;
+            controller.enqueue(
+              new TextEncoder().encode('{"version":1,"status":"passed"'),
+            );
+          },
+        }),
+      );
+    },
+  });
+  const pending = scannerFetch(
+    managed,
+    s.ctx,
+    new Request("http://scanner/scan", { method: "POST", body: "{}" }),
+  );
+  for (let n = 0; n < 1000 && !received; n++)
+    await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(received, true);
+  assert.equal(managed.scanning, true);
+  assert.equal(s.events.filter((v) => v === "destroy").length, 1);
+  assert.ok(s.events.indexOf("destroy") < s.events.indexOf("start"));
+  assert.equal(s.starts.length, 1);
+  ended = true;
+  body.enqueue(new TextEncoder().encode(',"reasonCodes":[]}'));
+  body.close();
+  const response = await pending;
+  assert.equal((await response.json()).status, "passed");
+  assert.equal(s.events.filter((v) => v === "destroy").length, 2);
+  assert.equal(managed.scanning, false);
+});
+test("failure to destroy a prior or completed VM always holds the scan", async () => {
+  for (const at of [1, 2]) {
+    const s = runtime({ running: true, info: { image } }),
+      managed = {};
+    let calls = 0;
+    const destroy = s.ctx.container.destroy;
+    s.ctx.container.destroy = async () => {
+      if (++calls === at) throw new Error("private cleanup error");
+      return destroy.call(s.ctx.container);
+    };
+    s.ctx.container.getTcpPort = () => ({
+      fetch: async (url) =>
+        new Response(
+          url.endsWith("/ready")
+            ? '{"ready":true}'
+            : '{"version":1,"status":"passed","reasonCodes":[]}',
+        ),
+    });
+    const response = await scannerFetch(
+      managed,
+      s.ctx,
+      new Request("http://scanner/scan", { method: "POST", body: "{}" }),
+    );
+    assert.equal(response.status, 503);
+    const result = await response.json();
+    assert.equal(result.status, "held");
+    assert.doesNotMatch(JSON.stringify(result), /passed|private cleanup/);
+    assert.equal(managed.scanning, false);
+    if (at === 1) assert.equal(s.starts.length, 0);
+  }
+});
+test("cleanup has its own bounded deadline and cannot release a passed result after timeout", async (t) => {
+  const s = runtime({ running: true, info: { image } }),
+    managed = {},
+    controller = new AbortController(),
+    original = AbortSignal.timeout;
+  let destroys = 0,
+    cleaning = false;
+  t.mock.method(AbortSignal, "timeout", (ms) =>
+    ms === 10000 ? controller.signal : original(ms),
+  );
+  const destroy = s.ctx.container.destroy;
+  s.ctx.container.destroy = async () => {
+    if (++destroys === 2) {
+      cleaning = true;
+      return new Promise(() => {});
+    }
+    return destroy.call(s.ctx.container);
+  };
+  s.ctx.container.getTcpPort = () => ({
+    fetch: async (url) =>
+      new Response(
+        url.endsWith("/ready") ? '{"ready":true}' : '{"status":"passed"}',
+      ),
+  });
+  const pending = scannerFetch(
+    managed,
+    s.ctx,
+    new Request("http://scanner/scan", { method: "POST", body: "{}" }),
+  );
+  for (let n = 0; n < 1000 && !cleaning; n++)
+    await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(cleaning, true);
+  assert.equal(managed.scanning, true);
+  controller.abort();
+  const response = await pending;
+  assert.equal(response.status, 503);
+  assert.equal((await response.json()).status, "held");
+  assert.equal(managed.scanning, false);
+});
+test("malformed UTF8 and oversized replies stay held after the VM is destroyed", async () => {
+  for (const bytes of [new Uint8Array([255]), new Uint8Array(24000001)]) {
+    const s = runtime({ running: true, info: { image } }),
+      managed = {};
+    s.ctx.container.getTcpPort = () => ({
+      fetch: async (url) =>
+        url.endsWith("/ready")
+          ? new Response('{"ready":true}')
+          : new Response(bytes),
+    });
+    const response = await scannerFetch(
+      managed,
+      s.ctx,
+      new Request("http://scanner/scan", { method: "POST", body: "{}" }),
+    );
+    assert.equal(response.status, 503);
+    assert.equal((await response.json()).status, "held");
+    assert.equal(s.events.filter((v) => v === "destroy").length, 2);
+    assert.equal(managed.scanning, false);
+  }
+});

@@ -2,6 +2,8 @@ import {
   ensureScannerRuntime,
   waitForScannerReady,
   startupSignal,
+  abortable,
+  readBounded,
 } from "./scanner-runtime.js";
 import { uploadBytes } from "./policy.js";
 const hold = (reason) =>
@@ -36,20 +38,29 @@ export async function signatureProxy(request, env) {
     },
   });
 }
+async function destroyForScan(ctx) {
+  await abortable(ctx.container.destroy(), AbortSignal.timeout(10000));
+}
 export async function scannerFetch(managed, ctx, request) {
   const url = new URL(request.url);
   if (request.method !== "POST" || url.pathname !== "/scan" || url.search)
     return new Response(null, { status: 404 });
   if (managed.scanning) return hold("scanner_busy");
   managed.scanning = true;
+  let result = hold("scanner_unavailable");
   try {
-    const input = await uploadBytes(request.body, 36000000),
-      signal = startupSignal(request.signal);
+    const signal = startupSignal(request.signal);
+    // A prior process can retain root capabilities. Destroy its VM before any new job.
+    await destroyForScan(ctx);
+    const input = await uploadBytes(request.body, 36000000);
     await ensureScannerRuntime(ctx, signal);
     await waitForScannerReady(ctx, signal);
-    const response = await ctx.container
-      .getTcpPort(8080)
-      .fetch("http://scanner/scan", {
+    const transfer = AbortSignal.any([
+      request.signal,
+      AbortSignal.timeout(140000),
+    ]);
+    const response = await abortable(
+      ctx.container.getTcpPort(8080).fetch("http://scanner/scan", {
         method: "POST",
         redirect: "manual",
         headers: {
@@ -57,12 +68,25 @@ export async function scannerFetch(managed, ctx, request) {
           "Content-Length": String(input.byteLength),
         },
         body: input,
-        signal: AbortSignal.any([request.signal, AbortSignal.timeout(140000)]),
-      });
-    return response;
+        signal: transfer,
+      }),
+      transfer,
+    );
+    const body = await readBounded(response, 24000000, transfer);
+    result = new Response(body, {
+      status: response.status,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch {
-    return hold("scanner_unavailable");
+    result = hold("scanner_unavailable");
   } finally {
+    // Cleanup has its own deadline even when the caller's request is already canceled.
+    try {
+      await destroyForScan(ctx);
+    } catch {
+      result = hold("scanner_unavailable");
+    }
     managed.scanning = false;
   }
+  return result;
 }
