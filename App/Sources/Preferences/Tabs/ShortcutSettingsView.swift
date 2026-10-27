@@ -78,7 +78,7 @@ struct ShortcutSettingsView: View {
             HStack(spacing: 8) {
                 Image(systemName: "info.circle")
                     .foregroundStyle(.blue)
-                Text("Select a shortcut, then press the new keys. Escape cancels. Delete removes it.")
+                Text("Select a shortcut, then press new keys. Escape cancels. Delete clears its keys. The action stays available but inactive.")
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
             }
