@@ -123,7 +123,7 @@ struct GeneralSettingsView: View {
                     }
                     SettingRow(visibility: .generalAboutRequestAFeature, label: "Request a Feature", sublabel: "Have an idea?", showDivider: true) {
                         ExternalLinkButton(title: "Request", icon: "lightbulb") {
-                            openURL("https://github.com/spurs-planks-smithers/Capso/issues/new?template=feature_request.yml&labels=enhancement") // Fork: Nextshot's issues
+                            openURL("https://feedback.nextshot.dev") // Fork: Nextshot's feature feedback
                         }
                     }
                     SettingRow(visibility: .generalAboutSourceCode, label: "Source Code", sublabel: "View on GitHub", showDivider: true) {
