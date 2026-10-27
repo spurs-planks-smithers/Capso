@@ -10,6 +10,8 @@ Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This for
 
 ### Added
 
+- An email-only intake shutdown mode preserves website, native, processing, screening, and notification controls.
+
 - Screen Recording help explains screen access beside the permission label.
 - Discrete visibility flags cover Settings tabs, sections, and controls.
 - Public website feedback for bug reports, feature requests, questions, and optional screenshots or Nextshot exports, with private screening and owner review.

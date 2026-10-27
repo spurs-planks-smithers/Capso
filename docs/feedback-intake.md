@@ -75,6 +75,8 @@ From the repository root, run `python3 site/feedback/deploy.py status` to verify
 
 To stop intake, run `python3 site/feedback/deploy.py pause`. It disables new admission and processing starts. An in-flight scan can finish within its bounded attempt. The private review page and retention handler remain available. Verify `/config` reports disabled and new reservations return 503. Do not delete submissions or weaken Access during an incident.
 
+To stop only email admission, use `python3 site/feedback/deploy.py email-pause` from an approved service checkout. It preserves the other five live launch controls and redeploys with the pinned production configuration. Missing or invalid controls stop the command before deployment. This command changes no mail routing or DNS. Email activation and live rollback proof remain part of issue #127.
+
 Publish only the homepage and Guides with `site/deploy.sh --stage-only`, followed by `site/deploy.sh --deploy-staged <artifact>`. Use the existing pinned media. The command records a Worker rollback snapshot and restores it if site smoke checks fail. Compare `/latest.json` before and after. This operation must not change a released app record, file, or tag.
 
 Native activation belongs to the separate 0.5.0 release runbook. The release owner enables the native backend with `python3 site/feedback/deploy.py native`, verifies a synthetic reduced package through screening, reviews the signed Dev app, and then freezes the release graph. After activation, use `native` for service updates that must retain native admission. A `web` deployment deliberately closes it.
