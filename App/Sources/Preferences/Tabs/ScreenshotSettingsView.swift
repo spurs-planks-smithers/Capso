@@ -86,7 +86,7 @@ struct ScreenshotSettingsView: View {
             if Capabilities.current.standaloneCapture {
                 SettingGroup(visibility: .screenshotsCapture, title: "Capture") {
                     SettingCard {
-                        SettingRow(visibility: .screenshotsCaptureShowCursor, label: "Show Cursor", sublabel: "Include the mouse pointer in screenshots") {
+                        SettingRow(visibility: .screenshotsCaptureShowCursor, label: "Show Pointer", sublabel: "Include the mouse pointer in screenshots") {
                             Toggle("", isOn: $viewModel.screenshotShowsCursor)
                                 .toggleStyle(.switch)
                                 .controlSize(.small)
