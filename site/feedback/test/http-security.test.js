@@ -67,7 +67,7 @@ test("HTTPS and exact loopback previews keep normal handling and all security he
       "max-age=31536000; includeSubDomains",
     );
     assert.equal(result.headers.get("X-Content-Type-Options"), "nosniff");
-    assert.equal(result.headers.get("Referrer-Policy"), "no-referrer");
+    assert.equal(result.headers.get("Referrer-Policy"), "same-origin");
     assert.equal(result.headers.get("X-Frame-Options"), "DENY");
     assert.equal(result.headers.get("X-Robots-Tag"), "noindex, nofollow");
     assert.equal(

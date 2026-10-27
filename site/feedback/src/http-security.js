@@ -5,7 +5,8 @@ function protectedResponse(response) {
     "max-age=31536000; includeSubDomains",
   );
   out.headers.set("X-Content-Type-Options", "nosniff");
-  out.headers.set("Referrer-Policy", "no-referrer");
+  // Owner form posts need their Origin. Cross-origin requests send no referrer.
+  out.headers.set("Referrer-Policy", "same-origin");
   out.headers.set("X-Frame-Options", "DENY");
   out.headers.set("X-Robots-Tag", "noindex, nofollow");
   out.headers.set(

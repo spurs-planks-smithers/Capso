@@ -379,5 +379,5 @@ kbd {
 }
 
 /* Guides shares the homepage header without changing its download controls. */
-.site-nav{margin-left:auto;margin-right:24px}.site-nav a{color:var(--text);font-size:14px;font-weight:600;text-decoration:none}.site-nav a:hover{text-decoration:underline;text-underline-offset:4px}.site-nav a:focus-visible{outline:2px solid var(--mint);outline-offset:6px}
+.site-nav{display:flex;align-items:center;gap:18px;margin-left:auto;margin-right:24px}.site-nav a{color:var(--text);font-size:14px;font-weight:600;text-decoration:none}.site-nav a:hover{text-decoration:underline;text-underline-offset:4px}.site-nav a:focus-visible{outline:2px solid var(--mint);outline-offset:6px}
 @media(max-width:640px){.site-nav{margin:0}.top{flex-wrap:wrap}.top>.pair{width:100%;justify-content:center}}

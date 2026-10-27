@@ -56,16 +56,18 @@ test("owner mutations require a fresh subject-bound token and exact same origin"
     "owner-id",
     token,
   );
-  await assert.rejects(
-    verifyCsrf(
-      new Request("https://feedback.nextshot.dev/review", {
-        headers: { Origin: "https://evil.example" },
-      }),
-      env,
-      "owner-id",
-      token,
-    ),
-  );
+  for (const origin of [undefined, "null", "https://evil.example"]) {
+    await assert.rejects(
+      verifyCsrf(
+        new Request("https://feedback.nextshot.dev/review", {
+          headers: origin ? { Origin: origin } : {},
+        }),
+        env,
+        "owner-id",
+        token,
+      ),
+    );
+  }
   await assert.rejects(
     verifyCsrf(
       new Request("https://feedback.nextshot.dev/review", {

@@ -58,7 +58,7 @@ Plan: [[2026-10-26-secure-feedback-intake]]
 ## Required before launch
 
 1. Complete the website submission and owner-review flow. Actual Cloudflare scanner isolation and engine checks now pass.
-2. Confirm Gmail delivery, uploaded website exports, owner false-positive approval, private downloads, and remaining recovery checks. Actual stored-copy expiry passes.
+2. Verify an authorized private download. Website receipts, owner false-positive approval, Gmail delivery, recovery, quotas, and actual stored-copy expiry pass.
 3. Configure recurring trusted signature refresh after code review and GitHub publication approval.
 4. Configure exact-address inbound mail routing after the live scanner passes. Keep the catchall disabled.
 5. Review the signed running Dev app and public form before enabling their launch switches.
@@ -83,6 +83,10 @@ Plan: [[2026-10-26-secure-feedback-intake]]
 - Drew authorizes inspection of the Nextshot test messages only. All three earlier notifications are verified in his Gmail Inbox. Screened text and protected review links are present. The held notice contains a count and reason without excerpts. Gmail shows nextshot.dev signing and TLS. The connector belongs to another account, so verification uses Drew's existing browser account. Evidence: build/feedback-checks/gmail-delivery-verified.json.
 - Website ZIP receipt 0420d39f is received and held after full screening. Findings include payment details, private records, and an uncertain classification. Current policy correctly prevents approval and inspection. The fixture remains quarantined. A separate fixed fake-credential fixture tests the permitted false-positive path.
 - Owner review now names uncertain classification, prohibited material, unsupported email attachments, incomplete screening, stale definitions, and budget exhaustion. An existing test first reproduces the generic-label failure. All 96 service tests then pass. The hold copy describes screening clearance without implying that processing is still running.
+- Live approval exposes a browser policy conflict. With no-referrer, Chrome form POSTs send Origin: null. A local browser reproduction confirms it. The service now uses same-origin referrer policy. Exact-origin and signed-token checks remain required. Missing and null origins stay rejected. Actual owner approval succeeds afterward. Evidence: build/feedback-checks/form-origin-verified.json.
+- The deliberately fake credential fixture caf05c45 is approved through the real owner form. Every required check runs again. The receipt becomes screened and its separately checked draft is ready. The uncertain standard export remains quarantined.
+- Nine live recovery checks pass through the real API, D1, queue, and notification helpers. They cover stable reservation IDs, rejected partial bytes, successful retry, idempotent completion, duplicate queue delivery, file quotas, hourly quotas, failed-send reset, and expired-claim recovery. The recovery SQL is restricted to the probe receipt. Real retry sends only to Drew. Evidence: build/feedback-checks/private-recovery-probe/report-finish.json.
+- The exact homepage artifact is staged with the existing Guides, video, and poster. Running preview finds adjacent navigation links touching. A flex gap fixes it. All 22 site tests pass. The artifact is rebuilt after the CSS change.
 - Owner review renders the screened text, rebuilt-image link, and private issue draft. Chrome blocks the automated file download with ERR_BLOCKED_BY_CLIENT. Unauthenticated requests are denied. Manual download verification remains open.
 - Real Swift exports pass structural and hard engine checks. The reduced package passes. The standard export is held because its generated date-based folder name passes a payment checksum. This synthetic false positive remains held for the owner approval test. Evidence: build/feedback-checks/actual-exports-scan.json.
 - Hosted long-text screening passes across four actual model calls. Every request is bounded, and injection in the final chunk holds. A repetitive text fixture also holds as uncertain. Evidence: build/feedback-checks/context-chunks-live.json and context-chunks-repetition-held.json.
@@ -90,7 +94,7 @@ Plan: [[2026-10-26-secure-feedback-intake]]
 
 ## Rulings and limits
 
-- Engine substitutes never count as production scan evidence. Real local and Cloudflare engine checks pass. Website text and ZIP receipt, actual email parsing, review rendering, draft generation, Gmail delivery, and expiry pass. Owner approval, private downloads, native full submission, recovery trials, and remaining launch checks stay open.
+- Engine substitutes never count as production scan evidence. Real local and Cloudflare engine checks pass. Website text and ZIP receipt, actual email parsing, owner approval, draft generation, Gmail delivery, recovery, quotas, and expiry pass. Private downloads, native full submission, recurring signatures, and public launch checks stay open.
 - D1 stores metadata only. Private R2 payload generations and an authoritative retention marker prevent restored metadata from extending content retention. Migration 0003 applies to the empty live database.
 - Only rebuilt artifacts can be reviewed. Malware failures and incomplete hard checks cannot be waived.
 - The setup token has Workers AI Read, which supports inference. Workers AI Edit was rejected by automatic approval review and is unnecessary for the proven text call.
