@@ -110,6 +110,8 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
     /// Zip Round and Zip N Selected in the Nshot menu (#85). Not a Jev
     /// feature, so it may turn on in a release build.
     case zipHandoff
+    /// Explicit support submission. Off until the secure intake passes review.
+    case supportSubmission
 
     /// New flags start with both defaults `off`. A release default turns on
     /// only with a released-in build number.
@@ -147,6 +149,8 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
             FlagSpec(issue: 36, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil, devOnly: true)
         case .zipHandoff:
             FlagSpec(issue: 85, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
+        case .supportSubmission:
+            FlagSpec(issue: 0, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
         }
     }
 

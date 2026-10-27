@@ -15,6 +15,7 @@ struct FeedbackMenuState {
     var rootURL: URL
     /// Shows Zip Round and Zip N Selected (`zipHandoff` flag, #85).
     var zipEnabled = false
+    var supportSubmissionEnabled = false
     /// Rounds that another copy of Nextshot saved under a newer schema. This
     /// copy hides them, so the menu says how many.
     var newerSchemaCount = 0
@@ -58,6 +59,7 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     var onQuickLook: ((FeedbackBasketKey) -> Void)?
     var onCopyRecentRound: ((FeedbackRound) -> Void)?
     var onZipRecentRound: ((FeedbackRound) -> Void)?
+    var onSubmitRecentRound: ((FeedbackRound) -> Void)?
     var onOpenRecentFolder: ((FeedbackRound) -> Void)?
     var onResumeRound: ((FeedbackRound) -> Void)?
 
@@ -352,6 +354,9 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         if state.zipEnabled {
             menu.addItem(menuItem("Zip Round", action: #selector(zipRecentRound(_:)), round: round))
         }
+        if state.supportSubmissionEnabled {
+            menu.addItem(menuItem("Submit Round to Nextshot…", action: #selector(submitRecentRound(_:)), round: round))
+        }
         menu.addItem(.separator())
 
         for capture in FeedbackLibrary.capturesNewestFirst(round) {
@@ -445,6 +450,10 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     @objc private func startRound() { onStartRound?() }
     @objc private func openAllRounds() { onOpenAllRounds?() }
     @objc private func copySelected() { onCopySelected?() }
+    @objc private func submitRecentRound(_ sender: NSMenuItem) {
+        if let round = sender.representedObject as? FeedbackRound { onSubmitRecentRound?(round) }
+    }
+
     @objc private func zipSelected() { onZipSelected?() }
     @objc private func clearSelection() { onClearSelection?() }
 

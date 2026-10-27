@@ -1,15 +1,17 @@
 import Foundation
 import Testing
 
-/// The local-only rule as a test: only JevKit's transport opens a network
-/// connection, and only JevKit's client builds a request. It scans every
+/// The local-only rule as a test: only the Jev and explicit support
+/// transports open a connection or build a request. It scans every
 /// Swift file of the fork's own code. Upstream code (Sparkle, translation,
 /// Cloud Share) is outside the scan: the security baseline lists it.
 @Suite("Network source scan")
 struct NetworkSourceScanTests {
     /// The fork's own code. Paths are relative to the repository root.
-    static let scannedFolders = ["App/Feedback", "Packages/FeedbackKit/Sources", "Packages/JevKit/Sources"]
+    static let scannedFolders = ["App/Feedback", "Packages/FeedbackKit/Sources", "Packages/JevKit/Sources", "Packages/SupportKit/Sources"]
     static let transportFile = "Packages/JevKit/Sources/JevKit/Client/URLSessionTransport.swift"
+    static let supportTransport = "Packages/SupportKit/Sources/SupportKit/SupportTransport.swift"
+    static let supportEndpoint = "Packages/SupportKit/Sources/SupportKit/SupportEndpoint.swift"
     static let clientFolder = "Packages/JevKit/Sources/JevKit/Client/"
     static let endpointFile = "Packages/JevKit/Sources/JevKit/Client/JevEndpoint.swift"
 
@@ -21,9 +23,9 @@ struct NetworkSourceScanTests {
     }
 
     static let rules: [Rule] = [
-        Rule(name: "URLSession", pattern: #"\bURLSession\b"#) { $0 == transportFile },
-        Rule(name: "URLRequest", pattern: #"\bURLRequest\b"#) { $0.hasPrefix(clientFolder) },
-        Rule(name: "a URL literal", pattern: #"https?://"#) { $0 == endpointFile },
+        Rule(name: "URLSession", pattern: #"\bURLSession\b"#) { $0 == transportFile || $0 == supportTransport },
+        Rule(name: "URLRequest", pattern: #"\bURLRequest\b"#) { $0.hasPrefix(clientFolder) || $0 == supportTransport },
+        Rule(name: "a URL literal", pattern: #"https?://"#) { $0 == endpointFile || $0 == supportEndpoint },
         Rule(name: "Network framework, sockets, streams, or web views",
              pattern: #"import Network|\bNW(Connection|Listener|Browser|Endpoint|PathMonitor)\b|CFSocket|CFStream|NSURLConnection|\bsocket\(|WKWebView"#) { _ in false },
         Rule(name: "a child process", pattern: #"\bProcess\(|NSTask|\bcurl\b"#) { _ in false },
@@ -50,12 +52,14 @@ struct NetworkSourceScanTests {
         return files.sorted()
     }
 
-    @Test("No fork code outside JevKit's client opens a connection or builds a request")
+    @Test("Only the declared Jev and support transports build network requests")
     func onlyJevKitTalksToTheNetwork() throws {
         let files = Self.swiftFiles()
         // A scan that finds no files must fail, not pass.
         try #require(files.count > 40, "the scan found only \(files.count) Swift files")
         try #require(files.contains(Self.transportFile), "the scan missed the transport file")
+        try #require(files.contains(Self.supportTransport), "the scan missed the support transport")
+        try #require(files.contains(Self.supportEndpoint), "the scan missed the support endpoint")
 
         var findings: [String] = []
         for file in files {

@@ -1,0 +1,35 @@
+name: Feedback malware definitions
+
+on:
+  workflow_dispatch:
+  schedule:
+    # UTC: minute 17 every two hours. Pacific time follows daylight saving time.
+    - cron: '17 */2 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nextshot-feedback-signatures
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    if: github.repository == 'spurs-planks-smithers/Capso' && github.ref == 'refs/heads/main' && vars.FEEDBACK_SIGNATURES_ENABLED == 'true'
+    environment: nextshot-feedback-signatures
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out trusted source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: main
+      - name: Install official malware-definition tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends clamav clamav-freshclam
+      - name: Verify and publish definitions
+        env:
+          NEXTSHOT_SIGNATURES_API_TOKEN: ${{ secrets.NEXTSHOT_SIGNATURES_API_TOKEN }}
+        run: python3 scripts/feedback-signatures.py

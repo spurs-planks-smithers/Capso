@@ -18,6 +18,10 @@ nextshot.dev hosts the download page and the Guides learning hub for Nextshot. P
 
 Every response carries `X-Robots-Tag: noindex, nofollow`, and the page has a matching robots meta tag. There is no `robots.txt` block, because a crawler that cannot fetch a page never sees its noindex tag (Google Search Central, "Block search indexing with noindex"). The page loads no analytics script, sets no cookies, and makes no third-party requests.
 
+## Feedback service
+
+The separate service at feedback.nextshot.dev accepts website messages, reduced native support packages, and mail to hi@nextshot.dev. Its source is `site/feedback/`. Operations: [[feedback-intake]]. It has its own private storage and no release-bucket binding. The homepage Feedback link ships only after the service launch checks pass. Until then, keep the current live homepage and its download service unchanged.
+
 The bot flag comes from a user-agent pattern in `site/src/worker.js`: bots, crawlers, Slack, Teams, and Outlook link previews, curl, and the deploy smoke test (`nextshot-smoke-test`).
 
 ## Files
