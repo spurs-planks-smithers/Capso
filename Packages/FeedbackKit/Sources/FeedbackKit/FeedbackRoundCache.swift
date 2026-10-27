@@ -31,6 +31,14 @@ public struct FeedbackRoundCache: Sendable {
     /// `feedback.json` is not a round and is ignored. A folder whose
     /// `feedback.json` fails to decode is named in `unreadable`.
     public mutating func recent(in rootURL: URL, limit: Int = 5) -> FeedbackLibrary.Listing {
+        var listing = all(in: rootURL)
+        listing.rounds = Array(listing.rounds.prefix(max(limit, 0)))
+        return listing
+    }
+
+    /// Every compatible ended round with captures, newest end first.
+    /// Uses the same cache and diagnostics as the limited recent listing.
+    public mutating func all(in rootURL: URL) -> FeedbackLibrary.Listing {
         // Folder names repeat across roots, so entries never carry over.
         if self.rootURL != rootURL {
             self.rootURL = rootURL
@@ -94,7 +102,7 @@ public struct FeedbackRoundCache: Sendable {
             return lhsEnd != rhsEnd ? lhsEnd > rhsEnd : lhs.folderName > rhs.folderName
         }
         return FeedbackLibrary.Listing(
-            rounds: Array(rounds.prefix(max(limit, 0))),
+            rounds: rounds,
             unreadable: unreadable.sorted(),
             newerSchema: newerSchema.sorted()
         )
