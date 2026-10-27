@@ -1,0 +1,22 @@
+---
+const { entry } = Astro.locals.starlightRoute;
+const version = entry.data.minVersion;
+---
+<h1 id="_top">{entry.data.title}</h1>
+{entry.id !== 'index' && entry.data.description && <p class="guide-deck">{entry.data.description}</p>}
+{version && <p class="version-note" data-min-version={version}>Requires Nextshot {version} or later.<span data-live-version></span></p>}
+<script>
+  const notice = document.querySelector<HTMLElement>('[data-min-version]');
+  if (notice) {
+    const compare = (a: string, b: string) => {
+      const left = a.split('.').map(Number), right = b.split('.').map(Number);
+      for (let n = 0; n < 3; n++) { if (left[n] !== right[n]) return left[n] - right[n]; }
+      return 0;
+    };
+    fetch('/latest.json').then(r => r.ok ? r.json() : null).then(record => {
+      if (record && /^\d+\.\d+\.\d+$/.test(record.version) && compare(record.version, notice.dataset.minVersion!) < 0) {
+        notice.querySelector('[data-live-version]')!.textContent = ` The current download is ${record.version}.`;
+      }
+    }).catch(() => {});
+  }
+</script>

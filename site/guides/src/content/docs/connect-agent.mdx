@@ -1,0 +1,66 @@
+---
+title: Connect your agent
+description: Let the agent on your Mac open the screenshots and notes in a Nextshot handoff.
+reviewedFor: 0.3.0
+sidebar:
+  order: 3
+---
+
+## What the agent needs
+
+Use an AI coding agent that can read local files and images. Open your project in that agent before you paste a Nextshot prompt.
+
+Nextshot stores each round in this folder:
+
+```text
+~/Library/Application Support/Nextshot
+```
+
+The copied prompt names the exact files for your round. Pasting text alone does not upload the screenshot.
+
+You do not need to connect an account inside Nextshot. File access is a permission in your agent.
+
+## Claude Code
+
+Allow the Nextshot folder as an additional directory. For the command-line app, start Claude Code from your project with:
+
+```bash
+claude --add-dir "$HOME/Library/Application Support/Nextshot"
+```
+
+You can also add that folder to `permissions.additionalDirectories` in Claude Code’s user settings. Approve file access when the agent asks.
+
+Paste your Nextshot prompt into the project conversation. Ask the agent to open the annotated image and read the notes before planning changes.
+
+## Codex
+
+Paste into a project conversation that can read the Nextshot folder. Approve access when Codex asks. Confirm that its image tool opens the annotated capture.
+
+For the command-line app, supply the annotated image explicitly. Replace the paths below with the paths from your round:
+
+```bash
+codex --image "/absolute/path/to/annotated.png" \
+  "$(cat '/absolute/path/to/prompt.md')"
+```
+
+For multiple captures, pass their annotated image paths, separated by commas, to `--image`. Run the command from the project you want to change.
+
+## Other agents
+
+Give the agent read access to the round folder and its images. Paste the prompt into the project conversation.
+
+If an agent cannot read your Mac, attach the images and relevant notes through that tool’s upload interface. This guide’s one-paste workflow assumes local file access.
+
+## Verify the connection
+
+Ask the agent to identify one numbered mark and quote its note. It should use the annotated image and the corresponding manifest entry.
+
+Then check its plan table. Each item needs a file and a planned change. A missing image, guessed note, or inaccessible path means access still needs attention.
+
+## Where to find the round
+
+During an active round, choose **Open Round Folder** from the Nshot menu. For an ended round, open its submenu under **Recent Rounds**, then choose **Open Folder**.
+
+Keep the files together. The prompt’s paths depend on the round folder staying in place.
+
+<div class="read-next"><p>File access is ready.</p><a href="/guides/first-handoff/">Make your first handoff</a></div>

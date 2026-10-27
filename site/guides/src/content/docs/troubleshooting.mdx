@@ -1,0 +1,63 @@
+---
+title: Fix a problem
+description: Check the cause, make the smallest correction, and continue your round.
+reviewedFor: 0.3.0
+sidebar:
+  order: 7
+---
+
+## The capture key does nothing
+
+Open Nextshot and find its menu bar item. Quit another running copy of Nextshot or Capso, which can claim the same shortcut.
+
+Check **Settings**, **Shortcuts** for the current start key. You may have changed the default Option+Shift+F.
+
+If the menu bar item is hidden among other icons, make room for it. Start Round in the Nshot menu also starts a capture.
+
+## The capture is blank
+
+Open System Settings. Find Nextshot under **Privacy & Security** in the screen recording permission list.
+
+Turn on access. Follow macOS instructions to quit and reopen Nextshot, then make a fresh capture.
+
+Permission belongs to each app. Nextshot and Nextshot Dev have separate grants. [Review setup](/guides/install/).
+
+## The agent cannot open the image
+
+The copied prompt contains file references. It does not embed the screenshots. The agent needs access to the round folder on your Mac.
+
+Open that folder through the Nshot menu. Confirm that the annotated image is there, then [check the agent’s access](/guides/connect-agent/).
+
+A browser chat usually cannot open local paths. Attach the image and notes through that tool if you use one.
+
+## The clipboard holds only one capture
+
+Finishing a note panel copies the current capture’s prompt. Choose **Copy Prompt and End Round** to copy every capture in the round.
+
+If another app replaces the clipboard, choose **Copy Last Capture Prompt** or copy the round again from Recent Rounds.
+
+## End Round beeps
+
+Finish or close the open editor or note panel first. The R and E round shortcuts pause while a capture is open.
+
+Return to the Nshot menu to confirm the current round state.
+
+## A previous round is missing
+
+Recent Rounds shows only the five most recent ended rounds with captures. Check **All Rounds** in the Nshot menu for older work.
+
+An older app also hides a round written with a newer format and reports that in the menu. Use a compatible newer app to reopen that round.
+
+## Finder says Nextshot is in use
+
+Open the new DMG and double-click Nextshot inside it. Choose Install. The installer quits the running copy and replaces it.
+
+A manual drag to Applications works only after you quit Nextshot.
+
+## The agent missed a change
+
+Check that the note names a result and that the mark points to the right place. Confirm the agent read the image and the corresponding note.
+
+Ask for a plan table with one row per item before edits. Review the running result after the changes.
+
+[Return to the first handoff](/guides/first-handoff/) for a complete example.

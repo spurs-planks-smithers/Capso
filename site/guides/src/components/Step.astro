@@ -1,0 +1,5 @@
+---
+interface Props { number: number; title: string; }
+const { number, title } = Astro.props;
+---
+<section class="lesson-step" id={`step-${number}`}><div class="step-heading"><span class="step-number" aria-label={`Step ${number}`}>{number}</span><h3><a href={`#step-${number}`}>{title}</a></h3></div><div class="step-content"><slot /></div></section>

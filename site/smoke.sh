@@ -8,17 +8,21 @@
 # /stats. For the live site, curl asks public DNS (1.1.1.1 over HTTPS), because
 # this Mac can cache "no such domain" from before the custom domain existed.
 #
-# Usage: site/smoke.sh [--url URL] [--video NAME]
+# Usage: site/smoke.sh [--url URL] [--video NAME] [--guides|--guides-only]
+# Guides checks are opt-in, so app-only publishing works before Guides exists.
 #   --url    the site to test (default: $NEXTSHOT_SITE_URL, else https://nextshot.dev)
 #   --video  also check a Range request for /media/NAME (the page deploy passes it)
 set -uo pipefail
 
 url="${NEXTSHOT_SITE_URL:-https://nextshot.dev}"
 video=""
+guides=0 guides_only=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --url) url="$2"; shift 2 ;;
     --video) video="$2"; shift 2 ;;
+    --guides) guides=1; shift ;;
+    --guides-only) guides=1; guides_only=1; shift ;;
     *) echo "Unknown option: $1" >&2; exit 2 ;;
   esac
 done
@@ -51,6 +55,7 @@ if ((live)); then
   done
 fi
 
+if ((guides_only == 0)); then
 check 200 "$(status "$url/")" "page"
 check "noindex, nofollow" "$(header X-Robots-Tag "$url/")" "noindex header"
 
@@ -83,5 +88,52 @@ if [[ -n "$video" ]]; then
   check 206 "$(status -r 0-1023 "$url/media/$video")" "video range request"
 fi
 
+fi
+
+if ((guides)); then
+  guide_work="$(mktemp -d)"
+  trap 'rm -rf "$guide_work"' EXIT
+  for path in /guides/ /guides/first-handoff/ /guides/install/ /guides/connect-agent/ /guides/multiple-captures/ /guides/reuse-rounds/ /guides/shortcuts/ /guides/troubleshooting/; do
+    check 200 "$(status "$url$path")" "guide $path"
+    check "noindex, nofollow" "$(header X-Robots-Tag "$url$path")" "guide noindex $path"
+    get -fsS -A "$ua" "$url$path" >>"$guide_work/pages.html" || failed=1
+  done
+  # Parse actual links, so a missing CSS build cannot pass as HTML fallback.
+  python3 -I - "$guide_work/pages.html" >"$guide_work/assets" <<'PYASSETS'
+from html.parser import HTMLParser
+import sys
+class Assets(HTMLParser):
+    paths=set()
+    def handle_starttag(self,tag,attrs):
+        a=dict(attrs)
+        if tag=='link' and 'stylesheet' in a.get('rel','').split(): self.paths.add(a.get('href',''))
+        if tag in ('video','source') and a.get('src','').split('?')[0].endswith(('.mp4','.webm')): self.paths.add(a['src'])
+p=Assets(); p.feed(open(sys.argv[1]).read())
+css=[s for s in p.paths if s.startswith('/guides/') and s.endswith('.css')]
+if not css: raise SystemExit('Guides has no stylesheet')
+for s in sorted(p.paths):
+    if s.startswith('/guides/'): print(s)
+PYASSETS
+  [[ $? == 0 && -s "$guide_work/assets" ]] || { echo "FAIL  guide assets were not found" >&2; failed=1; }
+  while IFS= read -r path; do
+    [[ -n "$path" ]] || continue
+    check 200 "$(status "$url$path")" "guide asset $path"
+    case "$path" in
+      *.css) check text/css "$(header Content-Type "$url$path" | cut -d';' -f1)" "CSS content type $path" ;;
+      *.mp4|*.webm) check 206 "$(status -r 0-31 "$url$path")" "guide clip Range $path" ;;
+    esac
+  done <"$guide_work/assets"
+  for path in /guides/pagefind/pagefind.js /guides/pagefind/pagefind-entry.json; do
+    check 200 "$(status "$url$path")" "search asset $path"
+  done
+  get -fsS -A "$ua" "$url/guides/pagefind/pagefind-entry.json" >"$guide_work/search.json" || failed=1
+  python3 -I -c 'import json,sys; d=json.load(open(sys.argv[1])); assert d.get("languages"), "empty Pagefind languages"' "$guide_work/search.json" || { echo "FAIL  search index is empty" >&2; failed=1; }
+  check 200 "$(status "$url/guides/resources/nextshot-shortcuts.pdf")" "shortcuts PDF"
+  check application/pdf "$(header Content-Type "$url/guides/resources/nextshot-shortcuts.pdf" | cut -d';' -f1)" "PDF content type"
+  check '%PDF-' "$(get -s -A "$ua" -r 0-4 "$url/guides/resources/nextshot-shortcuts.pdf" | head -c 5)" "PDF bytes"
+  check 404 "$(status "$url/guides/this-page-must-not-exist/")" "real guide 404"
+  check "noindex, nofollow" "$(header X-Robots-Tag "$url/guides/this-page-must-not-exist/")" "404 noindex"
+fi
+
 ((failed == 0)) || { echo "smoke test failed" >&2; exit 1; }
-echo "Live: $url ($version)"
+echo "Live: $url (${version:-Guides only})"

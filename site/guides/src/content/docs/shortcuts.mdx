@@ -1,0 +1,64 @@
+---
+title: Keyboard shortcuts
+description: The keys for capture, marks, notes, and the complete handoff.
+reviewedFor: 0.3.0
+sidebar:
+  order: 6
+---
+
+import Shortcut from '../../components/Shortcut.astro';
+
+<a class="primary-link" href="/guides/resources/nextshot-shortcuts.pdf" download>Download the shortcut sheet</a>
+
+The printable reference is a one-page Letter PDF. These are the default keys. Your settings may use different ones.
+
+## Start a capture
+
+| Action | Default shortcut |
+| --- | --- |
+| Start or add a capture | <Shortcut keys={['Option', 'Shift', 'F']} /> |
+
+Press the capture key, then drag to select an area. The first saved capture starts a round.
+
+## Mark the capture
+
+| Action | Key |
+| --- | --- |
+| Add the next numbered dot | Click, with the dot tool selected |
+| Select the dot tool | C or N |
+| Select the arrow tool | A |
+| Select the box tool | R |
+| Select the text tool | T |
+| Save and open notes | Command+S |
+| Undo or redo a mark | Left or Right arrow |
+
+Left and Right control mark history when you are not typing text. They beep when no history is available.
+
+Escape with no marks copies the screenshot image and closes the editor. With marks, Escape follows the editor’s step-back behavior.
+
+## Answer the note questions
+
+| Action | Key |
+| --- | --- |
+| Save the answer and continue | Return |
+| Skip the current step | Escape |
+| Move to an earlier or later step | Up or Down arrow |
+| Move back from the start of an answer | Left arrow |
+| Move forward from the end of an answer | Right arrow |
+
+## During a round
+
+| Action | Default shortcut |
+| --- | --- |
+| Copy Last Capture Prompt | <Shortcut keys={['Option', 'Shift', 'C']} /> |
+| Copy Prompt and End Round | <Shortcut keys={['Option', 'Shift', 'R']} /> |
+| Open Round Folder | <Shortcut keys={['Option', 'Shift', 'O']} /> |
+| End Round and copy its prompt | <Shortcut keys={['Option', 'Shift', 'E']} /> |
+
+The four round keys work only while a round is active. Finish an open capture before using R or E.
+
+## Change a shortcut
+
+Open **Settings**, then **Shortcuts**. Find the Nextshot section. Set the key beside the action you want to change.
+
+For the start key alone, choose **Change Start Round Shortcut** in the Nshot menu. Nextshot refuses a key another action already uses.

@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+<title>Lemonaid, Nextshot practice page</title>
+<style>
+@font-face{font-family:Inter;src:url('/guides/Inter-latin.woff2');font-weight:100 900}*{box-sizing:border-box}body{margin:0;background:#eaf0e9;color:#24352b;font:16px Inter,system-ui,sans-serif}main{width:min(960px,calc(100% - 64px));margin:48px auto;background:#fffdf4;border:1px solid #dce3d8;border-radius:16px;overflow:hidden}nav{padding:28px 48px;display:flex;justify-content:flex-end;gap:32px;font-size:14px}nav a{color:#536251;text-decoration:none}section{min-height:480px;padding:50px 64px;position:relative}h1{margin:20px 0;font-size:70px;line-height:1;font-weight:800;letter-spacing:-3px}.tagline{color:#667261}.price{font-size:42px;font-weight:700;letter-spacing:-1px;margin:40px 0 25px}button{font:500 11px Inter,sans-serif;border:0;border-radius:4px;background:#f4d638;color:#293321;padding:5px 9px;cursor:pointer}.detail{font-size:12px;color:#75806e;margin-top:50px}.glass{position:absolute;right:60px;top:30px;width:230px;height:340px}footer{margin:20px 32px;text-align:center;font-size:12px;color:#647361}footer a{color:#087a6d}.checkout{display:none}body:has(#checkout:target) .shop{display:none}body:has(#checkout:target) .checkout{display:block}.checkout h2{font-size:28px}.order-row{display:flex;justify-content:space-between;padding:18px 0;border-bottom:1px solid #dce3d8}.total{font-size:24px;font-weight:700}@media(max-width:700px){main{width:calc(100% - 24px);margin:12px}section{padding:20px;min-height:480px}h1{font-size:48px}.glass{width:130px;right:12px;top:140px}nav{padding:20px;gap:20px}.price{font-size:32px}}
+</style>
+</head>
+<body>
+<main>
+<nav aria-label="Practice page"><a href="#menu">Menu</a><a href="#checkout">Order</a></nav>
+<section class="shop" id="menu"><h1>Lemonaid</h1><p class="tagline">Fresh squeezed every day.</p><p class="price">$9 a cup</p><button type="button" onclick="location.hash='checkout'">Buy</button><p class="detail">Open 9 to 5. Cash only.</p><img class="glass" src="/guides/demo/lemon-glass.svg" alt="A glass of fresh lemonade" /></section>
+<section class="checkout" id="checkout"><h2>Checkout</h2><div class="order-row"><span>2 cups of Lemonaid</span><span>$18.00</span></div><p>Pay with: Cash only</p><button type="button">Place order</button><div class="order-row total"><span>Total</span><span>$18.00</span></div></section>
+</main>
+<footer>This fictional page is for practicing with Nextshot. <a href="/guides/first-handoff/">Return to the guide</a></footer>
+</body>
+</html>

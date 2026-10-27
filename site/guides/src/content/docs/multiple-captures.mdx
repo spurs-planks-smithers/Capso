@@ -1,0 +1,49 @@
+---
+title: Work across multiple screens
+description: Gather related changes from several pages or apps into one complete round.
+reviewedFor: 0.3.0
+sidebar:
+  order: 4
+---
+
+import Shortcut from '../../components/Shortcut.astro';
+
+## Captures and rounds
+
+A **capture** is one selected screen area with its marks and notes. A **round** holds one or more captures for a set of changes.
+
+The first saved capture starts a round. You do not need to create an empty round first.
+
+## Add another capture
+
+1. Finish the current capture’s notes.
+2. Move to the next screen or app.
+3. Press <Shortcut keys={['Option', 'Shift', 'F']} />.
+4. Select an area, mark it, and save your notes.
+
+The capture joins the active round. The Nshot menu’s count increases. A green dot on the menu mark means a round is active.
+
+## Copy one capture or the whole round
+
+| What you need | What to do |
+| --- | --- |
+| The capture you just finished | Paste after the last note step. Its prompt is already copied. |
+| The newest capture again | Choose Copy Last Capture Prompt, or press Option+Shift+C. |
+| Every capture in the round | Choose Copy Prompt and End Round, or press Option+Shift+R. |
+| A few selected captures | Check their rows in Recent Rounds, then choose Copy N Selected. |
+
+Finishing another capture replaces the clipboard with that capture’s prompt. Use the complete-round command when your agent needs all the screens.
+
+## End the round
+
+Finish the open editor or note panel first. Press <Shortcut keys={['Option', 'Shift', 'R']} /> to copy the round prompt and end it.
+
+**End Round**, including Option+Shift+E, also copies the round prompt. The keyboard commands beep if a capture is still open.
+
+After the round ends, the next saved capture starts a new one. To continue an earlier round instead, use [Resume Round](/guides/reuse-rounds/).
+
+## Numbering stays clear
+
+Within each capture, dots start at 1. The agent’s prompt adds the capture number. Item **2.3** means dot 3 in capture 2.
+
+That lets you mark several screens without renumbering their dots by hand.

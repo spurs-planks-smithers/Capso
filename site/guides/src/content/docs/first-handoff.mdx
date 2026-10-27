@@ -1,0 +1,133 @@
+---
+title: Your first Nextshot handoff
+description: Give your AI the screenshots, locations, and instructions it needs to make the right changes.
+reviewedFor: 0.3.0
+sidebar:
+  order: 1
+---
+
+import Step from '../../components/Step.astro';
+import GuideImage from '../../components/GuideImage.astro';
+import Shortcut from '../../components/Shortcut.astro';
+import Clip from '../../components/Clip.astro';
+
+Nextshot connects each change you request to the exact place you marked. One handoff gives your agent a clear route through the feedback.
+
+<GuideImage src="/guides/media/first-capture.png" alt="A real Nextshot capture of the Lemonaid demo, marked with dots 1, 2, and 3." caption="Every mark connects to one instruction." />
+
+## What your agent receives
+
+<div class="package-grid">
+  <div class="package-item"><strong>The screen you marked</strong><p>A numbered screenshot shows each location. A clean copy reveals anything a mark covers.</p></div>
+  <div class="package-item"><strong>Your words, item by item</strong><p>Each number links to your exact note, so your agent can address every requested change.</p></div>
+  <div class="package-item"><strong>Details that help it locate code</strong><p>Screen text and image coordinates help the agent find the relevant part of your project.</p></div>
+  <div class="package-item"><strong>A clear way to work</strong><p>The prompt asks the agent to inspect the images, plan each item, make changes, and report back.</p></div>
+</div>
+
+The copied prompt points to these files on your Mac. An agent with file access opens them as it works. The screenshots are not embedded in clipboard text.
+
+## Before you start
+
+- [Install Nextshot and allow Screen Recording](/guides/install/).
+- Open the project you want to change in your AI coding agent.
+- [Give the agent access to Nextshot’s round folder](/guides/connect-agent/).
+
+Use your own project, or [download the practice project](/guides/resources/nextshot-practice-project.zip). Unzip it, open its folder in your agent, then open `index.html` in your browser.
+
+The practice project uses the fictional lemonade shop from the intro. Its page and styles are editable in `index.html`.
+
+The [hosted practice page](/guides/demo.html) also works for capture-only practice. Give your agent the downloaded source when you want it to make changes.
+
+<details><summary>Watch a short overview</summary><Clip src="/guides/media/round-overview.mp4" poster="/guides/media/first-capture.png" title="Capture, mark, and repeat" description="An optional, illustrated overview from the Nextshot intro. The complete steps are below." captions="/guides/media/round-overview.vtt" /></details>
+
+## Make the handoff
+
+<Step number={1} title="Capture what should change">
+
+Press <Shortcut keys={['Option', 'Shift', 'F']} />. Drag around the part of the screen you want your agent to inspect.
+
+Keep enough surrounding content to show where the change belongs. A saved capture starts a round automatically.
+
+</Step>
+
+<Step number={2} title="Mark each change">
+
+Click to place dot 1. Click the other places you want to change. Each click adds the next numbered dot.
+
+In this example, mark the title, the price, and the small Buy button. The numbers connect the image to the notes you enter next.
+
+<GuideImage src="/guides/media/editor.png" alt="The Nextshot editor with three numbered red dots on the demo page." caption="The editor starts on the dot tool. Use A for an arrow, R for a box, or T for text." />
+
+</Step>
+
+<Step number={3} title="Say what each number means">
+
+Press <Shortcut keys={['Command', 'S']} />. Nextshot shows a preview of the first mark and asks what should change.
+
+Give one direct instruction per item:
+
+| Dot | Example note |
+| --- | --- |
+| 1 | Change the title to “Lemonade.” |
+| 2 | Change the price to $3 a cup. |
+| 3 | Make the Buy button larger and easier to click. |
+
+Press Return after each answer. Add an optional general note, then press Return to finish.
+
+<GuideImage src="/guides/media/note-panel.png" alt="Nextshot asks what should change at circle 1. The answer reads: Change the title to Lemonade." caption="Type or dictate one instruction, then press Return to move to the next mark." />
+
+The capture prompt is now on your clipboard. You can paste it immediately, or add another screen to the same round.
+
+</Step>
+
+<Step number={4} title="Add another screen if you need it">
+
+Press <Shortcut keys={['Option', 'Shift', 'F']} /> again. Capture, mark, and describe the next screen.
+
+The Nshot menu shows the capture count. One round can hold feedback from several pages or apps.
+
+Keep a round focused on one set of changes. [Learn more about multiple captures](/guides/multiple-captures/).
+
+</Step>
+
+<Step number={5} title="Copy the complete round">
+
+Finish the note panel. Open the Nshot menu and choose **Copy Prompt and End Round**.
+
+You can also press <Shortcut keys={['Option', 'Shift', 'R']} />. This copies one prompt for the complete round and ends it.
+
+</Step>
+
+<Step number={6} title="Paste into your agent">
+
+Paste into the agent working on your project. The prompt tells it which files to open and how to match each note to its mark.
+
+Confirm that the agent opens the annotated image and reads the numbered notes. If it cannot open a file, [check file access](/guides/connect-agent/).
+
+</Step>
+
+<Step number={7} title="Review the plan, then the changes">
+
+The prompt asks for a plan table before edits. For this demo, the table should cover all three items:
+
+| Item | File | Planned change |
+| --- | --- | --- |
+| 1.1 | index.html | Change “Lemonaid” to “Lemonade.” |
+| 1.2 | index.html | Set the displayed price to $3 a cup. |
+| 1.3 | index.html | Increase the Buy button’s clickable area. |
+
+The actual file names depend on your project. Check that the agent understands each request before it changes the code.
+
+After the work, ask it to show the running result. Review each item. Start another round for anything that needs a further change.
+
+</Step>
+
+## Keep the handoff clear
+
+Name the result you want. “Set the price to $3” gives your agent a clearer instruction than “Fix this.”
+
+Your notes take priority. Screen text helps locate the code. The prompt tells the agent to ask when a note is missing or conflicts with the image.
+
+The round files stay on your Mac. Your agent controls what it reads and sends to its own model service.
+
+<div class="read-next"><p>Ready for another screen?</p><a href="/guides/multiple-captures/">Work with multiple captures</a></div>

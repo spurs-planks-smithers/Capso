@@ -1,0 +1,31 @@
+---
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
+interface Props { src: string; alt: string; caption?: string; width?: number; height?: number; }
+const { src, alt, caption, width, height } = Astro.props;
+if (!src.startsWith('/guides/') || !existsSync(resolve('public', src.slice('/guides/'.length)))) {
+  throw new Error(`Guide image is missing: ${src}`);
+}
+---
+<figure class="guide-figure">
+  <button class="image-zoom" data-zoom-src={src} data-zoom-alt={alt} type="button" aria-label={`Enlarge image: ${alt}`}><img src={src} alt={alt} width={width} height={height} loading="lazy" decoding="async" /><span class="zoom-hint" aria-hidden="true">Enlarge</span></button>
+  {caption && <figcaption>{caption}</figcaption>}
+</figure>
+<script>
+  if (!document.querySelector('#guide-image-dialog')) {
+    const dialog = document.createElement('dialog');
+    dialog.id = 'guide-image-dialog';
+    dialog.setAttribute('aria-label', 'Enlarged guide image');
+    const close = document.createElement('button'); close.type = 'button'; close.textContent = 'Close image';
+    const image = document.createElement('img');
+    dialog.append(close, image); document.body.append(dialog);
+    close.addEventListener('click', () => dialog.close());
+    dialog.addEventListener('click', e => { if (e.target === dialog) dialog.close(); });
+    document.addEventListener('click', e => {
+      const trigger = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-zoom-src]');
+      if (!trigger) return;
+      image.src = trigger.dataset.zoomSrc!; image.alt = trigger.dataset.zoomAlt!;
+      dialog.showModal(); close.focus();
+    });
+  }
+</script>

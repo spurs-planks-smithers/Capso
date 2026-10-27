@@ -1,16 +1,17 @@
 # nextshot.dev
 
-nextshot.dev is the one-page download site for Nextshot. People in internal organizations watch the intro video there and download the notarized DMG. It runs on Drew's Cloudflare account as one Worker with static assets, one D1 database, and (since the versioning work of 2026-10-25) one private R2 bucket that holds every released DMG. Set up 2026-10-23.
+nextshot.dev hosts the download page and the Guides learning hub for Nextshot. People in internal organizations watch the intro video there and download the notarized DMG. It runs on Drew's Cloudflare account as one Worker with static assets, one D1 database, and (since the versioning work of 2026-10-25) one private R2 bucket that holds every released DMG. Set up 2026-10-23.
 
 ## What it serves
 
 | Path | What it does |
 |---|---|
 | `/` | The landing page: the tagline "Show AI what you mean.", the intro video, the Download button, the round steps (Grab, Mark, Repeat, Hand off), install steps, and the footer "Free for personal use and internal use only." A slow gradient and an interactive dot field sit behind it (see "Page design"). |
+| `/guides/` | A static Astro/Starlight learning hub with seven task guides, local Pagefind search, screenshots, an optional captioned clip, and downloadable practice files. Authoring and publishing: [[site-guides]]. |
 | `/download` | Reads `latest.json` from R2, stores one row in D1 (time, version, country, bot flag; no IP address), then redirects to `/releases/<file>`. It answers 503 when R2 holds no valid `latest.json`. |
 | `/releases/<file>` | One published file from R2: `Nextshot-<version>.dmg`, `.zip`, `.dmg.sha256`, or `.json`, and the date builds (`Nextshot-2026.10.24-9d3afc7.dmg`). R2 handles Range and conditional requests. A name that is not a published file name gets a 404 and never reaches R2 as a path. A direct link to a file is not counted in D1: only `/download` counts. |
 | `/latest.json` | The record that says which version `/download` serves: version, build, file, size, SHA-256, commit, release time, and the release notes. Public and never cached. |
-| `/media/<video>.mp4` | The intro video. The Worker answers Range requests with 206, which Safari needs. It streams only the asked-for bytes and never holds a file in memory. |
+| `/media/<video>.mp4`, `/guides/media/<video>.mp4` | The intro video and guide clips. The Worker answers Range requests with 206, which Safari needs. It streams only the asked-for bytes and never holds a file in memory. |
 | `/stats` | Download counts by day (last 30 days, UTC) and by version. People and bots show apart. Anyone with the link can open it. |
 | `/LICENSE.txt` | Capso's Business Source License 1.1, copied from the repo `LICENSE`. The page does not link it. |
 | `www.nextshot.dev/*` | 301 to `https://nextshot.dev/*` |
@@ -28,10 +29,10 @@ The bot flag comes from a user-agent pattern in `site/src/worker.js`: bots, craw
 | `site/src/releases.mjs`, `site/test/releases.test.mjs` | Pure helpers: which file names the Worker may serve, what `latest.json` must hold, and which ranges are out of bounds. `node --test site/test/releases.test.mjs` runs the tests. |
 | `site/schema.sql` | The `downloads` table |
 | `site/public/` | `index.html` (with `{{...}}` placeholders), `site.css`, and `dots.js` (the background dot field). The deploy copies every file in this folder. |
-| `site/deploy.sh` | Stages `build/site`, deploys the page, and runs the smoke test |
+| `site/deploy.sh` | Builds a fresh complete artifact under `build/site-stages/`, publishes its exact files, and runs the smoke test |
 | `site/smoke.sh` | The smoke test, for the live site or a local Worker. `deploy.sh` and `scripts/release.sh` both run it. |
 
-`build/site` is generated and git-ignored, so the video never reaches git. The DMGs are not in `build/site` at all.
+The staged artifacts are generated and git-ignored. Homepage videos stay out of git. Released app files remain in R2.
 
 ## Where the DMGs live
 
@@ -61,7 +62,7 @@ The steps and the checks are at the top of `scripts/release.sh`, and the plan is
 site/deploy.sh
 ```
 
-The script picks the newest `build/releases/Nextshot-onboarding-20*.mp4` and skips the music option cuts (`-musicB.mp4`, `-musicC.mp4`). It takes the video poster from the video itself, 1 second before the end, where the end card is complete. Flags override each input:
+The script builds Guides before staging. Its default inputs are the fixed `build/releases/Nextshot-onboarding-2026.10.24.mp4` and `build/site-poster.jpg`. Flags override each input:
 
 ```bash
 site/deploy.sh --video build/releases/<new cut>.mp4 --poster <image>
@@ -69,15 +70,17 @@ site/deploy.sh --video build/releases/<new cut>.mp4 --poster <image>
 
 The script stops when a file is 25 MiB or larger (the static asset limit), when `LICENSE` is missing, or when R2 holds no valid `latest.json` (the new Worker would have nothing to serve). After the deploy it runs `site/smoke.sh`: page, noindex header, `/latest.json`, the "Version" line, the `/download` redirect, the DMG SHA-256 and size, Range replies (206, and 416 past the end), that a path cannot leave `releases/`, a video Range request, the www redirect, and `/stats`.
 
-- New video cut: render it, then run `site/deploy.sh`.
-- Local check: `site/deploy.sh --stage-only`, then start the `nextshot-site` entry in `.claude/launch.json`. It runs `wrangler dev` on port 8787 with a simulated D1 and a simulated R2 bucket in one folder (`--persist-to`). Fill the bucket with `NEXTSHOT_R2_LOCAL=<that folder> scripts/release.sh --import-legacy ...`, and point `site/smoke.sh --url http://127.0.0.1:8787` at the result.
+- New video cut: render it, then pass explicit `--video` and `--poster` inputs.
+- Local check: `site/deploy.sh --stage-only`. Use the preview command it prints with its generated configuration. Populate its local R2 binding before checking app routes.
+- Exact retry: `site/deploy.sh --deploy-staged /absolute/path/to/artifact`. This verifies the file inventory without rebuilding.
+- Guides failure: restore and verify the previous Worker deployment. Preserve the new app files and `latest.json` in R2. App promotion and rollback change only the app pointer.
 
 ## Page design
 
 Redesigned 2026-10-24 for the v3.1 video, in the video's words: round, dot, one prompt.
 
 - **Video first.** The video sits under the tagline, as wide as the window height allows, so the whole page fits a 1440 by 900 screen with no scroll. A "Watch the intro" button covers the poster, and the native controls appear once the video plays. Without JavaScript, the video keeps its controls.
-- **Poster.** The site poster is a still made for the site: the lemonade page with red dots 1 to 3 on the left, and the open Nshot menu on the right with "Copy Prompt and End Round" highlighted (Drew, 2026-10-24: "The menu for Nextshot is key."). No single video frame shows both, so `make_poster.mjs` takes the zoomed hand-off menu and lays it over the Mark scene. Drew turned down the 56.8-second menu frame the same day, because its left half is empty. Until then the poster was the note panel frame at 46.6 seconds. The deploy's default poster is the end card, so make the still and pass it:
+- **Poster.** The site poster is a still made for the site: the lemonade page with red dots 1 to 3 on the left, and the open Nshot menu on the right with "Copy Prompt and End Round" highlighted (Drew, 2026-10-24: "The menu for Nextshot is key."). No single video frame shows both, so `make_poster.mjs` takes the zoomed hand-off menu and lays it over the Mark scene. Drew turned down the 56.8-second menu frame the same day, because its left half is empty. Until then the poster was the note panel frame at 46.6 seconds. The deploy uses this fixed poster by default. Regenerate it when the homepage media changes:
 
 ```bash
 node scripts/video/nextshot-onboarding/make_poster.mjs build/site-poster.jpg

@@ -1,0 +1,59 @@
+---
+title: Install and set up Nextshot
+description: Install the app, allow screen access, and start your first capture.
+reviewedFor: 0.3.0
+sidebar:
+  order: 2
+---
+
+import Step from '../../components/Step.astro';
+import GuideImage from '../../components/GuideImage.astro';
+import Shortcut from '../../components/Shortcut.astro';
+
+Nextshot runs on macOS 15 or later. You need permission to record the screen so Nextshot can capture the area you select.
+
+## Install the app
+
+<Step number={1} title="Download and open the installer">
+
+[Download Nextshot for Mac](/download). Open the downloaded DMG, then double-click **Nextshot** inside it.
+
+</Step>
+
+<Step number={2} title="Choose Install">
+
+Accept the installation prompt. Nextshot opens the installed copy when it finishes.
+
+If an older copy is running, the installer quits and replaces it. Your rounds and settings stay in place.
+
+</Step>
+
+<Step number={3} title="Allow Screen Recording">
+
+When Nextshot asks, open System Settings. Find **Privacy & Security**, then the screen recording permission list. Its name can vary by macOS version.
+
+Turn on access for **Nextshot**. Follow any macOS prompt to quit and reopen the app.
+
+Nextshot needs camera and microphone access only when you use video features.
+
+<GuideImage src="/guides/media/permissions.png" alt="Nextshot’s Permissions page identifies Screen Recording as required for screenshots." caption="Open the screen recording settings from the first row. Other permissions serve separate features." />
+
+</Step>
+
+## Start a capture
+
+Quit another running copy of Nextshot or Capso first. Shared capture shortcuts can conflict.
+
+Press <Shortcut keys={['Option', 'Shift', 'F']} /> and select an area. You should see the editor with the red dot tool ready.
+
+Nextshot lives in the menu bar. Its Nshot menu gives you round actions, recent work, settings, and Quit.
+
+## Install an update
+
+Download the new DMG. Double-click Nextshot inside it, then choose Install. This also works while your current copy is running.
+
+If the installer is not newer, Nextshot says it is up to date. Open the Nshot menu to check the installed version.
+
+Updates are manual. Download a new installer when you want to update.
+
+<div class="read-next"><p>Next, make sure your agent can open the files.</p><a href="/guides/connect-agent/">Connect your agent</a></div>
