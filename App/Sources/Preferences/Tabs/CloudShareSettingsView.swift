@@ -188,6 +188,7 @@ struct CloudShareSettingsView: View {
     }
 
     private func testConnection() async {
+        guard Capabilities.current.cloudShare else { return }
         guard
             let providerRaw = viewModel.cloudShareProvider,
             let provider = ShareProvider(rawValue: providerRaw),
@@ -271,6 +272,7 @@ struct CloudShareSettingsView: View {
     }
 
     private func resetConfig() {
+        guard Capabilities.current.cloudShare else { return }
         // 1. Clear AppSettings via viewModel for proper @Observable mutations.
         viewModel.cloudShareAutoUploadEnabled = false
         viewModel.cloudShareProvider = nil

@@ -148,7 +148,7 @@ final class OpenedImageSaveTests: XCTestCase {
             .appendingPathComponent("capso-openedimagesave-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: exportDir, withIntermediateDirectories: true)
         settings.setExportLocation(exportDir)
-        let coordinator = CaptureCoordinator(settings: settings)
+        let coordinator = CaptureCoordinator(settings: settings, capabilities: .init { _ in .on })
         return (coordinator, settings, exportDir)
     }
 

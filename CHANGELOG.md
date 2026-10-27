@@ -15,6 +15,7 @@ Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This for
 
 ### Changed
 
+- Settings focus on feedback rounds. Standalone capture, recording, translation, cloud sharing, URL automation, and updater tools stay off behind local capability flags.
 - `manifest.md` lists the annotated images under Images and no longer holds a Codex command, so any AI agent reads a bundle the same way. Older bundles keep their old section.
 
 ## [0.3.0] - 2026-10-26

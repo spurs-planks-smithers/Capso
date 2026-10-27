@@ -166,6 +166,7 @@ struct CloudShareWizardView: View {
     }
 
     private func save() async {
+        guard Capabilities.current.cloudShare else { return }
         // Step 1: Keychain first — if this fails, abort (no AppSettings writes,
         // so the UI never shows a half-saved "configured" state).
         let keychain = KeychainHelper(service: "com.awesomemacapps.capso.share.\(model.provider.rawValue)")
@@ -1613,6 +1614,7 @@ enum CloudShareTester {
         accessKey: String,
         secretKey: String
     ) async -> Result<TimeInterval, ShareError> {
+        guard Capabilities.current.cloudShare else { return .failure(.notConfigured) }
         // Validate the prefix on this side first so the user gets a sharper
         // error message instead of an opaque network failure.
         do {

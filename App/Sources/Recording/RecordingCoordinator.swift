@@ -17,6 +17,7 @@ import ExportKit
 import EffectsKit
 import EditorKit
 import ShareKit
+import FeedbackKit
 
 enum KeyPressOverlayPermissionDecision: Equatable {
     case showOverlay
@@ -38,6 +39,7 @@ enum KeyPressOverlayPermissionDecision: Equatable {
 @Observable
 final class RecordingCoordinator {
     private let settings: AppSettings
+    private let capabilities: AppCapabilities
     let recorder = ScreenRecorder()
     let cameraManager = CameraManager()
     var historyCoordinator: HistoryCoordinator?
@@ -87,9 +89,10 @@ final class RecordingCoordinator {
     private var currentMicEnabled = false
     private var currentSystemAudioEnabled = false
 
-    init(settings: AppSettings) {
+    init(settings: AppSettings, capabilities: AppCapabilities = Capabilities.current) {
         self.settings = settings
-        cameraManager.refreshDevices()
+        self.capabilities = capabilities
+        if capabilities.recordingTools { cameraManager.refreshDevices() }
         recorder.onStreamInterrupted = { [weak self] error in
             self?.handleRecordingInterrupted(error: error)
         }
@@ -105,6 +108,7 @@ final class RecordingCoordinator {
 
     /// Start the recording flow: show overlay for area selection.
     func startRecordingFlow() {
+        guard capabilities.recordingTools else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
             guard let self else { return }
             if self.showRememberedRecordingArea() {
@@ -122,12 +126,14 @@ final class RecordingCoordinator {
     /// The recording toolbar still appears before capture begins so the user
     /// can confirm camera, microphone, system audio, format, and countdown.
     func startFullScreenRecordingFlow() {
+        guard capabilities.recordingTools else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
             self?.selectFullScreenForRecording()
         }
     }
 
     func startRecordingFlow(withSelectedArea rect: CGRect, screen: NSScreen) {
+        guard capabilities.recordingTools else { return }
         dismissOverlay()
         dismissToolbarUI()
         handleAreaSelected(rect: rect, screen: screen)
@@ -940,6 +946,7 @@ final class RecordingCoordinator {
     }
 
     func recoverInterruptedRecording() {
+        guard capabilities.recordingTools else { return }
         guard let url = InterruptedRecording.take() else { return }
         Task {
             let duration = (try? await AVURLAsset(url: url).load(.duration).seconds) ?? 0
@@ -990,6 +997,7 @@ final class RecordingCoordinator {
         recordingAreaSize: CGSize,
         outputFormat: EditorOutputFormat
     ) {
+        guard capabilities.recordingTools else { return }
         Task {
             let asset = AVURLAsset(url: tempURL)
             let duration = (try? await asset.load(.duration).seconds) ?? 0
@@ -1486,6 +1494,7 @@ final class RecordingCoordinator {
 
     /// Reopens a recording saved in history in the editor.
     func openEditor(for source: HistoryRecordingSource) {
+        guard capabilities.recordingTools else { return }
         openEditor(
             tempURL: source.videoURL,
             cursorTelemetryURL: source.cursorTelemetryURL,
@@ -1500,6 +1509,7 @@ final class RecordingCoordinator {
         format: RecordingKit.RecordingFormat,
         entryID: UUID
     ) {
+        guard capabilities.cloudShare && capabilities.recordingTools else { return }
         guard settings.cloudShareAutoUploadEnabled,
               let historyCoordinator,
               historyCoordinator.shareCoordinator != nil else {

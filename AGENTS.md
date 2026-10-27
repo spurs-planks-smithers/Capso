@@ -151,6 +151,13 @@ Agent access:
 - Every Jev flag is dev-only (`FlagSpec.devOnly`): a release build ignores every override and reads it as `off` (Drew, 2026-10-24). `FeatureFlagsTests` proves it.
 - `zipHandoff` (#85) is not a Jev flag and not dev-only: an override turns it on in a release build too. Turn it on with `scripts/nextshot-flags.sh set zipHandoff on`.
 
+## App capabilities
+
+- `AppCapabilities` in FeedbackKit resolves six off/on flags for the app. All start off in dev and release: `standaloneCapture`, `recordingTools`, `translationTools`, `cloudShare`, `automationURLs`, and `automaticUpdates` (issue #119). These flags are not dev-only.
+- `Capabilities.current` in `App/Feedback/Capabilities.swift` freezes that policy once per launch. Flag changes require a normal quit and reopen. Recording, translation, cloud sharing, and URL automation require `standaloneCapture` as well. Updates are independent.
+- Default Settings show General, Permissions, Screenshots, and Shortcuts. Shared round capture, annotation, local OCR, and Escape image copy remain available. Optional History cleanup, recording recovery, shortcut registration, provider key reads, and service creation stay off with their capability.
+- A saved preference never overrides an off capability. Keep saved settings, Keychain items, rounds, and History files intact. Gate alternate menus, URL actions, file opening, and coordinator entry points as well as Settings.
+
 ## Jev (dev builds only)
 
 - The base (#36) runs each feature's job in the background after a capture's notes are final and its screen text is stored. It never delays a copy, except Copy Prompt and End Round, which waits at most 500 ms and only with a feature on.

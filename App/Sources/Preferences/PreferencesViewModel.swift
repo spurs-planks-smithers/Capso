@@ -696,9 +696,10 @@ final class PreferencesViewModel {
     var translationProvider: TranslationProviderKind {
         get {
             access(keyPath: \.translationProvider)
-            return settings.translationProvider
+            return .apple
         }
         set {
+            guard Capabilities.current.translationTools, newValue == .apple else { return }
             withMutation(keyPath: \.translationProvider) {
                 settings.translationProvider = newValue
             }
@@ -727,13 +728,15 @@ final class PreferencesViewModel {
         }
     }
     func translationAPIKey() -> String {
-        settings.translationAPIKey() ?? ""
+        ""
     }
     func setTranslationAPIKey(_ value: String) throws {
-        try settings.setTranslationAPIKey(value)
+        // External provider configuration stays preserved but unavailable.
+        return
     }
     func testTranslationProviderConnection() async throws {
-        let provider = settings.translationProvider
+        guard Capabilities.current.translationTools else { return }
+        let provider = translationProvider
         guard provider != .apple else { return }
         let result = try await ProviderTranslationService.translate(
             text: "hello",
@@ -800,9 +803,11 @@ final class PreferencesViewModel {
             _ = permissionManager.requestInputMonitoringPermission()
             permissionManager.openSettings(for: kind)
         case .camera:
-            await permissionManager.requestCameraPermission()
+            if cameraGranted { permissionManager.openSettings(for: kind) }
+            else { await permissionManager.requestCameraPermission() }
         case .microphone:
-            await permissionManager.requestMicrophonePermission()
+            if microphoneGranted { permissionManager.openSettings(for: kind) }
+            else { await permissionManager.requestMicrophonePermission() }
         }
         updatePermissionSnapshot()
     }

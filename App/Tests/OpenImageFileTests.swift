@@ -95,7 +95,7 @@ final class OpenImageFileTests: XCTestCase {
     private func makeCoordinator() -> CaptureCoordinator {
         let suiteName = "OpenImageFileTests.\(UUID().uuidString)"
         let settings = AppSettings(defaults: UserDefaults(suiteName: suiteName)!)
-        return CaptureCoordinator(settings: settings)
+        return CaptureCoordinator(settings: settings, capabilities: .init { _ in .on })
     }
 
     private func makeTestImage(width: Int, height: Int) throws -> CGImage {

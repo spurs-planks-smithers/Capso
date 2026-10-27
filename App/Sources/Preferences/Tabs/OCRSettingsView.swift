@@ -14,7 +14,7 @@ struct TextAndTranslationSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("Text & Translation")
+            Text(Capabilities.current.translationTools ? "Text & Translation" : "Text Recognition")
                 .font(.system(size: 20, weight: .bold))
 
             SettingGroup(title: "Text Recognition") {
@@ -32,95 +32,97 @@ struct TextAndTranslationSettingsView: View {
                 }
             }
 
-            SettingGroup(title: "Translation") {
-                SettingCard {
-                    SettingRow(label: "Target Language", sublabel: "Language to translate text into") {
-                        Picker("", selection: $viewModel.translationTargetLanguage) {
-                            ForEach(translationLanguages, id: \.code) { lang in
-                                Text(lang.name).tag(lang.code)
-                            }
-                        }
-                        .frame(width: 180)
-                    }
-                    SettingRow(
-                        label: "Provider",
-                        sublabel: LocalizedStringKey(viewModel.translationProvider.connectionSummary),
-                        showDivider: true
-                    ) {
-                        Picker("", selection: $viewModel.translationProvider) {
-                            ForEach([TranslationProviderKind.apple], id: \.rawValue) { provider in // Fork: on-device only
-                                Text(provider.displayName).tag(provider)
-                            }
-                        }
-                        .frame(width: 180)
-                        .onChange(of: viewModel.translationProvider) { _, _ in
-                            loadProviderAPIKey()
-                        }
-                    }
-                    if viewModel.translationProvider.requiresAPIKey {
-                        SettingRow(label: "API Key", sublabel: "Stored in Keychain", showDivider: true) {
-                            HStack(spacing: 8) {
-                                SecureField("API Key", text: $providerAPIKey)
-                                    .textFieldStyle(.roundedBorder)
-                                    .frame(width: 180)
-                                    .onSubmit(saveProviderAPIKey)
-                                Button(action: saveProviderAPIKey) {
-                                    Image(systemName: "checkmark")
+            if Capabilities.current.translationTools {
+                SettingGroup(title: "Translation") {
+                    SettingCard {
+                        SettingRow(label: "Target Language", sublabel: "Language to translate text into") {
+                            Picker("", selection: $viewModel.translationTargetLanguage) {
+                                ForEach(translationLanguages, id: \.code) { lang in
+                                    Text(lang.name).tag(lang.code)
                                 }
-                                .buttonStyle(.borderless)
-                                .help("Save API key")
                             }
+                            .frame(width: 180)
                         }
-                        if viewModel.translationProvider.supportsEndpoint {
-                            SettingRow(label: "Endpoint", sublabel: "Leave empty to use the provider default", showDivider: true) {
-                                TextField("", text: $viewModel.translationProviderEndpoint)
-                                    .textFieldStyle(.roundedBorder)
-                                    .frame(width: 260)
-                            }
-                        }
-                        if viewModel.translationProvider.supportsModel {
-                            SettingRow(label: "Model", sublabel: "Leave empty to use the provider default", showDivider: true) {
-                                TextField("", text: $viewModel.translationProviderModel)
-                                    .textFieldStyle(.roundedBorder)
-                                    .frame(width: 180)
-                            }
-                        }
-                        SettingRow(label: "Connection", sublabel: "Verify the current provider settings", showDivider: true) {
-                            HStack(spacing: 8) {
-                                if isTestingProvider {
-                                    ProgressView()
-                                        .controlSize(.small)
+                        SettingRow(
+                            label: "Provider",
+                            sublabel: LocalizedStringKey(viewModel.translationProvider.connectionSummary),
+                            showDivider: true
+                        ) {
+                            Picker("", selection: $viewModel.translationProvider) {
+                                ForEach([TranslationProviderKind.apple], id: \.rawValue) { provider in // Fork: on-device only
+                                    Text(provider.displayName).tag(provider)
                                 }
-                                Button(action: testProviderConnection) {
-                                    Label("Test Connection", systemImage: "network")
+                            }
+                            .frame(width: 180)
+                            .onChange(of: viewModel.translationProvider) { _, _ in
+                                if Capabilities.current.translationTools { loadProviderAPIKey() }
+                            }
+                        }
+                        if viewModel.translationProvider.requiresAPIKey {
+                            SettingRow(label: "API Key", sublabel: "Stored in Keychain", showDivider: true) {
+                                HStack(spacing: 8) {
+                                    SecureField("API Key", text: $providerAPIKey)
+                                        .textFieldStyle(.roundedBorder)
+                                        .frame(width: 180)
+                                        .onSubmit(saveProviderAPIKey)
+                                    Button(action: saveProviderAPIKey) {
+                                        Image(systemName: "checkmark")
+                                    }
+                                    .buttonStyle(.borderless)
+                                    .help("Save API key")
                                 }
+                            }
+                            if viewModel.translationProvider.supportsEndpoint {
+                                SettingRow(label: "Endpoint", sublabel: "Leave empty to use the provider default", showDivider: true) {
+                                    TextField("", text: $viewModel.translationProviderEndpoint)
+                                        .textFieldStyle(.roundedBorder)
+                                        .frame(width: 260)
+                                }
+                            }
+                            if viewModel.translationProvider.supportsModel {
+                                SettingRow(label: "Model", sublabel: "Leave empty to use the provider default", showDivider: true) {
+                                    TextField("", text: $viewModel.translationProviderModel)
+                                        .textFieldStyle(.roundedBorder)
+                                        .frame(width: 180)
+                                }
+                            }
+                            SettingRow(label: "Connection", sublabel: "Verify the current provider settings", showDivider: true) {
+                                HStack(spacing: 8) {
+                                    if isTestingProvider {
+                                        ProgressView()
+                                            .controlSize(.small)
+                                    }
+                                    Button(action: testProviderConnection) {
+                                        Label("Test Connection", systemImage: "network")
+                                    }
+                                    .controlSize(.small)
+                                    .disabled(isTestingProvider)
+                                }
+                            }
+                        }
+                        if let providerStatusMessage {
+                            SettingRow(label: LocalizedStringKey(providerStatusMessage), showDivider: true) {
+                                EmptyView()
+                            }
+                        }
+                        SettingRow(label: "Auto-Copy Translation", sublabel: "Copy result to clipboard automatically") {
+                            Toggle("", isOn: $viewModel.translationAutoCopy)
+                                .toggleStyle(.switch)
                                 .controlSize(.small)
-                                .disabled(isTestingProvider)
+                        }
+                        SettingRow(label: "Show Original Text", sublabel: "Display source text alongside translation") {
+                            Toggle("", isOn: $viewModel.translationShowOriginal)
+                                .toggleStyle(.switch)
+                                .controlSize(.small)
+                        }
+                        SettingRow(label: "Auto-Dismiss", sublabel: "When to close the translation panel", showDivider: true) {
+                            Picker("", selection: $viewModel.translationAutoDismiss) {
+                                Text("Manual").tag(TranslationAutoDismiss.manual)
+                                Text("Click outside").tag(TranslationAutoDismiss.clickOutside)
+                                Text("After delay").tag(TranslationAutoDismiss.afterDelay)
                             }
+                            .frame(width: 140)
                         }
-                    }
-                    if let providerStatusMessage {
-                        SettingRow(label: LocalizedStringKey(providerStatusMessage), showDivider: true) {
-                            EmptyView()
-                        }
-                    }
-                    SettingRow(label: "Auto-Copy Translation", sublabel: "Copy result to clipboard automatically") {
-                        Toggle("", isOn: $viewModel.translationAutoCopy)
-                            .toggleStyle(.switch)
-                            .controlSize(.small)
-                    }
-                    SettingRow(label: "Show Original Text", sublabel: "Display source text alongside translation") {
-                        Toggle("", isOn: $viewModel.translationShowOriginal)
-                            .toggleStyle(.switch)
-                            .controlSize(.small)
-                    }
-                    SettingRow(label: "Auto-Dismiss", sublabel: "When to close the translation panel", showDivider: true) {
-                        Picker("", selection: $viewModel.translationAutoDismiss) {
-                            Text("Manual").tag(TranslationAutoDismiss.manual)
-                            Text("Click outside").tag(TranslationAutoDismiss.clickOutside)
-                            Text("After delay").tag(TranslationAutoDismiss.afterDelay)
-                        }
-                        .frame(width: 140)
                     }
                 }
             }
@@ -153,7 +155,7 @@ struct TextAndTranslationSettingsView: View {
             translationLanguages = LanguagePreference.sortedLanguages(from: codes)
         }
         .onAppear {
-            loadProviderAPIKey()
+            if Capabilities.current.translationTools { loadProviderAPIKey() }
             // loadSupportedLanguages()
         }
     }
