@@ -6,7 +6,7 @@ The existing 0.4.0 release is immutable. Do not replace its files or tag. The no
 
 ## Freeze the release graph
 
-Merge this handoff and every intended parallel pull request first. Confirm the live feedback service accepts native submissions and completes its required screening checks. Complete the signed Dev app review described in [[feedback-intake]]. Leave all other flags unchanged.
+Merge this handoff and every intended parallel pull request first. The website task leaves native admission off. Enable it as an explicit release-owner action with `python3 site/feedback/deploy.py native`. Submit a synthetic reduced package through the real app transport. Confirm that receipt completes screening and its notification send. If the check fails, run `python3 site/feedback/deploy.py web` and stop the app activation. Complete the signed Dev app review described in [[feedback-intake]]. Leave all other flags unchanged.
 
 Reserve main for one activation commit followed by the normal release commit. Stop all parallel merges and commits until the release completes. The helper does not lock Git or contact GitHub. Coordinate this freeze with other writers.
 
@@ -44,7 +44,7 @@ Commit only the activation file. Check the full GitHub route before pushing.
 git diff --stat -- Packages/FeedbackKit/Sources/FeedbackKit/FeatureFlags.swift
 git add Packages/FeedbackKit/Sources/FeedbackKit/FeatureFlags.swift
 git commit -m "feat: enable reviewed support submission for 0.5.0" -- Packages/FeedbackKit/Sources/FeedbackKit/FeatureFlags.swift
-bash ~/.dotfiles/claude-code/bin/github-route status
+github-route status
 git push origin main
 ```
 
