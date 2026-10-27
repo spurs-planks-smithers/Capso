@@ -4,11 +4,13 @@ Implementation plan: [[2026-10-26-secure-feedback-intake]]. Security rules: [[SE
 
 ## Current launch state
 
-The implementation stays disabled until live verification completes. Local unit tests, a successful app build, and a successful container build do not establish production readiness.
+The website intake runs at https://feedback.nextshot.dev/. Cloudflare Access protects `/review` and its child routes with the exact owner policy. The application also verifies the signed Access token. Owner sign-in and a rebuilt JPEG download pass without bypassing browser protections.
 
-The dedicated private storage, D1 schema, queues, Turnstile widget, Workers Paid plan, and owner Access application are provisioned. The setup token expires on November 2, 2026. Gmail ownership and pinned model artifacts are verified. The owner signs into the deployed review page successfully. Full live processing checks remain launch requirements.
+The base configuration remains closed. The explicit production profile reuses the approved private scanner digest. Website admission, processing, contextual checks, and fixed-recipient notifications are enabled. Native admission and inbound email remain disabled. Native app defaults remain off until the release owner activates them for 0.5.0 through [[2026-10-27-feedback-release-handoff]]. No production app is built by the website launch task.
 
-Protected staging temporarily applies owner-only Access to the whole feedback hostname. Web admission, processing, contextual checks, and notifications are enabled behind that protection. Native and email admission remain disabled. All six switches remain false in source. Restore Access to `/review` and its children only after the public launch checks pass.
+The public human test receives receipt 086892f7, completes screening, prepares a private draft, and completes its notification send. Turnstile rejects the browser automation connection with error 300030. After the owner disconnects automation, the normal browser verification and submission pass. Keep browser protections and server verification enabled. The form preserves accepted receipt messages after later challenge callbacks or status-poll outages.
+
+The setup token expires on November 2, 2026. Runtime credentials remain resource bindings. The approved signature workflow runs on main with a bucket-only credential. The scheduled refresh and signature freshness pass.
 
 The existing Nextshot deployment token cannot administer the new storage, Containers, Access, or Email Routing resources. Its existing release-bucket access remains unchanged. Use a separate feedback deployment credential. Store it as `CLOUDFLARE_API_TOKEN_NEXTSHOT_FEEDBACK` in Keychain. Never put a credential in chat.
 
@@ -40,7 +42,7 @@ The security/privacy page includes the required Built with Llama notice. Confirm
 
 The scanner uses no public internet access. Its fixed internal host reads immutable definition objects from the signature bucket. The updater is a separate trusted task with public internet access and no submissions.
 
-The signed definition mirror is published and hash-verified. A real remote refresh succeeds with the separate bucket-only credential and closed stdin. The recurring workflow remains disabled until its reviewed code and secret are configured in GitHub.
+The signed definition mirror is published and hash-verified. A real remote refresh succeeds with the separate bucket-only credential and closed stdin. The main-only environment and bucket-only secret are configured. Real manual and scheduled refreshes pass.
 
 ## Signature refresh
 
@@ -66,6 +68,18 @@ The task never waits for a person. Its regression tests use closed stdin and int
 10. Publish the homepage Feedback link with the site deploy command. Verify live receipt, protected review, reconstructed mail, and expiry.
 
 Use synthetic submissions for launch tests. Original attachments have no download route. Failed malware, structure, OCR, engine, or signature checks cannot be waived.
+
+## Website operation and rollback
+
+From the repository root, run `python3 site/feedback/deploy.py status` to verify the owner policy and read the live switches. Run `python3 site/feedback/deploy.py web` for website service updates before native activation. It keeps native and inbound mail off. Use the approved digest in `site/feedback/wrangler.production.jsonc`; model upgrades repeat the feasibility checks.
+
+To stop intake, run `python3 site/feedback/deploy.py pause`. It disables admission and expensive processing. The private review page and retention handler remain available. Verify `/config` reports disabled and new reservations return 503. Do not delete submissions or weaken Access during an incident.
+
+Publish only the homepage and Guides with `site/deploy.sh --stage-only`, followed by `site/deploy.sh --deploy-staged <artifact>`. Use the existing pinned media. The command records a Worker rollback snapshot and restores it if site smoke checks fail. Compare `/latest.json` before and after. This operation must not change a released app record, file, or tag.
+
+Native activation belongs to the separate 0.5.0 release runbook. The release owner enables the native backend with `python3 site/feedback/deploy.py native`, verifies a synthetic reduced package through screening, reviews the signed Dev app, and then freezes the release graph. After activation, use `native` for service updates that must retain native admission. A `web` deployment deliberately closes it.
+
+Inbound email remains disabled. The apex null MX stays in place and the catchall stays off. Do not advertise hi@nextshot.dev until exact-address routing, attachment screening, and reconstructed delivery pass. There is no original-message forwarding fallback.
 
 ## Day-to-day review
 
