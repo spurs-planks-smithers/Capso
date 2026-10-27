@@ -16,7 +16,7 @@ Plan: [[2026-10-26-secure-feedback-intake]]
 | Service | Website, bounded intake, quarantine, queue, owner review, false-positive approval, notifications, retention, and private drafts implemented. All six launch switches stay false. |
 | Scanner | Strict archive schemas, ClamAV, image rebuilding, OCR, privacy rules, pinned Prompt Guard loader, hard timeouts, and restricted network path implemented. All seven approved model artifacts are hash-verified. Real classifier, OCR, and malware checks pass. |
 | Recovery | Immutable upload attempts, leased scan/notification claims, and generation-bound review approvals implemented. |
-| Integration | Root includes commits through dae8ddf. Policy exception, runbook, signature workflow, and homepage link are prepared locally. |
+| Integration | Guides prerequisite PR #116 is merged as ccac4b4. Feedback source includes the owner form and homepage navigation fixes from 384f59c. |
 | Public launch | Disabled. No homepage deploy, native flag activation, or mail-routing activation. |
 
 ## Verified local behavior
@@ -29,6 +29,7 @@ Plan: [[2026-10-26-secure-feedback-intake]]
 | FeedbackKit | 335 tests pass in native worktree verification. |
 | JevKit Release | 369 tests pass in native worktree verification. |
 | App tests | 247 tests pass. /private/tmp/nextshot-feedback-app-tests.log |
+| CI-equivalent native checks | A fresh build and all 773 existing CI tests pass. The isolated worktree matches the root Swift sources. Evidence: build/feedback-checks/ci-equivalent-proof/summary.json. GitHub exposes no hosted runs. |
 | Signed Dev app | Release build succeeds with Apple Development signature, no install. /private/tmp/nextshot-feedback-signed-build-final.log |
 | Native UI | Real synthetic support panel rendered with 20 captures. No transport call or round data used. |
 | Native transport | Real SupportTransport refuses the protected owner's 302 redirect with a synthetic package. No submission is created. Evidence: build/feedback-checks/native-transport-protected.json. |
@@ -36,7 +37,7 @@ Plan: [[2026-10-26-secure-feedback-intake]]
 | Dependency audit | Actual image inventory: 38 distributions, zero known vulnerabilities, zero skips or suppressions. /private/tmp/nextshot-feedback-python-audit-image-patched.json |
 | Actual scan engines | Real clean/injection classifier, full bounded text, signed ClamAV clean/EICAR, OCR credentials, and local network denial pass. build/feedback-checks/approved-engines-final.log |
 | Largest standard export | Real full scans pass: standard 20 captures in 45.697 seconds; reduced 20 in 32.563 seconds. One CPU, no network, all engines. Neutral synthetic images do not prove worst-case content latency. build/feedback-checks/approved-full-scanner.json |
-| Signature task | Five tests pass with stdin closed. Only final mirror delivery is intercepted. The workflow requires main and a dedicated environment. Its branch restriction and credential remain unconfigured in GitHub. |
+| Signature task | Five tests pass with stdin closed. Only final mirror delivery is intercepted. The GitHub environment permits only main and holds the bucket-only credential. Recurring work remains disabled until the workflow reaches main and its first real run passes. |
 | Worker build | Wrangler bundle and Docker dry-run pass. /private/tmp/nextshot-feedback-root-bundle.log |
 
 ## Cloudflare setup
@@ -51,7 +52,7 @@ Plan: [[2026-10-26-secure-feedback-intake]]
 - Actual Llama 3.3 text and Llama 4 Scout image helpers pass six checks across nine hosted calls. Clean inputs pass; synthetic private records and injection hold. Draft schema and severity pass. Usage value is about $0.001761 before free allowance. Evidence: build/feedback-checks/models-helper-probes-scout-final.json.
 - Gmail destination ownership is verified. Email Sending authentication is enabled with content previews disabled. Cloudflare provisions bounce MX, SPF, and DKIM records. The stricter existing DMARC policy and apex null MX stay unchanged.
 - User activates Access Free. Review protection allows only drewschulz1@gmail.com, with one-hour sessions and no bypass policy. Whole-host staging protection and real owner sign-in pass. The application rejects forged tokens in local boundary checks.
-- Signed malware definitions are published and hash-verified. The separate bucket-only credential passes a real refresh with stdin closed. Raw, rebuilt, and release bucket probes each return 403. Recurring GitHub refresh remains disabled.
+- Signed malware definitions are published and hash-verified. The separate bucket-only credential passes a real refresh with stdin closed. Raw, rebuilt, and release bucket probes each return 403. The approved GitHub environment now permits only main. Its credential transfers directly from Keychain through stdin. Recurring GitHub refresh remains disabled.
 - Item 1.1, October 26, 2026: Drew's capture shows accepted Llama 4 access. The live Prompt Guard page confirms granted access. Drew downloads the weights after Chrome blocks automation. All seven pinned artifacts pass exact size and upstream hash checks. The private scanner image builds and runs with the approved weights.
 - Source resource report: build/feedback-checks/cloudflare-resources.json. Current preflight: build/feedback-checks/cloudflare-preflight-current.json.
 
@@ -62,7 +63,7 @@ Plan: [[2026-10-26-secure-feedback-intake]]
 3. Configure recurring trusted signature refresh after code review and GitHub publication approval.
 4. Configure exact-address inbound mail routing after the live scanner passes. Keep the catchall disabled.
 5. Review the signed running Dev app and public form before enabling their launch switches.
-6. Resolve the unpublished Guides base before preparing feedback publication. Preserve the already live Guides site.
+6. Publish the feedback branch after the Guides prerequisite. Guides PR #116 is merged. Preserve the already live Guides site.
 
 ## Live staging
 
@@ -88,6 +89,8 @@ Plan: [[2026-10-26-secure-feedback-intake]]
 - Nine live recovery checks pass through the real API, D1, queue, and notification helpers. They cover stable reservation IDs, rejected partial bytes, successful retry, idempotent completion, duplicate queue delivery, file quotas, hourly quotas, failed-send reset, and expired-claim recovery. The recovery SQL is restricted to the probe receipt. Real retry sends only to Drew. Evidence: build/feedback-checks/private-recovery-probe/report-finish.json.
 - The exact homepage artifact is staged with the existing Guides, video, and poster. Running preview finds adjacent navigation links touching. A flex gap fixes it. All 22 site tests pass. The artifact is rebuilt after the CSS change.
 - Owner review renders the screened text, rebuilt-image link, and private issue draft. Chrome blocks the automated file download with ERR_BLOCKED_BY_CLIENT. Unauthenticated requests are denied. Manual download verification remains open.
+- Drew clicks the rebuilt-image link without receiving a download prompt. No capture file appears in Downloads. After session expiration, renewing Access reaches a Chrome Dangerous site warning on the feedback authentication callback. Browser protections remain enabled. Google's domain report returns No available data. The authorized file download and public launch remain blocked pending investigation.
+- The installed MIME parser enforces a shared total-part counter before child allocation. A bounded 10,001-part reproduction rejects with EMAXPARTCOUNT. No unlimited-part defect is found. Attachment, nesting, header, and raw-byte limits remain unchanged.
 - Real Swift exports pass structural and hard engine checks. The reduced package passes. The standard export is held because its generated date-based folder name passes a payment checksum. This synthetic false positive remains held for the owner approval test. Evidence: build/feedback-checks/actual-exports-scan.json.
 - Hosted long-text screening passes across four actual model calls. Every request is bounded, and injection in the final chunk holds. A repetitive text fixture also holds as uncertain. Evidence: build/feedback-checks/context-chunks-live.json and context-chunks-repetition-held.json.
 - No homepage update or inbound mail route is active. Public intake and the native app flag remain closed.
@@ -100,4 +103,4 @@ Plan: [[2026-10-26-secure-feedback-intake]]
 - The setup token has Workers AI Read, which supports inference. Workers AI Edit was rejected by automatic approval review and is unnecessary for the proven text call.
 - Local-only policy exception is dated October 26, 2026 and limited to the explicit fixed-host SupportKit path.
 - Backlink skill helper is absent at its documented path. Direct verification resolves edited wiki links to existing notes.
-- No code has been pushed. The daily installed app and released download remain unchanged.
+- Drew authorizes separate Guides and feedback pull requests, normal merges after checks, and the main-only signature updater. Guides PR #116 is merged. The daily installed app and released download remain unchanged.
