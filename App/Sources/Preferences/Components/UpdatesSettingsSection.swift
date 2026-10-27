@@ -12,9 +12,9 @@ struct UpdatesSettingsSection: View {
     @ObservedObject var updateManager: UpdateManager
 
     var body: some View {
-        SettingGroup(title: "Updates") {
+        SettingGroup(visibility: .generalUpdates, title: "Updates") {
             SettingCard {
-                SettingRow(
+                SettingRow(visibility: .generalUpdatesAutomaticallyCheckForUpdates,
                     label: "Automatically Check for Updates",
                     sublabel: "Look for new versions in the background"
                 ) {
@@ -22,7 +22,7 @@ struct UpdatesSettingsSection: View {
                         .toggleStyle(.switch)
                         .controlSize(.small)
                 }
-                SettingRow(label: "Check Frequency", showDivider: true) {
+                SettingRow(visibility: .generalUpdatesCheckFrequency, label: "Check Frequency", showDivider: true) {
                     Picker("", selection: $updateManager.updateCheckFrequency) {
                         Text("Daily").tag(UpdateCheckFrequency.daily)
                         Text("Weekly").tag(UpdateCheckFrequency.weekly)
@@ -31,7 +31,7 @@ struct UpdatesSettingsSection: View {
                     .frame(width: 130)
                     .disabled(!updateManager.automaticallyChecksForUpdates)
                 }
-                SettingRow(
+                SettingRow(visibility: .generalUpdatesAutomaticallyInstallUpdates,
                     label: "Automatically Install Updates",
                     sublabel: "Install updates in the background when available",
                     showDivider: true
@@ -41,7 +41,7 @@ struct UpdatesSettingsSection: View {
                         .controlSize(.small)
                         .disabled(!updateManager.automaticallyChecksForUpdates)
                 }
-                SettingRow(label: "Check for Updates", sublabel: "Look for a new version now", showDivider: true) {
+                SettingRow(visibility: .generalUpdatesCheckForUpdates, label: "Check for Updates", sublabel: "Look for a new version now", showDivider: true) {
                     CheckForUpdatesView(updateManager: updateManager)
                 }
             }
