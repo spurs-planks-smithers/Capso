@@ -152,15 +152,17 @@ struct ShortcutSettingsView: View {
             if Capabilities.current.standaloneCapture {
                 SettingGroup(visibility: .shortcutsContextual, title: "Contextual Shortcuts") {
                     SettingCard {
-                        centerLockRow
-                        ForEach(Array(contextualShortcuts.enumerated()).filter { SettingsVisibility.isVisible($0.element.visibility) }, id: \.element.id) { _, item in
-                            contextualShortcutRow(item, showDivider: true)
+                        if SettingsVisibility.hasVisibleContent(.shortcutsSelection) {
+                            centerLockRow
+                        }
+                        ForEach(Array(contextualShortcuts.filter { SettingsVisibility.isVisible($0.visibility) }.enumerated()), id: \.element.id) { index, item in
+                            contextualShortcutRow(item, showDivider: index > 0 || SettingsVisibility.hasVisibleContent(.shortcutsSelection))
                         }
                     }
                 }
             }
-            if !Capabilities.current.standaloneCapture {
-                DisclosureGroup("Advanced") {
+            if !Capabilities.current.standaloneCapture && SettingsVisibility.hasVisibleContent(.shortcutsSelection) {
+                DisclosureGroup("Selection") {
                     SettingCard { centerLockRow }
                         .padding(.top, 8)
                 }
