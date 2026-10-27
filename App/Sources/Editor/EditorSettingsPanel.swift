@@ -262,7 +262,7 @@ struct EditorSettingsPanel: View {
 
     private var cursorSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            sectionLabel("Cursor")
+            sectionLabel("Pointer")
 
             settingCard {
                 settingToggleRow(
@@ -460,7 +460,7 @@ struct EditorSettingsPanel: View {
             )
 
             settingPickerRow("Focus", selection: focusModeBinding(for: segment.id)) {
-                Text("Follow Cursor").tag(ZoomFocusTag.followCursor)
+                Text("Follow Pointer").tag(ZoomFocusTag.followCursor)
                 Text("Center").tag(ZoomFocusTag.center)
             }
         case .blur:

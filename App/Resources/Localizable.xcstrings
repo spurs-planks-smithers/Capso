@@ -17896,6 +17896,12 @@
     },
     "Cursor" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pointer"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -24121,6 +24127,12 @@
     },
     "Follow Cursor" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Follow Pointer"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -44525,6 +44537,12 @@
     },
     "Show Cursor" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Pointer"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",

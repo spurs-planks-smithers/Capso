@@ -9,7 +9,7 @@ struct FeedbackCaptureSettingsSection: View {
     var body: some View {
         SettingGroup(title: "Capture") {
             SettingCard {
-                SettingRow(label: "Show Cursor", sublabel: "Include the mouse pointer in captures") {
+                SettingRow(label: "Show Pointer", sublabel: "Include the mouse pointer in captures") {
                     Toggle("", isOn: $viewModel.screenshotShowsCursor)
                         .toggleStyle(.switch)
                         .controlSize(.small)
