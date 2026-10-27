@@ -26,7 +26,7 @@ Follow the local add-secret skill. Use `~/.dotfiles/claude-code/bin/keychain-sto
 
 The feedback deployment credential needs administration of the dedicated Worker, D1 database, queues, Containers, Access application, Turnstile, and nextshot.dev mail routing. Account billing must permit Workers Paid and Containers. Scope zone permissions to nextshot.dev. Runtime code receives resource bindings rather than that deployment credential.
 
-The signature updater uses a separate credential with item access only to `nextshot-feedback-signatures`. Store its source credential in Keychain as `CLOUDFLARE_R2_TOKEN_NEXTSHOT_SIGNATURES`. Its GitHub Actions secret is `NEXTSHOT_SIGNATURES_API_TOKEN`. It receives no upload-store access.
+The signature updater uses a separate credential with item access only to `nextshot-feedback-signatures`. Store its source credential in Keychain as `CLOUDFLARE_R2_TOKEN_NEXTSHOT_SIGNATURES`. Its GitHub Actions secret is `NEXTSHOT_SIGNATURES_API_TOKEN` in the `nextshot-feedback-signatures` environment. Restrict that environment's deployment branches to `main`. It receives no upload-store access.
 
 The Worker needs `INTAKE_SECRET` and `TURNSTILE_SECRET` bindings. Generate the first as cryptographically random data. Store both source values in Keychain before wiring bindings. The service never uses an API key embedded in the Mac app.
 
@@ -46,7 +46,7 @@ The signed definition mirror is published and hash-verified. A real remote refre
 
 The workflow is `.github/workflows/feedback-signatures.yml`. It starts only when the repository variable `FEEDBACK_SIGNATURES_ENABLED` equals `true` and its bucket-only secret is configured.
 
-Its schedule is 00:17, 02:17, and every two hours afterward in UTC. Pacific time is 17:17 on the previous day, 19:17, and every two hours afterward during daylight saving time. Standard time is one hour earlier.
+Its schedule is 00:17, 02:17, and every two hours afterward in UTC. Pacific time is 17:17 on the previous day, 19:17, and every two hours afterward during daylight saving time. Standard time is one hour earlier. Scheduled and manual runs require `main`, and checkout explicitly selects `main`.
 
 The publisher restores a hash-verified mirror seed when present. FreshClam verifies and refreshes the signed databases. All immutable objects upload before the manifest pointer changes. A failed refresh leaves the previous manifest authoritative. The scanner holds content when its freshness limit expires.
 
@@ -76,6 +76,8 @@ Private review can inspect rebuilt material after required hard checks finish. A
 Held files expire 30 days after receipt. Screened files expire 90 days after receipt. Reprocessing does not restart retention. Delivered Gmail text follows Gmail's own settings.
 
 D1 stores metadata only. Submission text, findings, drafts, and approvals live in versioned private R2 payloads. An R2 retention marker limits every payload generation and derivative. Restoring D1 metadata cannot extend that marker or recreate deleted content.
+
+All bounded text receives contextual screening in overlapping chunks. Each chunk uses at most 8,000 JSON-escaped UTF-8 bytes, below the model's 24,000-token context. Draft input uses at most 12,000 serialized bytes. A longer submission still receives complete screening, but its automatic issue draft can be unavailable.
 
 ## Verification evidence
 

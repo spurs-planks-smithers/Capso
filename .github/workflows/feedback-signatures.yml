@@ -15,7 +15,8 @@ concurrency:
 
 jobs:
   refresh:
-    if: github.repository == 'spurs-planks-smithers/Capso' && vars.FEEDBACK_SIGNATURES_ENABLED == 'true'
+    if: github.repository == 'spurs-planks-smithers/Capso' && github.ref == 'refs/heads/main' && vars.FEEDBACK_SIGNATURES_ENABLED == 'true'
+    environment: nextshot-feedback-signatures
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -23,6 +24,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          ref: main
       - name: Install official malware-definition tools
         run: |
           sudo apt-get update

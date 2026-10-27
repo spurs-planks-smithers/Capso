@@ -16,14 +16,14 @@ Plan: [[2026-10-26-secure-feedback-intake]]
 | Service | Website, bounded intake, quarantine, queue, owner review, false-positive approval, notifications, retention, and private drafts implemented. All six launch switches stay false. |
 | Scanner | Strict archive schemas, ClamAV, image rebuilding, OCR, privacy rules, pinned Prompt Guard loader, hard timeouts, and restricted network path implemented. All seven approved model artifacts are hash-verified. Real classifier, OCR, and malware checks pass. |
 | Recovery | Immutable upload attempts, leased scan/notification claims, and generation-bound review approvals implemented. |
-| Integration | Root includes commits through 0ddf347. Policy exception, runbook, signature workflow, and homepage link are prepared locally. |
+| Integration | Root includes commits through 96a44a9. Policy exception, runbook, signature workflow, and homepage link are prepared locally. |
 | Public launch | Disabled. No homepage deploy, native flag activation, or mail-routing activation. |
 
 ## Verified local behavior
 
 | Check | Evidence |
 | --- | --- |
-| Service boundaries | 77 tests pass, including HTTPS, model contracts, restore-safe retention, and approval races. |
+| Service boundaries | 90 tests pass, including HTTPS, bounded model contexts, native container controls, restore-safe retention, and approval races. Evidence: build/feedback-checks/service-tests-current.log. |
 | Existing release site | 22 tests pass. /private/tmp/nextshot-site-tests-current.log |
 | SupportKit | 6 tests pass. /private/tmp/nextshot-support-tests-current.log |
 | FeedbackKit | 335 tests pass in native worktree verification. |
@@ -35,7 +35,7 @@ Plan: [[2026-10-26-secure-feedback-intake]]
 | Dependency audit | Actual image inventory: 38 distributions, zero known vulnerabilities, zero skips or suppressions. /private/tmp/nextshot-feedback-python-audit-image-patched.json |
 | Actual scan engines | Real clean/injection classifier, full bounded text, signed ClamAV clean/EICAR, OCR credentials, and local network denial pass. build/feedback-checks/approved-engines-final.log |
 | Largest standard export | Real full scans pass: standard 20 captures in 45.697 seconds; reduced 20 in 32.563 seconds. One CPU, no network, all engines. Neutral synthetic images do not prove worst-case content latency. build/feedback-checks/approved-full-scanner.json |
-| Signature task | Five tests pass with stdin closed. Only final mirror delivery is intercepted. |
+| Signature task | Five tests pass with stdin closed. Only final mirror delivery is intercepted. The workflow requires main and a dedicated environment. Its branch restriction and credential remain unconfigured in GitHub. |
 | Worker build | Wrangler bundle and Docker dry-run pass. /private/tmp/nextshot-feedback-root-bundle.log |
 
 ## Cloudflare setup
@@ -66,12 +66,15 @@ Plan: [[2026-10-26-secure-feedback-intake]]
 ## Live staging
 
 - The dedicated Worker and private scanner image deploy successfully using durable-object scheduling.
-- The container starts only through the fixed singleton. Its image digest is validated before startup. Internet access is explicitly disabled.
+- The scanner uses the native Durable Object Container API. Cloudflare documents the SDK helper as unsupported for durable-object scheduling. Source controls require the fixed singleton, pinned digest, standard-2, denied internet access, bounded readiness, and 150-second inactivity shutdown.
 - All six service switches remain false. Native supportSubmission remains off.
 - Disabled health/config checks and a rejected reservation pass. Review routes and forged-token attempts encounter Access.
 - HSTS and insecure request guards deploy after the initial staging check finds HSTS absent.
 - Drew signs into the actual review page on October 26, 2026. The owner list shows no submissions.
 - Evidence: build/feedback-checks/staging-smoke-disabled.json and protected-staging-readiness.json.
+- Private caller RPC and scanner dispatch return their expected results. Actual isolation still fails before startup with diagnostic_runtime_failed. Finer fixed phase codes are pending. No network isolation success is claimed.
+- Real Swift exports pass structural and hard engine checks. The reduced package passes. The standard export is held because its generated date-based folder name passes a payment checksum. This synthetic false positive remains held for the owner approval test. Evidence: build/feedback-checks/actual-exports-scan.json.
+- Hosted long-text screening passes across four actual model calls. Every request is bounded, and injection in the final chunk holds. A repetitive text fixture also holds as uncertain. Evidence: build/feedback-checks/context-chunks-live.json and context-chunks-repetition-held.json.
 - No homepage update or inbound mail route is active. No submission email is sent yet.
 
 ## Rulings and limits
