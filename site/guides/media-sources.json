@@ -1,12 +1,17 @@
 {
-  "appVersion": "0.3.0",
-  "appBuild": "751",
+  "appVersion": "0.4.0",
+  "appBuild": "804",
   "assets": {
     "practice-clean.png": "Browser screenshot of the repository's fictional demo.html, with no private data.",
     "first-capture.png": "practice-clean.png imported into Nextshot 0.3.0. Three marks placed with its real Counter tool. Exported through Copy Image.",
     "editor.png": "Targeted screenshot of the real Nextshot 0.3.0 annotation window after placing the demo's three marks.",
     "permissions.png": "Targeted screenshot of the real Nextshot 0.3.0 Permissions page.",
     "round-overview.mp4": "Excerpt of the existing Nextshot-onboarding-2026.10.24.mp4, from 36.275 seconds for 19.137 seconds. An illustrated overview, not a live app recording.",
-    "note-panel.png": "Targeted crop of the real Nextshot 0.3.0 note question and answer field. The image preview is outside this crop."
+    "note-panel.png": "Targeted crop of the real Nextshot 0.3.0 note question and answer field. The image preview is outside this crop.",
+    "settings-general.png": "Real Settings screenshot from signed Nextshot Dev 0.4.0-dev, build 804, built from release commit 3d2ddc8. Same default capability flags as Nextshot 0.4.0. Dev-only local testing on m5pro follows Drew\u2019s October 27 direction.",
+    "settings-permissions.png": "Real Settings screenshot from signed Nextshot Dev 0.4.0-dev, build 804, built from release commit 3d2ddc8. Same default capability flags as Nextshot 0.4.0. Dev-only local testing on m5pro follows Drew\u2019s October 27 direction.",
+    "settings-capture.png": "Real Settings screenshot from signed Nextshot Dev 0.4.0-dev, build 804, built from release commit 3d2ddc8. Same default capability flags as Nextshot 0.4.0. Dev-only local testing on m5pro follows Drew\u2019s October 27 direction.",
+    "settings-advanced.png": "Real Settings screenshot from signed Nextshot Dev 0.4.0-dev, build 804, built from release commit 3d2ddc8. Same default capability flags as Nextshot 0.4.0. Dev-only local testing on m5pro follows Drew\u2019s October 27 direction.",
+    "settings-shortcuts.png": "Real Settings screenshot from signed Nextshot Dev 0.4.0-dev, build 804, built from release commit 3d2ddc8. Same default capability flags as Nextshot 0.4.0. Dev-only local testing on m5pro follows Drew\u2019s October 27 direction."
   }
 }

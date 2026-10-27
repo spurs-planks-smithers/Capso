@@ -10,6 +10,10 @@ Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This for
 
 ### Added
 
+- Public website feedback for bug reports, feature requests, questions, and optional screenshots or Nextshot exports, with private screening and owner review.
+- Native round submission for 0.5.0, activated through the release checklist after the live transport and Dev app review.
+
+- Settings guide with startup, screen access, capture preferences, and shortcut customization.
 - Show More in Recent Rounds gives access to older rounds grouped by day, week, and month, with the same round actions.
 
 ## [0.4.0] - 2026-10-27
