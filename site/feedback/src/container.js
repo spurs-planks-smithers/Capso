@@ -1,5 +1,6 @@
 import { Container, ContainerProxy } from '@cloudflare/containers';
 import { ensureScannerRuntime } from './scanner-runtime.js';
+import { verifyScannerIsolation } from './scanner-diagnostic.js';
 export { ContainerProxy };
 
 const MAX_JOB = 36_000_000;
@@ -11,6 +12,10 @@ export class Scanner extends Container {
   sleepAfter = '150s';
   enableInternet = false;
   pingEndpoint = 'localhost/ready';
+
+  async verifyIsolation() {
+    return verifyScannerIsolation(this, this.ctx, this.env, arguments.length);
+  }
 
   async fetch(request) {
     // One named instance plus this in-memory lease rejects overlapping jobs.
