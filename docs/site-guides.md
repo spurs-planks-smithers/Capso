@@ -2,6 +2,8 @@
 
 The public Guides live at https://nextshot.dev/guides/. They teach the released Mac app with its default flags. The content stays in this repository.
 
+The native handoff and published video checks are recorded in [[guides-acceptance]].
+
 ## Edit a guide
 
 Guide files live in `site/guides/src/content/docs/`. They use MDX, which is Markdown with reusable components. Copy `site/guides/templates/guide.mdx` for a new page, then add the page to the sidebar in `site/guides/astro.config.mjs`.
