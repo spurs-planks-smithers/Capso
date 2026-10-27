@@ -49,7 +49,7 @@ try:
  with socket.create_connection(('1.1.1.1',443),timeout=2): pass
 except OSError: result['tcpBlocked']=True
 try:
- with opener.open('https://example.com',timeout=2): pass
+ with opener.open('https://1.1.1.1',timeout=2): pass
 except urllib.error.HTTPError: pass
 except Exception: result['httpsBlocked']=True
 try:

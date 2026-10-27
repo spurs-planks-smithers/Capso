@@ -33,6 +33,14 @@ class RuntimeCleanupTests(unittest.TestCase):
         server.CLEANUP_FAILED=False
     def tearDown(self): server.CLEANUP_FAILED=self.previous_cleanup_state
 
+    def test_listener_avoids_cloudflare_hostname_lookup(self):
+        failure=UnicodeEncodeError('idna','a'*64,0,64,'label too long')
+        with patch('socket.getfqdn',side_effect=failure) as lookup:
+            with server.PrivateHTTPServer(('127.0.0.1',0),server.Handler) as listener:
+                self.assertEqual(listener.server_name,'localhost')
+                self.assertGreater(listener.server_port,0)
+        lookup.assert_not_called()
+
     def test_timeout_removes_original_before_a_later_job(self):
         original_poll=multiprocessing.connection.Connection.poll
         with tempfile.TemporaryDirectory() as folder:

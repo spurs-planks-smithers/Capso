@@ -3,6 +3,7 @@ import json
 import multiprocessing
 import os
 import signal
+import socketserver
 import shutil
 import tempfile
 from pathlib import Path
@@ -17,6 +18,14 @@ MAX_RESPONSE=24_000_000
 
 JOB_PARENT='/tmp'
 CLEANUP_FAILED=False
+
+
+class PrivateHTTPServer(HTTPServer):
+    def server_bind(self):
+        # Cloudflare's 64-character hostname cannot pass Python's IDNA lookup.
+        socketserver.TCPServer.server_bind(self)
+        self.server_name='localhost'
+        self.server_port=self.server_address[1]
 
 
 def held(reason):
@@ -105,4 +114,4 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__=='__main__':
-    HTTPServer(('0.0.0.0',8080),Handler).serve_forever()
+    PrivateHTTPServer(('0.0.0.0',8080),Handler).serve_forever()
