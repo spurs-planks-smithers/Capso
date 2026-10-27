@@ -2,6 +2,8 @@
 
 Source review: October 27, 2026, checkout `188ee7d`, `VERSION` 0.3.0. Status: baseline source catalog, with the eight visible tabs checked in Dev build 772. Drew selects feedback rounds first for the next release. Implementation plan: [[2026-10-27-settings-guide-and-feature-gates]].
 
+October 27 implementation correction: commit `8ce2644` adds the six capability flags in [[2026-10-27-settings-guide-and-feature-gates]]. Default tabs become General, Permissions, Screenshots, and Shortcuts. Other sections remain available only through their capabilities. Custom presets require positive dimensions. Translation resolves Apple only. Shared clipboard formats remain PNG, JPEG, and TIFF. The tables below preserve the original baseline findings.
+
 ### Scope and evidence
 
 This catalogs the Settings window, its sheets, its contextual references, and related hidden preferences. Defaults mean a fresh settings domain. Existing users can retain different values. Personal usage frequency was not measured. The code defines nine tabs. Eight appear in the sidebar. Cloud Share is filtered out. See `App/Sources/Preferences/PreferencesView.swift`. The window is fixed at 680 by 480 points and each tab scrolls. This is source evidence, not a measured layout audit.

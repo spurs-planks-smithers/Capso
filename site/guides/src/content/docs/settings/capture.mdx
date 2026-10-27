@@ -1,0 +1,84 @@
+---
+title: Capture and image copy
+description: Choose whether a capture includes the pointer and which image format Escape copies.
+reviewedFor: 0.4.0
+minVersion: 0.4.0
+---
+
+import Step from '../../../components/Step.astro';
+import GuideImage from '../../../components/GuideImage.astro';
+
+Use **Screenshots** to include the pointer or choose the format for a copied image. The default format is PNG.
+
+<GuideImage src="/guides/media/settings-capture.png" alt="The Screenshots tab shows Show Cursor, Clipboard Format, and a collapsed Advanced section." caption="These settings change captures and image copy. They do not change copied prompt text." />
+
+<Step number={1} title="Choose whether to show the pointer">
+
+Open **Settings**, then **Screenshots**. Turn on **Show Cursor** when the pointer helps explain your feedback.
+
+Leave it off when it covers the detail you want to mark.
+
+</Step>
+
+<Step number={2} title="Choose the clipboard image format">
+
+Choose **PNG**, **JPEG**, or **TIFF** in **Clipboard Format**.
+
+Start a capture and leave it unmarked. Press Escape to copy the image and close the editor. Paste it into your destination app.
+
+Escape saves no capture to a round. With marks present, Escape follows the editor's step-back behavior.
+
+</Step>
+
+| Control | Default | When to change it |
+| --- | --- | --- |
+| Show Cursor | Off | Include the pointer as context. |
+| Clipboard Format | PNG | Choose JPEG or TIFF when your destination needs it. |
+
+**Clipboard Format** controls image copy. Finishing notes still copies a capture prompt. Ending a round still copies the round prompt.
+
+<details>
+<summary>Advanced: timestamp and capture presets</summary>
+
+Open **Advanced** in **Screenshots** to reveal the extra controls.
+
+<GuideImage src="/guides/media/settings-advanced.png" alt="Advanced screenshot settings show Timestamp and Capture Presets." caption="Keep these controls unchanged unless the capture needs a time label or a fixed shape." />
+
+### Timestamp
+
+**Add Timestamp** starts off. Turn it on to draw the capture time onto the image. The time label becomes part of the pixels.
+
+| Control | Default | Effect |
+| --- | --- | --- |
+| Add Timestamp | Off | Draws capture time onto the image. |
+| Position | Bottom Right | Places the label at one of eight edge or corner positions. |
+| Format | Date & Time | Choose Date & Time, Date, Time, or ISO 8601. |
+| Color | #FFFFFF | Sets the label color with a six-digit hex value. Invalid input uses white. |
+| Font Size | 14 points | Sets the label size from 8 to 72 points. |
+
+Check a fresh capture before using it in feedback.
+
+### Capture Presets
+
+**Capture Presets** starts on. Presets constrain an area selection to an aspect ratio or fixed size.
+
+During area selection, press R to cycle presets. Press Shift+R to go backward. Right-click to open the preset picker.
+
+Capture starts with **Freeform** selected. The enabled preset list does not lock the first selection to a fixed shape.
+
+| Control | Default | Effect |
+| --- | --- | --- |
+| Capture Presets | On | Makes the preset choices available during selection. |
+| Built-in preset switches | All on | Shows or hides each choice in the selection picker. |
+| Add Custom Preset | n/a | Opens a form for a ratio or fixed pixel size. |
+| Custom preset minus button | n/a | Removes that saved custom preset. |
+
+Built-in ratios are 1:1 (Square), 4:3, 16:9, and 3:2. Fixed sizes are 512 × 512, 1280 × 720 (720p), and 1920 × 1080 (1080p).
+
+In **Add Custom Preset**, choose **Aspect Ratio** or **Fixed Size**. Enter positive whole numbers for width and height. Add a name if helpful. Choose **Add** to save it or **Cancel** to leave it unchanged.
+
+These keys act during selection. R selects the box tool after the editor opens.
+
+</details>
+
+[Keyboard shortcuts](/guides/shortcuts/) covers the keys for selection, marks, and notes.

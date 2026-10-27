@@ -279,6 +279,12 @@ test("configuration and scanner source retain durable singleton isolation withou
     scheduling_policy: "durable_object",
     images: { scanner: { dockerfile: "./scanner/Dockerfile" } },
   });
+  const production = JSON.parse(readFileSync(new URL("../wrangler.production.jsonc", import.meta.url), "utf8"));
+  const expected = structuredClone(config);
+  for (const flag of ["INTAKE_ENABLED", "PROCESSING_ENABLED", "AI_SCREENING_ENABLED", "NOTIFICATIONS_ENABLED"])
+    expected.vars[flag] = "true";
+  expected.containers[0].images.scanner = {image: "registry.cloudflare.com/2afca1b8aab7ec4024bdb7cb2fec47c0/nextshot-feedback-scanner-scanner@sha256:582ec345c20a1db2eddb5193a0b371c15442ad656af59ba7ef1129ef622762e1"};
+  assert.deepEqual(production, expected);
   assert.equal(config.queues.consumers[0].max_concurrency, 1);
   const source = readFileSync(
     new URL("../src/container.js", import.meta.url),
