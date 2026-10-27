@@ -323,7 +323,7 @@ struct CloudShareSettingsView: View {
             let list = keychainErrors.joined(separator: ", ")
             testResult = TestResultAlert(
                 title: String(localized: "Couldn't fully clear Keychain"),
-                message: String(format: String(localized: "Some credentials may still be in Keychain: %@.\n\nOpen 'Keychain Access.app' and search for 'com.awesomemacapps.capso.share' to remove them manually."), list)
+                message: String(format: String(localized: "Some credentials may still be in Keychain: %@.\n\nOpen 'Keychain Access.app' to remove them manually."), list)
             )
         }
     }

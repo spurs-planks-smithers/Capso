@@ -224,7 +224,7 @@ private enum OCRProcessFallbackError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .executableNotFound: "Could not find Capso's executable."
+        case .executableNotFound: "Could not find Nextshot's executable."
         case .explicitLanguagesUnsupported: "OCR fallback does not support explicit languages."
         case .invalidInputImage: "Could not read the temporary OCR image."
         case .cannotEncodeImage: "Could not prepare the image for OCR retry."
