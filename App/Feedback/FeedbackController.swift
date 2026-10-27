@@ -439,15 +439,16 @@ final class FeedbackController {
     private func connectHistoryMenu() {
         statusItem.stateProvider = { [weak self] in
             guard let self else { return .empty }
-            let listing = self.recentListing()
+            let listing = self.historyListing()
             return FeedbackMenuState(
                 active: self.round,
-                recent: listing.rounds,
+                recent: Array(listing.rounds.prefix(5)),
                 basket: self.basket,
                 rootURL: self.store.rootURL,
                 zipEnabled: Flags.isOn(.zipHandoff),
                 supportSubmissionEnabled: Flags.isOn(.supportSubmission),
-                newerSchemaCount: listing.newerSchema.count
+                newerSchemaCount: listing.newerSchema.count,
+                older: Array(listing.rounds.dropFirst(5))
             )
         }
         statusItem.onSubmitRecentRound = { [weak self] round in
@@ -498,12 +499,12 @@ final class FeedbackController {
         }
     }
 
-    /// The last ended rounds. The cache reads only the folders whose
+    /// All ended rounds. The cache decodes only the folders whose
     /// `feedback.json` changed. Unreadable folders are logged when the list
     /// differs from the last one logged. Rounds saved under a newer schema
     /// are logged the same way and counted in the menu.
-    private func recentListing() -> FeedbackLibrary.Listing {
-        let listing = roundCache.recent(in: store.rootURL)
+    private func historyListing() -> FeedbackLibrary.Listing {
+        let listing = roundCache.all(in: store.rootURL)
         let unreadable = listing.unreadable.sorted()
         if unreadable != loggedUnreadable {
             loggedUnreadable = unreadable

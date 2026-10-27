@@ -8,6 +8,10 @@ Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This for
 
 ## [Unreleased]
 
+### Added
+
+- Show More in Recent Rounds gives access to older rounds grouped by day, week, and month, with the same round actions.
+
 ## [0.4.0] - 2026-10-27
 
 ### Added

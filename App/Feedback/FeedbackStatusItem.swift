@@ -19,6 +19,8 @@ struct FeedbackMenuState {
     /// Rounds that another copy of Nextshot saved under a newer schema. This
     /// copy hides them, so the menu says how many.
     var newerSchemaCount = 0
+    /// Ended rounds beyond Recent's five, grouped under Show More.
+    var older: [FeedbackRound] = []
 
     /// What the menu shows when no provider is set.
     static let empty = FeedbackMenuState(
@@ -71,9 +73,17 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         var active: Bool
     }
 
+    private struct HistoryGroup {
+        var menu: NSMenu
+        var rounds: [FeedbackRound]
+    }
+
     private var item: NSStatusItem?
     private var topMenu: NSMenu?
     private var roundRows: [RoundRow] = []
+    private var historyGroups: [HistoryGroup] = []
+    /// Shared by group headings and rows created later during menu tracking.
+    private var menuDate = Date()
     private var copySelectedItem: NSMenuItem?
     private var zipSelectedItem: NSMenuItem?
     private var clearSelectionItem: NSMenuItem?
@@ -181,6 +191,8 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     func menuNeedsUpdate(_ menu: NSMenu) {
         if menu === topMenu {
             rebuildMenu(menu)
+        } else if let group = historyGroups.first(where: { $0.menu === menu }) {
+            fillHistoryGroup(menu, rounds: group.rounds)
         } else if let row = roundRows.first(where: { $0.menu === menu }) {
             fillSubmenu(row.menu, for: row.round)
         }
@@ -190,6 +202,8 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         let state = currentState()
         menu.removeAllItems()
         roundRows = []
+        historyGroups = []
+        menuDate = Date()
         copySelectedItem = nil
         zipSelectedItem = nil
         clearSelectionItem = nil
@@ -224,21 +238,21 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         recent += state.recent.filter { $0.folderName != state.active?.folderName }
         if !recent.isEmpty {
             menu.addItem(.sectionHeader(title: "Recent Rounds"))
-            let now = Date()
             for round in recent {
                 let active = round.folderName == state.active?.folderName
-                let row = makeRoundRow(round, active: active, now: now, basket: state.basket)
+                let row = makeRoundRow(round, active: active, now: menuDate, basket: state.basket)
                 roundRows.append(row)
                 menu.addItem(row.item)
             }
         }
+        addHistory(to: menu, state: state)
         // A round from a newer copy is never opened or saved here, so it
         // cannot lose fields this copy does not know. Say why it is missing.
         if state.newerSchemaCount > 0 {
             let count = state.newerSchemaCount
             menu.addItem(grayLine("\(count) \(count == 1 ? "round was" : "rounds were") saved by a newer \(ForkBranding.name) and \(count == 1 ? "is" : "are") hidden"))
         }
-        if !recent.isEmpty || state.newerSchemaCount > 0 {
+        if !recent.isEmpty || !historyGroups.isEmpty || state.newerSchemaCount > 0 {
             menu.addItem(.separator())
         }
 
@@ -255,6 +269,42 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         // Last, so the lines go in below the Recent rows.
         if state.basket.count > 0 {
             insertBasketItems(into: menu, count: state.basket.count)
+        }
+    }
+
+    // MARK: - Older rounds
+
+    private func addHistory(to menu: NSMenu, state: FeedbackMenuState) {
+        let rounds = state.older.filter { $0.folderName != state.active?.folderName }
+        let groups = FeedbackHistory.groups(rounds, now: menuDate, calendar: .current, locale: .current)
+        guard !groups.isEmpty else { return }
+
+        let more = NSMenuItem(title: "Show More", action: nil, keyEquivalent: "")
+        let history = NSMenu()
+        history.autoenablesItems = false
+        for group in groups {
+            let item = NSMenuItem(title: group.title, action: nil, keyEquivalent: "")
+            let submenu = NSMenu()
+            submenu.autoenablesItems = false
+            submenu.delegate = self
+            submenu.addItem(grayLine("Loading..."))
+            item.submenu = submenu
+            history.addItem(item)
+            historyGroups.append(HistoryGroup(menu: submenu, rounds: group.rounds))
+        }
+        more.submenu = history
+        menu.addItem(more)
+    }
+
+    private func fillHistoryGroup(_ menu: NSMenu, rounds: [FeedbackRound]) {
+        // Release prior row records before replacing their menu items.
+        roundRows.removeAll { $0.item.menu === menu }
+        menu.removeAllItems()
+        let basket = currentState().basket
+        for round in rounds {
+            let row = makeRoundRow(round, active: false, now: menuDate, basket: basket)
+            roundRows.append(row)
+            menu.addItem(row.item)
         }
     }
 
@@ -345,7 +395,7 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         let state = currentState()
         // Prefer the freshly read round, so the active round shows a capture
         // saved since the menu opened. Fall back to the one the row was built from.
-        let fresh = (state.active.map { [$0] } ?? []) + state.recent
+        let fresh = (state.active.map { [$0] } ?? []) + state.recent + state.older
         let round = fresh.first { $0.folderName == listed.folderName } ?? listed
         let folderURL = state.rootURL.appendingPathComponent(round.folderName, isDirectory: true)
 

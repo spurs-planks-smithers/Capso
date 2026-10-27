@@ -90,6 +90,19 @@ struct FeedbackRoundCacheTests {
             "2026-10-12-0900-round-12",
         ])
         #expect(listing.unreadable == ["2026-10-19-0900-broken"])
+
+        let all = cache.all(in: root)
+        #expect(all.rounds.map(\.folderName) == [
+            "2026-10-16-0900-round-16",
+            "2026-10-15-0900-round-15",
+            "2026-10-14-0900-round-14",
+            "2026-10-13-0900-round-13",
+            "2026-10-12-0900-round-12",
+            "2026-10-11-0900-round-11",
+            "2026-10-10-0900-round-10",
+        ])
+        #expect(all.unreadable == listing.unreadable)
+        #expect(cache.recent(in: root).rounds.count == 5)
     }
 
     @Test("Names a newer-schema round apart from unreadable ones, and reads it again after a change")
@@ -108,6 +121,7 @@ struct FeedbackRoundCacheTests {
         #expect(listing.rounds == [good])
         #expect(listing.newerSchema == [newer.folderName])
         #expect(listing.unreadable.isEmpty)
+        #expect(cache.all(in: root).newerSchema == [newer.folderName])
         // The second call comes from the cache and says the same.
         #expect(cache.recent(in: root) == listing)
 
