@@ -56,7 +56,7 @@ struct SettingsInfoButton: View {
     @State private var showingHelp = false
 
     var body: some View {
-        Button { showingHelp.toggle() } label: {
+        Button { showingHelp = true } label: {
             Image(systemName: "info.circle")
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
