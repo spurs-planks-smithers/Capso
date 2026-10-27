@@ -36,7 +36,9 @@ Final existing checks pass: SharedKit 279, AnnotationKit 117, CaptureKit 95, Rec
 
 Signed Release build succeeds. Installed artifact: Nextshot Dev 0.4.0-dev, build 820. The local screenshotCopy override is on. Both registry defaults remain off. Search issue 125 is open.
 
-Live UI review is pending a switch from another chat's running build 827. Two native automation attempts to select the installed app time out. A separate chat runs the higher build. No foreign process is quit. There is no current end-to-end UI verification claim.
+Drew approves switching to issue 123. The other Dev trial is stopped. Native automation then stalls while opening a local TextEdit fixture. Another session installs build 864 during that delay. The approved screenshot trial is restored as build 820. The intervening build is preserved at /private/tmp/nextshot-123-superseded-dev-864.app. The launch log confirms build 820 runs.
+
+Live image paste and round-promotion checks remain pending. Selecting the menu-only app through native automation times out. Its synthetic capture shortcut reaches TextEdit as a character and produces no screenshot. This result does not verify global shortcut delivery or image capture. The local fixture is saved under /private/tmp. The PR remains draft for Drew's hands-on Dev review.
 
 Final review finds four important issues. The fixes hide and guard unavailable Pin, reuse saved versions before retention-source reads, retain capture purpose through fallback delivery, and commit inherited general notes with the round capture.
 
