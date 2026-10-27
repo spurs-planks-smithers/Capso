@@ -6,7 +6,27 @@ The existing 0.4.0 release is immutable. Do not replace its files or tag. The no
 
 ## Freeze the release graph
 
-Merge this handoff and every intended parallel pull request first. The website task leaves native admission off. Enable it as an explicit release-owner action with `python3 site/feedback/deploy.py native`. Submit a synthetic reduced package through the real app transport. Confirm that receipt completes screening and its notification send. If the check fails, run `python3 site/feedback/deploy.py web` and stop the app activation. Complete the signed Dev app review described in [[feedback-intake]]. Leave all other flags unchanged.
+Merge this handoff and every intended parallel pull request first. The website task leaves native admission off. Complete the following native checks before the graph freeze. Leave all other flags unchanged.
+
+Use the signed Dev app from the final merged source. The release owner runs `scripts/build-local.sh Release` in the prepared checkout. This builds and installs Nextshot Dev, not the production app. Quit the production app before opening Nextshot Dev because both use the same hotkeys.
+
+Enable the native backend and a temporary override only in Nextshot Dev:
+
+```sh
+python3 site/feedback/deploy.py native
+NEXTSHOT_FLAGS_DOMAIN=com.drewschulz.nextshot.dev scripts/nextshot-flags.sh set supportSubmission on
+open "$HOME/Applications/Nextshot Dev.app"
+```
+
+Create a fresh round with one synthetic screenshot and a harmless note. Choose **Submit Round to Nextshot…** in that round's submenu. Confirm the disclosure, optional note, cancellation, retry, and duplicate-click behavior. Submit the synthetic package. Confirm its receipt completes screening, prepares a private draft, and completes its notification send. Verify its rebuilt image through owner review. Confirm the source round and saved notes remain intact.
+
+Remove the temporary Dev override after review:
+
+```sh
+NEXTSHOT_FLAGS_DOMAIN=com.drewschulz.nextshot.dev scripts/nextshot-flags.sh reset supportSubmission
+```
+
+If a check fails, also run `python3 site/feedback/deploy.py web` and stop the app activation. Resolve the failure before freezing the graph. The website stays available. See [[feedback-intake]] for owner review and shutdown controls.
 
 Reserve main for one activation commit followed by the normal release commit. Stop all parallel merges and commits until the release completes. The helper does not lock Git or contact GitHub. Coordinate this freeze with other writers.
 
