@@ -15,7 +15,8 @@ enum PreferencesTab: String, CaseIterable, Sendable {
 
     @MainActor
     var isAvailable: Bool {
-        switch self {
+        guard SettingsVisibility.hasVisibleContent(visibilityFlag) else { return false }
+        return switch self {
         case .general, .permissions, .screenshots, .shortcuts: true
         case .recording: Capabilities.current.recordingTools
         case .quickAccess, .export: Capabilities.current.standaloneCapture
@@ -23,6 +24,8 @@ enum PreferencesTab: String, CaseIterable, Sendable {
         case .ocr: Capabilities.current.standaloneCapture
         }
     }
+
+    var visibilityFlag: SettingsVisibilityFlag { SettingsVisibilityFlag(rawValue: rawValue)! }
 
     @MainActor
     var title: LocalizedStringKey {
@@ -59,8 +62,8 @@ struct PreferencesView: View {
     let viewModel: PreferencesViewModel
     let updateManager: UpdateManager?
 
-    private var visibleTab: PreferencesTab {
-        selectedTab.isAvailable ? selectedTab : .general
+    private var visibleTab: PreferencesTab? {
+        selectedTab.isAvailable ? selectedTab : PreferencesTab.allCases.first(where: \.isAvailable)
     }
 
     init(viewModel: PreferencesViewModel, updateManager: UpdateManager?, initialTab: PreferencesTab? = nil) {
@@ -140,6 +143,9 @@ struct PreferencesView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 switch visibleTab {
+                case nil:
+                    Text("No settings are available.")
+                        .foregroundStyle(.secondary)
                 case .general:
                     GeneralSettingsView(viewModel: viewModel, updateManager: updateManager)
                 case .permissions:

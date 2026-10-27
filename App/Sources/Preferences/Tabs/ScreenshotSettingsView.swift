@@ -31,19 +31,19 @@ struct ScreenshotSettingsView: View {
             }
 
             if Capabilities.current.standaloneCapture {
-                SettingGroup(title: "After Capture") {
+                SettingGroup(visibility: .screenshotsAfterCapture, title: "After Capture") {
                     SettingCard {
-                        SettingRow(label: "Show Preview", sublabel: "Display thumbnail with quick actions") {
+                        SettingRow(visibility: .screenshotsAfterCaptureShowPreview, label: "Show Preview", sublabel: "Display thumbnail with quick actions") {
                             Toggle("", isOn: $viewModel.screenshotShowPreview)
                                 .toggleStyle(.switch)
                                 .controlSize(.small)
                         }
-                        SettingRow(label: "Copy to Clipboard", sublabel: "Copy screenshot immediately", showDivider: true) {
+                        SettingRow(visibility: .screenshotsAfterCaptureCopyToClipboard, label: "Copy to Clipboard", sublabel: "Copy screenshot immediately", showDivider: true) {
                             Toggle("", isOn: $viewModel.screenshotAutoCopy)
                                 .toggleStyle(.switch)
                                 .controlSize(.small)
                         }
-                        SettingRow(
+                        SettingRow(visibility: .screenshotsAfterCaptureClipboardContent,
                             label: "Clipboard Content",
                             sublabel: clipboardContentDescription,
                             showDivider: true
@@ -57,7 +57,7 @@ struct ScreenshotSettingsView: View {
                             .fixedSize(horizontal: true, vertical: false)
                         }
                         if viewModel.screenshotClipboardContent == .image {
-                            SettingRow(
+                            SettingRow(visibility: .screenshotsAfterCaptureClipboardFormat,
                                 label: "Clipboard Format",
                                 sublabel: "Used whenever a screenshot is copied",
                                 showDivider: true
@@ -72,7 +72,7 @@ struct ScreenshotSettingsView: View {
                                 .fixedSize(horizontal: true, vertical: false)
                             }
                         }
-                        SettingRow(label: "Auto Save", sublabel: "Save to file automatically", showDivider: true) {
+                        SettingRow(visibility: .screenshotsAfterCaptureAutoSave, label: "Auto Save", sublabel: "Save to file automatically", showDivider: true) {
                             Toggle("", isOn: $viewModel.screenshotAutoSave)
                                 .toggleStyle(.switch)
                                 .controlSize(.small)
@@ -82,14 +82,14 @@ struct ScreenshotSettingsView: View {
             }
 
             if Capabilities.current.standaloneCapture {
-                SettingGroup(title: "Capture") {
+                SettingGroup(visibility: .screenshotsCapture, title: "Capture") {
                     SettingCard {
-                        SettingRow(label: "Show Pointer", sublabel: "Include the mouse pointer in screenshots") {
+                        SettingRow(visibility: .screenshotsCaptureShowCursor, label: "Show Pointer", sublabel: "Include the mouse pointer in screenshots") {
                             Toggle("", isOn: $viewModel.screenshotShowsCursor)
                                 .toggleStyle(.switch)
                                 .controlSize(.small)
                         }
-                        SettingRow(label: "Capture Window Shadow", sublabel: "Include shadow in window captures", showDivider: true) {
+                        SettingRow(visibility: .screenshotsCaptureCaptureWindowShadow, label: "Capture Window Shadow", sublabel: "Include shadow in window captures", showDivider: true) {
                             Toggle("", isOn: $viewModel.captureWindowShadow)
                                 .toggleStyle(.switch)
                                 .controlSize(.small)
@@ -102,9 +102,9 @@ struct ScreenshotSettingsView: View {
             }
 
             if Capabilities.current.standaloneCapture {
-                SettingGroup(title: "Beautify") {
+                SettingGroup(visibility: .screenshotsBeautify, title: "Beautify") {
                     SettingCard {
-                        SettingRow(
+                        SettingRow(visibility: .screenshotsBeautifyBeautifyEveryScreenshot,
                             label: "Beautify Every Screenshot",
                             sublabel: "Uses the background, padding, corners and shadow last set in the editor's Beautify panel"
                         ) {
@@ -117,9 +117,9 @@ struct ScreenshotSettingsView: View {
             }
 
             if Capabilities.current.standaloneCapture {
-                SettingGroup(title: "Self-Timer") {
+                SettingGroup(visibility: .screenshotsSelfTimer, title: "Self-Timer") {
                     SettingCard {
-                        SettingRow(
+                        SettingRow(visibility: .screenshotsSelfTimerDefaultDuration,
                             label: "Default Duration",
                             sublabel: "Delay before the screenshot fires"
                         ) {
@@ -135,7 +135,7 @@ struct ScreenshotSettingsView: View {
                                 .labelsHidden()
                             }
                         }
-                        SettingRow(
+                        SettingRow(visibility: .screenshotsSelfTimerTickSound,
                             label: "Tick Sound",
                             sublabel: "Play a sound on each second of the countdown",
                             showDivider: true
@@ -160,16 +160,16 @@ struct ScreenshotSettingsView: View {
     }
 
     private var timestampSettings: some View {
-            SettingGroup(title: "Timestamp") {
+            SettingGroup(visibility: .screenshotsTimestamp, title: "Timestamp") {
                 SettingCard {
-                    SettingRow(label: "Add Timestamp", sublabel: "Draw the capture time onto screenshots") {
+                    SettingRow(visibility: .screenshotsTimestampAddTimestamp, label: "Add Timestamp", sublabel: "Draw the capture time onto screenshots") {
                         Toggle("", isOn: $viewModel.screenshotTimestampEnabled)
                             .toggleStyle(.switch)
                             .controlSize(.small)
                     }
 
                     if viewModel.screenshotTimestampEnabled {
-                        SettingRow(label: "Position", showDivider: true) {
+                        SettingRow(visibility: .screenshotsTimestampPosition, label: "Position", showDivider: true) {
                             Picker("", selection: $viewModel.screenshotTimestampPosition) {
                                 ForEach(ScreenshotTimestampPosition.allCases, id: \.self) { position in
                                     Text(position.displayName).tag(position)
@@ -179,7 +179,7 @@ struct ScreenshotSettingsView: View {
                             .frame(width: 150)
                         }
 
-                        SettingRow(label: "Format", showDivider: true) {
+                        SettingRow(visibility: .screenshotsTimestampFormat, label: "Format", showDivider: true) {
                             Picker("", selection: $viewModel.screenshotTimestampFormat) {
                                 ForEach(ScreenshotTimestampFormat.allCases, id: \.self) { format in
                                     Text(format.displayName).tag(format)
@@ -189,14 +189,14 @@ struct ScreenshotSettingsView: View {
                             .frame(width: 150)
                         }
 
-                        SettingRow(label: "Color", showDivider: true) {
+                        SettingRow(visibility: .screenshotsTimestampColor, label: "Color", showDivider: true) {
                             TextField("#FFFFFF", text: $viewModel.screenshotTimestampColorHex)
                                 .textFieldStyle(.roundedBorder)
                                 .font(.system(size: 12, design: .monospaced))
                                 .frame(width: 88)
                         }
 
-                        SettingRow(label: "Font Size", showDivider: true) {
+                        SettingRow(visibility: .screenshotsTimestampFontSize, label: "Font Size", showDivider: true) {
                             HStack(spacing: 8) {
                                 Text("\(viewModel.screenshotTimestampFontSize) pt")
                                     .font(.system(size: 13, weight: .medium).monospacedDigit())
@@ -215,9 +215,9 @@ struct ScreenshotSettingsView: View {
     }
 
     private var presetSettings: some View {
-            SettingGroup(title: "Capture Presets") {
+            SettingGroup(visibility: .screenshotsCapturePresets, title: "Capture Presets") {
                 SettingCard {
-                    SettingRow(
+                    SettingRow(visibility: .screenshotsCapturePresetsCapturePresets,
                         label: "Capture Presets",
                         sublabel: "Constrain area capture to preset aspect ratios or fixed sizes"
                     ) {
@@ -246,7 +246,7 @@ struct ScreenshotSettingsView: View {
                     }
                     ForEach(Array(aspectRatios.enumerated()), id: \.element.id) { index, preset in
                         let isHidden = viewModel.hiddenBuiltinPresets.contains(preset)
-                        SettingRow(
+                        SettingRow(visibility: presetVisibility(preset),
                             label: LocalizedStringKey(preset.displayName),
                             showDivider: index > 0
                         ) {
@@ -268,7 +268,7 @@ struct ScreenshotSettingsView: View {
                     // Built-in fixed sizes
                     ForEach(Array(CapturePreset.builtinFixedSizes.enumerated()), id: \.element.id) { index, preset in
                         let isHidden = viewModel.hiddenBuiltinPresets.contains(preset)
-                        SettingRow(
+                        SettingRow(visibility: presetVisibility(preset),
                             label: LocalizedStringKey(preset.displayName),
                             showDivider: true
                         ) {
@@ -289,7 +289,7 @@ struct ScreenshotSettingsView: View {
 
                     // Custom presets
                     ForEach(viewModel.customCapturePresets) { preset in
-                        SettingRow(
+                        SettingRow(visibility: .screenshotsCapturePresetsCustomPreset, visibilityInstance: preset.id,
                             label: LocalizedStringKey(preset.displayName),
                             showDivider: true
                         ) {
@@ -311,8 +311,22 @@ struct ScreenshotSettingsView: View {
                     .font(.system(size: 13))
                     .foregroundStyle(Color.accentColor)
                     .padding(.leading, 2)
+                    .settingsVisibility(.screenshotsCapturePresetsAddCustomPreset)
                 } // if capturePresetsEnabled
             }
+    }
+
+    private func presetVisibility(_ preset: CapturePreset) -> SettingsVisibilityFlag {
+        switch preset.id {
+        case "ratio-1-1": .screenshotsCapturePresetsAspectRatio1x1
+        case "ratio-4-3": .screenshotsCapturePresetsAspectRatio4x3
+        case "ratio-16-9": .screenshotsCapturePresetsAspectRatio16x9
+        case "ratio-3-2": .screenshotsCapturePresetsAspectRatio3x2
+        case "fixed-512-512": .screenshotsCapturePresetsFixedSize512x512
+        case "fixed-1280-720": .screenshotsCapturePresetsFixedSize1280x720
+        case "fixed-1920-1080": .screenshotsCapturePresetsFixedSize1920x1080
+        default: .screenshotsCapturePresetsCustomPreset
+        }
     }
 
     private var clipboardContentDescription: LocalizedStringKey {
@@ -337,6 +351,7 @@ struct ScreenshotSettingsView: View {
                 Text("Fixed Size").tag(1)
             }
             .pickerStyle(.segmented)
+            .settingsVisibility(.screenshotsCapturePresetsNewType)
 
             VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 12) {
@@ -346,6 +361,7 @@ struct ScreenshotSettingsView: View {
                             .foregroundStyle(.secondary)
                         TextField("e.g. 16", text: $newWidth)
                             .textFieldStyle(.roundedBorder)
+                            .settingsVisibility(.screenshotsCapturePresetsNewWidth)
                     }
 
                     VStack(alignment: .leading, spacing: 4) {
@@ -354,6 +370,7 @@ struct ScreenshotSettingsView: View {
                             .foregroundStyle(.secondary)
                         TextField("e.g. 9", text: $newHeight)
                             .textFieldStyle(.roundedBorder)
+                            .settingsVisibility(.screenshotsCapturePresetsNewHeight)
                     }
                 }
 
@@ -363,6 +380,7 @@ struct ScreenshotSettingsView: View {
                         .foregroundStyle(.secondary)
                     TextField("e.g. Widescreen", text: $newName)
                         .textFieldStyle(.roundedBorder)
+                            .settingsVisibility(.screenshotsCapturePresetsNewName)
                 }
             }
 
@@ -372,6 +390,7 @@ struct ScreenshotSettingsView: View {
                     resetNewPresetFields()
                 }
                 .keyboardShortcut(.cancelAction)
+                .settingsVisibility(.screenshotsCapturePresetsNewCancel)
 
                 Spacer()
 
@@ -380,6 +399,7 @@ struct ScreenshotSettingsView: View {
                     showingAddPreset = false
                 }
                 .keyboardShortcut(.defaultAction)
+                .settingsVisibility(.screenshotsCapturePresetsNewAdd)
                 .disabled((Int(newWidth) ?? 0) <= 0 || (Int(newHeight) ?? 0) <= 0)
             }
         }
