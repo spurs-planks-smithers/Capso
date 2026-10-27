@@ -10,9 +10,9 @@ struct RecordingSettingsView: View {
             Text("Recording")
                 .font(.system(size: 20, weight: .bold))
 
-            SettingGroup(visibility: .recordingCursor, title: "Cursor") {
+            SettingGroup(visibility: .recordingCursor, title: "Pointer") {
                 SettingCard {
-                    SettingRow(visibility: .recordingCursorShowCursor, label: "Show Cursor") {
+                    SettingRow(visibility: .recordingCursorShowCursor, label: "Show Pointer") {
                         Toggle("", isOn: $viewModel.showCursor)
                             .toggleStyle(.switch)
                             .controlSize(.small)
