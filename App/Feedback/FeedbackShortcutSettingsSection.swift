@@ -15,7 +15,7 @@ struct FeedbackShortcutSettingsSection: View {
     @State private var refusal: String?
 
     var body: some View {
-        SettingGroup(visibility: .shortcutsCore, title: LocalizedStringKey(ForkBranding.name)) {
+        SettingGroup(visibility: .shortcutsCore, title: "Round Controls") {
             SettingCard {
                 row("Start Round or Capture Area", visibility: .shortcutsCoreFeedbackCapture, name: .feedbackCapture)
                 row("Copy Last Capture Prompt", visibility: .shortcutsCoreFeedbackCopyLastCapture, name: .feedbackCopyLastCapture, roundOnly: true)
