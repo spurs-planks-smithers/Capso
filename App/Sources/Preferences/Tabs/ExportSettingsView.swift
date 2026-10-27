@@ -21,10 +21,10 @@ struct ExportSettingsView: View {
             Text("Export")
                 .font(.system(size: 20, weight: .bold))
 
-            SettingGroup(title: "Quality") {
+            SettingGroup(visibility: .exportQuality, title: "Quality") {
                 SettingCard {
                     if Capabilities.current.recordingTools {
-                        SettingRow(label: "Export Quality", sublabel: "Applies to video and GIF exports") {
+                        SettingRow(visibility: .exportQualityExportQuality, label: "Export Quality", sublabel: "Applies to video and GIF exports") {
                             Picker("", selection: $viewModel.exportQuality) {
                                 Text("Maximum").tag(ExportQuality.maximum)
                                 Text("Social").tag(ExportQuality.social)
@@ -34,7 +34,7 @@ struct ExportSettingsView: View {
                             .frame(width: 220)
                         }
                     }
-                    SettingRow(
+                    SettingRow(visibility: .exportQualityScreenshotFormat,
                         label: "Screenshot Format",
                         sublabel: "HEIC produces the smallest files; PNG is lossless",
                         showDivider: true
@@ -52,7 +52,7 @@ struct ExportSettingsView: View {
                         .frame(width: 120)
                     }
                     if viewModel.screenshotOutputFormat.isLossy {
-                        SettingRow(label: "Screenshot Quality", showDivider: true) {
+                        SettingRow(visibility: .exportQualityScreenshotQuality, label: "Screenshot Quality", showDivider: true) {
                             HStack(spacing: 8) {
                                 Text("\(viewModel.screenshotOutputQualityPercent) %")
                                     .font(.system(size: 13, weight: .medium).monospacedDigit())
@@ -70,9 +70,9 @@ struct ExportSettingsView: View {
                 }
             }
 
-            SettingGroup(title: "Save Location") {
+            SettingGroup(visibility: .exportSaveLocation, title: "Save Location") {
                 SettingCard {
-                    SettingRow(label: "Export To") {
+                    SettingRow(visibility: .exportSaveLocationExportTo, label: "Export To") {
                         HStack(spacing: 8) {
                             Text(displayedPath)
                                 .font(.system(size: 12))
@@ -86,18 +86,19 @@ struct ExportSettingsView: View {
                             .controlSize(.small)
                         }
                     }
-                    SettingRow(label: "Monthly Screenshot Folders", sublabel: "Save screenshots into yyyy-MM subfolders", showDivider: true) {
+                    SettingRow(visibility: .exportSaveLocationMonthlyScreenshotFolders, label: "Monthly Screenshot Folders", sublabel: "Save screenshots into yyyy-MM subfolders", showDivider: true) {
                         Toggle("", isOn: $viewModel.screenshotMonthlyFolders)
                             .toggleStyle(.switch)
                             .controlSize(.small)
                     }
                     filenameTemplateEditor
+                        .settingsVisibility(.exportSaveLocationScreenshotFilename)
                 }
             }
 
-            SettingGroup(title: "Opened Images") {
+            SettingGroup(visibility: .exportOpenedImages, title: "Opened Images") {
                 SettingCard {
-                    SettingRow(
+                    SettingRow(visibility: .exportOpenedImagesWhenSavingAnOpenedImage,
                         label: "When Saving an Opened Image",
                         sublabel: "Applies to images opened from Finder or the Open Image panel"
                     ) {
@@ -161,6 +162,7 @@ struct ExportSettingsView: View {
                     .foregroundStyle(.secondary)
                     .contentShape(Rectangle())
                     .help("Show available filename tokens")
+                    .settingsVisibility(.exportSaveLocationFilenameHelp)
                     .popover(isPresented: $showingFilenameTokens, arrowEdge: .bottom) {
                         filenameTokensPopover
                     }
@@ -176,9 +178,11 @@ struct ExportSettingsView: View {
                     .foregroundStyle(.secondary)
                     .contentShape(Rectangle())
                     .help("Reset to the default filename template")
+                    .settingsVisibility(.exportSaveLocationFilenameReset)
                 }
                 TextField("", text: $filenameTemplateDraft)
                     .textFieldStyle(.roundedBorder)
+                    .settingsVisibility(.exportSaveLocationFilenameTemplate)
                     .font(.system(size: 12, design: .monospaced))
                     .onSubmit {
                         normalizeFilenameTemplate()

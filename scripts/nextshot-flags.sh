@@ -34,6 +34,13 @@ domain="${NEXTSHOT_FLAGS_DOMAIN:-com.drewschulz.nextshot.dev}"
 # FeatureFlagsTests fails when the two differ.
 FLAGS="jevBase:off,on noteCoach:off,shadow,on noteCoachVague:off,shadow,on noteCoachQuestion:off,shadow,on noteCoachEmpty:off,shadow,on cropsAnchors:off,shadow,on cropsItemCrops:off,shadow,on cropsSearchLines:off,shadow,on dupesConflicts:off,shadow,on dupesMerge:off,shadow,on dupesConflict:off,shadow,on oneBreath:off promptLanes:off,shadow,on lanesOrder:off,shadow,on lanesSplit:off,shadow,on dataGuard:off,shadow,on dataGuardInjection:off,shadow,on dataGuardContact:off,shadow,on dataGuardNumbers:off,shadow,on dataGuardSecrets:off,shadow,on dataGuardFaces:off,shadow,on jevSendImages:off,on jevSendScreenText:off,on zipHandoff:off,on supportSubmission:off,on standaloneCapture:off,on recordingTools:off,on translationTools:off,on cloudShare:off,on automationURLs:off,on automaticUpdates:off,on"
 
+
+# Settings visibility flags come from the typed registry. Unknown paths fail closed.
+settings_registry="$(cd "$(dirname "$0")/.." && pwd)/Packages/FeedbackKit/Sources/FeedbackKit/SettingsVisibilityFlag.swift"
+settings_flags="$(sed -nE 's/^[[:space:]]*case [[:alnum:]]+ = "([^"]+)"$/settingsVisibility.\1:off,on/p' "$settings_registry")"
+[[ -n "$settings_flags" ]] || { echo "Settings visibility registry is empty." >&2; exit 1; }
+ALL_FLAGS="$FLAGS $settings_flags"
+
 # One entry per feature flag that has sub-flags: <parent>:<sub-flags>. A
 # sub-flag runs at the lower of its own state and its parent's state, so it
 # runs nothing alone (#94). FeatureFlagsTests compares this line with the
@@ -47,8 +54,13 @@ usage() {
 
 # Prints the allowed states of a flag, comma separated. Fails for an unknown flag.
 allowed_states() {
+  # Custom preset identifiers come from CapturePreset.id. Refuse all other paths.
+  if [[ "$1" =~ ^settingsVisibility\.screenshots\.capturePresets\.customPreset\.instance\.(ratio|fixed)-[0-9]+-[0-9]+$ ]]; then
+    echo "off,on"
+    return 0
+  fi
   local entry
-  for entry in $FLAGS; do
+  for entry in $ALL_FLAGS; do
     if [[ "${entry%%:*}" == "$1" ]]; then
       echo "${entry#*:}"
       return 0
@@ -105,7 +117,8 @@ command="${1:-}"
 case "$command" in
   list)
     printf '%-20s %-18s %s\n' "Flag" "Override" "Allowed states"
-    for entry in $FLAGS; do
+    custom_overrides="$(defaults read "$domain" 2>/dev/null | sed -nE 's/^[[:space:]]*"flag\.(settingsVisibility\.screenshots\.capturePresets\.customPreset\.instance\.(ratio|fixed)-[0-9]+-[0-9]+)".*/\1:off,on/p' || true)"
+    for entry in $ALL_FLAGS $custom_overrides; do
       name="${entry%%:*}"
       allowed="${entry#*:}"
       value="$(stored_override "$name")"

@@ -17,14 +17,14 @@ struct TextAndTranslationSettingsView: View {
             Text(Capabilities.current.translationTools ? "Text & Translation" : "Text Recognition")
                 .font(.system(size: 20, weight: .bold))
 
-            SettingGroup(title: "Text Recognition") {
+            SettingGroup(visibility: .ocrTextRecognition, title: "Text Recognition") {
                 SettingCard {
-                    SettingRow(label: "Keep Line Breaks", sublabel: "Preserve original line structure") {
+                    SettingRow(visibility: .ocrTextRecognitionKeepLineBreaks, label: "Keep Line Breaks", sublabel: "Preserve original line structure") {
                         Toggle("", isOn: $viewModel.ocrKeepLineBreaks)
                             .toggleStyle(.switch)
                             .controlSize(.small)
                     }
-                    SettingRow(label: "Detect Links", sublabel: "Auto-detect and linkify URLs", showDivider: true) {
+                    SettingRow(visibility: .ocrTextRecognitionDetectLinks, label: "Detect Links", sublabel: "Auto-detect and linkify URLs", showDivider: true) {
                         Toggle("", isOn: $viewModel.ocrDetectLinks)
                             .toggleStyle(.switch)
                             .controlSize(.small)
@@ -33,9 +33,9 @@ struct TextAndTranslationSettingsView: View {
             }
 
             if Capabilities.current.translationTools {
-                SettingGroup(title: "Translation") {
+                SettingGroup(visibility: .ocrTranslation, title: "Translation") {
                     SettingCard {
-                        SettingRow(label: "Target Language", sublabel: "Language to translate text into") {
+                        SettingRow(visibility: .ocrTranslationTargetLanguage, label: "Target Language", sublabel: "Language to translate text into") {
                             Picker("", selection: $viewModel.translationTargetLanguage) {
                                 ForEach(translationLanguages, id: \.code) { lang in
                                     Text(lang.name).tag(lang.code)
@@ -43,7 +43,7 @@ struct TextAndTranslationSettingsView: View {
                             }
                             .frame(width: 180)
                         }
-                        SettingRow(
+                        SettingRow(visibility: .ocrTranslationProvider,
                             label: "Provider",
                             sublabel: LocalizedStringKey(viewModel.translationProvider.connectionSummary),
                             showDivider: true
@@ -59,34 +59,36 @@ struct TextAndTranslationSettingsView: View {
                             }
                         }
                         if viewModel.translationProvider.requiresAPIKey {
-                            SettingRow(label: "API Key", sublabel: "Stored in Keychain", showDivider: true) {
+                            SettingRow(visibility: .ocrTranslationApiKey, label: "API Key", sublabel: "Stored in Keychain", showDivider: true) {
                                 HStack(spacing: 8) {
                                     SecureField("API Key", text: $providerAPIKey)
                                         .textFieldStyle(.roundedBorder)
                                         .frame(width: 180)
                                         .onSubmit(saveProviderAPIKey)
+                                        .settingsVisibility(.ocrTranslationApiKeyInput)
                                     Button(action: saveProviderAPIKey) {
                                         Image(systemName: "checkmark")
                                     }
                                     .buttonStyle(.borderless)
                                     .help("Save API key")
+                                    .settingsVisibility(.ocrTranslationApiKeySave)
                                 }
                             }
                             if viewModel.translationProvider.supportsEndpoint {
-                                SettingRow(label: "Endpoint", sublabel: "Leave empty to use the provider default", showDivider: true) {
+                                SettingRow(visibility: .ocrTranslationEndpoint, label: "Endpoint", sublabel: "Leave empty to use the provider default", showDivider: true) {
                                     TextField("", text: $viewModel.translationProviderEndpoint)
                                         .textFieldStyle(.roundedBorder)
                                         .frame(width: 260)
                                 }
                             }
                             if viewModel.translationProvider.supportsModel {
-                                SettingRow(label: "Model", sublabel: "Leave empty to use the provider default", showDivider: true) {
+                                SettingRow(visibility: .ocrTranslationModel, label: "Model", sublabel: "Leave empty to use the provider default", showDivider: true) {
                                     TextField("", text: $viewModel.translationProviderModel)
                                         .textFieldStyle(.roundedBorder)
                                         .frame(width: 180)
                                 }
                             }
-                            SettingRow(label: "Connection", sublabel: "Verify the current provider settings", showDivider: true) {
+                            SettingRow(visibility: .ocrTranslationConnection, label: "Connection", sublabel: "Verify the current provider settings", showDivider: true) {
                                 HStack(spacing: 8) {
                                     if isTestingProvider {
                                         ProgressView()
@@ -101,21 +103,21 @@ struct TextAndTranslationSettingsView: View {
                             }
                         }
                         if let providerStatusMessage {
-                            SettingRow(label: LocalizedStringKey(providerStatusMessage), showDivider: true) {
+                            SettingRow(visibility: .ocrTranslationProviderStatus, label: LocalizedStringKey(providerStatusMessage), showDivider: true) {
                                 EmptyView()
                             }
                         }
-                        SettingRow(label: "Auto-Copy Translation", sublabel: "Copy result to clipboard automatically") {
+                        SettingRow(visibility: .ocrTranslationAutoCopyTranslation, label: "Auto-Copy Translation", sublabel: "Copy result to clipboard automatically") {
                             Toggle("", isOn: $viewModel.translationAutoCopy)
                                 .toggleStyle(.switch)
                                 .controlSize(.small)
                         }
-                        SettingRow(label: "Show Original Text", sublabel: "Display source text alongside translation") {
+                        SettingRow(visibility: .ocrTranslationShowOriginalText, label: "Show Original Text", sublabel: "Display source text alongside translation") {
                             Toggle("", isOn: $viewModel.translationShowOriginal)
                                 .toggleStyle(.switch)
                                 .controlSize(.small)
                         }
-                        SettingRow(label: "Auto-Dismiss", sublabel: "When to close the translation panel", showDivider: true) {
+                        SettingRow(visibility: .ocrTranslationAutoDismiss, label: "Auto-Dismiss", sublabel: "When to close the translation panel", showDivider: true) {
                             Picker("", selection: $viewModel.translationAutoDismiss) {
                                 Text("Manual").tag(TranslationAutoDismiss.manual)
                                 Text("Click outside").tag(TranslationAutoDismiss.clickOutside)

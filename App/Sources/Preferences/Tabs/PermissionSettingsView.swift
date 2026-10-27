@@ -14,11 +14,13 @@ struct PermissionSettingsView: View {
                     Label("Refresh", systemImage: "arrow.clockwise")
                 }
                 .controlSize(.small)
+                .settingsVisibility(.permissionsRefresh)
             }
 
-            SettingGroup(title: "Privacy & Security") {
+            SettingGroup(visibility: .permissionsPrivacySecurity, title: "Privacy & Security") {
                 SettingCard {
                     permissionRow(
+                        visibility: .permissionsPrivacySecurityScreenRecording,
                         kind: .screenRecording,
                         title: "Screen Recording",
                         subtitle: "Required for screenshots and recording",
@@ -26,6 +28,7 @@ struct PermissionSettingsView: View {
                     )
                     if Capabilities.current.translationTools {
                         permissionRow(
+                            visibility: .permissionsPrivacySecurityAccessibility,
                             kind: .accessibility,
                             title: "Accessibility",
                             subtitle: "Required for selected text translation",
@@ -35,6 +38,7 @@ struct PermissionSettingsView: View {
                     }
                     if Capabilities.current.recordingTools {
                         permissionRow(
+                            visibility: .permissionsPrivacySecurityInputMonitoring,
                             kind: .inputMonitoring,
                             title: "Input Monitoring",
                             subtitle: "Required to show key presses while recording",
@@ -44,6 +48,7 @@ struct PermissionSettingsView: View {
                     }
                     if Capabilities.current.recordingTools {
                         permissionRow(
+                            visibility: .permissionsPrivacySecurityCamera,
                             kind: .camera,
                             title: "Camera",
                             subtitle: "Required for camera overlay",
@@ -53,6 +58,7 @@ struct PermissionSettingsView: View {
                     }
                     if Capabilities.current.recordingTools {
                         permissionRow(
+                            visibility: .permissionsPrivacySecurityMicrophone,
                             kind: .microphone,
                             title: "Microphone",
                             subtitle: "Required for microphone recording",
@@ -69,13 +75,14 @@ struct PermissionSettingsView: View {
     }
 
     private func permissionRow(
+        visibility: SettingsVisibilityFlag,
         kind: PermissionKind,
         title: LocalizedStringKey,
         subtitle: LocalizedStringKey,
         isGranted: Bool,
         showDivider: Bool = false
     ) -> some View {
-        SettingRow(label: title, sublabel: subtitle, showDivider: showDivider) {
+        SettingRow(visibility: visibility, label: title, sublabel: subtitle, showDivider: showDivider) {
             HStack(spacing: 10) {
                 statusBadge(isGranted)
                 Button(action: { request(kind) }) {
