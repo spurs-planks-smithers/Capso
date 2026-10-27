@@ -126,11 +126,6 @@ struct GeneralSettingsView: View {
                             openURL("https://github.com/spurs-planks-smithers/Capso/issues/new?template=feature_request.yml&labels=enhancement") // Fork: Nextshot's issues
                         }
                     }
-                    SettingRow(label: "Source Code", sublabel: "View on GitHub", showDivider: true) {
-                        ExternalLinkButton(title: "Open", icon: "chevron.left.forwardslash.chevron.right") {
-                            openURL("https://github.com/spurs-planks-smithers/Capso") // Fork: Nextshot's source
-                        }
-                    }
 
                 }
             }
