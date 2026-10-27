@@ -31,6 +31,7 @@ Plan: [[2026-10-26-secure-feedback-intake]]
 | App tests | 247 tests pass. /private/tmp/nextshot-feedback-app-tests.log |
 | Signed Dev app | Release build succeeds with Apple Development signature, no install. /private/tmp/nextshot-feedback-signed-build-final.log |
 | Native UI | Real synthetic support panel rendered with 20 captures. No transport call or round data used. |
+| Native transport | Real SupportTransport refuses the protected owner's 302 redirect with a synthetic package. No submission is created. Evidence: build/feedback-checks/native-transport-protected.json. |
 | Scanner | 62 tests pass inside the local Linux image without network, with read-only root and 6 GiB memory. Cloudflare retains root capabilities inside its VM. |
 | Dependency audit | Actual image inventory: 38 distributions, zero known vulnerabilities, zero skips or suppressions. /private/tmp/nextshot-feedback-python-audit-image-patched.json |
 | Actual scan engines | Real clean/injection classifier, full bounded text, signed ClamAV clean/EICAR, OCR credentials, and local network denial pass. build/feedback-checks/approved-engines-final.log |
@@ -57,7 +58,7 @@ Plan: [[2026-10-26-secure-feedback-intake]]
 ## Required before launch
 
 1. Complete the website submission and owner-review flow. Actual Cloudflare scanner isolation and engine checks now pass.
-2. Verify live reconstructed Gmail delivery, recovery, quotas, private file access, and expiry.
+2. Confirm Gmail delivery, uploaded website exports, owner false-positive approval, private downloads, and remaining recovery checks. Actual stored-copy expiry passes.
 3. Configure recurring trusted signature refresh after code review and GitHub publication approval.
 4. Configure exact-address inbound mail routing after the live scanner passes. Keep the catchall disabled.
 5. Review the signed running Dev app and public form before enabling their launch switches.
@@ -76,14 +77,18 @@ Plan: [[2026-10-26-secure-feedback-intake]]
 - Actual cloud engines pass: clean text passes, EICAR holds as malware_detected, and the real reduced export passes with two rebuilt images. Runs take 62.940, 60.106, and 82.661 seconds. Evidence: build/feedback-checks/actual-cloud-engines-scheduled.json.
 - The temporary engine Cron is removed. The scanner stops with exit code 0. Each scan destroys the prior VM and destroys its own VM before clearance. Teardown failure withholds clearance.
 - Cloudflare uses a 64-character hostname. Python's default HTTP server cannot resolve it. The server now binds directly without a hostname lookup. A local 64-character-hostname reproduction and the actual cloud engine checks confirm the fix.
-- Protected web staging deploys with exact owner Access verified before and after deployment. Turnstile returns error 300030 in the automated Chrome session. Drew is asked to reload manually. No verification bypass is added.
+- Protected web staging deploys with exact owner Access verified before and after deployment. Turnstile returns error 300030 after automated reloads. Drew reloads manually and submits receipt 1ae11f57. It completes screening and its notification send. No verification bypass is added.
+- Two fixed synthetic MIME fixtures use the actual inbound parser and production queue. The clean fixture includes an inline synthetic JPEG. It completes screening, rebuilt-image storage, private draft preparation, and notification sending. An unsupported inline PDF stays held. Its content and files remain inaccessible in owner review.
+- Actual expiry removes two originals, two payload generations, one rebuilt JPEG, one marker, and every related SQL row for the clean fixture. The held fixture is unchanged. Evidence: build/feedback-checks/private-operations-expiry-report.json.
+- Notification sends resolve for both email fixtures and the website test. Cloudflare's sending activity log remains empty. Gmail delivery is unconfirmed. Drew is asked for permission to inspect only these test messages.
+- Owner review renders the screened text, rebuilt-image link, and private issue draft. Chrome blocks the automated file download with ERR_BLOCKED_BY_CLIENT. Unauthenticated requests are denied. Manual download verification remains open.
 - Real Swift exports pass structural and hard engine checks. The reduced package passes. The standard export is held because its generated date-based folder name passes a payment checksum. This synthetic false positive remains held for the owner approval test. Evidence: build/feedback-checks/actual-exports-scan.json.
 - Hosted long-text screening passes across four actual model calls. Every request is bounded, and injection in the final chunk holds. A repetitive text fixture also holds as uncertain. Evidence: build/feedback-checks/context-chunks-live.json and context-chunks-repetition-held.json.
-- No homepage update or inbound mail route is active. No submission email is sent yet.
+- No homepage update or inbound mail route is active. Public intake and the native app flag remain closed.
 
 ## Rulings and limits
 
-- Engine substitutes never count as production scan evidence. Real local and Cloudflare engine checks pass. Website, review, notification, and retention checks remain open.
+- Engine substitutes never count as production scan evidence. Real local and Cloudflare engine checks pass. Website receipt, actual email parsing, review rendering, draft generation, notification acceptance, and expiry pass. Gmail delivery, website file uploads, and remaining launch checks stay open.
 - D1 stores metadata only. Private R2 payload generations and an authoritative retention marker prevent restored metadata from extending content retention. Migration 0003 applies to the empty live database.
 - Only rebuilt artifacts can be reviewed. Malware failures and incomplete hard checks cannot be waived.
 - The setup token has Workers AI Read, which supports inference. Workers AI Edit was rejected by automatic approval review and is unnecessary for the proven text call.

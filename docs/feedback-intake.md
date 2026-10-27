@@ -8,7 +8,7 @@ The implementation stays disabled until live verification completes. Local unit 
 
 The dedicated private storage, D1 schema, queues, Turnstile widget, Workers Paid plan, and owner Access application are provisioned. The setup token expires on November 2, 2026. Gmail ownership and pinned model artifacts are verified. The owner signs into the deployed review page successfully. Full live processing checks remain launch requirements.
 
-Protected staging temporarily applies owner-only Access to the whole feedback hostname. All six intake switches remain false. Restore Access to `/review` and its children only after the public launch checks pass.
+Protected staging temporarily applies owner-only Access to the whole feedback hostname. Web admission, processing, contextual checks, and notifications are enabled behind that protection. Native and email admission remain disabled. All six switches remain false in source. Restore Access to `/review` and its children only after the public launch checks pass.
 
 The existing Nextshot deployment token cannot administer the new storage, Containers, Access, or Email Routing resources. Its existing release-bucket access remains unchanged. Use a separate feedback deployment credential. Store it as `CLOUDFLARE_API_TOKEN_NEXTSHOT_FEEDBACK` in Keychain. Never put a credential in chat.
 
