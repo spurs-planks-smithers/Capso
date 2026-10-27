@@ -2,17 +2,19 @@
 
 Written 2026-10-22. Paste everything below the rule into Codex, started in `/Users/drewschulz/Developer/capso`. Codex also reads `AGENTS.md` on its own. The result competes with the Claude Code version in `scripts/video/nextshot-onboarding/`, and Drew scores both with the scorecard in section 10.
 
+Updated 2026-10-27 for issue #30: active instructions use round terminology and the current whole-round copy action. The original date and baseline references remain unchanged.
+
 ---
 
 You are the creative director, motion designer, editor, and audio producer for a 30 to 38 second onboarding video for Nextshot. Build it in this repository. Then review and revise your own cut three times: as a video editor, as a curator, and as a CMO. An existing version of this video already exists. Beat it.
 
 ## 1. What Nextshot is
 
-Nextshot is a macOS menu bar app, a fork of Capso, for giving feedback to AI coding agents. Press Option+Shift+F and drag over part of the screen. Press C to drop numbered circles on each problem. Boxes, arrows, and text work too. Press Command+S. Nextshot asks one question per circle, "Circle 1 (1 of 3): what should change?", then an optional general note. The reviewer types or dictates each answer. Then the reviewer grabs the next screen, and the next. One session holds every capture and every note. Copy Session Prompt in the Nshot menu copies one prompt, and the reviewer pastes it into Claude Code, Codex, or any agent. The agent gets every marked-up screenshot, the numbered answers, and the screen text under each mark. The prompt makes the agent write a plan before it edits anything. Feedback stays on the Mac until it is pasted. Read `.github/README.md` and the section "Use a feedback session" in `AGENTS.md`.
+Nextshot is a macOS menu bar app, a fork of Capso, for giving feedback to AI coding agents. Press Option+Shift+F and drag over part of the screen. Press C to drop numbered circles on each problem. Boxes, arrows, and text work too. Press Command+S. Nextshot asks one question per circle, "Circle 1 (1 of 3): what should change?", then an optional general note. The reviewer types or dictates each answer. Then the reviewer grabs the next screen, and the next. One round holds every capture and every note. Copy Prompt and End Round in the Nshot menu ends the round and copies its whole prompt. The reviewer pastes it into Claude Code, Codex, or any agent. The agent gets every marked-up screenshot, the numbered answers, and the screen text under each mark. The prompt makes the agent write a plan before it edits anything. Feedback stays on the Mac until it is pasted. Read `.github/README.md` and the section "Use a feedback round" in `AGENTS.md`.
 
 ## 2. Audience and goal
 
-Nextiva colleagues who use AI coding agents on Macs. Drew sends the video with a DMG link in email and Teams, where video starts muted. The goal: they install it today. The one idea that must land: many screens and many kinds of marks go into one session, and one paste hands the agent all of it.
+Nextiva colleagues who use AI coding agents on Macs. Drew sends the video with a DMG link in email and Teams, where video starts muted. The goal: they install it today. The one idea that must land: many screens and many kinds of marks go into one round, and one paste hands the agent all of it.
 
 ## 3. The baseline to beat
 
@@ -36,8 +38,8 @@ Content, in this order:
 2. The pain: screenshot, save, drag, type "no, the other button", every time.
 3. The turn: the Nextshot mark and the brand world.
 4. The flow: Option, Shift, F keycaps; a drag selection; numbered circles that pop in; the note panel with its real question; a typed or dictated answer; "Nshot (1)" in the menu bar.
-5. The session, the most important beat, at least 7 seconds: two more captures, each with different mark types (a box, an arrow, a general note), all landing in one session; the menu bar count going to "Nshot (3)".
-6. The hand-off: Copy Session Prompt, then one paste into an agent that shows `<feedback_bundle captures="3" items="6">`, three thumbnails, the items grouped by capture, and the plan-first rule.
+5. The round, the most important beat, at least 7 seconds: two more captures, each with different mark types (a box, an arrow, a general note), all landing in one round; the menu bar count going to "Nshot (3)".
+6. The hand-off: Copy Prompt and End Round ends the round and copies its whole prompt. Then one paste into an agent shows `<feedback_bundle captures="3" items="6">`, three thumbnails, the items grouped by capture, and the plan-first rule.
 7. The close: the fixed stand, then the end card: the Nextshot mark, "Nextshot", "Mark it up. Hand it off.", Option Shift F keycaps with "starts a capture", "Get the DMG in this message.", and "Feedback stays on your Mac until you paste it."
 
 Format: 1920 by 1080, 30 frames per second, H.264 yuv420p, AAC, faststart, 30 to 38 seconds, under 15 MB. Loudness -16 LUFS integrated (loudness units relative to full scale), true peak at or below -1.5 dBTP. Burned-in captions on every spoken line, one line each, 46 characters or fewer, readable at 640 pixels wide. No caption over the end card.
@@ -45,9 +47,9 @@ Format: 1920 by 1080, 30 frames per second, H.264 yuv420p, AAC, faststart, 30 to
 App text must match the source exactly. Copy these strings from the code, never from memory:
 - The note panel question, the placeholder "Type or dictate, then press Return", and the help line under the field: `App/Feedback/FeedbackNotePanel.swift`.
 - The general note question "Anything else about this capture? (optional)": the same file.
-- The menu rows and their order, the version line (the DMG Drew sends reads "Nextshot 2026.10.22 (501)"), and "Session: feedback": `App/Feedback/FeedbackStatusItem.swift` and `App/Feedback/ForkBranding.swift`.
-- One menu bar item only, titled "Nshot (N)" during a session: `App/Feedback/ForkDefaults.swift`.
-- The toast after the last note step: `App/Feedback/FeedbackController.swift`, line 56. Copy Session Prompt shows no toast. Never show UI the app lacks.
+- The menu rows and their order, the version line (the DMG Drew sends reads "Nextshot 2026.10.22 (501)"), and "Round: feedback": `App/Feedback/FeedbackStatusItem.swift` and `App/Feedback/ForkBranding.swift`.
+- One menu bar item only, titled "Nshot (N)" during a round: `App/Feedback/ForkDefaults.swift`.
+- The toast after the last note step and the toast after Copy Prompt and End Round: `App/Feedback/FeedbackController.swift`. The whole-round action waits for saves, ends the round, and copies its prompt. Its toast confirms the copy and the ended round. Never show UI the app lacks.
 - The prompt header and rules: `Packages/FeedbackKit/Sources/FeedbackKit/PromptBuilder.swift`.
 - The badge: #FF543E with a white ring.
 
@@ -86,9 +88,9 @@ Make music and effects locally (the Python standard library and ffmpeg), or use 
 2. Plan before any build. Write into the docs page: the script (65 to 85 words), a storyboard table (time, voice line, picture, sound), the voice shortlist, and the music idea. Say what you keep from the baseline, what you change, and why.
 3. Build v1. Snapshot the eight key beats and tile a 1 frame per second contact sheet. Look at every frame.
 4. Review v1 three times, in writing, each time as a different person. Number every finding with a timecode and a concrete fix.
-   - Video editor: pacing per beat (the pain starts by 3 seconds; the session beat gets 7 seconds or more), cut points on the voice, caption timing within 100 milliseconds of the line, continuity (the menu bar count, the session name, the badge numbers), motion (ease curves, nothing pops without a sound), audio (ducking, no clipped word starts or ends, no clicks).
+   - Video editor: pacing per beat (the pain starts by 3 seconds; the round beat gets 7 seconds or more), cut points on the voice, caption timing within 100 milliseconds of the line, continuity (the menu bar count, the round name, the badge numbers), motion (ease curves, nothing pops without a sound), audio (ducking, no clipped word starts or ends, no clicks).
    - Curator: one type system (Caveat for the sketch, Inter for the product, nothing else), brand colors only, hierarchy and negative space, character design that stays the same across scenes, caption style, no AI-made tells, every frame good enough to post as a still.
-   - CMO: the hook lands in 3 seconds, one value proposition, the "one session, one paste" idea is unmistakable, the audience is Mac users with coding agents, the call to action is clear, the tone is fun without being cheesy, it works muted, and the Nextshot name is seen and heard at least twice.
+   - CMO: the hook lands in 3 seconds, one value proposition, the "one round, one paste" idea is unmistakable, the audience is Mac users with coding agents, the call to action is clear, the tone is fun without being cheesy, it works muted, and the Nextshot name is seen and heard at least twice.
 5. Apply every fix you accept. Render v2. Repeat step 4 once more. Render v3. Keep a change log per round.
 6. Verify the final cut, and paste the evidence into the docs page:
    - `ffprobe` shows 1920 by 1080, 30 fps, h264 yuv420p, aac, a duration of 30 to 38 seconds, a size under 15 MB, and the `moov` atom before `mdat`.
@@ -105,7 +107,7 @@ Make music and effects locally (the Python standard library and ffmpeg), or use 
 Score each item 1 to 5 and give one line of reasons:
 1. Hook: the first 3 seconds make a viewer stay.
 2. Clarity: a first-time viewer can repeat the four steps afterward.
-3. The session idea: many screens, many marks, one paste, unmistakable.
+3. The round idea: many screens, many marks, one paste, unmistakable.
 4. Visual polish: motion, typography, consistency, no tells.
 5. Audio: voice quality, pacing, music, sound design, mix.
 6. Accuracy: every string and behavior matches the app.
