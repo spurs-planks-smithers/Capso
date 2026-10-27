@@ -119,15 +119,18 @@ public enum FeedbackLibrary {
         return "\(day), \(timeText(startedAt, timeZone: timeZone, locale: locale))"
     }
 
-    /// Apps in capture order without repeats, then the capture count and, when
-    /// some are picked, the selection count: "Preview, TextEdit, 5 captures, 2 selected".
+    /// At most two distinct apps in capture order, then any extra app count,
+    /// the capture count, and the selection count when some are picked.
     public static func subtitle(for round: FeedbackRound, selectedCount: Int) -> String {
         var apps: [String] = []
         for app in round.captures.compactMap(\.sourceApp) where !apps.contains(app) {
             apps.append(app)
         }
         let count = round.captures.count
-        var parts = apps
+        var parts = Array(apps.prefix(2))
+        if apps.count > 2 {
+            parts.append("+\(apps.count - 2)")
+        }
         parts.append(count == 1 ? "1 capture" : "\(count) captures")
         if selectedCount > 0 {
             parts.append("\(selectedCount) selected")
