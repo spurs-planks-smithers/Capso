@@ -278,4 +278,138 @@ struct FeedbackLibraryTests {
         #expect(FeedbackLibrary.itemCountText(capture(1, badges: [1])) == "1 item")
         #expect(FeedbackLibrary.itemCountText(capture(1, badges: [1, 2, 3, 4])) == "4 items")
     }
+
+    private func historyDate(_ value: String) -> Date {
+        ISO8601DateFormatter().date(from: value)!
+    }
+
+    private func historyRound(_ name: String, _ startedAt: String) -> FeedbackRound {
+        var round = ended(day: 21)
+        round.folderName = name
+        round.startedAt = historyDate(startedAt)
+        round.endedAt = round.startedAt.addingTimeInterval(60)
+        return round
+    }
+
+    private func historyCalendar(firstWeekday: Int = 1, zone: String = "America/Los_Angeles") -> Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: zone)!
+        calendar.firstWeekday = firstWeekday
+        return calendar
+    }
+
+    @Test("History covers every round once across day, week, and month boundaries")
+    func historyGroupsEveryRound() {
+        defer { try? fileManager.removeItem(at: root) }
+        let rounds = [
+            historyRound("today", "2026-10-27T10:00:00-07:00"),
+            historyRound("yesterday", "2026-10-26T10:00:00-07:00"),
+            historyRound("six-days", "2026-10-21T10:00:00-07:00"),
+            historyRound("seven-days", "2026-10-20T10:00:00-07:00"),
+            historyRound("last-week", "2026-09-06T10:00:00-07:00"),
+            historyRound("month-september", "2026-09-05T10:00:00-07:00"),
+            historyRound("month-august", "2026-08-31T10:00:00-07:00"),
+            historyRound("last-year", "2025-12-31T10:00:00-08:00"),
+        ]
+        let groups = FeedbackHistory.groups(Array(rounds.reversed()), now: historyDate("2026-10-27T12:00:00-07:00"), calendar: historyCalendar(), locale: en)
+        #expect(groups.map { $0.rounds.map(\.folderName) } == [
+            ["today"], ["yesterday"], ["six-days"], ["seven-days"],
+            ["last-week"], ["month-september"], ["month-august"], ["last-year"],
+        ])
+        #expect(groups[0].title == "Today")
+        #expect(groups[1].title == "Yesterday")
+        #expect(groups[3].title.hasPrefix("Week of "))
+        #expect(groups[4].title.hasPrefix("Week of "))
+        #expect(groups[5].title == "September 2026")
+        #expect(groups[7].title == "December 2025")
+        let actual = groups.flatMap(\.rounds).map(\.folderName)
+        let expected = Set(rounds.map(\.folderName))
+        #expect(!expected.isEmpty)
+        #expect(!actual.isEmpty)
+        #expect(Set(actual) == expected)
+        #expect(actual.count == expected.count)
+    }
+
+    @Test("History follows the calendar's Sunday or Monday week start")
+    func historyWeekStarts() {
+        defer { try? fileManager.removeItem(at: root) }
+        let rounds = [
+            historyRound("sunday", "2026-11-01T12:00:00-08:00"),
+            historyRound("monday", "2026-11-02T12:00:00-08:00"),
+        ]
+        let now = historyDate("2026-11-10T12:00:00-08:00")
+        let sunday = FeedbackHistory.groups(rounds, now: now, calendar: historyCalendar(), locale: en)
+        let monday = FeedbackHistory.groups(rounds, now: now, calendar: historyCalendar(firstWeekday: 2), locale: en)
+        #expect(sunday.map { $0.rounds.map(\.folderName) } == [["monday", "sunday"]])
+        #expect(monday.map { $0.rounds.map(\.folderName) } == [["monday"], ["sunday"]])
+    }
+
+    @Test("History uses local midnight through the daylight saving change")
+    func historyLocalDayBoundaries() {
+        defer { try? fileManager.removeItem(at: root) }
+        let rounds = [
+            historyRound("today", "2026-11-03T08:01:00Z"),
+            historyRound("yesterday", "2026-11-03T07:59:00Z"),
+            historyRound("first-hour", "2026-11-01T01:30:00-07:00"),
+            historyRound("second-hour", "2026-11-01T01:30:00-08:00"),
+            historyRound("six-days", "2026-10-28T00:00:00-07:00"),
+            historyRound("seven-days", "2026-10-27T23:59:00-07:00"),
+        ]
+        let groups = FeedbackHistory.groups(rounds, now: historyDate("2026-11-03T08:02:00Z"), calendar: historyCalendar(), locale: en)
+        #expect(groups.map { $0.rounds.map(\.folderName) } == [
+            ["today"], ["yesterday"], ["second-hour", "first-hour"], ["six-days"], ["seven-days"],
+        ])
+        #expect(groups[0].title == "Today")
+        #expect(groups[1].title == "Yesterday")
+        #expect(groups[4].title.hasPrefix("Week of "))
+    }
+
+    @Test("History uses start dates, preserves ties, and excludes active or empty rounds")
+    func historyIdentityAndEligibility() {
+        defer { try? fileManager.removeItem(at: root) }
+        var old = historyRound("old", "2026-10-01T10:00:00-07:00")
+        old.endedAt = historyDate("2026-10-27T10:00:00-07:00")
+        let a = historyRound("a", "2026-10-02T10:00:00-07:00")
+        var b = a
+        b.folderName = "b"
+        var active = a
+        active.endedAt = nil
+        var empty = a
+        empty.captures = []
+        let now = historyDate("2026-10-27T12:00:00-07:00")
+        let groups = FeedbackHistory.groups([old, active, empty, a, b], now: now, calendar: historyCalendar(), locale: en)
+        #expect(groups.map { $0.rounds.map(\.folderName) } == [["b", "a", "old"]])
+        #expect(groups[0].title.hasPrefix("Week of "))
+        #expect(FeedbackHistory.groups([], now: now, calendar: historyCalendar(), locale: en).isEmpty)
+    }
+
+    @Test("History labels dates across years and future dates explicitly")
+    func historyYearsAndFutureDates() {
+        defer { try? fileManager.removeItem(at: root) }
+        let rounds = [
+            historyRound("future", "2027-01-04T10:00:00-08:00"),
+            historyRound("last-year-day", "2026-12-31T10:00:00-08:00"),
+            historyRound("last-year-week", "2026-12-27T10:00:00-08:00"),
+            historyRound("last-year-month", "2026-11-01T10:00:00-08:00"),
+        ]
+        let groups = FeedbackHistory.groups(rounds, now: historyDate("2027-01-03T12:00:00-08:00"), calendar: historyCalendar(), locale: en)
+        #expect(groups.count == 4)
+        #expect(groups[0].title != "Today")
+        #expect(groups[0].title.contains("Jan"))
+        #expect(groups[1].title.contains("2026"))
+        #expect(groups[2].title.hasPrefix("Week of "))
+        #expect(groups[2].title.contains("2026"))
+        #expect(groups[3].title == "November 2026")
+    }
+
+    @Test("History groups the same instant in the supplied time zone")
+    func historyTimeZones() {
+        defer { try? fileManager.removeItem(at: root) }
+        let round = historyRound("round", "2026-10-26T23:45:00Z")
+        let now = historyDate("2026-10-27T00:30:00Z")
+        let local = FeedbackHistory.groups([round], now: now, calendar: historyCalendar(), locale: en)
+        let utc = FeedbackHistory.groups([round], now: now, calendar: historyCalendar(zone: "UTC"), locale: en)
+        #expect(local.first?.title == "Today")
+        #expect(utc.first?.title == "Yesterday")
+    }
 }
