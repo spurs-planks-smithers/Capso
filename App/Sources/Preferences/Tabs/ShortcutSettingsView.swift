@@ -100,7 +100,7 @@ struct ShortcutSettingsView: View {
             }
 
             if Capabilities.current.standaloneCapture {
-                SettingGroup(visibility: .shortcutsCustomizable, title: "Customizable Shortcuts") {
+                SettingGroup(visibility: .shortcutsCapture, title: "Screenshots") {
                     SettingCard {
                         shortcutRow("All-in-One", visibility: .shortcutsCaptureCaptureAllInOne, name: .captureAllInOne)
                         shortcutRow("Capture Area", visibility: .shortcutsCaptureCaptureArea, name: .captureArea, showDivider: true)
@@ -109,7 +109,13 @@ struct ShortcutSettingsView: View {
                         shortcutRow("Capture Text (OCR)", visibility: .shortcutsCaptureCaptureText, name: .captureText, showDivider: true)
                         shortcutRow("Scrolling Capture", visibility: .shortcutsCaptureCaptureScrolling, name: .captureScrolling, showDivider: true)
                         shortcutRow("Self-Timer", visibility: .shortcutsCaptureSelfTimerCapture, name: .selfTimerCapture, showDivider: true)
-                        shortcutRow("Capture Area to Clipboard", visibility: .shortcutsClipboardPinsCaptureAreaToClipboard, name: .captureAreaToClipboard, showDivider: true)
+                        shortcutRow("Capture Previous Area", visibility: .shortcutsCaptureCaptureLastArea, name: .captureLastArea, showDivider: true)
+                    }
+                }
+
+                SettingGroup(visibility: .shortcutsClipboardPins, title: "Clipboard and Pins") {
+                    SettingCard {
+                        shortcutRow("Capture Area to Clipboard", visibility: .shortcutsClipboardPinsCaptureAreaToClipboard, name: .captureAreaToClipboard)
                         if Capabilities.current.cloudShare {
                             shortcutRow("Capture and Share to Cloud", visibility: .shortcutsClipboardPinsCaptureAreaAndShare, name: .captureAreaAndShare, showDivider: true)
                         }
@@ -128,23 +134,31 @@ struct ShortcutSettingsView: View {
                             help: "Open the image currently copied to the clipboard in Annotate"
                         )
                         shortcutRow("Hide / Show All Pins", visibility: .shortcutsClipboardPinsTogglePins, name: .togglePins, showDivider: true)
-                        if Capabilities.current.translationTools {
-                            shortcutRow("Capture & Translate", visibility: .shortcutsTranslationCaptureAndTranslate, name: .captureAndTranslate, showDivider: true)
-                        }
-                        if Capabilities.current.translationTools {
+                    }
+                }
+
+                if Capabilities.current.translationTools {
+                    SettingGroup(visibility: .shortcutsTranslation, title: "Translation") {
+                        SettingCard {
+                            shortcutRow("Capture & Translate", visibility: .shortcutsTranslationCaptureAndTranslate, name: .captureAndTranslate)
                             shortcutRow("Translate Selected Text", visibility: .shortcutsTranslationTranslateSelectedText, name: .translateSelectedText, showDivider: true)
-                        }
-                        if Capabilities.current.translationTools {
                             shortcutRow("Translate Typed Text", visibility: .shortcutsTranslationTranslateTypedText, name: .translateTypedText, showDivider: true)
                         }
-                        shortcutRow("Capture Previous Area", visibility: .shortcutsCaptureCaptureLastArea, name: .captureLastArea, showDivider: true)
-                        if Capabilities.current.recordingTools {
-                            shortcutRow("Record Area", visibility: .shortcutsRecordingRecordScreen, name: .recordScreen, showDivider: true)
-                        }
-                        if Capabilities.current.recordingTools {
+                    }
+                }
+
+                if Capabilities.current.recordingTools {
+                    SettingGroup(visibility: .shortcutsRecording, title: "Recording") {
+                        SettingCard {
+                            shortcutRow("Record Area", visibility: .shortcutsRecordingRecordScreen, name: .recordScreen)
                             shortcutRow("Record Full Screen", visibility: .shortcutsRecordingRecordFullscreen, name: .recordFullscreen, showDivider: true)
                         }
-                        shortcutRow("Screenshot History", visibility: .shortcutsHistoryScreenshotHistory, name: .screenshotHistory, showDivider: true)
+                    }
+                }
+
+                SettingGroup(visibility: .shortcutsHistory, title: "History") {
+                    SettingCard {
+                        shortcutRow("Screenshot History", visibility: .shortcutsHistoryScreenshotHistory, name: .screenshotHistory)
                     }
                 }
             }
