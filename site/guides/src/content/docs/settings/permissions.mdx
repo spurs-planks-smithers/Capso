@@ -1,0 +1,44 @@
+---
+title: Screen access
+description: Allow Nextshot to capture the area you select.
+reviewedFor: 0.4.0
+minVersion: 0.4.0
+---
+
+import Step from '../../../components/Step.astro';
+import GuideImage from '../../../components/GuideImage.astro';
+
+Allow **Screen Recording** so Nextshot can capture the screen area you select. Feedback rounds need no camera or microphone permission.
+
+<GuideImage src="/guides/media/settings-permissions.png" alt="The Permissions tab shows Screen Recording access and a Refresh control." caption="Screen Recording is the macOS permission name for screenshot access." />
+
+<Step number={1} title="Check access">
+
+Open **Settings**, then **Permissions**. Read the status beside **Screen Recording**.
+
+If access is missing, choose **Open**. In System Settings, allow Nextshot in the screen recording permission list.
+
+The list name can vary by macOS version. Follow any macOS request to quit and reopen Nextshot.
+
+</Step>
+
+<Step number={2} title="Refresh and capture again">
+
+Return to **Permissions** and choose **Refresh**. Start a fresh capture to check the result.
+
+A previous blank image does not change when you grant access.
+
+</Step>
+
+| Control | Default | Effect |
+| --- | --- | --- |
+| Screen Recording | Set by macOS | Shows whether this app has screen access. |
+| Open | n/a | Opens the relevant system permission settings. |
+| Refresh | n/a | Checks permission status again. |
+| Open System Settings icon | n/a | Opens the same system permission page. |
+
+## Nextshot and Nextshot Dev
+
+Each app needs its own grant. Allow the copy you run. Quit the other copy before using shared capture shortcuts.
+
+[Install Nextshot](/guides/install/) covers initial setup. If a new capture stays blank, [follow the troubleshooting steps](/guides/troubleshooting/#the-capture-is-blank).
