@@ -237,3 +237,61 @@ test("the diagnostic lock covers an active process and its deadline terminates t
   assert.ok(f.state.killed >= 1);
   assert.equal(f.managed.scanning, false);
 });
+test("provider failures report only a fixed phase code instead of raw messages", async () => {
+  for (const phase of [
+    "manifest",
+    "runtime",
+    "readiness",
+    "inspect",
+    "exec",
+    "stdout",
+    "exit",
+  ]) {
+    const f = await fixture(),
+      privateError = new Error("private provider credential fixture");
+    if (phase === "manifest")
+      f.env.SIGNATURES.get = async () => {
+        throw privateError;
+      };
+    if (phase === "runtime")
+      f.ctx.container.interceptOutboundHttp = async () => {
+        throw privateError;
+      };
+    if (phase === "readiness")
+      f.managed.startAndWaitForPorts = async () => {
+        throw privateError;
+      };
+    if (phase === "inspect") {
+      let calls = 0;
+      f.ctx.container.inspect = async () => {
+        if (++calls === 2) throw privateError;
+        return { image };
+      };
+    }
+    if (phase === "exec")
+      f.ctx.container.exec = async () => {
+        throw privateError;
+      };
+    if (["stdout", "exit"].includes(phase))
+      f.ctx.container.exec = async () => ({
+        stdout:
+          phase === "stdout"
+            ? new ReadableStream({
+                start(controller) {
+                  controller.error(privateError);
+                },
+              })
+            : new Response(JSON.stringify(checks)).body,
+        exitCode:
+          phase === "exit" ? Promise.reject(privateError) : Promise.resolve(0),
+        kill() {},
+      });
+    const result = await verifyScannerIsolation(f.managed, f.ctx, f.env);
+    assert.equal(result.error, `diagnostic_${phase}_failed`, phase);
+    assert.doesNotMatch(
+      JSON.stringify(result),
+      /private provider|credential fixture/,
+    );
+    assert.equal(f.managed.scanning, false);
+  }
+});

@@ -13,6 +13,15 @@ const FIELDS = [
   "signatureMatched",
   "credentialsAbsent",
 ];
+const PHASES = Object.freeze({
+  manifest: "diagnostic_manifest_failed",
+  runtime: "diagnostic_runtime_failed",
+  readiness: "diagnostic_readiness_failed",
+  inspect: "diagnostic_inspect_failed",
+  exec: "diagnostic_exec_failed",
+  stdout: "diagnostic_stdout_failed",
+  exit: "diagnostic_exit_failed",
+});
 const failure = (error, image = null) => ({
   ok: false,
   ...Object.fromEntries(FIELDS.map((key) => [key, false])),
@@ -151,14 +160,18 @@ export async function verifyScannerIsolation(
   managed.scanning = true;
   let image = null,
     process,
-    timer;
+    timer,
+    stage = PHASES.manifest;
   try {
     if (typeof ctx.container?.exec !== "function")
       invalid("scanner_exec_unavailable");
     const file = await signature(env);
+    stage = PHASES.runtime;
     await ensureScannerRuntime(managed, ctx);
     image = ctx.container.images.scanner;
+    stage = PHASES.readiness;
     await managed.startAndWaitForPorts(managed.defaultPort);
+    stage = PHASES.inspect;
     const info = await ctx.container.inspect();
     if (info?.image !== image) invalid("scanner_image_unavailable");
     const deadline = new Promise((_, reject) => {
@@ -176,18 +189,25 @@ export async function verifyScannerIsolation(
     const result = await Promise.race([
       deadline,
       (async () => {
+        stage = PHASES.exec;
         process = await ctx.container.exec(["python", "-c", ISOLATION_SCRIPT], {
           stdin: new Response(JSON.stringify(file)).body,
           stdout: "pipe",
           stderr: "ignore",
           env: {},
         });
+        stage = PHASES.stdout;
         const [values, exit] = await Promise.all([
-          readResult(process.stdout),
-          process.exitCode,
+          readResult(process.stdout).catch((error) => {
+            if (error?.code) throw error;
+            invalid(PHASES.stdout);
+          }),
+          Promise.resolve(process.exitCode).catch(() => invalid(PHASES.exit)),
         ]);
         if (exit !== 0)
-          invalid(exit === 124 ? "diagnostic_timeout" : "diagnostic_failed");
+          invalid(
+            exit === 124 ? "diagnostic_timeout" : "diagnostic_process_failed",
+          );
         return values;
       })(),
     ]);
@@ -209,9 +229,13 @@ export async function verifyScannerIsolation(
         "scanner_image_unavailable",
         "diagnostic_timeout",
         "diagnostic_result_invalid",
+        "diagnostic_process_failed",
+        ...Object.values(PHASES),
       ].includes(error?.code)
         ? error.code
-        : "diagnostic_failed",
+        : Object.values(PHASES).includes(stage)
+          ? stage
+          : "diagnostic_failed",
       image,
     );
   } finally {
