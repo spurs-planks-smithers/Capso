@@ -285,7 +285,13 @@ test("provider failures report only a fixed phase code instead of raw messages",
         kill() {},
       });
     const result = await verifyScannerIsolation(f.managed, f.ctx, f.env);
-    assert.equal(result.error, `diagnostic_${phase}_failed`, phase);
+    assert.equal(
+      result.error,
+      phase === "runtime"
+        ? "scanner_runtime_intercept_failed"
+        : `diagnostic_${phase}_failed`,
+      phase,
+    );
     assert.doesNotMatch(
       JSON.stringify(result),
       /private provider|credential fixture/,
@@ -299,4 +305,36 @@ test("native diagnostic never signals a process whose exit already completed", a
   assert.equal(result.ok, false);
   assert.equal(f.state.killed, 0);
   assert.equal(f.managed.scanning, false);
+});
+test("private diagnostic preserves only allowlisted native runtime failure codes", async () => {
+  for (const step of [
+    "inspect",
+    "destroy",
+    "intercept",
+    "start",
+    "inactivity",
+  ]) {
+    const f = await fixture();
+    if (step === "destroy")
+      f.ctx.container.inspect = async () => ({
+        image: SCANNER_IMAGE_PREFIX + "b".repeat(64),
+      });
+    if (step === "start") f.ctx.container.running = false;
+    const key = {
+      inspect: "inspect",
+      destroy: "destroy",
+      intercept: "interceptOutboundHttp",
+      start: "start",
+      inactivity: "setInactivityTimeout",
+    }[step];
+    f.ctx.container[key] = () => {
+      throw new Error("private provider message");
+    };
+    const result = await verifyScannerIsolation(f.managed, f.ctx, f.env);
+    assert.equal(result.error, `scanner_runtime_${step}_failed`);
+    assert.equal(result.image, null);
+    assert.equal(result.ok, false);
+    assert.doesNotMatch(JSON.stringify(result), /private provider/);
+    assert.equal(f.managed.scanning, false);
+  }
 });

@@ -3,6 +3,25 @@ export const SCANNER_IMAGE_PREFIX =
 export const SCANNER_IDLE_MS = 150000;
 export const SCANNER_STARTUP_MS = 60000;
 export const SCANNER_RPC_MS = 200000;
+export const SCANNER_RUNTIME_ERROR_CODES = Object.freeze([
+  "scanner_image_unavailable",
+  "scanner_proxy_unavailable",
+  "scanner_runtime_inspect_failed",
+  "scanner_runtime_destroy_failed",
+  "scanner_runtime_intercept_failed",
+  "scanner_runtime_start_failed",
+  "scanner_runtime_inactivity_failed",
+]);
+function runtimeError(code) {
+  return Object.assign(new Error(code), { code });
+}
+async function runtimeCall(code, operation, signal) {
+  try {
+    return await abortable(operation(), signal);
+  } catch {
+    throw runtimeError(code);
+  }
+}
 export function startupSignal(signal) {
   return signal
     ? AbortSignal.any([signal, AbortSignal.timeout(SCANNER_STARTUP_MS)])
@@ -36,23 +55,41 @@ export async function ensureScannerRuntime(ctx, signal) {
     !image.startsWith(SCANNER_IMAGE_PREFIX) ||
     !/^[a-f0-9]{64}$/.test(image.slice(SCANNER_IMAGE_PREFIX.length))
   )
-    throw new Error("scanner_image_unavailable");
+    throw runtimeError("scanner_image_unavailable");
   if (typeof ctx.exports?.ContainerProxy !== "function")
-    throw new Error("scanner_proxy_unavailable");
-  const info = await abortable(container.inspect(), signal);
+    throw runtimeError("scanner_proxy_unavailable");
+  const info = await runtimeCall(
+    "scanner_runtime_inspect_failed",
+    () => container.inspect(),
+    signal,
+  );
   if (info && info.image !== "" && info.image !== image)
-    await abortable(container.destroy(), signal);
-  await abortable(
-    container.interceptOutboundHttp(
-      "signatures.nextshot.internal",
-      ctx.exports.ContainerProxy(),
-    ),
+    await runtimeCall(
+      "scanner_runtime_destroy_failed",
+      () => container.destroy(),
+      signal,
+    );
+  await runtimeCall(
+    "scanner_runtime_intercept_failed",
+    () =>
+      container.interceptOutboundHttp(
+        "signatures.nextshot.internal",
+        ctx.exports.ContainerProxy(),
+      ),
     signal,
   );
   signal?.throwIfAborted();
   if (!container.running)
-    container.start({ image, instance: "standard-2", enableInternet: false });
-  await abortable(container.setInactivityTimeout(SCANNER_IDLE_MS), signal);
+    try {
+      container.start({ image, instance: "standard-2", enableInternet: false });
+    } catch {
+      throw runtimeError("scanner_runtime_start_failed");
+    }
+  await runtimeCall(
+    "scanner_runtime_inactivity_failed",
+    () => container.setInactivityTimeout(SCANNER_IDLE_MS),
+    signal,
+  );
   return image;
 }
 export async function readBounded(response, maximum, signal) {

@@ -304,3 +304,45 @@ test("configuration and scanner source retain durable singleton isolation withou
   ])
     assert.equal(config.vars[flag], "false");
 });
+test("native runtime reports fixed inspect, destroy, intercept, start, and inactivity failure codes", async () => {
+  for (const step of [
+    "inspect",
+    "destroy",
+    "intercept",
+    "start",
+    "inactivity",
+  ]) {
+    const s = runtime({
+        running: step === "destroy",
+        info:
+          step === "destroy"
+            ? { image: SCANNER_IMAGE_PREFIX + "b".repeat(64) }
+            : null,
+      }),
+      error = new Error("private provider message");
+    const key = {
+      inspect: "inspect",
+      destroy: "destroy",
+      intercept: "interceptOutboundHttp",
+      start: "start",
+      inactivity: "setInactivityTimeout",
+    }[step];
+    s.ctx.container[key] = () => {
+      throw error;
+    };
+    await assert.rejects(ensureScannerRuntime(s.ctx), (failure) => {
+      assert.equal(failure.code, `scanner_runtime_${step}_failed`);
+      assert.equal(failure.message, failure.code);
+      return true;
+    });
+  }
+  const badImage = runtime({ reference: "untrusted" });
+  await assert.rejects(ensureScannerRuntime(badImage.ctx), {
+    code: "scanner_image_unavailable",
+  });
+  const badProxy = runtime();
+  delete badProxy.ctx.exports.ContainerProxy;
+  await assert.rejects(ensureScannerRuntime(badProxy.ctx), {
+    code: "scanner_proxy_unavailable",
+  });
+});

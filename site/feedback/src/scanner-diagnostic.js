@@ -1,5 +1,6 @@
 import {
   ensureScannerRuntime,
+  SCANNER_RUNTIME_ERROR_CODES,
   waitForScannerReady,
   startupSignal,
 } from "./scanner-runtime.js";
@@ -253,6 +254,7 @@ export async function verifyScannerIsolation(
         "diagnostic_result_invalid",
         "diagnostic_process_failed",
         ...Object.values(PHASES),
+        ...SCANNER_RUNTIME_ERROR_CODES,
       ].includes(error?.code)
         ? error.code
         : Object.values(PHASES).includes(stage)
