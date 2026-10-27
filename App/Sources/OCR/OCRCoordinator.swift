@@ -24,6 +24,7 @@ final class OCRCoordinator {
     // MARK: - Instant OCR
 
     func startInstantOCR() {
+        guard Capabilities.current.standaloneCapture else { return }
         if !settings.ocrOnboardingShown {
             showOnboarding { [weak self] in
                 self?.beginInstantOCRFlow()
@@ -113,6 +114,7 @@ final class OCRCoordinator {
     ///   primary display — use the nil form only when we genuinely don't know
     ///   (e.g. menu-bar invocation with no prior anchor).
     func startVisualOCR(image: CGImage, anchorScreen: NSScreen? = nil) {
+        guard Capabilities.current.standaloneCapture else { return }
         if !settings.ocrOnboardingShown {
             showOnboarding { [weak self] in
                 self?.beginVisualOCR(image: image, anchorScreen: anchorScreen)

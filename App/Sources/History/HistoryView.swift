@@ -243,7 +243,7 @@ struct HistoryView: View {
         alert.informativeText = String(localized: "This will remove the capture from this Mac.")
         alert.addButton(withTitle: String(localized: "Delete"))
         alert.addButton(withTitle: String(localized: "Cancel"))
-        let cloudBox = entries.contains { $0.cloudURL != nil }
+        let cloudBox = Capabilities.current.cloudShare && entries.contains { $0.cloudURL != nil }
             ? NSButton(checkboxWithTitle: String(localized: "Also delete from cloud"), target: nil, action: nil)
             : nil
         cloudBox?.state = .on

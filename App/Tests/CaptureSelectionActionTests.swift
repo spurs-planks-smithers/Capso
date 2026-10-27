@@ -13,7 +13,7 @@ final class CaptureSelectionActionTests: XCTestCase {
                 let suiteName = "CaptureSelectionActionTests.\(UUID().uuidString)"
                 let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
                 defer { defaults.removePersistentDomain(forName: suiteName) }
-                let coordinator = CaptureCoordinator(settings: AppSettings(defaults: defaults))
+                let coordinator = CaptureCoordinator(settings: AppSettings(defaults: defaults), capabilities: .init { _ in .on })
                 coordinator.shareCoordinator = ShareCoordinator(destination: UnusedShareDestination())
 
                 // Stay on the main actor without yielding: the selection start is

@@ -23,14 +23,16 @@ struct ExportSettingsView: View {
 
             SettingGroup(title: "Quality") {
                 SettingCard {
-                    SettingRow(label: "Export Quality", sublabel: "Applies to video and GIF exports") {
-                        Picker("", selection: $viewModel.exportQuality) {
-                            Text("Maximum").tag(ExportQuality.maximum)
-                            Text("Social").tag(ExportQuality.social)
-                            Text("Web").tag(ExportQuality.web)
+                    if Capabilities.current.recordingTools {
+                        SettingRow(label: "Export Quality", sublabel: "Applies to video and GIF exports") {
+                            Picker("", selection: $viewModel.exportQuality) {
+                                Text("Maximum").tag(ExportQuality.maximum)
+                                Text("Social").tag(ExportQuality.social)
+                                Text("Web").tag(ExportQuality.web)
+                            }
+                            .pickerStyle(.segmented)
+                            .frame(width: 220)
                         }
-                        .pickerStyle(.segmented)
-                        .frame(width: 220)
                     }
                     SettingRow(
                         label: "Screenshot Format",

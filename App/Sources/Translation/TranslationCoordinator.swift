@@ -49,6 +49,7 @@ final class TranslationCoordinator {
     // MARK: - Entry points
 
     func startCaptureAndTranslate() {
+        guard Capabilities.current.translationTools else { return }
         if !settings.translationOnboardingShown {
             showOnboarding { [weak self] in self?.beginCaptureFlow() }
         } else {
@@ -57,6 +58,7 @@ final class TranslationCoordinator {
     }
 
     func translateSelectedText() {
+        guard Capabilities.current.translationTools else { return }
         if !settings.translationOnboardingShown {
             showOnboarding { [weak self] in self?.beginSelectedTextFlow() }
         } else {
@@ -65,6 +67,7 @@ final class TranslationCoordinator {
     }
 
     func translateTypedText() {
+        guard Capabilities.current.translationTools else { return }
         typedInputWindow?.close()
         let window = TypedTranslationInputWindow(
             onSubmit: { [weak self] text in
@@ -87,6 +90,7 @@ final class TranslationCoordinator {
     ///   translating a screenshot taken on a secondary screen would bounce the
     ///   card back to the primary.
     func translate(image: CGImage, anchorScreen: NSScreen? = nil) {
+        guard Capabilities.current.translationTools else { return }
         if !settings.translationOnboardingShown {
             showOnboarding { [weak self] in
                 self?.startImageTranslation(image: image, anchor: nil, anchorScreen: anchorScreen)
@@ -293,7 +297,7 @@ final class TranslationCoordinator {
         window.showTranslation(
             regions: regions,
             target: target,
-            provider: settings.translationProvider,
+            provider: .apple,
             providerConfig: providerConfig()
         )
     }
@@ -361,9 +365,9 @@ final class TranslationCoordinator {
 
     private func providerConfig() -> TranslationProviderConfiguration {
         TranslationProviderConfiguration(
-            apiKey: settings.translationAPIKey() ?? "",
-            endpoint: settings.translationProviderEndpoint,
-            model: settings.translationProviderModel
+            apiKey: "",
+            endpoint: "",
+            model: ""
         )
     }
 

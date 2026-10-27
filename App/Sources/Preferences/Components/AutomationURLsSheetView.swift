@@ -1,6 +1,7 @@
 // App/Sources/Preferences/Components/AutomationURLsSheetView.swift
 import SwiftUI
 import AppKit
+import SharedKit
 
 struct AutomationCommandItem: Identifiable {
     let id: String
@@ -83,6 +84,12 @@ struct AutomationURLsSheetView: View {
         )
     ]
 
+    private func availableItems(_ section: AutomationCommandSection) -> [AutomationCommandItem] {
+        section.items.filter { item in
+            URL(string: item.urlString).flatMap(AutomationURLAction.init(url:)).map(Capabilities.allowsAutomation) ?? false
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .top) {
@@ -102,7 +109,7 @@ struct AutomationURLsSheetView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    ForEach(sections) { section in
+                    ForEach(sections.filter { !availableItems($0).isEmpty }) { section in
                         VStack(alignment: .leading, spacing: 6) {
                             Text(section.title)
                                 .font(.system(size: 11, weight: .semibold))
@@ -112,7 +119,7 @@ struct AutomationURLsSheetView: View {
                                 .padding(.leading, 2)
 
                             SettingCard {
-                                ForEach(Array(section.items.enumerated()), id: \.element.id) { index, item in
+                                ForEach(Array(availableItems(section).enumerated()), id: \.element.id) { index, item in
                                     commandRow(item: item, showDivider: index > 0)
                                 }
                             }
@@ -177,7 +184,7 @@ struct AutomationURLsSheetView: View {
     private func copyAllURLs() {
         var lines: [String] = []
         for section in sections {
-            for item in section.items {
+            for item in section.items where URL(string: item.urlString).flatMap(AutomationURLAction.init(url:)).map(Capabilities.allowsAutomation) == true {
                 lines.append(item.urlString)
             }
         }

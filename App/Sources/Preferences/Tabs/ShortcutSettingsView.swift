@@ -77,7 +77,7 @@ struct ShortcutSettingsView: View {
             HStack(spacing: 8) {
                 Image(systemName: "info.circle")
                     .foregroundStyle(.blue)
-                Text("Click a customizable shortcut to record a new combination. Press Esc to cancel or Delete to remove. Contextual shortcuts are fixed and work only while that panel is active.")
+                Text("Select a shortcut, then press the new keys. Escape cancels. Delete removes it.")
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
             }
@@ -90,53 +90,76 @@ struct ShortcutSettingsView: View {
                     .stroke(Color.blue.opacity(0.2), lineWidth: 0.5)
             )
 
-            SystemScreenshotShortcutsCard()
+            FeedbackShortcutSettingsSection()
 
-            SettingGroup(title: "Customizable Shortcuts") {
-                SettingCard {
-                    shortcutRow("All-in-One", name: .captureAllInOne)
-                    shortcutRow("Capture Area", name: .captureArea, showDivider: true)
-                    shortcutRow("Capture Fullscreen", name: .captureFullscreen, showDivider: true)
-                    shortcutRow("Capture Window", name: .captureWindow, showDivider: true)
-                    shortcutRow("Capture Text (OCR)", name: .captureText, showDivider: true)
-                    shortcutRow("Scrolling Capture", name: .captureScrolling, showDivider: true)
-                    shortcutRow("Self-Timer", name: .selfTimerCapture, showDivider: true)
-                    shortcutRow("Capture Area to Clipboard", name: .captureAreaToClipboard, showDivider: true)
-                    shortcutRow("Capture and Share to Cloud", name: .captureAreaAndShare, showDivider: true)
-                    shortcutRow("Capture Area & Annotate", name: .captureAreaAndAnnotate, showDivider: true)
-                    shortcutRow("Capture Area & Pin", name: .captureAreaAndPin, showDivider: true)
-                    shortcutRow(
-                        "Pin from Clipboard",
-                        name: .pinFromClipboard,
-                        showDivider: true,
-                        help: "Float copied images, text, colors, or files above other windows"
-                    )
-                    shortcutRow(
-                        "Edit Clipboard Image",
-                        name: .editClipboardImage,
-                        showDivider: true,
-                        help: "Open the image currently copied to the clipboard in Annotate"
-                    )
-                    shortcutRow("Hide / Show All Pins", name: .togglePins, showDivider: true)
-                    shortcutRow("Capture & Translate", name: .captureAndTranslate, showDivider: true)
-                    shortcutRow("Translate Selected Text", name: .translateSelectedText, showDivider: true)
-                    shortcutRow("Translate Typed Text", name: .translateTypedText, showDivider: true)
-                    shortcutRow("Capture Previous Area", name: .captureLastArea, showDivider: true)
-                    shortcutRow("Record Area", name: .recordScreen, showDivider: true)
-                    shortcutRow("Record Full Screen", name: .recordFullscreen, showDivider: true)
-                    shortcutRow("Screenshot History", name: .screenshotHistory, showDivider: true)
+            if Capabilities.current.standaloneCapture {
+                SystemScreenshotShortcutsCard()
+            }
+
+            if Capabilities.current.standaloneCapture {
+                SettingGroup(title: "Customizable Shortcuts") {
+                    SettingCard {
+                        shortcutRow("All-in-One", name: .captureAllInOne)
+                        shortcutRow("Capture Area", name: .captureArea, showDivider: true)
+                        shortcutRow("Capture Fullscreen", name: .captureFullscreen, showDivider: true)
+                        shortcutRow("Capture Window", name: .captureWindow, showDivider: true)
+                        shortcutRow("Capture Text (OCR)", name: .captureText, showDivider: true)
+                        shortcutRow("Scrolling Capture", name: .captureScrolling, showDivider: true)
+                        shortcutRow("Self-Timer", name: .selfTimerCapture, showDivider: true)
+                        shortcutRow("Capture Area to Clipboard", name: .captureAreaToClipboard, showDivider: true)
+                        if Capabilities.current.cloudShare {
+                            shortcutRow("Capture and Share to Cloud", name: .captureAreaAndShare, showDivider: true)
+                        }
+                        shortcutRow("Capture Area & Annotate", name: .captureAreaAndAnnotate, showDivider: true)
+                        shortcutRow("Capture Area & Pin", name: .captureAreaAndPin, showDivider: true)
+                        shortcutRow(
+                            "Pin from Clipboard",
+                            name: .pinFromClipboard,
+                            showDivider: true,
+                            help: "Float copied images, text, colors, or files above other windows"
+                        )
+                        shortcutRow(
+                            "Edit Clipboard Image",
+                            name: .editClipboardImage,
+                            showDivider: true,
+                            help: "Open the image currently copied to the clipboard in Annotate"
+                        )
+                        shortcutRow("Hide / Show All Pins", name: .togglePins, showDivider: true)
+                        if Capabilities.current.translationTools {
+                            shortcutRow("Capture & Translate", name: .captureAndTranslate, showDivider: true)
+                        }
+                        if Capabilities.current.translationTools {
+                            shortcutRow("Translate Selected Text", name: .translateSelectedText, showDivider: true)
+                        }
+                        if Capabilities.current.translationTools {
+                            shortcutRow("Translate Typed Text", name: .translateTypedText, showDivider: true)
+                        }
+                        shortcutRow("Capture Previous Area", name: .captureLastArea, showDivider: true)
+                        if Capabilities.current.recordingTools {
+                            shortcutRow("Record Area", name: .recordScreen, showDivider: true)
+                        }
+                        if Capabilities.current.recordingTools {
+                            shortcutRow("Record Full Screen", name: .recordFullscreen, showDivider: true)
+                        }
+                        shortcutRow("Screenshot History", name: .screenshotHistory, showDivider: true)
+                    }
                 }
             }
 
-            // Fork: the Nextshot keys (docs/FORK_NOTES.md).
-            FeedbackShortcutSettingsSection()
-
-            SettingGroup(title: "Contextual Shortcuts") {
-                SettingCard {
-                    centerLockRow
-                    ForEach(Array(contextualShortcuts.enumerated()), id: \.element.id) { _, item in
-                        contextualShortcutRow(item, showDivider: true)
+            if Capabilities.current.standaloneCapture {
+                SettingGroup(title: "Contextual Shortcuts") {
+                    SettingCard {
+                        centerLockRow
+                        ForEach(Array(contextualShortcuts.enumerated()).filter { _ in Capabilities.current.standaloneCapture }, id: \.element.id) { _, item in
+                            contextualShortcutRow(item, showDivider: true)
+                        }
                     }
+                }
+            }
+            if !Capabilities.current.standaloneCapture {
+                DisclosureGroup("Advanced") {
+                    SettingCard { centerLockRow }
+                        .padding(.top, 8)
                 }
             }
         }

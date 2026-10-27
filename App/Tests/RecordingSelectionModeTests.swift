@@ -153,7 +153,7 @@ final class RecordingSelectionModeTests: XCTestCase {
         settings.rememberLastRecordingArea = false
         let screen = try XCTUnwrap(NSScreen.main)
         let rect = CGRect(x: 80, y: 90, width: 640, height: 360)
-        let coordinator = RecordingCoordinator(settings: settings)
+        let coordinator = RecordingCoordinator(settings: settings, capabilities: .init { _ in .on })
 
         coordinator.startRecordingFlow(withSelectedArea: rect, screen: screen)
 
@@ -176,7 +176,7 @@ final class RecordingSelectionModeTests: XCTestCase {
             rect: CGRect(x: 100, y: 120, width: 640, height: 360),
             screenID: screen.displayID
         )
-        let coordinator = RecordingCoordinator(settings: settings)
+        let coordinator = RecordingCoordinator(settings: settings, capabilities: .init { _ in .on })
 
         coordinator.startRecordingFlow()
         try await Task.sleep(for: .milliseconds(250))
@@ -197,7 +197,7 @@ final class RecordingSelectionModeTests: XCTestCase {
             UserDefaults.standard.removePersistentDomain(forName: suiteName)
         }
         let settings = AppSettings(defaults: try XCTUnwrap(UserDefaults(suiteName: suiteName)))
-        let coordinator = RecordingCoordinator(settings: settings)
+        let coordinator = RecordingCoordinator(settings: settings, capabilities: .init { _ in .on })
 
         coordinator.startRecordingFlow()
         try await Task.sleep(for: .milliseconds(250))
@@ -217,7 +217,7 @@ final class RecordingSelectionModeTests: XCTestCase {
             UserDefaults.standard.removePersistentDomain(forName: suiteName)
         }
         let settings = AppSettings(defaults: try XCTUnwrap(UserDefaults(suiteName: suiteName)))
-        let coordinator = RecordingCoordinator(settings: settings)
+        let coordinator = RecordingCoordinator(settings: settings, capabilities: .init { _ in .on })
 
         coordinator.startFullScreenRecordingFlow()
         try await Task.sleep(for: .milliseconds(250))

@@ -39,7 +39,7 @@ final class PinnedScreenshotWindowPresentationTests: XCTestCase {
         let suiteName = "PinnedScreenshotWindowPresentationTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         defer { UserDefaults.standard.removePersistentDomain(forName: suiteName) }
-        let coordinator = CaptureCoordinator(settings: AppSettings(defaults: defaults))
+        let coordinator = CaptureCoordinator(settings: AppSettings(defaults: defaults), capabilities: .init { _ in .on })
         let pasteboard = NSPasteboard(
             name: NSPasteboard.Name("PinnedScreenshotWindowPresentationTests.\(UUID().uuidString)")
         )

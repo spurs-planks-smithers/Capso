@@ -112,7 +112,7 @@ struct HistoryItemView: View {
                     Spacer()
 
                     // Persistent cloud indicator when URL is saved
-                    if entry.cloudURL != nil {
+                    if Capabilities.current.cloudShare, entry.cloudURL != nil {
                         Image(systemName: "checkmark.icloud.fill")
                             .font(.system(size: 9))
                             .foregroundStyle(.blue.opacity(0.7))
@@ -184,8 +184,10 @@ struct HistoryItemView: View {
             actionButton("square.and.arrow.down") { coordinator.saveToFile(entry) }
                 .help(String(localized: "Save to..."))
 
-            actionButton("pencil.tip.crop.circle") { coordinator.editEntry(entry) }
-                .help(String(localized: "Edit"))
+            if isScreenshot || Capabilities.current.recordingTools {
+                actionButton("pencil.tip.crop.circle") { coordinator.editEntry(entry) }
+                    .help(String(localized: "Edit"))
+            }
 
             cloudActionButton
         }
@@ -212,14 +214,14 @@ struct HistoryItemView: View {
 
     @ViewBuilder
     private var cloudActionButton: some View {
-        if let cloudURL = entry.cloudURL {
+        if Capabilities.current.cloudShare, let cloudURL = entry.cloudURL {
             // Already uploaded — show "Copy link" button
             actionButton("link") {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(cloudURL, forType: .string)
             }
             .help(String(localized: "Copy cloud link"))
-        } else if coordinator.shareCoordinator != nil {
+        } else if Capabilities.current.cloudShare, (isScreenshot || Capabilities.current.recordingCloudShare), coordinator.shareCoordinator != nil {
             // Not uploaded, cloud configured — show upload button
             if isUploading {
                 ProgressView()
@@ -340,14 +342,16 @@ struct HistoryItemView: View {
     private var contextMenu: some View {
         Button("Copy to Clipboard") { coordinator.copyToClipboard(entry) }
         Button("Save to...") { coordinator.saveToFile(entry) }
-        Button("Edit") { coordinator.editEntry(entry) }
+        if isScreenshot || Capabilities.current.recordingTools {
+            Button("Edit") { coordinator.editEntry(entry) }
+        }
 
-        if let cloudURL = entry.cloudURL {
+        if Capabilities.current.cloudShare, let cloudURL = entry.cloudURL {
             Button(String(localized: "Copy Cloud Link")) {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(cloudURL, forType: .string)
             }
-        } else if coordinator.shareCoordinator != nil {
+        } else if Capabilities.current.cloudShare, (isScreenshot || Capabilities.current.recordingCloudShare), coordinator.shareCoordinator != nil {
             Button(String(localized: "Upload to Cloud")) {
                 Task { await performUpload() }
             }
@@ -384,7 +388,7 @@ private struct DeleteConfirmSheet: View {
         self.onDelete = onDelete
         self.onCancel = onCancel
         // Default to true (delete cloud copy) if one exists
-        _alsoDeleteFromCloud = State(initialValue: entry.cloudURL != nil)
+        _alsoDeleteFromCloud = State(initialValue: Capabilities.current.cloudShare && entry.cloudURL != nil)
     }
 
     var body: some View {
@@ -393,7 +397,7 @@ private struct DeleteConfirmSheet: View {
                 Text("Delete capture?")
                     .font(.system(size: 14, weight: .semibold))
 
-                if entry.cloudURL != nil {
+                if Capabilities.current.cloudShare, entry.cloudURL != nil {
                     Text("This will remove the capture from this Mac. You can also remove the cloud copy.")
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
@@ -404,7 +408,7 @@ private struct DeleteConfirmSheet: View {
                 }
             }
 
-            if entry.cloudURL != nil {
+            if Capabilities.current.cloudShare, entry.cloudURL != nil {
                 Toggle(isOn: $alsoDeleteFromCloud) {
                     Text("Also delete from cloud")
                         .font(.system(size: 12))

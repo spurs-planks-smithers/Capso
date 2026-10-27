@@ -9,6 +9,7 @@ import ExportKit
 import HistoryKit
 import ShareKit
 import SharedKit
+import FeedbackKit
 
 @MainActor
 @Observable
@@ -18,6 +19,7 @@ final class HistoryCoordinator {
     }
 
     let settings: AppSettings
+    private let capabilities: AppCapabilities
     private let store: HistoryStore?
     private(set) var entries: [HistoryEntry] = []
     private(set) var totalSize: Int64 = 0
@@ -36,14 +38,16 @@ final class HistoryCoordinator {
     private var dragPreparationTasks: [UUID: Task<Void, Never>] = [:]
     private var pendingCloudURLs = PendingHistoryCloudURLTracker()
 
-    init(settings: AppSettings) {
+    init(settings: AppSettings, capabilities: AppCapabilities = Capabilities.current) {
         self.settings = settings
-        self.store = try? HistoryStore()
+        self.capabilities = capabilities
+        self.store = capabilities.standaloneCapture ? try? HistoryStore() : nil
     }
 
     // MARK: - Window
 
     func showWindow() {
+        guard capabilities.standaloneCapture else { return }
         if let historyWindow {
             historyWindow.show()
             return
@@ -54,6 +58,7 @@ final class HistoryCoordinator {
     }
 
     func toggleWindow() {
+        guard capabilities.standaloneCapture else { return }
         if let historyWindow {
             historyWindow.toggle()
             return
@@ -115,6 +120,8 @@ final class HistoryCoordinator {
     /// the user gets a blank page when opening the share link. Screenshots
     /// upload as-is in their stored format.
     func uploadEntry(_ entry: HistoryEntry) async throws -> URL {
+        guard capabilities.cloudShare else { throw ShareError.notConfigured }
+        if !isScreenshot(entry), !capabilities.recordingCloudShare { throw ShareError.notConfigured }
         guard let coord = shareCoordinator else {
             throw ShareError.notConfigured
         }
@@ -134,6 +141,7 @@ final class HistoryCoordinator {
     /// history insert. The pending-entry bridge above persists the URL once the
     /// row exists, while history-disabled users still get the share link.
     func uploadRecording(url: URL, mode: HistoryCaptureMode, entryID: UUID) async throws -> URL {
+        guard capabilities.recordingCloudShare else { throw ShareError.notConfigured }
         guard let coord = shareCoordinator else {
             throw ShareError.notConfigured
         }
@@ -203,6 +211,7 @@ final class HistoryCoordinator {
     /// Delete the cloud copy for an entry using the last path component of its cloudURL as the key.
     /// Failure is silently swallowed — the local delete proceeds regardless.
     func deleteCloudCopy(for entry: HistoryEntry) async {
+        guard capabilities.cloudShare else { return }
         guard let coord = shareCoordinator,
               let cloudURLString = entry.cloudURL,
               let key = URL(string: cloudURLString)?.lastPathComponent,
@@ -513,6 +522,7 @@ final class HistoryCoordinator {
 
     func editEntry(_ entry: HistoryEntry) {
         if !isScreenshot(entry) {
+            guard capabilities.recordingTools else { return }
             if let videoURL = fullImageURL(for: entry) {
                 onEditRecording?(HistoryRecordingSource(entry: entry, videoURL: videoURL))
             }
@@ -867,6 +877,7 @@ final class HistoryCoordinator {
     }
 
     func runCleanup() {
+        guard capabilities.standaloneCapture else { return }
         guard let store else { return }
         let retention = HistoryRetention(rawValue: settings.historyRetention) ?? .oneMonth
         do {

@@ -57,7 +57,7 @@ enum FeedbackShortcutGuard {
             accepted[name] = KeyboardShortcuts.getShortcut(for: name)
             FeedbackController.shared.updateRoundShortcuts()
         }
-        let others = (KeyboardShortcuts.Name.allCapso + KeyboardShortcuts.Name.nextshotKeys).filter { $0 != name }
+        let others = (KeyboardShortcuts.Name.allCapso.filter { Capabilities.allowsShortcut($0) } + KeyboardShortcuts.Name.nextshotKeys).filter { $0 != name }
         guard let shortcut, others.contains(where: { KeyboardShortcuts.getShortcut(for: $0) == shortcut }) else {
             return nil
         }

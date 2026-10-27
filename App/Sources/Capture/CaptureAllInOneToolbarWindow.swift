@@ -720,7 +720,9 @@ private struct CaptureAllInOneToolbarView: View {
                 modeButton(.scrolling, icon: "arrow.down.to.line.compact", title: "Scrolling", action: onScrolling)
                 modeButton(.timer, icon: "timer", title: "Timer", action: onTimer)
                 modeButton(.ocr, textIcon: "Aa", title: "OCR", action: onOCR)
-                modeButton(.recording, icon: "video", title: "Recording", action: onRecording)
+                if Capabilities.current.recordingTools {
+                    modeButton(.recording, icon: "video", title: "Recording", action: onRecording)
+                }
             }
 
             divider
@@ -760,7 +762,9 @@ private struct CaptureAllInOneToolbarView: View {
                 railActionButton(.scrolling, icon: "arrow.down.to.line.compact", title: "Scrolling", label: String(localized: "Scroll"), action: onScrolling)
                 railActionButton(.timer, icon: "timer", title: "Timer", label: String(localized: "Timer"), action: onTimer)
                 railActionButton(.ocr, textIcon: "Aa", title: "OCR", label: String(localized: "OCR"), action: onOCR)
-                railActionButton(.recording, icon: "video", title: "Recording", label: String(localized: "Record"), action: onRecording)
+                if Capabilities.current.recordingTools {
+                    railActionButton(.recording, icon: "video", title: "Recording", label: String(localized: "Record"), action: onRecording)
+                }
 
                 railDivider
             }

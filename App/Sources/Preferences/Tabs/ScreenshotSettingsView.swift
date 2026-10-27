@@ -16,73 +16,150 @@ struct ScreenshotSettingsView: View {
             Text("Screenshots")
                 .font(.system(size: 20, weight: .bold))
 
-            SettingGroup(title: "After Capture") {
-                SettingCard {
-                    SettingRow(label: "Show Preview", sublabel: "Display thumbnail with quick actions") {
-                        Toggle("", isOn: $viewModel.screenshotShowPreview)
-                            .toggleStyle(.switch)
-                            .controlSize(.small)
+            if !Capabilities.current.standaloneCapture {
+                FeedbackCaptureSettingsSection(viewModel: viewModel)
+                DisclosureGroup("Advanced") {
+                    VStack(alignment: .leading, spacing: 20) {
+                        timestampSettings
+                        presetSettings
                     }
-                    SettingRow(label: "Copy to Clipboard", sublabel: "Copy screenshot immediately", showDivider: true) {
-                        Toggle("", isOn: $viewModel.screenshotAutoCopy)
-                            .toggleStyle(.switch)
-                            .controlSize(.small)
-                    }
-                    SettingRow(
-                        label: "Clipboard Content",
-                        sublabel: clipboardContentDescription,
-                        showDivider: true
-                    ) {
-                        Picker("", selection: $viewModel.screenshotClipboardContent) {
-                            Text("Image").tag(ScreenshotClipboardContent.image)
-                            Text("File Path").tag(ScreenshotClipboardContent.filePath)
+                    .padding(.top, 12)
+                }
+            } else {
+                timestampSettings
+                presetSettings
+            }
+
+            if Capabilities.current.standaloneCapture {
+                SettingGroup(title: "After Capture") {
+                    SettingCard {
+                        SettingRow(label: "Show Preview", sublabel: "Display thumbnail with quick actions") {
+                            Toggle("", isOn: $viewModel.screenshotShowPreview)
+                                .toggleStyle(.switch)
+                                .controlSize(.small)
                         }
-                        .labelsHidden()
-                        .pickerStyle(.menu)
-                        .fixedSize(horizontal: true, vertical: false)
-                    }
-                    if viewModel.screenshotClipboardContent == .image {
+                        SettingRow(label: "Copy to Clipboard", sublabel: "Copy screenshot immediately", showDivider: true) {
+                            Toggle("", isOn: $viewModel.screenshotAutoCopy)
+                                .toggleStyle(.switch)
+                                .controlSize(.small)
+                        }
                         SettingRow(
-                            label: "Clipboard Format",
-                            sublabel: "Used whenever a screenshot is copied",
+                            label: "Clipboard Content",
+                            sublabel: clipboardContentDescription,
                             showDivider: true
                         ) {
-                            Picker("", selection: $viewModel.screenshotClipboardFormat) {
-                                Text("PNG").tag(ScreenshotClipboardFormat.png)
-                                Text("JPEG").tag(ScreenshotClipboardFormat.jpeg)
-                                Text("TIFF").tag(ScreenshotClipboardFormat.tiff)
+                            Picker("", selection: $viewModel.screenshotClipboardContent) {
+                                Text("Image").tag(ScreenshotClipboardContent.image)
+                                Text("File Path").tag(ScreenshotClipboardContent.filePath)
                             }
                             .labelsHidden()
                             .pickerStyle(.menu)
                             .fixedSize(horizontal: true, vertical: false)
                         }
-                    }
-                    SettingRow(label: "Auto Save", sublabel: "Save to file automatically", showDivider: true) {
-                        Toggle("", isOn: $viewModel.screenshotAutoSave)
-                            .toggleStyle(.switch)
-                            .controlSize(.small)
+                        if viewModel.screenshotClipboardContent == .image {
+                            SettingRow(
+                                label: "Clipboard Format",
+                                sublabel: "Used whenever a screenshot is copied",
+                                showDivider: true
+                            ) {
+                                Picker("", selection: $viewModel.screenshotClipboardFormat) {
+                                    Text("PNG").tag(ScreenshotClipboardFormat.png)
+                                    Text("JPEG").tag(ScreenshotClipboardFormat.jpeg)
+                                    Text("TIFF").tag(ScreenshotClipboardFormat.tiff)
+                                }
+                                .labelsHidden()
+                                .pickerStyle(.menu)
+                                .fixedSize(horizontal: true, vertical: false)
+                            }
+                        }
+                        SettingRow(label: "Auto Save", sublabel: "Save to file automatically", showDivider: true) {
+                            Toggle("", isOn: $viewModel.screenshotAutoSave)
+                                .toggleStyle(.switch)
+                                .controlSize(.small)
+                        }
                     }
                 }
             }
 
-            SettingGroup(title: "Capture") {
-                SettingCard {
-                    SettingRow(label: "Show Cursor", sublabel: "Include the mouse pointer in screenshots") {
-                        Toggle("", isOn: $viewModel.screenshotShowsCursor)
-                            .toggleStyle(.switch)
-                            .controlSize(.small)
+            if Capabilities.current.standaloneCapture {
+                SettingGroup(title: "Capture") {
+                    SettingCard {
+                        SettingRow(label: "Show Cursor", sublabel: "Include the mouse pointer in screenshots") {
+                            Toggle("", isOn: $viewModel.screenshotShowsCursor)
+                                .toggleStyle(.switch)
+                                .controlSize(.small)
+                        }
+                        SettingRow(label: "Capture Window Shadow", sublabel: "Include shadow in window captures", showDivider: true) {
+                            Toggle("", isOn: $viewModel.captureWindowShadow)
+                                .toggleStyle(.switch)
+                                .controlSize(.small)
+                        }
+                        // TODO: Re-enable the rows below once underlying
+                        // behaviors are implemented (showMagnifier,
+                        // rememberLastCaptureArea).
                     }
-                    SettingRow(label: "Capture Window Shadow", sublabel: "Include shadow in window captures", showDivider: true) {
-                        Toggle("", isOn: $viewModel.captureWindowShadow)
-                            .toggleStyle(.switch)
-                            .controlSize(.small)
-                    }
-                    // TODO: Re-enable the rows below once underlying
-                    // behaviors are implemented (showMagnifier,
-                    // rememberLastCaptureArea).
                 }
             }
 
+            if Capabilities.current.standaloneCapture {
+                SettingGroup(title: "Beautify") {
+                    SettingCard {
+                        SettingRow(
+                            label: "Beautify Every Screenshot",
+                            sublabel: "Uses the background, padding, corners and shadow last set in the editor's Beautify panel"
+                        ) {
+                            Toggle("", isOn: $viewModel.autoBeautifyScreenshots)
+                                .toggleStyle(.switch)
+                                .controlSize(.small)
+                        }
+                    }
+                }
+            }
+
+            if Capabilities.current.standaloneCapture {
+                SettingGroup(title: "Self-Timer") {
+                    SettingCard {
+                        SettingRow(
+                            label: "Default Duration",
+                            sublabel: "Delay before the screenshot fires"
+                        ) {
+                            HStack(spacing: 8) {
+                                Text("\(viewModel.selfTimerDurationSeconds)s")
+                                    .font(.system(size: 13, weight: .medium).monospacedDigit())
+                                    .frame(minWidth: 32, alignment: .trailing)
+                                Stepper(
+                                    "",
+                                    value: $viewModel.selfTimerDurationSeconds,
+                                    in: AppSettings.selfTimerDurationRange
+                                )
+                                .labelsHidden()
+                            }
+                        }
+                        SettingRow(
+                            label: "Tick Sound",
+                            sublabel: "Play a sound on each second of the countdown",
+                            showDivider: true
+                        ) {
+                            Toggle("", isOn: $viewModel.selfTimerPlayTickSound)
+                                .toggleStyle(.switch)
+                                .controlSize(.small)
+                        }
+                    }
+
+                    Text("Useful for capturing menus, hover states, and other UI that disappears the moment you move the mouse.")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 4)
+                }
+            }
+
+        }
+        .sheet(isPresented: $showingAddPreset) {
+            addPresetSheet
+        }
+    }
+
+    private var timestampSettings: some View {
             SettingGroup(title: "Timestamp") {
                 SettingCard {
                     SettingRow(label: "Add Timestamp", sublabel: "Draw the capture time onto screenshots") {
@@ -135,55 +212,9 @@ struct ScreenshotSettingsView: View {
                     }
                 }
             }
+    }
 
-            SettingGroup(title: "Beautify") {
-                SettingCard {
-                    SettingRow(
-                        label: "Beautify Every Screenshot",
-                        sublabel: "Uses the background, padding, corners and shadow last set in the editor's Beautify panel"
-                    ) {
-                        Toggle("", isOn: $viewModel.autoBeautifyScreenshots)
-                            .toggleStyle(.switch)
-                            .controlSize(.small)
-                    }
-                }
-            }
-
-            SettingGroup(title: "Self-Timer") {
-                SettingCard {
-                    SettingRow(
-                        label: "Default Duration",
-                        sublabel: "Delay before the screenshot fires"
-                    ) {
-                        HStack(spacing: 8) {
-                            Text("\(viewModel.selfTimerDurationSeconds)s")
-                                .font(.system(size: 13, weight: .medium).monospacedDigit())
-                                .frame(minWidth: 32, alignment: .trailing)
-                            Stepper(
-                                "",
-                                value: $viewModel.selfTimerDurationSeconds,
-                                in: AppSettings.selfTimerDurationRange
-                            )
-                            .labelsHidden()
-                        }
-                    }
-                    SettingRow(
-                        label: "Tick Sound",
-                        sublabel: "Play a sound on each second of the countdown",
-                        showDivider: true
-                    ) {
-                        Toggle("", isOn: $viewModel.selfTimerPlayTickSound)
-                            .toggleStyle(.switch)
-                            .controlSize(.small)
-                    }
-                }
-
-                Text("Useful for capturing menus, hover states, and other UI that disappears the moment you move the mouse.")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 4)
-            }
-
+    private var presetSettings: some View {
             SettingGroup(title: "Capture Presets") {
                 SettingCard {
                     SettingRow(
@@ -282,11 +313,6 @@ struct ScreenshotSettingsView: View {
                     .padding(.leading, 2)
                 } // if capturePresetsEnabled
             }
-
-        }
-        .sheet(isPresented: $showingAddPreset) {
-            addPresetSheet
-        }
     }
 
     private var clipboardContentDescription: LocalizedStringKey {
@@ -354,7 +380,7 @@ struct ScreenshotSettingsView: View {
                     showingAddPreset = false
                 }
                 .keyboardShortcut(.defaultAction)
-                .disabled(Int(newWidth) == nil || Int(newHeight) == nil)
+                .disabled((Int(newWidth) ?? 0) <= 0 || (Int(newHeight) ?? 0) <= 0)
             }
         }
         .padding(24)
@@ -364,7 +390,7 @@ struct ScreenshotSettingsView: View {
     // MARK: - Helpers
 
     private func addCustomPreset() {
-        guard let w = Int(newWidth), let h = Int(newHeight) else { return }
+        guard let w = Int(newWidth), let h = Int(newHeight), w > 0, h > 0 else { return }
         let name: String? = newName.trimmingCharacters(in: .whitespaces).isEmpty ? nil : newName.trimmingCharacters(in: .whitespaces)
         let preset: CapturePreset = newPresetType == 0
             ? .aspectRatio(width: w, height: h, name: name)
