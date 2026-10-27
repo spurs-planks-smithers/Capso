@@ -1,4 +1,8 @@
-import { ensureScannerRuntime } from "./scanner-runtime.js";
+import {
+  ensureScannerRuntime,
+  waitForScannerReady,
+  startupSignal,
+} from "./scanner-runtime.js";
 const FLAGS = [
   "INTAKE_ENABLED",
   "NATIVE_ENABLED",
@@ -161,23 +165,32 @@ export async function verifyScannerIsolation(
   let image = null,
     process,
     timer,
+    exited = false,
+    killed = false,
     stage = PHASES.manifest;
+  const stop = () => {
+    if (process && !exited && !killed) {
+      killed = true;
+      process.kill(9);
+    }
+  };
   try {
     if (typeof ctx.container?.exec !== "function")
       invalid("scanner_exec_unavailable");
     const file = await signature(env);
     stage = PHASES.runtime;
-    await ensureScannerRuntime(managed, ctx);
+    const startup = startupSignal();
+    await ensureScannerRuntime(ctx, startup);
     image = ctx.container.images.scanner;
     stage = PHASES.readiness;
-    await managed.startAndWaitForPorts(managed.defaultPort);
+    await waitForScannerReady(ctx, startup);
     stage = PHASES.inspect;
     const info = await ctx.container.inspect();
     if (info?.image !== image) invalid("scanner_image_unavailable");
     const deadline = new Promise((_, reject) => {
       timer = setTimeout(() => {
         try {
-          process?.kill(9);
+          stop();
         } catch {}
         reject(
           Object.assign(new Error("diagnostic_timeout"), {
@@ -202,7 +215,16 @@ export async function verifyScannerIsolation(
             if (error?.code) throw error;
             invalid(PHASES.stdout);
           }),
-          Promise.resolve(process.exitCode).catch(() => invalid(PHASES.exit)),
+          Promise.resolve(process.exitCode).then(
+            (value) => {
+              exited = true;
+              return value;
+            },
+            () => {
+              exited = true;
+              invalid(PHASES.exit);
+            },
+          ),
         ]);
         if (exit !== 0)
           invalid(
@@ -220,7 +242,7 @@ export async function verifyScannerIsolation(
     };
   } catch (error) {
     try {
-      process?.kill(9);
+      stop();
     } catch {}
     return failure(
       [

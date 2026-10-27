@@ -56,6 +56,10 @@ async function fixture({ result = checks, exitCode = 0 } = {}) {
         return { image };
       },
       async interceptOutboundHttp() {},
+      async setInactivityTimeout() {},
+      getTcpPort() {
+        return { fetch: async () => new Response('{"ready":true}') };
+      },
       async exec(cmd, opts) {
         state.calls.push({
           cmd,
@@ -76,11 +80,6 @@ async function fixture({ result = checks, exitCode = 0 } = {}) {
   };
   const managed = {
     constructor: { name: "Scanner" },
-    applyOutboundInterceptionPromise: Promise.resolve(),
-    defaultPort: 8080,
-    async startAndWaitForPorts() {
-      state.ready = true;
-    },
     async destroy() {
       throw new Error("unexpected destroy");
     },
@@ -114,7 +113,6 @@ test("diagnostic uses the scanner lock and only fixed exec arguments with bounde
   const result = await verifyScannerIsolation(f.managed, f.ctx, f.env);
   assert.deepEqual(result, { ok: true, ...checks, image, error: null });
   assert.equal(f.managed.scanning, false);
-  assert.equal(f.state.ready, true);
   assert.equal(f.state.calls.length, 1);
   assert.deepEqual(f.state.calls[0].cmd, ["python", "-c", ISOLATION_SCRIPT]);
   assert.equal(f.state.calls[0].opts.stderr, "ignore");
@@ -258,7 +256,7 @@ test("provider failures report only a fixed phase code instead of raw messages",
         throw privateError;
       };
     if (phase === "readiness")
-      f.managed.startAndWaitForPorts = async () => {
+      f.ctx.container.getTcpPort = () => {
         throw privateError;
       };
     if (phase === "inspect") {
@@ -294,4 +292,11 @@ test("provider failures report only a fixed phase code instead of raw messages",
     );
     assert.equal(f.managed.scanning, false);
   }
+});
+test("native diagnostic never signals a process whose exit already completed", async () => {
+  const f = await fixture({ result: "not valid JSON", exitCode: 0 });
+  const result = await verifyScannerIsolation(f.managed, f.ctx, f.env);
+  assert.equal(result.ok, false);
+  assert.equal(f.state.killed, 0);
+  assert.equal(f.managed.scanning, false);
 });

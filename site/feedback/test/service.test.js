@@ -1032,3 +1032,25 @@ test("owner approval rejects review evidence replaced between validation and its
     assert.equal(env.JOBS.sent.length, queuedBefore);
   }
 });
+test("model-stage cost reservation fails closed before any model call", async (t) => {
+  const env = environment();
+  t.after(env.close);
+  const { receipt } = await reserve(env);
+  await finish(env, receipt);
+  await reserveBudget(env, 34895000);
+  let scannerCalls = 0,
+    modelCalls = 0;
+  env.AI.run = async () => {
+    modelCalls++;
+    throw new Error("must not run without a reservation");
+  };
+  await processSubmission(env, receipt.id, async () => {
+    scannerCalls++;
+    return passed("Ordinary text.");
+  });
+  assert.equal(scannerCalls, 1);
+  assert.equal(modelCalls, 0);
+  const row = await submission(env, receipt.id);
+  assert.equal(row.status, "held");
+  assert.deepEqual(JSON.parse(row.reason_codes), ["processing_budget"]);
+});

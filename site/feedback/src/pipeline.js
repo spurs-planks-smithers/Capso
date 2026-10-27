@@ -49,7 +49,7 @@ async function renew(env, id, claim) {
     owned = await query(
       env,
       "UPDATE submissions SET scan_lease_until=? WHERE id=? AND status='scanning' AND scan_claim=? AND scan_lease_until>? AND expires_at>? RETURNING id",
-      now + 180,
+      now + 240,
       id,
       claim,
       now,
@@ -162,11 +162,15 @@ export async function processSubmission(env, id, scan) {
       env,
       "UPDATE submissions SET status='scanning',scan_claim=?,scan_lease_until=? WHERE id=? AND status='received' RETURNING id",
       claim,
-      nowSeconds() + 180,
+      nowSeconds() + 240,
       id,
     ).first();
   if (!lease) return;
   const beforeCall = () => renew(env, id, claim);
+  const beforeModelCall = async () => {
+    await beforeCall();
+    await reserveBudget(env, 10000);
+  };
   try {
     await beginScan(env, id, claim);
     const files = await listFiles(env, id);
@@ -226,7 +230,7 @@ export async function processSubmission(env, id, scan) {
       env,
       candidate.inspectionText,
       candidate.images,
-      beforeCall,
+      beforeModelCall,
     );
     await beforeCall();
     const currentApproved = activeApproval(row);
@@ -257,7 +261,7 @@ export async function processSubmission(env, id, scan) {
           env,
           candidate.text,
           candidate.images.map((image) => image.name),
-          beforeCall,
+          beforeModelCall,
         ),
         output = JSON.stringify(proposed);
       await beforeCall();
@@ -276,7 +280,7 @@ export async function processSubmission(env, id, scan) {
       await beforeCall();
       if (
         checked.status === "passed" &&
-        (await contextualScreen(env, output, [], beforeCall)).length === 0
+        (await contextualScreen(env, output, [], beforeModelCall)).length === 0
       ) {
         draft = proposed;
         draftStatus = "ready";

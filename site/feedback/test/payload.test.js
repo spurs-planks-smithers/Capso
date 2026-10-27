@@ -690,7 +690,7 @@ test("a marker promotion that finishes after its scanner lease expires cannot pu
       typeof data === "string" &&
       JSON.parse(data).phase === "screened"
     )
-      shifted = clock + 240000;
+      shifted = clock + 300000;
     return result;
   };
   await processSubmission(env, receipt.id, async () => passed());
@@ -717,7 +717,7 @@ test("unavailable marker rollback cannot expose a timed-out publication", async 
       const result = await original(key, data, opts);
       if (marker.phase === "screened") {
         promoted = true;
-        shifted = clock + 240000;
+        shifted = clock + 300000;
       }
       return result;
     }
