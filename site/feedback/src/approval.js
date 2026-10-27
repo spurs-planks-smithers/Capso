@@ -123,6 +123,12 @@ export const findingLabel = (code) =>
     private_record: "Private records",
     prompt_injection: "Prompt injection warning",
     hidden_control_text: "Hidden text controls",
+    uncertain: "Uncertain classification",
+    prohibited_content: "Potential prohibited material",
+    email_attachment_type: "Unsupported email attachment",
+    screening_incomplete: "Screening could not finish",
+    stale_signatures: "Malware definitions are stale",
+    processing_budget: "Processing budget reached",
   })[code] || "Screening needs attention";
 export function reviewCandidate(result) {
   if (

@@ -5,6 +5,7 @@ import {
   inspectableReview,
   approveReasons,
   COMBINED_POLICY,
+  findingLabel,
 } from "../src/approval.js";
 import { CLASSIFIER_REVISION } from "../src/policy.js";
 const now = () => Math.floor(Date.now() / 1000);
@@ -69,6 +70,12 @@ test("owner approvals bind exact findings, fingerprint, policy, actor, and expir
   );
 });
 test("hard failures, incomplete proof, uncertain content, and stale evidence cannot be approved or inspected", () => {
+  assert.equal(findingLabel("uncertain"), "Uncertain classification");
+  assert.equal(findingLabel("prohibited_content"), "Potential prohibited material");
+  assert.equal(findingLabel("email_attachment_type"), "Unsupported email attachment");
+  assert.equal(findingLabel("screening_incomplete"), "Screening could not finish");
+  assert.equal(findingLabel("stale_signatures"), "Malware definitions are stale");
+  assert.equal(findingLabel("processing_budget"), "Processing budget reached");
   for (const reason of [
     "malware",
     "scanner_unavailable",

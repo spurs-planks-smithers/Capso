@@ -178,7 +178,7 @@ export async function review(request, env) {
         ? row.screened_text
         : inspectable
           ? row.review_text
-          : "Content remains quarantined until all required checks complete.";
+          : "Content remains quarantined. Required screening has not cleared this submission.";
     return page(
       "Submission",
       `<h1>Feedback ${id.slice(0, 8)}</h1><p><strong>${esc(row.status)}</strong> | ${new Date(row.created_at * 1000).toISOString()} | Expires ${new Date(row.expires_at * 1000).toISOString()}</p><p>Contact (unverified): ${esc(row.contact_email || "not supplied")}</p>${codes.length ? `<p>Findings: ${[...groups.keys()].map(esc).join(", ")}</p>` : ""}<h2>Untrusted submitted text</h2><pre>${display(contents)}</pre>${row.status === "screened" || inspectable ? `<h2>Rebuilt files</h2>${inspectable ? "<p>These files pass file checks. Their content remains held for your review.</p>" : ""}<ul>${viewable.map((file) => `<li><a href="/review/${id}/files/${file.id}">${esc(file.name)}</a> (${file.bytes.toLocaleString("en-US")} bytes)</li>`).join("") || "<li>No files.</li>"}</ul>` : ""}${row.status === "screened" ? `<h2>Private issue draft</h2><p>${esc(row.draft_status || "not ready")}. Review before copying. No issue is published.</p><pre>${display(row.draft_json ? JSON.stringify(JSON.parse(row.draft_json), null, 2) : "No draft is available.")}</pre>` : ""}${approve}${row.status === "held" ? `<form method="post" action="/review/${id}/recheck"><input type="hidden" name="csrf" value="${esc(csrf)}"><p>A recheck runs every required control again. It cannot bypass malware or file validation.</p><button>Request recheck</button></form>` : ""}`,
