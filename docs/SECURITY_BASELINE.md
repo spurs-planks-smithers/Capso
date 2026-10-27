@@ -80,6 +80,18 @@ The feedback work adds no dependency. JevKit uses only Apple frameworks (Foundat
 - Every submitted value remains untrusted after screening. The service never gives a submitted prompt authority over tools, repository access, publication, or email recipients.
 - With a Jev feature in shadow or on, a bundle also holds `jev.json` (answers and timings). With a feature on, it also holds the refined files, which can quote screen text.
 
+### Hosted intake boundary (2026-10-26)
+
+The dedicated Worker has no release-store binding or deployment credential. It quarantines uploads before private scanning. Models receive no tools, repository access, publication permission, or arbitrary mail destination.
+
+Cloudflare retains root capabilities inside each virtual machine (VM). The VM and provider network controls supply isolation. See [Cloudflare's documented differences](https://developers.cloudflare.com/containers/guides/local-dev/).
+
+Each attempt destroys any prior VM, then starts a fresh pinned image with denied internet access. It reads a bounded result and destroys the VM before it returns clearance. Failed teardown withholds clearance.
+
+The container reads malware definitions through one fixed private path. API and mail credentials stay outside the VM.
+
+Submitted text, findings, and drafts stay out of D1 and operational logs. Private R2 payloads and an authoritative retention marker control content expiry. Owner review exposes only rebuilt artifacts after required checks complete.
+
 ## Recommendations (none applied until Drew approves)
 
 | # | Recommendation | Change | Upstream edit |

@@ -16,14 +16,14 @@ Plan: [[2026-10-26-secure-feedback-intake]]
 | Service | Website, bounded intake, quarantine, queue, owner review, false-positive approval, notifications, retention, and private drafts implemented. All six launch switches stay false. |
 | Scanner | Strict archive schemas, ClamAV, image rebuilding, OCR, privacy rules, pinned Prompt Guard loader, hard timeouts, and restricted network path implemented. All seven approved model artifacts are hash-verified. Real classifier, OCR, and malware checks pass. |
 | Recovery | Immutable upload attempts, leased scan/notification claims, and generation-bound review approvals implemented. |
-| Integration | Root includes commits through 96a44a9. Policy exception, runbook, signature workflow, and homepage link are prepared locally. |
+| Integration | Root includes commits through dae8ddf. Policy exception, runbook, signature workflow, and homepage link are prepared locally. |
 | Public launch | Disabled. No homepage deploy, native flag activation, or mail-routing activation. |
 
 ## Verified local behavior
 
 | Check | Evidence |
 | --- | --- |
-| Service boundaries | 90 tests pass, including HTTPS, bounded model contexts, native container controls, restore-safe retention, and approval races. Evidence: build/feedback-checks/service-tests-current.log. |
+| Service boundaries | 96 tests pass, including HTTPS, bounded model contexts, fresh scanner VMs, restore-safe retention, and approval races. Evidence: build/feedback-checks/service-tests-current.log. |
 | Existing release site | 22 tests pass. /private/tmp/nextshot-site-tests-current.log |
 | SupportKit | 6 tests pass. /private/tmp/nextshot-support-tests-current.log |
 | FeedbackKit | 335 tests pass in native worktree verification. |
@@ -31,7 +31,7 @@ Plan: [[2026-10-26-secure-feedback-intake]]
 | App tests | 247 tests pass. /private/tmp/nextshot-feedback-app-tests.log |
 | Signed Dev app | Release build succeeds with Apple Development signature, no install. /private/tmp/nextshot-feedback-signed-build-final.log |
 | Native UI | Real synthetic support panel rendered with 20 captures. No transport call or round data used. |
-| Scanner | 61 tests pass inside the Linux image without network, with read-only root and 6 GiB memory. |
+| Scanner | 62 tests pass inside the local Linux image without network, with read-only root and 6 GiB memory. Cloudflare retains root capabilities inside its VM. |
 | Dependency audit | Actual image inventory: 38 distributions, zero known vulnerabilities, zero skips or suppressions. /private/tmp/nextshot-feedback-python-audit-image-patched.json |
 | Actual scan engines | Real clean/injection classifier, full bounded text, signed ClamAV clean/EICAR, OCR credentials, and local network denial pass. build/feedback-checks/approved-engines-final.log |
 | Largest standard export | Real full scans pass: standard 20 captures in 45.697 seconds; reduced 20 in 32.563 seconds. One CPU, no network, all engines. Neutral synthetic images do not prove worst-case content latency. build/feedback-checks/approved-full-scanner.json |
@@ -56,7 +56,7 @@ Plan: [[2026-10-26-secure-feedback-intake]]
 
 ## Required before launch
 
-1. Complete real Cloudflare scanner network-denial, signature proxy, and full pipeline checks in protected staging.
+1. Complete the website submission and owner-review flow. Actual Cloudflare scanner isolation and engine checks now pass.
 2. Verify live reconstructed Gmail delivery, recovery, quotas, private file access, and expiry.
 3. Configure recurring trusted signature refresh after code review and GitHub publication approval.
 4. Configure exact-address inbound mail routing after the live scanner passes. Keep the catchall disabled.
@@ -67,19 +67,23 @@ Plan: [[2026-10-26-secure-feedback-intake]]
 
 - The dedicated Worker and private scanner image deploy successfully using durable-object scheduling.
 - The scanner uses the native Durable Object Container API. Cloudflare documents the SDK helper as unsupported for durable-object scheduling. Source controls require the fixed singleton, pinned digest, standard-2, denied internet access, bounded readiness, and 150-second inactivity shutdown.
-- All six service switches remain false. Native supportSubmission remains off.
+- All six switches remain false in source. Protected staging enables web admission, processing, contextual checks, and notifications behind whole-host owner Access. Native and inbound email admission remain disabled. Native supportSubmission remains off.
 - Disabled health/config checks and a rejected reservation pass. Review routes and forged-token attempts encounter Access.
 - HSTS and insecure request guards deploy after the initial staging check finds HSTS absent.
 - Drew signs into the actual review page on October 26, 2026. The owner list shows no submissions.
 - Evidence: build/feedback-checks/staging-smoke-disabled.json and protected-staging-readiness.json.
-- Private caller RPC and scanner dispatch return their expected results. Actual isolation still fails before startup with diagnostic_runtime_failed. Finer fixed phase codes are pending. No network isolation success is claimed.
+- Actual cloud isolation passes: direct TCP and HTTPS are blocked, the private signature hash matches, and API/mail credentials are absent. Evidence: build/feedback-checks/private-isolation-report.json.
+- Actual cloud engines pass: clean text passes, EICAR holds as malware_detected, and the real reduced export passes with two rebuilt images. Runs take 62.940, 60.106, and 82.661 seconds. Evidence: build/feedback-checks/actual-cloud-engines-scheduled.json.
+- The temporary engine Cron is removed. The scanner stops with exit code 0. Each scan destroys the prior VM and destroys its own VM before clearance. Teardown failure withholds clearance.
+- Cloudflare uses a 64-character hostname. Python's default HTTP server cannot resolve it. The server now binds directly without a hostname lookup. A local 64-character-hostname reproduction and the actual cloud engine checks confirm the fix.
+- Protected web staging deploys with exact owner Access verified before and after deployment. Turnstile returns error 300030 in the automated Chrome session. Drew is asked to reload manually. No verification bypass is added.
 - Real Swift exports pass structural and hard engine checks. The reduced package passes. The standard export is held because its generated date-based folder name passes a payment checksum. This synthetic false positive remains held for the owner approval test. Evidence: build/feedback-checks/actual-exports-scan.json.
 - Hosted long-text screening passes across four actual model calls. Every request is bounded, and injection in the final chunk holds. A repetitive text fixture also holds as uncertain. Evidence: build/feedback-checks/context-chunks-live.json and context-chunks-repetition-held.json.
 - No homepage update or inbound mail route is active. No submission email is sent yet.
 
 ## Rulings and limits
 
-- Engine substitutes never count as production scan evidence. All real local engines pass. Full live end-to-end feasibility remains unverified.
+- Engine substitutes never count as production scan evidence. Real local and Cloudflare engine checks pass. Website, review, notification, and retention checks remain open.
 - D1 stores metadata only. Private R2 payload generations and an authoritative retention marker prevent restored metadata from extending content retention. Migration 0003 applies to the empty live database.
 - Only rebuilt artifacts can be reviewed. Malware failures and incomplete hard checks cannot be waived.
 - The setup token has Workers AI Read, which supports inference. Workers AI Edit was rejected by automatic approval review and is unnecessary for the proven text call.

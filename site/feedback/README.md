@@ -23,12 +23,12 @@ The image built from the repository has no licensed classifier weights. It holds
 | REBUILT | Private R2 `nextshot-feedback-rebuilt` |
 | SIGNATURES | Private R2 `nextshot-feedback-signatures` |
 | JOBS | Queue `nextshot-feedback-scan` with `nextshot-feedback-dead` |
-| SCANNER | One `Scanner` container, `standard-2` |
+| SCANNER | One fixed `Scanner` Durable Object, fresh `standard-2` VM per attempt |
 | AI | Cloudflare Workers AI |
 | CONTACT_NOTIFY | Verified destination `drewschulz1@gmail.com` only |
 | EDGE_LIMITER | 60 requests per minute per keyed IP identifier |
 
-Replace the zero D1 ID after provisioning. A fresh database uses `schema.sql`. An empty database initialized with the original schema applies `migrations/0002_recovery_and_owner_review.sql`, then `migrations/0003_private_payloads.sql`, once in that order. Do not apply upgrades after loading the current schema. Migration 0003 refuses a nonempty database. It cannot remove plaintext from old database backups. A nonempty legacy database requires a separate content-migration decision before use. Keep all R2 public access disabled. Disable workers.dev and preview URLs. Configure Cloudflare Access for `/review` and `/review/*`, restricted to Drew. The application also verifies the JWT issuer, audience, signature, expiration, and exact email address.
+Use the provisioned D1 ID in configuration. A fresh database uses `schema.sql`. An empty database initialized with the original schema applies `migrations/0002_recovery_and_owner_review.sql`, then `migrations/0003_private_payloads.sql`, once in that order. Do not apply upgrades after loading the current schema. Migration 0003 refuses a nonempty database. It cannot remove plaintext from old database backups. A nonempty legacy database requires a separate content-migration decision before use. Keep all R2 public access disabled. Disable workers.dev and preview URLs. Configure Cloudflare Access for `/review` and `/review/*`, restricted to Drew. The application also verifies the JWT issuer, audience, signature, expiration, and exact email address.
 
 Store `INTAKE_SECRET` and `TURNSTILE_SECRET` in the macOS Keychain and Worker secret bindings. `INTAKE_SECRET` needs at least 32 random characters. Never commit secret values. Set the public Turnstile site key, Access team domain, and Access audience in the deployed configuration.
 
