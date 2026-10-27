@@ -173,6 +173,6 @@ The initial planning step changes no app code or release artifact. The later imp
 
 ### October 27 implementation record
 
-[Draft PR 149](https://github.com/spurs-planks-smithers/Capso/pull/149) contains the isolated implementation. Source commit: 7fe0d18. The signed Dev build is installed as 0.4.0-dev, build 817. Its local screenshotCopy override is on. Registry defaults remain off.
+[Draft PR 149](https://github.com/spurs-planks-smithers/Capso/pull/149) contains the isolated implementation. Source commits: 7fe0d18 and a92469f. The signed Dev build is installed as 0.4.0-dev, build 820. Its local screenshotCopy override is on. Registry defaults remain off.
 
 All 1,487 existing tests pass. Review finds and fixes four important cases: unavailable Pin, retry after retention, fallback capture ownership, and atomic inherited-note storage. Native end-to-end review remains pending a switch from another chat's running trial. See [[2026-10-27-screenshot-image-copy-dev-review]].

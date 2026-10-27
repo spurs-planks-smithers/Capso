@@ -161,3 +161,5 @@ The isolated screenshot capability starts off in both channels. New screenshot s
 
 The capture hook preserves instant-copy ownership across frozen/live fallback. The store input keeps inherited notes and images in one capture commit. New screenshot code remains in App/Feedback.
 Existing feedback shortcuts and disabled capability behavior remain intact. Search stays separate in issue 125. No release version or public Guide reviewedFor value changes in this work.
+
+The final isolation fix adds an explicit unique-counter policy, enabled only by ScreenshotWorkflow. Existing editor numbering remains unchanged with the capability off. Source: a92469f.

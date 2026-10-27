@@ -34,7 +34,7 @@ Baseline FeedbackKit: 341 existing tests pass. Worker validation covers 117 Anno
 
 Final existing checks pass: SharedKit 279, AnnotationKit 117, CaptureKit 95, RecordingKit 27, OCRKit 8, FeedbackKit 341, HistoryKit 4, CapsoTests 247, and JevKit Release 369. Total: 1,487 tests. The first Jev run hits deadline thresholds during concurrent builds. Its unchanged rerun passes after build contention ends.
 
-Signed Release build succeeds. Installed artifact: Nextshot Dev 0.4.0-dev, build 817. The local screenshotCopy override is on. Both registry defaults remain off. Search issue 125 is open.
+Signed Release build succeeds. Installed artifact: Nextshot Dev 0.4.0-dev, build 820. The local screenshotCopy override is on. Both registry defaults remain off. Search issue 125 is open.
 
 Live UI review is pending a switch from another chat's running build 827. Two native automation attempts to select the installed app time out. A separate chat runs the higher build. No foreign process is quit. There is no current end-to-end UI verification claim.
 
@@ -43,3 +43,5 @@ Final review finds four important issues. The fixes hide and guard unavailable P
 Implementation and testing handoff: [draft PR 149](https://github.com/spurs-planks-smithers/Capso/pull/149). Search remains tracked in the open issue 125.
 
 The handoff query reports no hosted workflow run for the draft PR. The 1,487-test result refers to the existing local checks.
+
+Final isolation check: unique badge enforcement is enabled only in screenshot version editors. Existing editors retain their earlier numbering behavior while the capability is off. AnnotationKit 117, CapsoTests 247, and JevKit Release 369 pass again after this change. Signed build 820 supersedes the earlier build 817.
