@@ -16,7 +16,7 @@ final class ScreenshotClipboardContentTests: XCTestCase {
         let blockedDirectory = exportRoot.appendingPathComponent("blocked")
         try Data([1]).write(to: blockedDirectory)
         settings.setExportLocation(blockedDirectory)
-        let coordinator = CaptureCoordinator(settings: settings)
+        let coordinator = CaptureCoordinator(settings: settings, capabilities: .init { _ in .on })
         let window = coordinator.showQuickAccess(
             for: try makeCaptureResult(), entryID: UUID(), autoUpload: false,
             pasteboard: makePasteboard()
@@ -41,7 +41,7 @@ final class ScreenshotClipboardContentTests: XCTestCase {
         let settings = makeSettings()
         settings.screenshotClipboardContent = .filePath
         settings.screenshotOutputFormat = .png
-        let coordinator = CaptureCoordinator(settings: settings)
+        let coordinator = CaptureCoordinator(settings: settings, capabilities: .init { _ in .on })
         let pasteboard = makePasteboard()
 
         XCTAssertTrue(coordinator.copyScreenshotToClipboard(
@@ -60,7 +60,7 @@ final class ScreenshotClipboardContentTests: XCTestCase {
     func testFilePathContentPrefersSuccessfulAutoSaveOutput() throws {
         let settings = makeSettings()
         settings.screenshotClipboardContent = .filePath
-        let coordinator = CaptureCoordinator(settings: settings)
+        let coordinator = CaptureCoordinator(settings: settings, capabilities: .init { _ in .on })
         let pasteboard = makePasteboard()
         let savedURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("capso-autosave-\(UUID().uuidString)")
@@ -84,7 +84,7 @@ final class ScreenshotClipboardContentTests: XCTestCase {
         settings.screenshotAutoCopy = true
         settings.screenshotAutoSave = false
         settings.screenshotClipboardContent = .filePath
-        let coordinator = CaptureCoordinator(settings: settings)
+        let coordinator = CaptureCoordinator(settings: settings, capabilities: .init { _ in .on })
         let pasteboard = makePasteboard()
 
         coordinator.applyDefaultPostCaptureActions(
@@ -110,7 +110,7 @@ final class ScreenshotClipboardContentTests: XCTestCase {
         settings.screenshotAutoCopy = true
         settings.screenshotAutoSave = true
         settings.screenshotClipboardContent = .filePath
-        let coordinator = CaptureCoordinator(settings: settings)
+        let coordinator = CaptureCoordinator(settings: settings, capabilities: .init { _ in .on })
         let pasteboard = makePasteboard()
 
         coordinator.applyDefaultPostCaptureActions(
@@ -148,7 +148,7 @@ final class ScreenshotClipboardContentTests: XCTestCase {
         settings.screenshotAutoCopy = false
         settings.screenshotAutoSave = true
         settings.screenshotClipboardContent = .filePath
-        let coordinator = CaptureCoordinator(settings: settings)
+        let coordinator = CaptureCoordinator(settings: settings, capabilities: .init { _ in .on })
         let pasteboard = makePasteboard()
         let result = try makeCaptureResult()
         let entryID = UUID()
@@ -185,7 +185,7 @@ final class ScreenshotClipboardContentTests: XCTestCase {
         settings.screenshotAutoCopy = true
         settings.screenshotAutoSave = false
         settings.screenshotClipboardContent = .filePath
-        let coordinator = CaptureCoordinator(settings: settings)
+        let coordinator = CaptureCoordinator(settings: settings, capabilities: .init { _ in .on })
         let pasteboard = makePasteboard()
         let result = try makeCaptureResult()
         let entryID = UUID()
@@ -226,7 +226,7 @@ final class ScreenshotClipboardContentTests: XCTestCase {
     func testHistoryScreenshotCopyUsesExistingReadableFilePath() throws {
         let settings = makeSettings()
         settings.screenshotClipboardContent = .filePath
-        let coordinator = HistoryCoordinator(settings: settings)
+        let coordinator = HistoryCoordinator(settings: settings, capabilities: .init { _ in .on })
         let pasteboard = makePasteboard()
         let sourceURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("capso-history-\(UUID().uuidString)")

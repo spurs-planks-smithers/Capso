@@ -24,34 +24,42 @@ struct PermissionSettingsView: View {
                         subtitle: "Required for screenshots and recording",
                         isGranted: viewModel.screenRecordingGranted
                     )
-                    permissionRow(
-                        kind: .accessibility,
-                        title: "Accessibility",
-                        subtitle: "Required for selected text translation",
-                        isGranted: viewModel.accessibilityGranted,
-                        showDivider: true
-                    )
-                    permissionRow(
-                        kind: .inputMonitoring,
-                        title: "Input Monitoring",
-                        subtitle: "Required to show key presses while recording",
-                        isGranted: viewModel.inputMonitoringGranted,
-                        showDivider: true
-                    )
-                    permissionRow(
-                        kind: .camera,
-                        title: "Camera",
-                        subtitle: "Required for camera overlay",
-                        isGranted: viewModel.cameraGranted,
-                        showDivider: true
-                    )
-                    permissionRow(
-                        kind: .microphone,
-                        title: "Microphone",
-                        subtitle: "Required for microphone recording",
-                        isGranted: viewModel.microphoneGranted,
-                        showDivider: true
-                    )
+                    if Capabilities.current.translationTools {
+                        permissionRow(
+                            kind: .accessibility,
+                            title: "Accessibility",
+                            subtitle: "Required for selected text translation",
+                            isGranted: viewModel.accessibilityGranted,
+                            showDivider: true
+                        )
+                    }
+                    if Capabilities.current.recordingTools {
+                        permissionRow(
+                            kind: .inputMonitoring,
+                            title: "Input Monitoring",
+                            subtitle: "Required to show key presses while recording",
+                            isGranted: viewModel.inputMonitoringGranted,
+                            showDivider: true
+                        )
+                    }
+                    if Capabilities.current.recordingTools {
+                        permissionRow(
+                            kind: .camera,
+                            title: "Camera",
+                            subtitle: "Required for camera overlay",
+                            isGranted: viewModel.cameraGranted,
+                            showDivider: true
+                        )
+                    }
+                    if Capabilities.current.recordingTools {
+                        permissionRow(
+                            kind: .microphone,
+                            title: "Microphone",
+                            subtitle: "Required for microphone recording",
+                            isGranted: viewModel.microphoneGranted,
+                            showDivider: true
+                        )
+                    }
                 }
             }
         }

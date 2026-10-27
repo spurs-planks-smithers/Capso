@@ -28,7 +28,7 @@ private func resolve(_ channel: BuildChannel, override: String?) -> FlagState {
 
 @Suite("FeatureFlags")
 struct FeatureFlagsTests {
-    @Test("Lists the twenty-five flags with their issue numbers")
+    @Test("Lists all flags with their issue numbers and resolves app capability dependencies")
     func registryContents() {
         #expect(FeatureFlag.allCases.map(\.rawValue) == [
             "jevBase", "noteCoach", "noteCoachVague", "noteCoachQuestion", "noteCoachEmpty",
@@ -37,10 +37,29 @@ struct FeatureFlagsTests {
             "oneBreath", "promptLanes", "lanesOrder", "lanesSplit", "dataGuard",
             "dataGuardInjection", "dataGuardContact", "dataGuardNumbers", "dataGuardSecrets", "dataGuardFaces",
             "jevSendImages", "jevSendScreenText", "zipHandoff", "supportSubmission",
+            "standaloneCapture", "recordingTools", "translationTools", "cloudShare", "automationURLs", "automaticUpdates",
         ])
         // A sub-flag carries its parent's issue. The two consent flags belong
         // to the Jev base, #36.
-        #expect(FeatureFlag.allCases.map(\.spec.issue) == [36, 37, 37, 37, 37, 38, 38, 38, 39, 39, 39, 40, 69, 69, 69, 70, 70, 70, 70, 70, 70, 36, 36, 85, 0])
+        #expect(FeatureFlag.allCases.map(\.spec.issue) == [36, 37, 37, 37, 37, 38, 38, 38, 39, 39, 39, 40, 69, 69, 69, 70, 70, 70, 70, 70, 70, 36, 36, 85, 0] + Array(repeating: 119, count: 6))
+        let appFlags: [FeatureFlag] = [.standaloneCapture, .recordingTools, .translationTools, .cloudShare, .automationURLs, .automaticUpdates]
+        for mask in 0..<64 {
+            let enabled = Set(appFlags.enumerated().compactMap { mask & (1 << $0.offset) != 0 ? $0.element : nil })
+            let capabilities = AppCapabilities { enabled.contains($0) ? .on : .off }
+            #expect(capabilities.standaloneCapture == enabled.contains(.standaloneCapture))
+            #expect(capabilities.recordingTools == (enabled.contains(.standaloneCapture) && enabled.contains(.recordingTools)))
+            #expect(capabilities.translationTools == (enabled.contains(.standaloneCapture) && enabled.contains(.translationTools)))
+            #expect(capabilities.cloudShare == (enabled.contains(.standaloneCapture) && enabled.contains(.cloudShare)))
+            #expect(capabilities.automationURLs == (enabled.contains(.standaloneCapture) && enabled.contains(.automationURLs)))
+            #expect(capabilities.automaticUpdates == enabled.contains(.automaticUpdates))
+            #expect(capabilities.recordingCloudShare == (enabled.contains(.standaloneCapture) && enabled.contains(.recordingTools) && enabled.contains(.cloudShare)))
+        }
+        for flag in appFlags {
+            #expect(flag.spec.allowedStates == [.off, .on])
+            #expect(!flag.spec.devOnly && flag.spec.parent == nil)
+            #expect(FlagResolver.state(of: flag, channel: .release) { _ in nil } == .off)
+            #expect(FlagResolver.state(of: flag, channel: .release) { _ in "on" } == .on)
+        }
     }
 
     @Test("The lane sub-flags sit right after promptLanes, carry its issue, and are dev-only and off by default")
@@ -155,7 +174,7 @@ struct FeatureFlagsTests {
     }
 
     /// Flags that are not Jev features. They may turn on in a release build.
-    private static let nonJevFlags: Set<FeatureFlag> = [.zipHandoff, .supportSubmission]
+    private static let nonJevFlags: Set<FeatureFlag> = [.zipHandoff, .supportSubmission, .standaloneCapture, .recordingTools, .translationTools, .cloudShare, .automationURLs, .automaticUpdates]
 
     @Test("The zip handoff flag is not dev-only and starts off")
     func zipHandoffFlag() {

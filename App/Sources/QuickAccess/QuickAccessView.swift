@@ -216,7 +216,7 @@ struct QuickAccessView: View {
     }
 
     private var visibleActions: [QuickAccessActionKind] {
-        QuickAccessActionLayout.visibleActions(sharingAvailable: shareCoordinator != nil)
+        QuickAccessActionLayout.visibleActions(sharingAvailable: Capabilities.current.cloudShare && shareCoordinator != nil)
     }
 
     private func startsNewGroup(_ action: QuickAccessActionKind) -> Bool {
@@ -258,7 +258,7 @@ struct QuickAccessView: View {
                 Label("Save As…", systemImage: "square.and.arrow.down.on.square")
             }
             .keyboardShortcut("s", modifiers: [.command, .shift])
-            ForEach(QuickAccessActionLayout.overflowActions, id: \.rawValue) { action in
+            ForEach(QuickAccessActionLayout.overflowActions.filter { $0 != .translate || Capabilities.current.translationTools }, id: \.rawValue) { action in
                 overflowTool(action)
             }
         } label: {
@@ -454,7 +454,7 @@ struct QuickAccessView: View {
     }
 
     private func performUpload() async {
-        guard let coord = shareCoordinator else { return }
+        guard Capabilities.current.cloudShare, let coord = shareCoordinator else { return }
         guard uploadAttemptGate.begin() else { return }
         visualState = .uploading
         defer { uploadAttemptGate.finish() }
@@ -501,7 +501,7 @@ struct QuickAccessView: View {
     }
 
     private func startAutoUploadIfNeeded() {
-        guard autoUpload, !didStartAutoUpload, shareCoordinator != nil else { return }
+        guard Capabilities.current.cloudShare, autoUpload, !didStartAutoUpload, shareCoordinator != nil else { return }
         didStartAutoUpload = true
         Task { await performUpload() }
     }

@@ -49,7 +49,7 @@ final class MenuBarController: NSObject {
 
     /// Installs or removes the status item based on `settings.showMenuBarIcon`.
     private func applyVisibility() {
-        if settings.showMenuBarIcon {
+        if Capabilities.current.standaloneCapture && settings.showMenuBarIcon {
             guard statusItem == nil else { return }
             setupStatusItem()
         } else {
@@ -137,11 +137,11 @@ final class MenuBarController: NSObject {
 
         menu.addItem(.separator())
 
-        let recordArea = menuItem(String(localized: "Record Area"), action: #selector(recordArea))
+        let recordArea = menuItem(String(localized: "Record Area"), action: #selector(self.recordArea))
         recordArea.setShortcut(for: .recordScreen)
         menu.addItem(recordArea)
 
-        let recordFullscreen = menuItem(String(localized: "Record Full Screen"), action: #selector(recordFullscreen))
+        let recordFullscreen = menuItem(String(localized: "Record Full Screen"), action: #selector(self.recordFullscreen))
         recordFullscreen.setShortcut(for: .recordFullscreen)
         menu.addItem(recordFullscreen)
 
@@ -160,6 +160,18 @@ final class MenuBarController: NSObject {
         menu.addItem(.separator())
         menu.addItem(menuItem(ForkBranding.renamed(String(localized: "Quit Capso")), action: #selector(quitApp), key: "q", modifiers: [.command])) // Fork: product name
 
+        for item in menu.items {
+            let allowed: Bool
+            switch item.action {
+            case #selector(self.captureAndTranslate), #selector(self.translateSelectedText), #selector(self.translateTypedText):
+                allowed = Capabilities.current.translationTools
+            case #selector(self.recordArea), #selector(self.recordFullscreen):
+                allowed = Capabilities.current.recordingTools
+            default:
+                allowed = item.title != String(localized: "Camera PiP") || Capabilities.current.recordingTools
+            }
+            if !allowed { menu.removeItem(item) }
+        }
         return menu
     }
 
@@ -373,11 +385,11 @@ extension MenuBarController: NSMenuDelegate {
             case #selector(pinFromClipboard): item.setShortcut(for: .pinFromClipboard)
             case #selector(editClipboardImage): item.setShortcut(for: .editClipboardImage)
             case #selector(captureText): item.setShortcut(for: .captureText)
-            case #selector(captureAndTranslate): item.setShortcut(for: .captureAndTranslate)
-            case #selector(translateSelectedText): item.setShortcut(for: .translateSelectedText)
-            case #selector(translateTypedText): item.setShortcut(for: .translateTypedText)
-            case #selector(recordArea): item.setShortcut(for: .recordScreen)
-            case #selector(recordFullscreen): item.setShortcut(for: .recordFullscreen)
+            case #selector(self.captureAndTranslate): item.setShortcut(for: .captureAndTranslate)
+            case #selector(self.translateSelectedText): item.setShortcut(for: .translateSelectedText)
+            case #selector(self.translateTypedText): item.setShortcut(for: .translateTypedText)
+            case #selector(self.recordArea): item.setShortcut(for: .recordScreen)
+            case #selector(self.recordFullscreen): item.setShortcut(for: .recordFullscreen)
             case #selector(captureScrolling): item.setShortcut(for: .captureScrolling)
             case #selector(captureSelfTimer):
                 item.setShortcut(for: .selfTimerCapture)

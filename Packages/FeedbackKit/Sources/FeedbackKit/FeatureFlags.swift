@@ -112,6 +112,13 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
     case zipHandoff
     /// Explicit support submission. Off until the secure intake passes review.
     case supportSubmission
+    /// Optional app tools. The app resolves their dependencies once at launch.
+    case standaloneCapture
+    case recordingTools
+    case translationTools
+    case cloudShare
+    case automationURLs
+    case automaticUpdates
 
     /// New flags start with both defaults `off`. A release default turns on
     /// only with a released-in build number.
@@ -151,6 +158,8 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
             FlagSpec(issue: 85, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
         case .supportSubmission:
             FlagSpec(issue: 0, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
+        case .standaloneCapture, .recordingTools, .translationTools, .cloudShare, .automationURLs, .automaticUpdates:
+            FlagSpec(issue: 119, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
         }
     }
 

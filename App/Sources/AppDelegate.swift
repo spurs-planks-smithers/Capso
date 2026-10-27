@@ -27,7 +27,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var automationURLRequestBuffer = AutomationURLRequestBuffer()
     private var imageFileOpenBuffer = ImageFileOpenBuffer()
     /// Sparkle update coordinator used by preferences and manual update checks.
-    let updateManager = UpdateManager()
+    private(set) var updateManager: UpdateManager?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // A hosted unit-test bundle only needs the AppKit run loop. Avoid
@@ -49,7 +49,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Show tooltips faster (default is ~2s, reduce to 0.3s)
         UserDefaults.standard.set(300, forKey: "NSInitialToolTipDelay")
 
-        migrateShortcutsIfNeeded()
+        _ = Capabilities.current
+        if Capabilities.current.automaticUpdates { updateManager = UpdateManager() }
+        if Capabilities.current.standaloneCapture { migrateShortcutsIfNeeded() }
         settings.startTrial()
         captureCoordinator = CaptureCoordinator(settings: settings)
         recordingCoordinator = RecordingCoordinator(settings: settings)
@@ -68,7 +70,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             recordingCoordinator?.openEditor(for: source)
         }
         recordingCoordinator!.desktopIconsCover = desktopIconsCover
-        recordingCoordinator!.recoverInterruptedRecording()
+        if Capabilities.current.recordingTools { recordingCoordinator!.recoverInterruptedRecording() }
         preferencesWindow = PreferencesWindow(settings: settings, permissionManager: permissionManager, updateManager: updateManager)
         if settings.diagnosticLoggingEnabled {
             DiagnosticLogger.append(
@@ -90,7 +92,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         FeedbackController.shared.start(captureCoordinator: captureCoordinator!, settings: settings) // Fork: App/Feedback
         performPendingAutomationURLAction()
         performPendingImageFileOpen()
-        historyCoordinator?.runCleanup()
+        if Capabilities.current.standaloneCapture { historyCoordinator?.runCleanup() }
 
         NotificationCenter.default.addObserver(
             forName: .openScreenshotSettings,
@@ -144,61 +146,66 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func registerGlobalShortcuts() {
-        KeyboardShortcuts.onKeyDown(for: .captureArea) { [weak self] in
+        KeyboardShortcuts.disable(KeyboardShortcuts.Name.allCapso.filter { !Capabilities.allowsShortcut($0) })
+        func register(_ name: KeyboardShortcuts.Name, action: @escaping () -> Void) {
+            guard Capabilities.allowsShortcut(name) else { return }
+            KeyboardShortcuts.onKeyDown(for: name, action: action)
+        }
+        register(.captureArea) { [weak self] in
             self?.captureCoordinator?.captureArea()
         }
-        KeyboardShortcuts.onKeyDown(for: .captureAllInOne) { [weak self] in
+        register(.captureAllInOne) { [weak self] in
             self?.captureCoordinator?.captureAllInOne()
         }
-        KeyboardShortcuts.onKeyDown(for: .captureFullscreen) { [weak self] in
+        register(.captureFullscreen) { [weak self] in
             self?.captureCoordinator?.captureFullscreen()
         }
-        KeyboardShortcuts.onKeyDown(for: .captureWindow) { [weak self] in
+        register(.captureWindow) { [weak self] in
             self?.captureCoordinator?.captureWindow()
         }
-        KeyboardShortcuts.onKeyDown(for: .captureText) { [weak self] in
+        register(.captureText) { [weak self] in
             self?.ocrCoordinator?.startInstantOCR()
         }
-        KeyboardShortcuts.onKeyDown(for: .recordScreen) { [weak self] in
+        register(.recordScreen) { [weak self] in
             self?.recordingCoordinator?.startRecordingFlow()
         }
-        KeyboardShortcuts.onKeyDown(for: .recordFullscreen) { [weak self] in
+        register(.recordFullscreen) { [weak self] in
             self?.recordingCoordinator?.startFullScreenRecordingFlow()
         }
-        KeyboardShortcuts.onKeyDown(for: .captureScrolling) { [weak self] in
+        register(.captureScrolling) { [weak self] in
             self?.captureCoordinator?.captureScrolling()
         }
-        KeyboardShortcuts.onKeyDown(for: .selfTimerCapture) { [weak self] in
+        register(.selfTimerCapture) { [weak self] in
             self?.captureCoordinator?.captureAreaWithSelfTimer()
         }
-        KeyboardShortcuts.onKeyDown(for: .captureAreaToClipboard) { [weak self] in
+        register(.captureAreaToClipboard) { [weak self] in
             self?.captureCoordinator?.captureAreaToClipboard()
         }
-        KeyboardShortcuts.onKeyDown(for: .captureAreaAndShare) { [weak self] in
+        register(.captureAreaAndShare) { [weak self] in
             self?.captureCoordinator?.captureAreaAndShare()
         }
-        KeyboardShortcuts.onKeyDown(for: .captureAreaAndAnnotate) { [weak self] in
+        register(.captureAreaAndAnnotate) { [weak self] in
             self?.captureCoordinator?.captureAreaAndAnnotate()
         }
-        KeyboardShortcuts.onKeyDown(for: .captureAreaAndPin) { [weak self] in
+        register(.captureAreaAndPin) { [weak self] in
             self?.captureCoordinator?.captureAreaAndPin()
         }
-        KeyboardShortcuts.onKeyDown(for: .pinFromClipboard) { [weak self] in
+        register(.pinFromClipboard) { [weak self] in
             self?.captureCoordinator?.pinFromClipboard()
         }
-        KeyboardShortcuts.onKeyDown(for: .togglePins) { [weak self] in
+        register(.togglePins) { [weak self] in
             self?.captureCoordinator?.togglePinsVisibility()
         }
-        KeyboardShortcuts.onKeyDown(for: .editClipboardImage) { [weak self] in
+        register(.editClipboardImage) { [weak self] in
             self?.captureCoordinator?.editClipboardImage()
         }
-        KeyboardShortcuts.onKeyDown(for: .captureLastArea) { [weak self] in
+        register(.captureLastArea) { [weak self] in
             self?.captureCoordinator?.replayLastCapture()
         }
-        KeyboardShortcuts.onKeyDown(for: .screenshotHistory) { [weak self] in
+        register(.screenshotHistory) { [weak self] in
             self?.historyCoordinator?.toggleWindow()
         }
-        KeyboardShortcuts.onKeyDown(for: .captureAndTranslate) { [weak self] in
+        register(.captureAndTranslate) { [weak self] in
             guard let self else { return }
             // If the user pressed the global Translate shortcut while a Quick
             // Access panel has focus
@@ -210,10 +217,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             self.translationCoordinator?.startCaptureAndTranslate()
         }
-        KeyboardShortcuts.onKeyDown(for: .translateSelectedText) { [weak self] in
+        register(.translateSelectedText) { [weak self] in
             self?.translationCoordinator?.translateSelectedText()
         }
-        KeyboardShortcuts.onKeyDown(for: .translateTypedText) { [weak self] in
+        register(.translateTypedText) { [weak self] in
             self?.translationCoordinator?.translateTypedText()
         }
     }
@@ -227,18 +234,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Opening image files is never gated by the Automation URLs toggle —
         // that setting only governs the `capso://` automation scheme.
-        if !imageFiles.isEmpty {
+        if !imageFiles.isEmpty, Capabilities.current.standaloneCapture {
             imageFileOpenBuffer.enqueue(imageFiles)
             performPendingImageFileOpen()
         }
 
-        guard !remainder.isEmpty else { return }
+        if !imageFiles.isEmpty, !Capabilities.current.standaloneCapture {
+            let alert = NSAlert()
+            alert.messageText = "Image editing is unavailable"
+            alert.informativeText = "This version focuses on feedback rounds. Your image file stays unchanged."
+            alert.addButton(withTitle: "OK")
+            alert.runModal()
+        }
+        guard !remainder.isEmpty, Capabilities.current.automationURLs else { return }
 
         guard let actionURL = remainder.first(where: { AutomationURLAction(url: $0) != nil }),
               let action = AutomationURLAction(url: actionURL) else {
             logAutomationURL("Ignored unsupported request")
             return
         }
+        guard Capabilities.allowsAutomation(action) else { return }
         guard settings.automationURLsEnabled || askToAllowAutomationURLs(for: actionURL) else {
             logAutomationURL("Ignored request because Automation URLs are disabled")
             return
@@ -266,6 +281,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func performPendingImageFileOpen() {
+        guard Capabilities.current.standaloneCapture else { return }
         guard let urls = imageFileOpenBuffer.takeIfReady(coordinatorIsReady: captureCoordinator != nil) else {
             return
         }
@@ -281,6 +297,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
+        guard Capabilities.allowsAutomation(action) else { return }
         switch action {
         case .captureArea:
             captureCoordinator.captureArea()
@@ -369,6 +386,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func makeShareCoordinator(settings: AppSettings) -> ShareCoordinator? {
         guard
+            Capabilities.current.cloudShare,
             settings.isCloudShareConfigured,
             let providerRaw = settings.cloudShareProvider,
             let provider = ShareProvider(rawValue: providerRaw),

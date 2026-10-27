@@ -108,7 +108,7 @@ final class QuickAccessWindowPresentationTests: XCTestCase {
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         let settings = AppSettings(defaults: defaults)
         settings.quickAccessAutoClose = false
-        let coordinator = CaptureCoordinator(settings: settings)
+        let coordinator = CaptureCoordinator(settings: settings, capabilities: .init { _ in .on })
         let result = CaptureResult(
             image: try makeImage(),
             mode: .area,
@@ -143,7 +143,7 @@ final class QuickAccessWindowPresentationTests: XCTestCase {
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         let settings = AppSettings(defaults: defaults)
         settings.quickAccessAutoClose = false
-        let coordinator = CaptureCoordinator(settings: settings)
+        let coordinator = CaptureCoordinator(settings: settings, capabilities: .init { _ in .on })
         defer {
             coordinator.closeAllQuickAccess()
             settleRunLoop(for: 0.4)
@@ -169,7 +169,7 @@ final class QuickAccessWindowPresentationTests: XCTestCase {
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         let settings = AppSettings(defaults: defaults)
         settings.quickAccessAutoClose = false
-        let coordinator = CaptureCoordinator(settings: settings)
+        let coordinator = CaptureCoordinator(settings: settings, capabilities: .init { _ in .on })
         defer {
             coordinator.closeAllQuickAccess()
             settleRunLoop(for: 0.4)
@@ -275,7 +275,7 @@ final class HistoryWindowShortcutToggleTests: XCTestCase {
         let suiteName = "HistoryWindowShortcutToggleTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         defaults.removePersistentDomain(forName: suiteName)
-        let coordinator = HistoryCoordinator(settings: AppSettings(defaults: defaults))
+        let coordinator = HistoryCoordinator(settings: AppSettings(defaults: defaults), capabilities: .init { _ in .on })
         defer {
             if coordinator.isWindowVisibleForTesting {
                 coordinator.toggleWindow()

@@ -13,6 +13,18 @@ enum PreferencesTab: String, CaseIterable, Sendable {
     case ocr
     case shortcuts
 
+    @MainActor
+    var isAvailable: Bool {
+        switch self {
+        case .general, .permissions, .screenshots, .shortcuts: true
+        case .recording: Capabilities.current.recordingTools
+        case .quickAccess, .export: Capabilities.current.standaloneCapture
+        case .cloudShare: Capabilities.current.cloudShare
+        case .ocr: Capabilities.current.standaloneCapture
+        }
+    }
+
+    @MainActor
     var title: LocalizedStringKey {
         switch self {
         case .general: "General"
@@ -22,7 +34,7 @@ enum PreferencesTab: String, CaseIterable, Sendable {
         case .quickAccess: "Quick Access"
         case .cloudShare: "Cloud Share"
         case .export: "Export"
-        case .ocr: "Text & Translation"
+        case .ocr: Capabilities.current.translationTools ? "Text & Translation" : "Text Recognition"
         case .shortcuts: "Shortcuts"
         }
     }
@@ -46,6 +58,10 @@ struct PreferencesView: View {
     @State private var selectedTab: PreferencesTab
     let viewModel: PreferencesViewModel
     let updateManager: UpdateManager?
+
+    private var visibleTab: PreferencesTab {
+        selectedTab.isAvailable ? selectedTab : .general
+    }
 
     init(viewModel: PreferencesViewModel, updateManager: UpdateManager?, initialTab: PreferencesTab? = nil) {
         self.viewModel = viewModel
@@ -92,8 +108,8 @@ struct PreferencesView: View {
 
     private var sidebarContent: some View {
         VStack(spacing: 2) {
-            ForEach(PreferencesTab.allCases.filter { $0 != .cloudShare }, id: \.self) { tab in // Fork: Cloud Share hidden
-                SidebarButton(tab: tab, isSelected: selectedTab == tab) {
+            ForEach(PreferencesTab.allCases.filter(\.isAvailable), id: \.self) { tab in
+                SidebarButton(tab: tab, isSelected: visibleTab == tab) {
                     selectedTab = tab
                 }
             }
@@ -123,7 +139,7 @@ struct PreferencesView: View {
     private var scrollContent: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                switch selectedTab {
+                switch visibleTab {
                 case .general:
                     GeneralSettingsView(viewModel: viewModel, updateManager: updateManager)
                 case .permissions:

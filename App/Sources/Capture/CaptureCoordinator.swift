@@ -8,11 +8,13 @@ import CaptureKit
 import OCRKit
 import SharedKit
 import ShareKit
+import FeedbackKit
 
 @MainActor
 @Observable
 final class CaptureCoordinator {
     private let settings: AppSettings
+    private let capabilities: AppCapabilities
     private var overlayWindows: [CaptureOverlayWindow] = []
     private var isSelectionFlowStarting = false
     private var pendingSelectionWorkItem: DispatchWorkItem?
@@ -104,8 +106,9 @@ final class CaptureCoordinator {
         }
     }
 
-    init(settings: AppSettings) {
+    init(settings: AppSettings, capabilities: AppCapabilities = Capabilities.current) {
         self.settings = settings
+        self.capabilities = capabilities
     }
 
     private func rememberSourceApplication() {
@@ -187,22 +190,27 @@ final class CaptureCoordinator {
     }
 
     func captureArea() {
+        guard capabilities.standaloneCapture else { return }
         startAreaCapture(action: .default)
     }
 
     func captureAreaToClipboard() {
+        guard capabilities.standaloneCapture else { return }
         startAreaCapture(action: .clipboard)
     }
 
     func captureAreaAndAnnotate() {
+        guard capabilities.standaloneCapture else { return }
         startAreaCapture(action: .annotate)
     }
 
     func captureAreaAndPin() {
+        guard capabilities.standaloneCapture else { return }
         startAreaCapture(action: .pin)
     }
 
     func pinFromClipboard(pasteboard: NSPasteboard = .general) {
+        guard capabilities.standaloneCapture else { return }
         let screen = NSScreen.screens.first {
             NSMouseInRect(NSEvent.mouseLocation, $0.frame, false)
         } ?? NSScreen.main
@@ -234,6 +242,7 @@ final class CaptureCoordinator {
     }
 
     func editClipboardImage() {
+        guard capabilities.standaloneCapture else { return }
         guard let image = ClipboardImageReader.image() else {
             showToast(
                 String(localized: "No image found on clipboard"),
@@ -260,6 +269,7 @@ final class CaptureCoordinator {
 
     @discardableResult
     func openImageFiles(_ urls: [URL]) -> Bool {
+        guard capabilities.standaloneCapture else { return false }
         let candidates = urls.filter(ImageFileReader.isSupported)
         guard let (url, image) = candidates.lazy
             .compactMap({ candidateURL in ImageFileReader.image(at: candidateURL).map { (candidateURL, $0) } })
@@ -298,6 +308,7 @@ final class CaptureCoordinator {
     }
 
     func openImageFilesWithPanel() {
+        guard capabilities.standaloneCapture else { return }
         let urls = openPanelURLsProvider?() ?? runImageOpenPanel()
         guard !urls.isEmpty else { return }
         openImageFiles(urls)
@@ -390,6 +401,7 @@ final class CaptureCoordinator {
     }
 
     func captureAreaAndShare() {
+        guard capabilities.cloudShare else { return }
         logDiagnostic("Capture and Share shortcut invoked")
         // Gate: Cloud Share not configured → ask AppDelegate (via notification) to
         // open Preferences → Cloud Share tab. We avoid `NSApp.delegate as? AppDelegate`
@@ -409,6 +421,7 @@ final class CaptureCoordinator {
     }
 
     func captureAllInOne() {
+        guard capabilities.standaloneCapture else { return }
         guard !isCaptureSelectionActive else { return }
         isSelectionFlowStarting = true
         pendingAction = .default
@@ -424,6 +437,9 @@ final class CaptureCoordinator {
     }
 
     private func startAreaCapture(action: PostCaptureAction) {
+        if !capabilities.standaloneCapture {
+            guard case .feedback = action else { return }
+        }
         guard !isCaptureSelectionActive else { return }
         pendingAction = action
         isSelectionFlowStarting = true
@@ -445,6 +461,7 @@ final class CaptureCoordinator {
     }
 
     func captureFullscreen() {
+        guard capabilities.standaloneCapture else { return }
         rememberSourceApplication()
         // Capture the display the user is currently looking at (the one
         // containing the mouse cursor), not unconditionally the primary.
@@ -491,6 +508,7 @@ final class CaptureCoordinator {
     }
 
     func captureScrolling() {
+        guard capabilities.standaloneCapture else { return }
         guard !isCaptureSelectionActive else { return }
         isSelectionFlowStarting = true
         rememberSourceApplication()
@@ -507,6 +525,7 @@ final class CaptureCoordinator {
     /// Self-timer area capture: pick area, show countdown HUD, then capture.
     /// Uses `settings.selfTimerDurationSeconds` as the delay.
     func captureAreaWithSelfTimer() {
+        guard capabilities.standaloneCapture else { return }
         guard !isCaptureSelectionActive else { return }
         isSelectionFlowStarting = true
         pendingAction = .default
@@ -523,6 +542,7 @@ final class CaptureCoordinator {
     }
 
     func captureWindow() {
+        guard capabilities.standaloneCapture else { return }
         isSelectionFlowStarting = true
         pendingSourceApplication = nil
         // Enumerate windows first (async, no focus change), then freeze the
@@ -570,6 +590,7 @@ final class CaptureCoordinator {
     }
 
     func replayLastCapture() {
+        guard capabilities.standaloneCapture else { return }
         guard let selection = settings.lastCaptureSelection else { return }
         switch selection {
         case let .area(x, y, width, height, screenID):
@@ -1664,7 +1685,7 @@ final class CaptureCoordinator {
             }
             return  // history already saved above; skip the call below
         case .default:
-            let shouldAutoUpload = settings.cloudShareAutoUploadEnabled && shareCoordinator != nil
+            let shouldAutoUpload = capabilities.cloudShare && settings.cloudShareAutoUploadEnabled && shareCoordinator != nil
             let savedFileURL = applyDefaultPostCaptureActions(outputResult, entryID: entryID)
             if settings.screenshotShowPreview {
                 showQuickAccess(
@@ -1727,7 +1748,7 @@ final class CaptureCoordinator {
             result: result,
             settings: settings,
             screen: captureScreen,
-            shareCoordinator: shareCoordinator,
+            shareCoordinator: capabilities.cloudShare ? shareCoordinator : nil,
             autoUpload: autoUpload
         )
 
@@ -1814,7 +1835,7 @@ final class CaptureCoordinator {
             self.ocrCoordinator?.startVisualOCR(image: result.image, anchorScreen: anchor)
         }
         window.onTranslate = { [weak self, weak window] in
-            guard let self, let window else { return }
+            guard let self, let window, self.capabilities.translationTools else { return }
             let anchor = window.targetScreen
             self.dismissQuickAccessWindow(window)
             self.translationCoordinator?.translate(image: result.image, anchorScreen: anchor)
@@ -1850,6 +1871,7 @@ final class CaptureCoordinator {
     }
 
     func reopenQuickAccess() {
+        guard capabilities.standaloneCapture else { return }
         let reopen = reopenLastClosedQuickAccess
         reopenLastClosedQuickAccess = nil
         reopen?()
@@ -2065,6 +2087,7 @@ final class CaptureCoordinator {
     /// user was already looking at.
     @discardableResult
     func invokeQuickAccessTranslateIfKey() -> Bool {
+        guard capabilities.translationTools else { return false }
         guard let key = NSApp.keyWindow as? QuickAccessWindow,
               quickAccessWindows.contains(where: { $0 === key }),
               let handler = key.onTranslate else {
@@ -2120,6 +2143,7 @@ final class CaptureCoordinator {
 
     /// Hides every pin if any is showing, otherwise shows them all again.
     func togglePinsVisibility() {
+        guard capabilities.standaloneCapture else { return }
         let hide = !arePinsHidden
         pinnedControllers.forEach { $0.setHidden(hide) }
     }
@@ -2282,6 +2306,7 @@ final class CaptureCoordinator {
         entryID: UUID,
         coord: ShareCoordinator
     ) async {
+        guard capabilities.cloudShare else { return }
         let image = result.image
         let output = settings.screenshotOutputOptions
 
