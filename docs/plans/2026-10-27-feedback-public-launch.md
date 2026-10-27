@@ -47,8 +47,8 @@ Files: site/feedback/wrangler.jsonc, src/worker.js, public/index.html, public/fo
 - [x] Change Access from whole-host staging to the exact review path and children. Verify the unchanged owner policy and audience.
 - [x] Deploy the feedback service with the approved private scanner image and existing secret bindings.
 - [x] Verify anonymous form/config access, Turnstile enforcement, private review denial, limits, and a real synthetic receipt through screening and notification.
-- [ ] Stage the complete current homepage and Guides. Render the form and homepage before publishing.
-- [ ] Publish the exact staged site. Run existing live smoke checks and compare latest.json before and after.
+- [x] Stage the complete current homepage and Guides. Render the form and homepage before publishing.
+- [x] Publish the exact staged site. Run existing live smoke checks and compare latest.json before and after.
 
 Expected: public feedback works from nextshot.dev. Private files remain protected. The app release pointer and checksum match the recorded baseline.
 
@@ -60,7 +60,7 @@ Files: Packages/FeedbackKit/Sources/FeedbackKit/FeatureFlags.swift, its existing
 - [x] Carry forward the real native panel review and require signed Dev app review in the separate app release runbook. No production build is created.
 - [x] Prepare a guarded activation helper for the release owner. It sets only supportSubmission after the graph freezes and calculates the actual first release build.
 - [x] Verify helper failure cases, exact flag scope, and existing package checks. Actual activation stays in the owner-run release process.
-- [ ] Update the Guides and release notes with the actual screenshot disclosure and submission behavior.
+- [x] Update the Guides and release notes with the actual screenshot disclosure and submission behavior.
 
 Expected: the release owner can include the reviewed feature through the normal next minor release. No production app is built or published in this task.
 
@@ -68,11 +68,11 @@ Expected: the release owner can include the reviewed feature through the normal 
 
 Files: [[feedback-intake]], the progress record, and the release handoff checklist.
 
-- [ ] Document activation, owner review, held submissions, scanner failure, quota pause, retention, and rollback commands.
-- [ ] Document the separate v0.5.0 release checks and production commands for Drew.
-- [ ] Run applicable existing tests and one focused branch review. Preserve separate parallel work.
+- [x] Document activation, owner review, held submissions, scanner failure, quota pause, retention, and rollback commands.
+- [x] Document the separate v0.5.0 release checks and production commands for Drew.
+- [x] Run applicable existing tests and one focused branch review. Preserve separate parallel work.
 - [ ] Publish and merge the scoped source PR after checks pass. Attach the PR to this task.
-- [ ] Record live URLs, verification evidence, remaining email state, and the unchanged production artifact.
+- [x] Record live URLs, verification evidence, remaining email state, and the unchanged production artifact.
 
 Expected: the website is live, source and operations agree, and Drew has a concrete app release handoff.
 
@@ -86,3 +86,9 @@ Expected: the website is live, source and operations agree, and Drew has a concr
 - Form checks reproduce and fix stale verification copy, accepted receipt overwrite, duplicate clicks, and status-poll outages. No persistent test gate is added.
 - Ruling: preserve the existing released-in build meaning. The separate owner runbook freezes the graph, activates only supportSubmission, and verifies the final build marker.
 - Automatic approval review declines temporary live native activation in this website task. The native backend stays off. Its real transport harness is compiled with synthetic input and remains ready for the owner-run gate.
+
+- Website publication succeeds from the sealed site-iC8DYD artifact. The live homepage links Feedback. The public guide is https://nextshot.dev/guides/send-feedback/.
+- Site Worker version: 27b2fec8-dbdc-4bbd-8729-28b18b375a83. Feedback Worker version: 6aa41e49-f2e3-4cab-a3e2-fb0444192739.
+- Existing service tests: 96 pass. Site tests: 22 pass. SupportKit tests: 6 pass. FeedbackKit tests: 341 pass. Twelve disposable helper fixtures pass. Focused source review finds no consequential defect.
+- Live site smoke checks pass. The complete latest.json record remains unchanged at 0.4.0 build 804. Its DMG SHA-256 remains 5145cdafb022dab61784689766d912977a4f3037fbf17cd144d1b62ecf141346.
+- Final evidence lives in the ignored build/feedback-launch folder: live-final-checks.json, live-controls.json, public-receipt.json, site-publish.log, live-home.jpg, and live-guide.jpg. PR checks and the merge record supply source publication evidence.

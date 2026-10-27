@@ -44,7 +44,7 @@ python3 site/feedback/deploy.py web
 python3 site/feedback/deploy.py pause
 ```
 
-`web` enables website admission, scanning, contextual checks, and fixed-recipient notifications. It keeps native and inbound email admission off. `pause` stops new admission and processing. Owner review and the hourly retention handler remain available. Keep Access restricted to `/review` and its children. The deploy command verifies the exact owner policy and audience.
+`web` enables website admission, scanning, contextual checks, and fixed-recipient notifications. It keeps native and inbound email admission off. `pause` stops new admission and processing starts. An in-flight scan can finish within its bounded attempt. Owner review and the hourly retention handler remain available. Keep Access restricted to `/review` and its children. The deploy command verifies the exact owner policy and audience.
 
 Only the app release owner uses `python3 site/feedback/deploy.py native` after the native launch checks pass. That mode also retains website intake. After native activation, use `native` for later service updates that must retain it. `web` deliberately returns native admission to off. Inbound mail remains a separate routing and delivery milestone. The website does not advertise the inactive address.
 

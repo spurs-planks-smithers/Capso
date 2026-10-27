@@ -8,7 +8,7 @@ The website intake runs at https://feedback.nextshot.dev/. Cloudflare Access pro
 
 The base configuration remains closed. The explicit production profile reuses the approved private scanner digest. Website admission, processing, contextual checks, and fixed-recipient notifications are enabled. Native admission and inbound email remain disabled. Native app defaults remain off until the release owner activates them for 0.5.0 through [[2026-10-27-feedback-release-handoff]]. No production app is built by the website launch task.
 
-The public human test receives receipt 086892f7, completes screening, prepares a private draft, and completes its notification send. Turnstile rejects the browser automation connection with error 300030. After the owner disconnects automation, the normal browser verification and submission pass. Keep browser protections and server verification enabled. The form preserves accepted receipt messages after later challenge callbacks or status-poll outages.
+The public human test receives receipt 086892f7, completes screening, prepares a private draft, and completes its notification send. The browser with automation attached returns Turnstile error 300030. After the owner disconnects automation, the normal browser verification and submission pass. Keep browser protections and server verification enabled. The form preserves accepted receipt messages after later challenge callbacks or status-poll outages.
 
 The setup token expires on November 2, 2026. Runtime credentials remain resource bindings. The approved signature workflow runs on main with a bucket-only credential. The scheduled refresh and signature freshness pass.
 
@@ -63,9 +63,9 @@ The task never waits for a person. Its regression tests use closed stdin and int
 5. Supply approved classifier artifacts. Publish verified malware signatures.
 6. Run synthetic EICAR, OCR, injection, privacy, network-denial, recovery, quota, and expiration checks in protected staging.
 7. Confirm billing alerts at $25, $40, and $50. These enabled alerts measure account-wide usage charges and exclude recurring plan fees. The application budget is an estimate, not a provider billing cap.
-8. Review the signed Dev app and the actual form. Enable the native flag only after review.
-9. Enable service switches and exact-address mail routing only after the checks pass. Replace the null MX record at this point.
-10. Publish the homepage Feedback link with the site deploy command. Verify live receipt, protected review, reconstructed mail, and expiry.
+8. Review the actual form, then enable website switches after its checks pass. Publish the homepage Feedback link. Verify a live receipt and protected review.
+9. Use the separate 0.5.0 handoff for signed Dev app review, native transport checks, and native activation.
+10. Enable exact-address inbound routing only after its separate attachment and delivery checks pass. Replace the null MX record at that point.
 
 Use synthetic submissions for launch tests. Original attachments have no download route. Failed malware, structure, OCR, engine, or signature checks cannot be waived.
 
@@ -73,7 +73,7 @@ Use synthetic submissions for launch tests. Original attachments have no downloa
 
 From the repository root, run `python3 site/feedback/deploy.py status` to verify the owner policy and read the live switches. Run `python3 site/feedback/deploy.py web` for website service updates before native activation. It keeps native and inbound mail off. Use the approved digest in `site/feedback/wrangler.production.jsonc`; model upgrades repeat the feasibility checks.
 
-To stop intake, run `python3 site/feedback/deploy.py pause`. It disables admission and expensive processing. The private review page and retention handler remain available. Verify `/config` reports disabled and new reservations return 503. Do not delete submissions or weaken Access during an incident.
+To stop intake, run `python3 site/feedback/deploy.py pause`. It disables new admission and processing starts. An in-flight scan can finish within its bounded attempt. The private review page and retention handler remain available. Verify `/config` reports disabled and new reservations return 503. Do not delete submissions or weaken Access during an incident.
 
 Publish only the homepage and Guides with `site/deploy.sh --stage-only`, followed by `site/deploy.sh --deploy-staged <artifact>`. Use the existing pinned media. The command records a Worker rollback snapshot and restores it if site smoke checks fail. Compare `/latest.json` before and after. This operation must not change a released app record, file, or tag.
 
@@ -95,4 +95,4 @@ All bounded text receives contextual screening in overlapping chunks. Each chunk
 
 ## Verification evidence
 
-Record commands and final outcomes in [[2026-10-26-feedback-progress]]. Keep generated screenshots, audit outputs, and app builds under the project's ignored build folder. Never label a missing-engine check as passed.
+The website launch record is [[2026-10-27-feedback-public-launch]]. Earlier feasibility evidence is in [[2026-10-26-feedback-progress]]. Keep generated screenshots, audit outputs, and app builds under the project's ignored build folder. Never label a missing-engine check as passed.
