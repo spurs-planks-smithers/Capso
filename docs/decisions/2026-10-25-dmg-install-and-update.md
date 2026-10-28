@@ -1,5 +1,7 @@
 # Nextshot DMG: install and update
 
+**Correction, 2026-10-28:** The m5pro production tests below are historical. Drew's 2026-10-27 rule permits only Nextshot Dev there. Use this installer on another approved Mac. Keep production archives as distribution artifacts on m5pro. Follow [[local-development]].
+
 Date: 2026-10-25. Decided by Drew, from feedback round `2026-10-25-0637-feedback` (items 1.1 to 1.4).
 
 ## Decision
@@ -52,9 +54,11 @@ Real notarized releases on m5pro, each DMG copied with a Safari quarantine flag,
 
 The DMG copy ran from `/Volumes`, not from an App Translocation path.
 
-## Screen recording and signatures
+## Historical screen recording findings, 2026-10-25
 
-macOS ties the screen recording grant to the app's signature. Releases are signed "Developer ID Application" (team M586UD979K). Local builds from `scripts/build-local.sh` and worktree DerivedData are signed "Apple Development: Drew Schulz". All share the bundle ID `com.drewschulz.nextshot`, so each switch between the two kinds asks for screen recording again, and a capture from a copy without a working grant comes out blank. On 2026-10-25 m5pro had 15 registered copies with that bundle ID (`tccutil reset` printed 15 lines). "Quit & Reopen" in System Settings and a `nextshot://` link with no Nextshot running both started a trial copy from DerivedData, not the copy in `~/Applications`. Release to release keeps the grant, which is the case for people who install only DMGs.
+Before the Dev identity split on 2026-10-25, Apple Development builds and Developer ID releases shared `com.drewschulz.nextshot`. Switching signatures requested screen access again. Captures without a working grant showed blank images. The current local script uses `com.drewschulz.nextshot.dev` and the Dev-only URL scheme.
+
+On 2026-10-25, resetting ScreenCapture printed 15 lines for the production bundle ID. That output counts reset messages, not independently verified app registrations. "Quit & Reopen" and a `nextshot://` link both started a trial copy from DerivedData. The Dev-only launch helper now opens the installed app by its exact path.
 
 ## Later
 

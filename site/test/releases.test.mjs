@@ -267,7 +267,7 @@ test("stage-only reports the exact reusable artifact and fails closed if the Gui
 
 function releaseFixture() {
   const f = fixture();
-  for (const path of ["scripts/release.sh", "scripts/release-lib.sh", "scripts/release-changelog.py"]) {
+  for (const path of ["scripts/release.sh", "scripts/release-lib.sh", "scripts/release-changelog.py", "scripts/nextshot-local.py"]) {
     cpSync(join(source, path), join(f.root, path));
   }
   f.put("VERSION", "0.3.0");

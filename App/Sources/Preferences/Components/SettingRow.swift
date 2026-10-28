@@ -6,7 +6,7 @@ struct SettingRow<Control: View>: View {
     let label: LocalizedStringKey
     var sublabel: LocalizedStringKey? = nil
     var showDivider: Bool = false
-    var explanation: String? = nil
+    var explanation: SettingsHelpContent? = nil
     @ViewBuilder let control: Control
 
     var body: some View {
@@ -23,7 +23,7 @@ struct SettingRow<Control: View>: View {
                             Text(label)
                                 .font(.system(size: 13))
                                 .foregroundStyle(.primary)
-                            if let explanation { SettingsInfoButton(text: explanation) }
+                            if let explanation { SettingsInfoButton(content: explanation) }
                         }
                         if let sublabel {
                             Text(sublabel)

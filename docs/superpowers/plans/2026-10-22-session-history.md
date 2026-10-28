@@ -1,5 +1,7 @@
 # Session History Implementation Plan
 
+**Local testing correction, 2026-10-28:** The app launch steps below are historical. On m5pro, use only Nextshot Dev. Never open `Nextshot.app` from an old build path. Follow [[local-development]].
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a Recent section to the Nshot menu that lists the last 5 ended feedback sessions, lets Drew check captures across sessions into a basket, and copies one combined prompt.

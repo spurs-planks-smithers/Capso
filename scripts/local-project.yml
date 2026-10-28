@@ -1,9 +1,8 @@
-# Fork: local signed build. Includes the upstream spec and overrides only the
-# Capso target, so package targets keep their own product names.
-# Used by scripts/build-local.sh, which generates CapsoLocal.xcodeproj in the
-# repo root (git ignores *.xcodeproj). The script passes --project-root with
-# the repo root, so paths here and in project.yml resolve from the root and
-# relative build settings such as CODE_SIGN_ENTITLEMENTS stay valid.
+# Fork: production archive spec for scripts/release-notarized.sh.
+# Despite the legacy name, this spec builds production Nextshot.
+# On m5pro, never install or open its output. Local testing uses
+# scripts/build-local.sh and scripts/dev-project.yml, including Release mode.
+# Only the Capso target changes, so package targets keep their product names.
 name: CapsoLocal
 
 include:

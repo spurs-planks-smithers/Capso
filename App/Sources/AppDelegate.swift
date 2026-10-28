@@ -47,6 +47,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self, andSelector: #selector(handleReopen(_:withReplyEvent:)),
             forEventClass: AEEventClass(kCoreEventClass), andEventID: AEEventID(kAEReopenApplication)
         )
+        DiagnosticLogger.configure(capabilityEnabled: Capabilities.current.diagnostics,
+                                   loggingEnabled: settings.diagnosticLoggingEnabled)
         DiagnosticLogger.installUncaughtExceptionHandler()
 
         // Show tooltips faster (default is ~2s, reduce to 0.3s)

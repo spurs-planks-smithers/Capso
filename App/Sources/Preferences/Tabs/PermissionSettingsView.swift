@@ -75,15 +75,23 @@ struct PermissionSettingsView: View {
         }
     }
 
-    private static let screenRecordingExplanation = """
-    macOS uses Screen Recording access for still screenshots too. It lets Nextshot read pixels across your screen, including other apps. The permission is broader than the area you select.
-
-    When you start a capture, Nextshot freezes the screen so you can select an area. Anything visible may contain private information. Check the image before sharing.
-
-    Captures stay on your Mac by default. Sharing, support uploads, and optional AI features have separate controls. This permission alone does not send images.
-
-    Revoke access in System Settings > Privacy & Security > Screen & System Audio Recording. New screen captures then stop working. Saved captures remain.
-    """
+    private static let screenRecordingExplanation = SettingsHelpContent(points: [
+        SettingsHelpPoint(
+            icon: "SettingsHelpScreen",
+            title: "For screenshots, too",
+            detail: "macOS grants access to the whole screen, including other apps."
+        ),
+        SettingsHelpPoint(
+            icon: "SettingsHelpLocal",
+            title: "Local by default",
+            detail: "Captures save to your Mac. You choose what to share."
+        ),
+        SettingsHelpPoint(
+            icon: "SettingsHelpControls",
+            title: "You're in control",
+            detail: "Turn access off in System Settings. Saved captures stay on your Mac."
+        ),
+    ])
 
     private func permissionRow(
         visibility: SettingsVisibilityFlag,
@@ -92,7 +100,7 @@ struct PermissionSettingsView: View {
         subtitle: LocalizedStringKey,
         isGranted: Bool,
         showDivider: Bool = false,
-        explanation: String? = nil
+        explanation: SettingsHelpContent? = nil
     ) -> some View {
         SettingRow(visibility: visibility, label: title, sublabel: subtitle, showDivider: showDivider, explanation: explanation) {
             HStack(spacing: 10) {

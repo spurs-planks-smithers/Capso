@@ -42,6 +42,7 @@ export default defineConfig({
         { label: 'Keyboard shortcuts', slug: 'shortcuts' },
         { label: 'Fix a problem', slug: 'troubleshooting' },
         { label: 'Send feedback', slug: 'send-feedback' },
+        { label: 'Release notes', slug: 'release-notes' },
       ] },
     ],
     pagination: true,

@@ -1,8 +1,8 @@
 ---
 title: Capture and image copy
 description: Choose whether a capture includes the pointer and which image format Escape copies.
-reviewedFor: 0.4.0
-minVersion: 0.4.0
+reviewedFor: 0.5.0
+minVersion: 0.5.0
 ---
 
 import Step from '../../../components/Step.astro';
@@ -10,11 +10,11 @@ import GuideImage from '../../../components/GuideImage.astro';
 
 Use **Screenshots** to include the pointer or choose the format for a copied image. The default format is PNG.
 
-<GuideImage src="/guides/media/settings-capture.png" alt="The Screenshots tab shows Show Cursor, Clipboard Format, and a collapsed Advanced section." caption="These settings change captures and image copy. They do not change copied prompt text." />
+<GuideImage src="/guides/media/settings-capture.png" alt="The Screenshots tab shows Show Pointer, Clipboard Format, and a collapsed Advanced section." caption="These settings change captures and image copy. They do not change copied prompt text." />
 
 <Step number={1} title="Choose whether to show the pointer">
 
-Open **Settings**, then **Screenshots**. Turn on **Show Cursor** when the pointer helps explain your feedback.
+Open **Settings**, then **Screenshots**. Turn on **Show Pointer** when the pointer helps explain your feedback.
 
 Leave it off when it covers the detail you want to mark.
 
@@ -32,17 +32,17 @@ Escape saves no capture to a round. With marks present, Escape follows the edito
 
 | Control | Default | When to change it |
 | --- | --- | --- |
-| Show Cursor | Off | Include the pointer as context. |
+| Show Pointer | Off | Include the pointer as context. |
 | Clipboard Format | PNG | Choose JPEG or TIFF when your destination needs it. |
 
-**Clipboard Format** controls image copy. Finishing notes still copies a capture prompt. Ending a round still copies the round prompt.
+**Clipboard Format** controls the image copied with Escape before you add marks. Finishing notes still copies a capture prompt. Ending a round still copies the round prompt.
 
 <details>
 <summary>Advanced: timestamp and capture presets</summary>
 
 Open **Advanced** in **Screenshots** to reveal the extra controls.
 
-<GuideImage src="/guides/media/settings-advanced.png" alt="Advanced screenshot settings show Timestamp and Capture Presets." caption="Keep these controls unchanged unless the capture needs a time label or a fixed shape." />
+<GuideImage src="/guides/media/settings-advanced.png" alt="Advanced capture settings scrolled to the complete preset list." caption="Scroll within Advanced to see the capture presets and their keys." />
 
 ### Timestamp
 

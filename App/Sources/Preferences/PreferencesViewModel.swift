@@ -66,6 +66,9 @@ final class PreferencesViewModel {
         set {
             withMutation(keyPath: \.diagnosticLoggingEnabled) {
                 settings.diagnosticLoggingEnabled = newValue
+                DiagnosticLogger.configure(capabilityEnabled: Capabilities.current.diagnostics,
+                                           loggingEnabled: newValue)
+                DiagnosticLogger.installUncaughtExceptionHandler()
             }
         }
     }

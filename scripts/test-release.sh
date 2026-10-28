@@ -2,7 +2,8 @@
 # Fork: checks the parts of scripts/release.sh that need no network, no
 # notarization, and no Cloudflare: version math, the bump suggestion, the
 # CHANGELOG.md steps, and the release record. Run it after any edit to
-# scripts/release.sh, scripts/release-lib.sh, or scripts/release-changelog.py.
+# scripts/release.sh, scripts/release-lib.sh, scripts/release-changelog.py,
+# or scripts/nextshot-local.py.
 #
 # Usage: scripts/test-release.sh
 set -uo pipefail
@@ -147,5 +148,85 @@ is_false "a missing key is not found" r2_get releases/Nextshot-9.9.9.json "$tmp/
 r2_delete releases/Nextshot-0.0.1.json
 is_false "a deleted object is gone" r2_get releases/Nextshot-0.0.1.json "$tmp/gone.out"
 unset NEXTSHOT_R2_LOCAL
+
+# Local app identity and m5pro policy. Fixtures never launch or install an app.
+if python3 -I - "$repo" "$tmp" <<'PY'
+import importlib.util
+import pathlib
+import plistlib
+import sys
+import unittest
+
+script = pathlib.Path(sys.argv[1]) / "scripts/nextshot-local.py"
+assert script.is_file(), "Dev-only local app guard is missing"
+spec = importlib.util.spec_from_file_location("local_policy", script)
+policy = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(policy)
+root = pathlib.Path(sys.argv[2]) / "apps"
+root.mkdir()
+
+def app(name, identifier, version="0.4.0-dev", schemes=("nextshot-dev",)):
+    path = root / name
+    (path / "Contents").mkdir(parents=True, exist_ok=True)
+    with (path / "Contents/Info.plist").open("wb") as stream:
+        plistlib.dump({"CFBundleIdentifier": identifier,
+                      "CFBundleShortVersionString": version,
+                      "CFBundleURLTypes": [{"CFBundleURLSchemes": list(schemes)}]}, stream)
+    return path
+
+class LocalPolicyTests(unittest.TestCase):
+    def setUp(self):
+        for path in root.glob("*.app/Contents/Info.plist"):
+            path.unlink()
+
+    def test_optimized_dev_build_is_allowed(self):
+        policy.verify_dev_app(app("Nextshot Dev.app", policy.DEV_ID))
+
+    def test_production_identity_is_refused(self):
+        with self.assertRaises(ValueError):
+            policy.verify_dev_app(app("Nextshot Dev.app", policy.PRODUCTION_ID))
+
+    def test_production_url_scheme_is_refused(self):
+        with self.assertRaises(ValueError):
+            policy.verify_dev_app(app("Nextshot Dev.app", policy.DEV_ID, schemes=("nextshot",)))
+
+    def test_release_version_is_refused(self):
+        with self.assertRaises(ValueError):
+            policy.verify_dev_app(app("Nextshot Dev.app", policy.DEV_ID, version="0.4.0"))
+
+    def test_renamed_installed_production_is_refused(self):
+        app("Renamed.app", policy.PRODUCTION_ID)
+        with self.assertRaises(ValueError):
+            policy.check_local_policy("m5pro.local", [root], [])
+
+    def test_history_review_is_refused(self):
+        app("Renamed.app", "com.drewschulz.nextshot.historyreview")
+        with self.assertRaises(ValueError):
+            policy.check_local_policy("M5PRO", [root], [])
+
+    def test_running_production_artifact_is_refused(self):
+        path = app("Outside.app", policy.PRODUCTION_ID)
+        with self.assertRaises(ValueError):
+            policy.check_local_policy("m5pro", [], [path])
+
+    def test_distribution_artifact_can_remain_uninstalled(self):
+        app("Artifact.app", policy.PRODUCTION_ID)
+        policy.check_local_policy("m5pro", [], [])
+
+    def test_other_mac_can_perform_release_validation(self):
+        app("Nextshot.app", policy.PRODUCTION_ID)
+        policy.check_local_policy("release-test-mac", [root], [])
+
+    def test_process_paths_keep_spaces(self):
+        text = "/usr/sbin/launchd\n /tmp/Long Build/Nextshot.app/Contents/MacOS/Nextshot\n"
+        self.assertEqual(policy.running_app_paths(text), [pathlib.Path("/tmp/Long Build/Nextshot.app")])
+
+    def test_empty_process_inventory_fails(self):
+        with self.assertRaises(ValueError):
+            policy.running_app_paths("")
+
+unittest.main(argv=[sys.argv[0]])
+PY
+then pass "local Dev policy"; else bad "local Dev policy"; fi
 
 exit $fail

@@ -1,5 +1,7 @@
 # Zip Handoff Implementation Plan
 
+**Local testing correction, 2026-10-28:** The app launch steps below are historical. On m5pro, use only Nextshot Dev. Never open `Nextshot.app` from an old build path. Follow [[local-development]].
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Two Nshot menu rows, Zip Round and Zip N Selected, write a portable zip to `~/Downloads` that any agent on any Mac can use: relative paths, JPEG images under a 5 MB goal, `README.md` first.

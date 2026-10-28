@@ -120,6 +120,7 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
     case automationURLs
     case automaticUpdates
     case screenshotCopy
+    case diagnostics
 
     /// New flags start with both defaults `off`. A release default turns on
     /// only with a released-in build number.
@@ -161,6 +162,8 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
             FlagSpec(issue: 0, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
         case .screenshotCopy:
             FlagSpec(issue: 123, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
+        case .diagnostics:
+            FlagSpec(issue: 118, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
         case .standaloneCapture, .recordingTools, .translationTools, .cloudShare, .automationURLs, .automaticUpdates:
             FlagSpec(issue: 119, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
         }

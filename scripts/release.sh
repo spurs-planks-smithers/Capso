@@ -38,6 +38,8 @@
 # The terminal asks in step 5, so an unattended job cannot publish.
 # Rehearsal: NEXTSHOT_R2_LOCAL=<folder> uses a simulated bucket for --promote
 # and --import-legacy. A release itself refuses to run with it.
+# On m5pro, production output stays a distribution artifact. Local testing
+# uses Nextshot Dev, including Release compiler optimization.
 set -euo pipefail
 
 repo="$(cd "$(dirname "$0")/.." && pwd)"
@@ -68,6 +70,7 @@ while [[ $# -gt 0 ]]; do
     *) [[ -z "$bump" ]] || rel_fail "one bump only: '$bump' and '$1'"; bump="$1"; shift ;;
   esac
 done
+python3 -I "$repo/scripts/nextshot-local.py" check
 
 # Asks on the terminal. A closed stdin, a pipe, or anything but y stops.
 confirm() {
