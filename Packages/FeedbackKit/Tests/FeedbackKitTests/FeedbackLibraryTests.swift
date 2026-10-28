@@ -206,8 +206,8 @@ struct FeedbackLibraryTests {
         let apps: [String?] = ["Preview", "Preview", "TextEdit", "Claude", nil]
         var s = ended(day: 21)
         s.captures = apps.enumerated().map { capture($0.offset + 1, app: $0.element) }
-        #expect(FeedbackLibrary.subtitle(for: s, selectedCount: 0) == "Preview, TextEdit, Claude, 5 captures")
-        #expect(FeedbackLibrary.subtitle(for: s, selectedCount: 2) == "Preview, TextEdit, Claude, 5 captures, 2 selected")
+        #expect(FeedbackLibrary.subtitle(for: s, selectedCount: 0) == "Preview, TextEdit, +1, 5 captures")
+        #expect(FeedbackLibrary.subtitle(for: s, selectedCount: 2) == "Preview, TextEdit, +1, 5 captures, 2 selected")
 
         var one = ended(day: 21)
         one.captures = [capture(1, app: "Safari")]
