@@ -8,9 +8,9 @@ Drew's top priority is a lightweight, unobtrusive extension with low overhead an
 
 The October 28 request supersedes the October 27 Mac-required scope. Mandatory reconnect-before-save and universal 15-minute Mac-disconnection expiry no longer apply to browser-owned capture or saved results. Any native-transfer expiry must be separate and cannot erase the browser result.
 
-Core standalone scope includes area capture, annotations, notes, annotation-based element context, a local round, an agent-neutral prompt, and portable export. Rolling Round follows its own off-by-default flag and existing selected-history requirements. Drew selects lightweight diagnostics on October 28. Deeper debugger access is deferred. Standalone Jev remains a product decision below.
+Core standalone scope includes area capture, annotations, notes, annotation-based element context, a local round, an agent-neutral prompt, and portable export. Rolling Round follows its own off-by-default flag and existing selected-history requirements. Drew selects lightweight diagnostics on October 28. Deeper debugger access is deferred. Standalone Jev through a separate authenticated service is confirmed. Start with invited pilot users. Nextshot funds a bounded allowance. Local suggestions continue at the limit.
 
-Design for current desktop Chrome. Validate on the Mac first. Keep the browser core portable, but claim no Windows, Linux, Edge, or Safari support before validation. Preserve Nextshot's macOS 15 floor for optional native integration.
+Drew confirms a Mac-first release on 2026-10-28. Design for current desktop Chrome. Keep the browser core portable. Claim no Windows, Linux, Edge, or Safari support before later validation. Preserve Nextshot's macOS 15 floor for optional native integration.
 
 Evidence: [external research record](../../research/2026-10-28-chrome-swift-integration.md), [Chrome discovery](../../plans/2026-10-27-chrome-extension-discovery.md), and [Rolling Round plan](../../plans/2026-10-27-rolling-round-discovery.md). Platform facts and proposed design choices are separate in that record.
 
@@ -26,13 +26,16 @@ Use TypeScript compiled to packaged JavaScript, semantic HTML, and small CSS. St
 | Recorder/export worker | No-audio stream, bounded rolling media, masking, selected frames, encoding | Offscreen document only while a task or unsaved buffer needs it |
 | Browser round store | Saved round metadata and assets, portable bundle generation | Extension-owned local storage; no page storage or cloud sync |
 | Optional Swift bridge | Host identity, version handshake, validated selected-payload transfer, native receipt | Chrome starts the signed helper for one operation; close its connection afterward |
-| Native app coordinator | Existing round mutation, independent ended Rolling Round import, eligible Jev work | Existing Nextshot instance; automatic closed-app launch awaits Drew's decision |
+| Native app coordinator | Existing round mutation, independent ended Rolling Round import, eligible Jev work | Quietly start installed Nextshot on Save when closed. Reuse its existing instance when running. |
+| Standalone Jev service | Invited-user authentication, bounded allowance, sanitized inference, and response validation | Run a bounded request during deliberate review. No tracking-time stream or hosted round archive. |
 
 The first direction keeps review in Chrome even when Nextshot is installed. It avoids moving between two annotation interfaces. Mac integration imports the same capture data into native rounds and can provide consented assistance. This is a proposed design choice, not an approved screen layout.
 
 Native delivery candidate: the helper writes a bounded payload to a private import inbox. It notifies the selected app with an opaque import identifier. App-side code validates and imports it. The inbox requires user-only access, unpredictable identifiers, exclusive creation, bounded lifetime, and rejection of symlinks or substituted files. A private path alone does not authenticate its creator. No page-supplied path or media data travels in a URL. No general URL-automation capability is implicitly enabled. Delivery to the existing app instance is unverified. Compare direct native interprocess communication during a later feasibility trial before fixing the transport.
 
-The app remains the only writer of its active round state. The helper must not create a second independent writer over `FeedbackRoundStore` or `.active.json`. Native Rolling Round import creates an ended round and preserves any ordinary active round. Browser-only capture has no native active-round dependency.
+On Save, persist the browser result first. Then quietly open the correctly paired installed app and import automatically. Do not activate its main window or require another confirmation. Verify actual quiet behavior in the later trial. Do not launch on extension install, page load, idle, arming, or app-presence probing. A failed launch or unavailable bridge preserves the browser save.
+
+The app remains the only writer of its active round state. The helper must not create a second independent writer over `FeedbackRoundStore` or `.active.json`. Proposed ordinary-capture routing joins the native active round or starts the default round when none exists. Use stable source IDs for deduplication and preserve the app's capture numbering. Native Rolling Round import creates an ended round and preserves any ordinary active round. Browser-only capture has no native active-round dependency.
 
 ## Contracts and lifecycle
 
@@ -89,17 +92,28 @@ Prefer browser-native media recording and encoding. A larger codec runtime needs
 
 The complete package has a soft 5,000,000-byte target. Optimize automatically. If animation-free output remains larger, save the smallest practical package normally. Keep accepted steps and matching diagnostics. No size prompts, forced shorter excerpt, or manual optimization controls.
 
-Jev may receive only approved sanitized event/element details, relevant diagnostics where allowed, and selected still frames. Never send GIF/video. Keep existing consent, dev-only feature review, and native endpoint restrictions. Apple Intelligence #148 stays optional and does not block core browser use.
+Jev may receive only approved sanitized event/element details, relevant diagnostics where allowed, and selected still frames. Never send GIF/video. Keep existing consent, dev-only feature review, and native endpoint restrictions. The browser service has a separately scoped transport and authentication boundary. Service planning does not authorize new native endpoints or release defaults. Apple Intelligence #148 stays optional and does not block core browser use.
 
 ## Product decisions
 
 Asked live through structured questions on 2026-10-28. These are material workflow and service choices. Routine design choices above do not need another interview.
 
-| Question | Recommended direction | Status |
+| Topic | Decision | Status |
 |---|---|---|
 | Diagnostic breadth | Use lightweight observable errors and permitted request summaries. Label gaps. Exclude debugger permission from the first extension. | Confirmed by Drew on 2026-10-28 |
-| Installed app is closed | Save in the browser. Launch Nextshot only when the reviewer requests native use. | Awaiting Drew |
-| Standalone Jev | Start with local suggestions. Add eligible native Jev when available. A standalone remote service requires separate scope. | Awaiting Drew |
+| Installed app is closed | Save in the browser first. Quietly start installed Nextshot on Save and import into its native library automatically. | Confirmed by Drew on 2026-10-28 |
+| Standalone Jev | Include a separate authenticated service. Preserve local suggestions when it is unavailable or capped. | Confirmed by Drew on 2026-10-28 |
+| First supported platform | Mac first. Keep the browser core portable for later expansion. | Confirmed by Drew on 2026-10-28 |
+| Service audience | Invited pilot users first. Public access is a later product decision. | Confirmed by Drew on 2026-10-28 |
+| Service funding | Nextshot pays within usage and spending limits. Local suggestions continue at the limit. | Confirmed by Drew on 2026-10-28 |
+
+## Standalone service boundary
+
+The [standalone Jev specification](2026-10-28-standalone-jev-service.md) records authentication, payload, consent, quota, cost, retention, and failure rules. It adds no required account to capture or local save. The invited user signs in only to enable remote assistance. Do not turn each request into a login or usage-confirmation step.
+
+Use local suggestions immediately. Send one bounded request through the service only when the selected assistance and content consent allow it. The service holds upstream credentials and enforces access and limits. Never ship an upstream key in the extension. Late answers cannot overwrite reviewer edits.
+
+Planning includes operating costs and a spending-control design. No paid usage, service deployment, hosting purchase, or public opening is authorized. A later pilot-activation proposal must include measured unit-cost estimates and explicit caps. No numeric allowance or spending commitment is invented here.
 
 ## Specifications and future evidence
 
@@ -111,7 +125,7 @@ Write one focused specification for each deliverable below. These are planned sp
 | 2 | Evidence and local round format | Versioning, browser/native ownership, selected assets, prompt/zip parity, privacy boundaries, and complete-save semantics |
 | 3 | Optional native integration | Setup in either install order, signed helper registration, app relocation/update, channel pairing, native-round protection, and fallback |
 | 4 | Recording and Rolling Round | Media lifecycle, exact selection, pause gaps, browser indicators, bounded memory/events, useful local steps, and cleanup |
-| 5 | Assistance boundary | Confirmed standalone service choice, existing consent, current native release limits, stale-result handling, and optional #148 |
+| 5 | Standalone Jev and native assistance | Invited-user authentication, content consent, sponsor-funded allowance, global cost controls, retention, failure fallback, native release limits, and optional #148 |
 | 6 | Performance and pilot | Baseline comparisons for idle, capture, armed, paused, review, and export. Set measured budgets before implementation approval. |
 
 A later bounded trial must prove the difficult platform boundaries first: actual Claude/Artifacts frames, capture gesture and pause/resume behavior, exact excerpt export, and native delivery without a persistent process. Get separate trial authorization. Choose the smallest representative local/staging pilot before making cross-site claims.
