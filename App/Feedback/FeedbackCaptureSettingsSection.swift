@@ -30,7 +30,7 @@ struct FeedbackCaptureSettingsSection: View {
 
     private var clipboardFormatHelp: LocalizedStringKey {
         Capabilities.current.screenshotCopy
-            ? "Copy Screenshot copies a selected area in this format for pasting."
+            ? "Copy Screenshot copies an area in this format for pasting."
             : "Images copied with Escape use this format."
     }
 }
