@@ -74,6 +74,9 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         var menu: NSMenu
         var round: FeedbackRound
         var active: Bool
+        /// The date text, when a round title took its place as the row title.
+        /// The subtitle then starts with it (#164).
+        var datedTitle: String?
     }
 
     private struct HistoryGroup {
@@ -164,7 +167,8 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
                 row.item,
                 round: row.round,
                 active: row.active,
-                selectedCount: basket.count(inFolder: row.round.folderName)
+                selectedCount: basket.count(inFolder: row.round.folderName),
+                datedTitle: row.datedTitle
             )
         }
     }
@@ -321,13 +325,19 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     }
 
     private func makeRoundRow(_ round: FeedbackRound, active: Bool, now: Date, basket: FeedbackBasket) -> RoundRow {
-        let title = FeedbackLibrary.title(startedAt: round.startedAt, now: now, timeZone: .current)
-        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        let dated = FeedbackLibrary.title(startedAt: round.startedAt, now: now, timeZone: .current)
+        // With sessionTitle on, the reviewer's words label the row and the
+        // date moves to the subtitle. A round with no reviewer words keeps
+        // the date as its title (#164).
+        let named = Flags.isOn(.sessionTitle) ? RoundTitle.title(for: round) : nil
+        let item = NSMenuItem(title: named ?? dated, action: nil, keyEquivalent: "")
+        let datedTitle = named == nil ? nil : dated
         Self.updateRoundSubtitle(
             item,
             round: round,
             active: active,
-            selectedCount: basket.count(inFolder: round.folderName)
+            selectedCount: basket.count(inFolder: round.folderName),
+            datedTitle: datedTitle
         )
         if active {
             // The green dot of the menu bar mark and the help box, in the
@@ -343,13 +353,13 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         // menuNeedsUpdate replaces it before anything shows.
         submenu.addItem(grayLine("Loading..."))
         item.submenu = submenu
-        return RoundRow(item: item, menu: submenu, round: round, active: active)
+        return RoundRow(item: item, menu: submenu, round: round, active: active, datedTitle: datedTitle)
     }
 
     /// Reserve the counts and active prefix before fitting the app names.
     /// Measure with the menu font and leave room for menu margins and arrows.
-    private static func updateRoundSubtitle(_ item: NSMenuItem, round: FeedbackRound, active: Bool, selectedCount: Int) {
-        let prefix = active ? "Active round, " : ""
+    private static func updateRoundSubtitle(_ item: NSMenuItem, round: FeedbackRound, active: Bool, selectedCount: Int, datedTitle: String? = nil) {
+        let prefix = (active ? "Active round, " : "") + (datedTitle.map { $0 + ", " } ?? "")
         let attributes: [NSAttributedString.Key: Any] = [.font: NSFont.menuFont(ofSize: 0)]
         let maximumWidth: CGFloat = 240
         var subtitle = prefix + FeedbackLibrary.subtitle(for: round, selectedCount: selectedCount)
