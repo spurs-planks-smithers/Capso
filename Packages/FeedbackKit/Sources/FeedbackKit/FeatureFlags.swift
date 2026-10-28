@@ -159,7 +159,7 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
         case .zipHandoff:
             FlagSpec(issue: 85, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
         case .supportSubmission:
-            FlagSpec(issue: 0, allowedStates: [.off, .on], devDefault: .on, releaseDefault: .on, releasedInBuild: 886)
+            FlagSpec(issue: 0, allowedStates: [.off, .on], devDefault: .on, releaseDefault: .on, releasedInBuild: 887)
         case .screenshotCopy:
             FlagSpec(issue: 123, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
         case .diagnostics:

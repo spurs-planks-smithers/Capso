@@ -18,7 +18,7 @@ Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This for
 ### Changed
 
 - Fresh installations offer Launch at Login on by default. Login startup stays quiet. Disabling it in Nextshot or macOS keeps it off across updates.
-- Settings use clearer pointer labels, functional shortcut groups, and compact Screen Recording help. Repository links, Diagnostics, and centered-selection settings stay hidden by default.
+- Settings use clearer pointer labels, functional shortcut groups, and compact Screen Recording help. Repository links are removed.
 
 ### Fixed
 
