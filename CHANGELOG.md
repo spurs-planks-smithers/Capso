@@ -14,6 +14,8 @@ Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This for
 
 ### Added
 
+- Fresh installations offer Launch at Login on by default. Login startup stays quiet, and disabling it in Nextshot or macOS stays off across updates.
+
 - An email-only intake shutdown mode preserves website, native, processing, screening, and notification controls.
 
 - Screen Recording help explains screen access beside the permission label.

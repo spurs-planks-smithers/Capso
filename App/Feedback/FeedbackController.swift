@@ -108,7 +108,10 @@ final class FeedbackController {
         }
     }
 
-    func start(captureCoordinator: CaptureCoordinator, settings: AppSettings) {
+    private var quietLoginStartup = false
+
+    func start(captureCoordinator: CaptureCoordinator, settings: AppSettings, loginLaunch: Bool = false) {
+        quietLoginStartup = loginLaunch
         self.captureCoordinator = captureCoordinator
         self.settings = settings
         captureCoordinator.feedbackSink = { [weak self] result in
@@ -181,13 +184,14 @@ final class FeedbackController {
         // The status item shows at launch, with or without a round. A
         // round left active before a relaunch shows its count.
         Task { await refresh() }
-        jev.warmUp()
+        if !loginLaunch { jev.warmUp() }
     }
 
     // MARK: - Round actions (hotkey, status menu, App Intents)
 
     @discardableResult
     func startRound(name: String?) async throws -> FeedbackRound {
+        quietLoginStartup = false
         let round = try await store.start(name: name ?? "")
         await refresh()
         return round
@@ -197,6 +201,7 @@ final class FeedbackController {
     /// "feedback" when none is active, so a screenshot copied with Esc leaves
     /// no empty round behind.
     func capture() {
+        quietLoginStartup = false
         FeedbackLog.logger.notice("area capture requested")
         let previousPhase = selectionPhase
         let previousScreen = helpScreen
@@ -605,6 +610,7 @@ final class FeedbackController {
 
     /// Reopens an ended round, so the next capture goes into it.
     private func resumeRound(_ listed: FeedbackRound) async {
+        quietLoginStartup = false
         do {
             let round = try await store.resume(folderName: listed.folderName)
             FeedbackLog.logger.notice("round resumed, \(round.captures.count) captures")
@@ -628,6 +634,8 @@ final class FeedbackController {
     /// Shows the keys for the current stage. The box stays until the round
     /// ends. With no round, it shows only while a capture is in progress.
     private func updateHelp() {
+        // A restored round must not show an overlay during login startup.
+        guard !quietLoginStartup else { help.hide(); return }
         let stage: FeedbackHelpStage?
         switch selectionPhase {
         case .starting:

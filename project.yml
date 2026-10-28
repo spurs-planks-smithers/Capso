@@ -53,6 +53,8 @@ packages:
     path: Packages/JevKit
   SupportKit:
     path: Packages/SupportKit
+  StartupKit:
+    path: Packages/StartupKit
   KeyboardShortcuts:
     url: https://github.com/sindresorhus/KeyboardShortcuts
     exactVersion: "2.2.1"
@@ -102,6 +104,7 @@ targets:
       - package: FeedbackKit
       - package: JevKit
       - package: SupportKit
+      - package: StartupKit
       - package: KeyboardShortcuts
       - package: Defaults
       - package: LaunchAtLogin

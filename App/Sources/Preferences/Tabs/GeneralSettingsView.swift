@@ -1,6 +1,5 @@
 // App/Sources/Preferences/Tabs/GeneralSettingsView.swift
 import SwiftUI
-import LaunchAtLogin
 import AppKit
 import KeyboardShortcuts
 import SharedKit
@@ -32,9 +31,7 @@ struct GeneralSettingsView: View {
             SettingGroup(visibility: .generalStartup, title: "Startup") {
                 SettingCard {
                     SettingRow(visibility: .generalStartupLaunchAtLogin, label: "Launch at Login", sublabel: "Start Capso when you log in") {
-                        LaunchAtLogin.Toggle { Text("") }
-                            .toggleStyle(.switch)
-                            .controlSize(.small)
+                        LoginStartupSettingsControl() // Fork: App/Feedback
                     }
                     if Capabilities.current.standaloneCapture {
                         SettingRow(visibility: .generalStartupShowCaptureMenu, label: "Show Capture Menu", sublabel: "Show the extra menu for standalone capture tools", showDivider: true) {
