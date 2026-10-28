@@ -37,11 +37,11 @@ struct FeatureFlagsTests {
             "oneBreath", "promptLanes", "lanesOrder", "lanesSplit", "dataGuard",
             "dataGuardInjection", "dataGuardContact", "dataGuardNumbers", "dataGuardSecrets", "dataGuardFaces",
             "jevSendImages", "jevSendScreenText", "zipHandoff", "supportSubmission",
-            "standaloneCapture", "recordingTools", "translationTools", "cloudShare", "automationURLs", "automaticUpdates", "screenshotCopy", "diagnostics",
+            "standaloneCapture", "recordingTools", "translationTools", "cloudShare", "automationURLs", "automaticUpdates", "screenshotCopy", "diagnostics", "sessionTitle",
         ])
         // A sub-flag carries its parent's issue. The two consent flags belong
         // to the Jev base, #36.
-        #expect(FeatureFlag.allCases.map(\.spec.issue) == [36, 37, 37, 37, 37, 38, 38, 38, 39, 39, 39, 40, 69, 69, 69, 70, 70, 70, 70, 70, 70, 36, 36, 85, 0] + Array(repeating: 119, count: 6) + [123, 118])
+        #expect(FeatureFlag.allCases.map(\.spec.issue) == [36, 37, 37, 37, 37, 38, 38, 38, 39, 39, 39, 40, 69, 69, 69, 70, 70, 70, 70, 70, 70, 36, 36, 85, 0] + Array(repeating: 119, count: 6) + [123, 118, 164])
         let appFlags: [FeatureFlag] = [.standaloneCapture, .recordingTools, .translationTools, .cloudShare, .automationURLs, .automaticUpdates, .screenshotCopy, .diagnostics]
         for mask in 0..<(1 << appFlags.count) {
             let enabled = Set(appFlags.enumerated().compactMap { mask & (1 << $0.offset) != 0 ? $0.element : nil })
@@ -177,7 +177,7 @@ struct FeatureFlagsTests {
     }
 
     /// Flags that are not Jev features. They may turn on in a release build.
-    private static let nonJevFlags: Set<FeatureFlag> = [.zipHandoff, .supportSubmission, .standaloneCapture, .recordingTools, .translationTools, .cloudShare, .automationURLs, .automaticUpdates, .screenshotCopy, .diagnostics]
+    private static let nonJevFlags: Set<FeatureFlag> = [.zipHandoff, .supportSubmission, .standaloneCapture, .recordingTools, .translationTools, .cloudShare, .automationURLs, .automaticUpdates, .screenshotCopy, .diagnostics, .sessionTitle]
 
     @Test("The zip handoff flag is not dev-only and starts off")
     func zipHandoffFlag() {
@@ -190,6 +190,21 @@ struct FeatureFlagsTests {
         // Not dev-only: an override turns it on in a release build too.
         #expect(FlagResolver.state(of: .zipHandoff, channel: .release) { _ in "on" } == .on)
         #expect(FlagResolver.state(of: .zipHandoff, channel: .release) { _ in nil } == .off)
+    }
+
+    @Test("The session title flag is not a Jev flag, is on in both channels, and an override can turn it off")
+    func sessionTitleFlag() {
+        let spec = FeatureFlag.sessionTitle.spec
+        #expect(spec.issue == 164)
+        #expect(spec.devOnly == false && spec.parent == nil)
+        #expect(spec.allowedStates == [.off, .on])
+        #expect(spec.devDefault == .on && spec.releaseDefault == .on)
+        #expect(spec.releasedInBuild != nil)
+        #expect(FlagResolver.state(of: .sessionTitle, channel: .dev) { _ in nil } == .on)
+        #expect(FlagResolver.state(of: .sessionTitle, channel: .release) { _ in nil } == .on)
+        #expect(FlagResolver.state(of: .sessionTitle, channel: .release) { _ in "off" } == .off)
+        // The flag has no sub-flags, so the Jev sub-flag helper rejects it.
+        #expect(FeatureFlag.subFlags(of: .sessionTitle).isEmpty)
     }
 
     @Test("Every Jev flag is dev-only, and a dev-only flag defaults to off in release")

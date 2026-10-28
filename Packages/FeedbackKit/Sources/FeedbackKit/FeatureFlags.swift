@@ -121,6 +121,10 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
     case automaticUpdates
     case screenshotCopy
     case diagnostics
+    /// Session names (#164). A pasted prompt carries the reviewer's words in
+    /// its first 2000 characters and asks the agent to name its session, and
+    /// a Recent row shows the round's title. Not a Jev feature: code only.
+    case sessionTitle
 
     /// New flags start with both defaults `off`. A release default turns on
     /// only with a released-in build number.
@@ -164,6 +168,12 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
             FlagSpec(issue: 123, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
         case .diagnostics:
             FlagSpec(issue: 118, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
+        case .sessionTitle:
+            // On in both channels (Drew, 2026-10-28). The marker is the build
+            // number two commits after the 2026-10-28 main tip: this merge,
+            // then the normal release commit. A commit in between makes it
+            // stale, so check it when the release is cut.
+            FlagSpec(issue: 164, allowedStates: [.off, .on], devDefault: .on, releaseDefault: .on, releasedInBuild: 889)
         case .standaloneCapture, .recordingTools, .translationTools, .cloudShare, .automationURLs, .automaticUpdates:
             FlagSpec(issue: 119, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
         }

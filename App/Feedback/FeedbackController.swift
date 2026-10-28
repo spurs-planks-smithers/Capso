@@ -368,7 +368,7 @@ final class FeedbackController {
         let round = try await endRound()
         let folder = store.rootURL.appendingPathComponent(round.folderName, isDirectory: true)
         await jev.settle(folderName: round.folderName)
-        let prompt = PromptBuilder.render(round, folderPath: folder.path, refined: jev.pointsToRefinedFiles, lanes: jev.lanes(for: round, folderURL: folder))
+        let prompt = PromptBuilder.render(round, folderPath: folder.path, refined: jev.pointsToRefinedFiles, lanes: jev.lanes(for: round, folderURL: folder), sessionTitle: Flags.isOn(.sessionTitle))
         copyToClipboard(prompt, toast: Self.promptCopiedRoundEndedToast, screen: nil)
         FeedbackLog.logger.notice("round prompt copied, round ended, \(prompt.count) characters")
         return prompt
@@ -672,10 +672,10 @@ final class FeedbackController {
                 NSSound.beep()
             case 1:
                 let entry = resolved.entries[0]
-                let prompt = PromptBuilder.renderCapture(entry.capture, folderPath: entry.folderPath, redo: true)
+                let prompt = PromptBuilder.renderCapture(entry.capture, folderPath: entry.folderPath, redo: true, sessionTitle: Flags.isOn(.sessionTitle))
                 self.copyToClipboard(prompt, toast: Self.promptCopiedToast, screen: nil)
             case let count:
-                let prompt = PromptBuilder.renderSelection(resolved.entries)
+                let prompt = PromptBuilder.renderSelection(resolved.entries, sessionTitle: Flags.isOn(.sessionTitle))
                 self.copyToClipboard(prompt, toast: "\(count) captures copied\nPaste them into your agent.", screen: nil)
             }
             FeedbackLog.logger.notice("selection copied: \(resolved.entries.count) captures, \(resolved.missing.count) missing")
@@ -689,7 +689,7 @@ final class FeedbackController {
             let folder = self.store.rootURL.appendingPathComponent(round.folderName, isDirectory: true)
             let refined = self.jev.pointsToRefinedFiles
                 && FileManager.default.fileExists(atPath: folder.appendingPathComponent("refined.md").path)
-            let prompt = PromptBuilder.render(round, folderPath: folder.path, redo: true, refined: refined, lanes: self.jev.lanes(for: round, folderURL: folder))
+            let prompt = PromptBuilder.render(round, folderPath: folder.path, redo: true, refined: refined, lanes: self.jev.lanes(for: round, folderURL: folder), sessionTitle: Flags.isOn(.sessionTitle))
             self.copyToClipboard(prompt, toast: Self.promptCopiedToast, screen: nil)
             FeedbackLog.logger.notice("recent round prompt copied, \(prompt.count) characters")
         }
@@ -1225,7 +1225,7 @@ final class FeedbackController {
 
     private func putOnClipboard(_ capture: FeedbackCapture, in round: FeedbackRound, screen: NSScreen?) {
         let folder = store.rootURL.appendingPathComponent(round.folderName, isDirectory: true)
-        let prompt = PromptBuilder.renderCapture(capture, folderPath: folder.path, refined: jev.pointsToRefinedFiles)
+        let prompt = PromptBuilder.renderCapture(capture, folderPath: folder.path, refined: jev.pointsToRefinedFiles, sessionTitle: Flags.isOn(.sessionTitle))
         copyToClipboard(prompt, toast: Self.promptCopiedToast, screen: screen)
         FeedbackLog.logger.notice("capture \(capture.index) prompt copied, \(prompt.count) characters")
     }
