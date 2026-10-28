@@ -241,7 +241,7 @@ footer { font-size: 12.5px; color: var(--muted); padding-block: 0 40px; }
 <div class="wrap pad main">
   <aside class="left">
     <div class="player"><video id="vid" src="video.mp4" poster="{{POSTER}}" controls playsinline preload="metadata"></video></div>
-    <p class="vidfail" id="vidfail" hidden>The video file did not load here. Watch it on Frame.io at <a href="{{FRAMEIO}}" target="_blank" rel="noopener">{{FRAMEIO_SHORT}}</a>. The cards and notes still work.</p>
+    <p class="vidfail" id="vidfail" hidden>The video file did not load here. Watch it at <a href="{{WATCH}}" target="_blank" rel="noopener">{{WATCH_SHORT}}</a>. The cards and notes still work.</p>
     <div class="panel now">
       <div class="k">Now playing</div>
       <div class="t" id="now">Press play, or click a line on the timeline.</div>
@@ -390,7 +390,9 @@ footer { font-size: 12.5px; color: var(--muted); padding-block: 0 40px; }
   const remote = {};            // last stored body per note id
   const timers = {}, busy = {}, again = {};
   let db = null, readOnly = false;
-  const LS = 'nextshot-storyboard-notes';
+  // Each cut keeps its own notes, so a new cut opens with empty fields.
+  const NOTES = 'cuts/' + SB.version + '/notes';
+  const LS = 'nextshot-storyboard-notes-' + SB.version;
   const lsRead = () => { try { return JSON.parse(localStorage.getItem(LS) || '{}'); } catch (e) { return {}; } };
   const lsWrite = (all) => { try { localStorage.setItem(LS, JSON.stringify(all)); return true; } catch (e) { return false; } };
 
@@ -436,7 +438,7 @@ footer { font-size: 12.5px; color: var(--muted); padding-block: 0 40px; }
     busy[id] = true;
     const body = collect(sec);
     try {
-      if (db) await db.doc('notes/' + id).set(body);
+      if (db) await db.doc(NOTES + '/' + id).set(body);
       else { const all = lsRead(); all[id] = body; if (!lsWrite(all)) throw { code: 'local' }; }
       remote[id] = body;
       const hhmm = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
@@ -477,7 +479,7 @@ footer { font-size: 12.5px; color: var(--muted); padding-block: 0 40px; }
     if (!d) { setStatus('Notes save in this browser only. Use Copy all notes to send them.', ''); return; }
     db = d;
     setStatus('Notes save to this page', 'ok');
-    db.collection('notes').onSnapshot((snap) => {
+    db.collection(NOTES).onSnapshot((snap) => {
       snap.docs.forEach((doc) => {
         if (!doc.exists) return;
         const body = doc.data();

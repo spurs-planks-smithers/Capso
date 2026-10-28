@@ -1,5 +1,5 @@
 {
-  "version": "v3.1",
+  "version": "v5",
   "voice": {
     "engine": "openai",
     "model": "gpt-4o-mini-tts-2025-12-15",
@@ -7,7 +7,7 @@
     "keychain": "OPENAI_API_KEY_NEXTSHOT",
     "max_gap": 0.15,
     "breath_db": -32,
-    "tempo": 1.1,
+    "tempo": 1.2,
     "style": "Voice: warm, clear, confident product host. Natural and human, never robotic. Tone: friendly and lightly playful, never salesy. American English. Pace: fast and energetic, like a 30-second product commercial, about 200 words per minute. Almost no pause between sentences. Read exactly the given text, with no added words. Nextshot is pronounced NEXT-shot.",
     "fallback": "Ava (Premium)"
   },
@@ -41,14 +41,14 @@
   "scenes": [
     {
       "id": "hook",
-      "lead": 1.0,
-      "tail": 0.3,
+      "lead": 1.25,
+      "tail": 0.2,
       "lines": [
         {
           "id": "built",
           "text": "So, you and AI just built a lemonade stand.",
           "pause": 0,
-          "tempo": 1.14,
+          "tempo": 1.2,
           "direction": "Relaxed and inviting, with a small smile. Keep it moving."
         }
       ]
@@ -56,19 +56,20 @@
     {
       "id": "problem",
       "lead": 0.05,
-      "tail": 0.3,
+      "tail": 0.35,
       "lines": [
         {
           "id": "flawed",
-          "text": "But AI output is far from perfect. Small things are wrong everywhere.",
+          "text": "But AI's first draft is far from perfect. Small things are wrong everywhere.",
           "captions": [
-            "But AI output is far from perfect.",
+            "But AI's first draft is far from perfect.",
             "Small things are wrong everywhere."
           ],
           "pause": 0.2,
           "tempo": 1.14,
-          "take": 2,
-          "direction": "Let the problem land on 'far from perfect', then keep moving briskly."
+          "take": 1,
+          "direction": "Smooth and even, one flowing thought at the same pace as the line before. A natural, unhurried beat after 'perfect'.",
+          "max_gap": 0.25
         },
         {
           "id": "loop",
@@ -77,30 +78,31 @@
           "take": 2,
           "max_gap": 0.25,
           "direction": "Punchy and quick: four crisp beats, rising frustration. Say 'you' clearly.",
-          "tempo": 1.15
+          "tempo": 1.22
         },
         {
           "id": "explain",
-          "text": "But with so many fixes, big and small, on so many screens, how do you give AI every direction?",
+          "text": "But with so many fixes, big and small, on so many screens, why is it so taxing to gather and give AI all those visual directions?",
           "captions": [
             "But with so many fixes, big and small,",
             "on so many screens,",
-            "how do you give AI every direction?"
+            "why is it so taxing to gather",
+            "and give AI all those visual directions?"
           ],
           "pause": 0.15,
-          "direction": "Building frustration, quick, then a clear question at the end.",
-          "tempo": 1.15
+          "direction": "Building frustration, quick. Lean on 'so taxing', then a clear question at the end.",
+          "tempo": 1.28
         },
         {
           "id": "again",
-          "text": "Page after page. Prompt after prompt. Into AI eternity.",
+          "text": "Page after page. Prompt after prompt. Paste after paste. Into AI eternity.",
           "captions": [
             "Page after page. Prompt after prompt.",
-            "Into AI eternity."
+            "Paste after paste. Into AI eternity."
           ],
-          "pause": 0.15,
-          "direction": "Weary and wry, a little faster.",
-          "tempo": 1.18
+          "pause": 0.4,
+          "direction": "Weary and wry, three even beats, a little faster.",
+          "tempo": 1.26
         },
         {
           "id": "ask",
@@ -112,110 +114,108 @@
           "pause": 0,
           "tempo": 1.0,
           "max_gap": 0.3,
-          "direction": "Slow down. A sincere, deliberate question, the key question of the whole video. Stress 'one round' and 'one prompt'."
+          "direction": "Slow down. A sincere, deliberate question: the key question of the whole video. Land 'one round' and 'one prompt' with weight."
         }
       ]
     },
     {
       "id": "turn",
       "lead": 0.15,
-      "tail": 0.25,
+      "tail": 0.2,
       "lines": [
         {
           "id": "meet",
           "text": "Now you can. Introducing Nextshot.",
           "pause": 0,
-          "tempo": 1.15,
+          "tempo": 1.18,
           "direction": "A bright reset: confident, then proud and warm on 'Introducing Nextshot'."
         }
       ]
     },
     {
       "id": "how",
-      "lead": 0.1,
-      "tail": 0.45,
+      "lead": 0.5,
+      "tail": 0.2,
       "lines": [
         {
           "id": "g",
-          "text": "Hit Option Shift F. Grab the area you want to give feedback on.",
+          "text": "Hit Option Shift F. Capture the area for visual feedback.",
           "captions": [
             "Hit Option Shift F.",
-            "Grab the area you want to give feedback on."
+            "Capture the area for visual feedback."
           ],
           "pause": 0.2,
-          "tempo": 1.0,
+          "tempo": 1.14,
           "max_gap": 0.25,
           "direction": "Calm, human, and instructive. Say 'Option, Shift, F' as three clear keys, with a tiny beat between them."
         },
         {
           "id": "h",
-          "text": "Click to drop a red dot on each issue. Then say what should change.",
+          "text": "Click to drop a red dot on each issue. Then just say what should change.",
           "captions": [
             "Click to drop a red dot on each issue.",
-            "Then say what should change."
+            "Then just say what should change."
           ],
-          "pause": 0.2,
-          "direction": "Calm and instructive."
+          "pause": 0,
+          "direction": "Calm and instructive.",
+          "tempo": 1.25,
+          "take": 2
         }
       ]
     },
     {
       "id": "session",
       "lead": 0.1,
-      "tail": 0.35,
+      "tail": 0.2,
       "lines": [
         {
           "id": "i",
-          "text": "Then grab the next screen, and the next.",
-          "pause": 0.2,
-          "direction": "Light and quick."
-        },
-        {
-          "id": "j",
-          "text": "Circles, boxes, arrows, notes. One round holds it all.",
+          "text": "Grab the next screen, and the next. One round holds it all.",
+          "pause": 0,
+          "direction": "Light and quick, then confident. Stress 'one round'.",
           "captions": [
-            "Circles, boxes, arrows, notes.",
+            "Grab the next screen, and the next.",
             "One round holds it all."
           ],
-          "pause": 0.2,
-          "direction": "Confident. Stress 'one round'."
+          "tempo": 1.3
         }
       ]
     },
     {
       "id": "handoff",
-      "lead": 0.8,
-      "tail": 2.4,
+      "lead": 0.5,
+      "tail": 1.1,
       "lines": [
         {
           "id": "handoff",
-          "text": "One click, one paste, and AI gets the whole round. Every screen, every dot, every note.",
+          "text": "One click hands AI the whole round.",
           "captions": [
-            "One click, one paste,",
-            "and AI gets the whole round.",
-            "Every screen, every dot, every note."
+            "One click hands AI the whole round."
           ],
-          "pause": 0.3,
-          "direction": "Deliberate and clear: this is the key point. Stress 'whole round'."
+          "pause": 0.35,
+          "direction": "Deliberate and clear: this is the key point. Stress 'whole round'.",
+          "tempo": 1.25
         },
         {
           "id": "paste",
-          "text": "Any AI agent gets one prompt, built the way AI reads: numbered dots, a note on each dot, exact pixels, and a plan before it edits.",
+          "text": "Any agent. One prompt, built the way AI reads best: numbered dots, clear notes, exact spots, a plan first.",
           "captions": [
-            "Any AI agent gets one prompt,",
-            "built the way AI reads:",
-            "numbered dots, a note on each dot,",
-            "exact pixels, and a plan before it edits."
+            "Any agent. One prompt,",
+            "built the way AI reads best:",
+            "numbered dots, clear notes,",
+            "exact spots, a plan first."
           ],
           "pause": 0,
-          "direction": "Clear and confident. Stress 'built the way AI reads', then list the four parts crisply."
+          "direction": "Clear and confident. Stress 'the way AI reads best', then list the four parts crisply.",
+          "tempo": 1.26,
+          "take": 2
         }
       ]
     },
     {
       "id": "close",
       "lead": 0.3,
-      "tail": 2.4,
+      "tail": 1.5,
       "lines": [
         {
           "id": "tagline",
@@ -225,7 +225,8 @@
             "Show AI what you mean."
           ],
           "pause": 0,
-          "direction": "Say 'Nextshot' once, warm and proud. Then upbeat and crisp, with a smile."
+          "direction": "Say 'Nextshot' once, warm and proud. Then upbeat and crisp, with a smile.",
+          "tempo": 1.25
         }
       ]
     }
@@ -234,7 +235,31 @@
     {
       "id": "stand",
       "line": "built",
-      "offset": -1.2
+      "offset": -1.25
+    },
+    {
+      "id": "count3",
+      "line": "built",
+      "offset": -1.2,
+      "sfx": "tick_lo"
+    },
+    {
+      "id": "count2",
+      "line": "built",
+      "offset": -0.9,
+      "sfx": "tick_lo"
+    },
+    {
+      "id": "count1",
+      "line": "built",
+      "offset": -0.6,
+      "sfx": "tick_lo"
+    },
+    {
+      "id": "go",
+      "line": "built",
+      "offset": -0.3,
+      "sfx": "pop"
     },
     {
       "id": "duo",
@@ -305,6 +330,14 @@
       "count": 10
     },
     {
+      "id": "pastes",
+      "line": "again",
+      "word": "Paste",
+      "sfx": "swishes",
+      "span": 0.9,
+      "count": 3
+    },
+    {
       "id": "gather",
       "line": "ask",
       "word": "gather",
@@ -314,25 +347,31 @@
       "id": "round",
       "line": "ask",
       "word": "round",
-      "sfx": "pop"
+      "sfx": "pluck_lo"
     },
     {
       "id": "oneprompt",
       "line": "ask",
       "word": "give",
-      "sfx": "pop"
+      "sfx": "pluck_hi"
     },
     {
       "id": "mark",
       "line": "meet",
       "word": "Now",
-      "sfx": "whoosh_small"
+      "sfx": "snap"
     },
     {
       "id": "wipe",
       "line": "meet",
       "word": "Introducing",
-      "sfx": "sparkle"
+      "sfx": "signature"
+    },
+    {
+      "id": "land",
+      "line": "g",
+      "offset": -0.25,
+      "sfx": "tick"
     },
     {
       "id": "key_opt",
@@ -355,7 +394,7 @@
     {
       "id": "grab",
       "line": "g",
-      "word": "Grab"
+      "word": "Capture"
     },
     {
       "id": "grab_done",
@@ -415,38 +454,42 @@
     },
     {
       "id": "m_circle",
-      "line": "j",
-      "word": "Circles",
+      "line": "i",
+      "word": "next",
+      "offset": 0.3,
       "sfx": "pop"
     },
     {
       "id": "m_box",
-      "line": "j",
-      "word": "boxes",
-      "sfx": "pop"
+      "line": "i",
+      "word": "next",
+      "offset": 0.55
     },
     {
       "id": "m_arrow",
-      "line": "j",
-      "word": "arrows",
+      "line": "i",
+      "word": "next",
+      "nth": 2,
+      "offset": 0.3,
       "sfx": "whoosh_small"
     },
     {
       "id": "m_note",
-      "line": "j",
-      "word": "notes",
-      "sfx": "pop"
+      "line": "i",
+      "word": "next",
+      "nth": 2,
+      "offset": 0.55
     },
     {
       "id": "tray",
-      "line": "j",
+      "line": "i",
       "word": "round",
       "sfx": "tick"
     },
     {
       "id": "menu",
       "line": "handoff",
-      "offset": -0.75,
+      "offset": -0.5,
       "sfx": "click"
     },
     {
@@ -458,20 +501,22 @@
     {
       "id": "toast",
       "line": "handoff",
-      "word": "Every",
+      "word": "whole",
       "sfx": "pop"
     },
     {
       "id": "sub2",
       "line": "handoff",
-      "word": "dot",
-      "sfx": "pop"
+      "word": "round",
+      "sfx": "pop",
+      "offset": 0.05
     },
     {
       "id": "sub3",
       "line": "handoff",
-      "word": "note",
-      "sfx": "pop"
+      "word": "round",
+      "sfx": "pop",
+      "offset": 0.35
     },
     {
       "id": "paste",
@@ -493,13 +538,13 @@
     {
       "id": "pkg2",
       "line": "paste",
-      "word": "note",
+      "word": "clear",
       "sfx": "pop"
     },
     {
       "id": "pkg3",
       "line": "paste",
-      "word": "pixels",
+      "word": "exact",
       "sfx": "pop"
     },
     {
@@ -511,8 +556,8 @@
     {
       "id": "proof",
       "line": "paste",
-      "word": "edits",
-      "offset": 0.3,
+      "word": "first",
+      "offset": 0.25,
       "sfx": "whoosh_small"
     },
     {

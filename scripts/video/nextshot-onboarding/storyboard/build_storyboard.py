@@ -292,6 +292,8 @@ def main():
     script = json.loads((VIDEO / "script.json").read_text())
     timing = json.loads((VIDEO / "timing.json").read_text())
     shots = json.loads((HERE / "shots.json").read_text())
+    # The version names the page database path that holds this cut's notes.
+    need(re.fullmatch(r"v[0-9][0-9.]*", shots["version"]) is not None, f"shots.json version {shots['version']!r} is not like v3.2")
     video = newest_video()
     vdur = probe_duration(video)
     need(abs(vdur - timing["duration"]) < 0.3, f"{video.name} runs {vdur:.2f} s but timing.json says {timing['duration']:.2f} s")
@@ -320,7 +322,7 @@ def main():
         "{{FONTS}}": font_faces(), "{{VERSION}}": esc(shots["version"]),
         "{{META}}": "".join(f'<span class="chip">{esc(m)}</span>' for m in meta),
         "{{TIMELINE}}": timeline_html(model), "{{CARDS}}": "".join(scene_html(s) for s in model["scenes"]),
-        "{{FRAMEIO}}": esc(shots["frameio"]), "{{FRAMEIO_SHORT}}": esc(shots["frameio"].split("//", 1)[-1]),
+        "{{WATCH}}": esc(shots["watch"]), "{{WATCH_SHORT}}": esc(shots["watch"].split("//", 1)[-1]),
         "{{SCENE_COUNT}}": str(len(model["scenes"])), "{{FOOTER}}": footer, "{{VOICE}}": esc(voice), "{{POSTER}}": f"frames/{lines[0]['id']}-2.jpg",
         "{{DATA}}": json.dumps(data).replace("</", "<\\/"),
     }.items():
