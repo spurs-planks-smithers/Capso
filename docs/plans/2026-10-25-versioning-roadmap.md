@@ -1,5 +1,7 @@
 # Versioning and release roadmap
 
+**Local testing correction, 2026-10-28:** Drew's 2026-10-27 rule permits only Nextshot Dev on m5pro. Older acceptance steps involving both installed apps require another approved Mac. Follow [[local-development]].
+
 Date: 2026-10-25. Owner: Drew. The decisions are in [docs/decisions/2026-10-25-versioning-and-releases.md](../decisions/2026-10-25-versioning-and-releases.md). This plan turns them into milestones. Nothing here is built yet.
 
 ## Where we are

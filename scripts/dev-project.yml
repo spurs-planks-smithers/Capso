@@ -32,6 +32,8 @@ targets:
       # copy, before Xcode signs the app. Dev answers to nextshot-dev:// only.
       - name: Nextshot Dev URL scheme
         basedOnDependencyAnalysis: false
+        inputFiles:
+          - "$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)"
         script: |
           set -euo pipefail
           plist="${TARGET_BUILD_DIR}/${INFOPLIST_PATH}"
@@ -40,3 +42,5 @@ targets:
           "$buddy" -c "Delete :CFBundleURLTypes:0:CFBundleURLSchemes" "$plist"
           "$buddy" -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes array" "$plist"
           "$buddy" -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string nextshot-dev" "$plist"
+          # Keep the required notice inside every Dev copy before signing.
+          cp "${SRCROOT}/LICENSE" "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/LICENSE.txt"

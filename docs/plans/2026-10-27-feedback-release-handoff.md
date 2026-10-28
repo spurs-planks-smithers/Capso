@@ -8,14 +8,14 @@ The existing 0.4.0 release is immutable. Do not replace its files or tag. The no
 
 Merge this handoff and every intended parallel pull request first. The website task leaves native admission off. Complete the following native checks before the graph freeze. Leave all other flags unchanged.
 
-Use the signed Dev app from the final merged source. The release owner runs `scripts/build-local.sh Release` in the prepared checkout. This builds and installs Nextshot Dev, not the production app. Quit the production app before opening Nextshot Dev because both use the same hotkeys.
+Use the signed Dev app from the final merged source. The release owner runs `scripts/build-local.sh Release` in the prepared checkout. Both compiler configurations build Nextshot Dev. On m5pro, install and run Dev only. Production installer checks require another approved Mac. Follow [[local-development]].
 
 Enable the native backend and a temporary override only in Nextshot Dev:
 
 ```sh
 python3 site/feedback/deploy.py native
 NEXTSHOT_FLAGS_DOMAIN=com.drewschulz.nextshot.dev scripts/nextshot-flags.sh set supportSubmission on
-open "$HOME/Applications/Nextshot Dev.app"
+python3 -I scripts/nextshot-local.py open
 ```
 
 Create a fresh round with one synthetic screenshot and a harmless note. Choose **Submit Round to Nextshot…** in that round's submenu. Confirm the disclosure, optional note, cancellation, retry, and duplicate-click behavior. Submit the synthetic package. Confirm its receipt completes screening, prepares a private draft, and completes its notification send. Verify its rebuilt image through owner review. Confirm the source round and saved notes remain intact.

@@ -1,10 +1,7 @@
 import Foundation
 
 private func capsoUncaughtExceptionHandler(_ exception: NSException) {
-    guard UserDefaults.standard.object(forKey: "diagnosticLoggingEnabled") as? Bool ?? false else {
-        return
-    }
-
+    guard DiagnosticLogger.isEnabled else { return }
     DiagnosticLogger.append(
         """
         Uncaught NSException
@@ -19,17 +16,30 @@ private func capsoUncaughtExceptionHandler(_ exception: NSException) {
 public enum DiagnosticLogger {
     public static let maxLogBytes = 1_000_000
 
-    private static let queue = DispatchQueue(label: "com.awesomemacapps.capso.diagnostic-logger")
+    private static let queue = DispatchQueue(label: "com.drewschulz.nextshot.diagnostic-logger")
+    private final class State: @unchecked Sendable {
+        // Access only on queue. Logging fails closed before app configuration.
+        var enabled = false
+    }
+    private static let state = State()
+
+    public static var isEnabled: Bool { queue.sync { state.enabled } }
+
+    /// The app supplies its launch capability and the saved user preference.
+    /// SharedKit does not depend on the app's feature flag registry.
+    public static func configure(capabilityEnabled: Bool, loggingEnabled: Bool) {
+        queue.sync { state.enabled = capabilityEnabled && loggingEnabled }
+    }
 
     public static var logDirectory: URL {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         return appSupport
-            .appendingPathComponent("com.awesomemacapps.capso", isDirectory: true)
+            .appendingPathComponent("Nextshot", isDirectory: true)
             .appendingPathComponent("logs", isDirectory: true)
     }
 
     public static var logFileURL: URL {
-        logDirectory.appendingPathComponent("capso.log")
+        logDirectory.appendingPathComponent("nextshot.log")
     }
 
     public static var diagnosticReportDirectories: [URL] {
@@ -41,6 +51,7 @@ public enum DiagnosticLogger {
     }
 
     public static func installUncaughtExceptionHandler() {
+        guard isEnabled else { return }
         NSSetUncaughtExceptionHandler(capsoUncaughtExceptionHandler)
     }
 
@@ -50,6 +61,7 @@ public enum DiagnosticLogger {
         fileURL: URL = DiagnosticLogger.logFileURL
     ) {
         queue.sync {
+            guard state.enabled else { return }
             let line = "\(timestamp()) [\(category)] \(message)\n"
             write(line, to: fileURL)
         }
@@ -67,6 +79,7 @@ public enum DiagnosticLogger {
     @discardableResult
     public static func prepareLogFile(at fileURL: URL = DiagnosticLogger.logFileURL) -> URL {
         queue.sync {
+            guard state.enabled else { return fileURL }
             let fm = FileManager.default
             do {
                 try fm.createDirectory(
@@ -84,6 +97,7 @@ public enum DiagnosticLogger {
     }
 
     public static func recentCrashReportURLs(limit: Int = 10) -> [URL] {
+        guard isEnabled else { return [] }
         let fm = FileManager.default
         let matches = diagnosticReportDirectories.flatMap { directory -> [URL] in
             guard let urls = try? fm.contentsOfDirectory(
@@ -95,7 +109,7 @@ public enum DiagnosticLogger {
             return urls.filter { url in
                 let name = url.lastPathComponent.lowercased()
                 let ext = url.pathExtension.lowercased()
-                return (name.contains("capso") || name.contains("com.awesomemacapps.capso"))
+                return (name.contains("nextshot") || name.contains("capso"))
                     && ["crash", "ips", "diag"].contains(ext)
             }
         }

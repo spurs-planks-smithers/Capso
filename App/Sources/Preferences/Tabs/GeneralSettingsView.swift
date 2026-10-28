@@ -127,7 +127,7 @@ struct GeneralSettingsView: View {
                 }
             }
 
-            if SettingsVisibility.hasVisibleContent(.generalDiagnostics) {
+            if Capabilities.current.diagnostics && SettingsVisibility.hasVisibleContent(.generalDiagnostics) {
                 DisclosureGroup("Diagnostics") {
                     SettingGroup(visibility: .generalDiagnostics, title: "Diagnostics") {
                         SettingCard {
@@ -185,11 +185,13 @@ struct GeneralSettingsView: View {
     }
 
     private func openDiagnosticLogs() {
+        guard Capabilities.current.diagnostics else { return }
         let logFileURL = DiagnosticLogger.prepareLogFile()
         NSWorkspace.shared.activateFileViewerSelecting([logFileURL])
     }
 
     private func openCrashReports() {
+        guard Capabilities.current.diagnostics else { return }
         let directory = DiagnosticLogger.diagnosticReportDirectories.first!
         NSWorkspace.shared.open(directory)
     }

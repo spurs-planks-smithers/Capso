@@ -12,6 +12,13 @@ Compile risk: `PostCaptureAction.feedback` is a new enum case. An upstream chang
 
 | File | Reason | Lines | Upstream PRs at risk |
 |---|---|---|---|
+| `App/Sources/AppDelegate.swift` | Configure diagnostic logging with the launch capability and saved preference before installing its exception handler (2026-10-28). Keep quiet login behavior from #156. | 50-52 | [#349](https://github.com/lzhgus/Capso/pull/349), [#291](https://github.com/lzhgus/Capso/pull/291) |
+| `App/Sources/Preferences/PreferencesViewModel.swift` | Apply both diagnostics gates when its saved preference changes. | 69-72 | [#348](https://github.com/lzhgus/Capso/pull/348) |
+| `App/Sources/Preferences/Tabs/GeneralSettingsView.swift` | Gate the diagnostics section and file-opening actions with the explicit capability. Preserve the system-status startup control. | 130, 188, 194 | [#348](https://github.com/lzhgus/Capso/pull/348) |
+| `App/Sources/Preferences/Components/SettingRow.swift` | Accept the fork-owned help view for one native permission popover. | 9, 26 | [#348](https://github.com/lzhgus/Capso/pull/348) |
+| `App/Sources/Preferences/Tabs/PermissionSettingsView.swift` | Show compact screen-access help with local icons and no duplicate tooltip. | 78-95, 103-105 | [#348](https://github.com/lzhgus/Capso/pull/348) |
+| `Packages/SharedKit/Sources/SharedKit/Diagnostics/DiagnosticLogger.swift` | Default logging off. Require capability and preference before writes, file preparation, crash lookup, or exception handling. | 4, 18-34, 56, 67, 85, 104 | none |
+| `Packages/SharedKit/Tests/SharedKitTests/DiagnosticLoggerTests.swift` | Update the existing logger checks for both gates and preserve enabled-path coverage. | 5-65 | none |
 | `App/Sources/Preferences/Tabs/ShortcutSettingsView.swift` | Use the shared native recorder wrapper so the existing clear button acts on mouse-down before the library consumes mouse-up (#159, 2026-10-28). | 220 (changed) | none |
 | `App/Sources/AppDelegate.swift` | Quiet login startup (#154, 2026-10-27): read the login Apple Event, prepare one-time consent before settings writes, suppress permission queries, optional recovery, update setup, file actions, and automation at login. Explicit Settings opens can start the updater later. | 8, 40-42, 56, 76, 96-99, 124-131, 383-389 | [#349](https://github.com/lzhgus/Capso/pull/349), [#291](https://github.com/lzhgus/Capso/pull/291) |
 | `App/Sources/Preferences/Tabs/GeneralSettingsView.swift` | Replace the library Boolean switch with the fork's system-status control and explicit first-use confirmation (#154). The control never restores a saved on preference. | 33-35 | [#348](https://github.com/lzhgus/Capso/pull/348) |

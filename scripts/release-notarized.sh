@@ -1,5 +1,6 @@
 #!/bin/bash
 # Fork: build a notarized Nextshot.app that installs on another Mac.
+# On m5pro, keep this app as a distribution artifact. Never install or open it.
 #
 # Signs with the Developer ID Application certificate in the login keychain,
 # with hardened runtime and a secure timestamp. Sends the app to Apple's
@@ -25,6 +26,8 @@
 set -euo pipefail
 
 repo="$(cd "$(dirname "$0")/.." && pwd)"
+python3 -I "$repo/scripts/nextshot-local.py" check
+echo "Distribution build only. Local testing uses Nextshot Dev."
 profile="${1:-apple-notary}"
 env_file="$repo/scripts/local-signing.env"
 product_name="Nextshot"

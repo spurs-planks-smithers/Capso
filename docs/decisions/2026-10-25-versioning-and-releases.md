@@ -1,5 +1,7 @@
 # Nextshot versions and releases
 
+**Correction, 2026-10-28:** Drew's 2026-10-27 rule permits only Nextshot Dev on m5pro. Production apps remain distribution artifacts there. Production installer checks require another approved Mac. This supersedes earlier instructions for local production checks. Follow [[local-development]].
+
 Date: 2026-10-25. Decided by Drew in an interview session. This record replaces the "Scheme" section of [2026-10-22-nextshot-versions.md](2026-10-22-nextshot-versions.md) (date versions). The roadmap that carries it out is [docs/plans/2026-10-25-versioning-roadmap.md](../plans/2026-10-25-versioning-roadmap.md).
 
 ## Decision
@@ -88,13 +90,13 @@ The release command reads the conventional commit prefixes since the last tag. A
 | Signature | Developer ID Application | Apple Development |
 | Build channel | `release` | `dev` |
 | Made by | the release command | `scripts/build-local.sh` |
-| Installed at | `/Applications` or `~/Applications` | `~/Applications/Nextshot Dev.app` |
+| Installed at | Another approved Mac, never m5pro | `~/Applications/Nextshot Dev.app` |
 | Updates | Sparkle (from M3) | none |
 | Feature flags | Jev flags stay off | Jev flags run here |
 
 - Each copy has its own screen recording grant. A grant lasts from one production release to the next, and from one dev build to the next.
 - `LaunchPlan` compares copies with the same bundle ID only. A production install never quits Nextshot Dev.
-- Both apps claim the global hotkeys. Quit one before you use the other. Nextshot Dev is the daily driver. The production copy is for release checks.
+- Both apps claim the global hotkeys. On m5pro, install and run only Nextshot Dev. Run production release checks on another approved Mac.
 - Both apps write rounds to `~/Library/Application Support/Nextshot`. A copy refuses rounds with a newer `schemaVersion`.
 
 ## Not decided yet
