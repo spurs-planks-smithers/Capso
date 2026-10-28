@@ -33,7 +33,7 @@ The user may need only the last 10 seconds. That is Drew's example, not a fixed 
 | Jev fallback | If Jev adds no useful improvement or fails, continue normally with local suggestions and manual editing. Require no retry and show no blocking error. |
 | Later enhancement | Investigate integrated Apple Intelligence in [#148](https://github.com/spurs-planks-smithers/Capso/issues/148). This is an optional Later follow-up. It does not block Rolling Round or its required local fallback. |
 | Jev inputs | Sanitized action timeline, relevant diagnostics, and selected still frames. Send no GIF or video animation to Jev. |
-| Network collection | Sanitized request addresses, methods, status codes, timing, and failures. Collect no headers or bodies. |
+| Network collection | Sanitized request addresses, methods, status codes, timing, and failures. Collect no headers or bodies. Use lightweight diagnostics, confirmed on 2026-10-28. Label gaps and exclude debugger permission. |
 | First pilot | Local development or staging, with element matches, source context, and bug evidence checked against controlled code. |
 | Recommendation priority | Within 1 second after issue selection, show useful initial local setup-step suggestions. Refine afterward with Jev. Keep review controls usable. |
 | Saved result | Each Rolling Round becomes its own feedback bundle and a separate ended round. |

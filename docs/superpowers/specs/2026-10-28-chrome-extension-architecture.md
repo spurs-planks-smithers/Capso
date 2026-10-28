@@ -8,7 +8,7 @@ Drew's top priority is a lightweight, unobtrusive extension with low overhead an
 
 The October 28 request supersedes the October 27 Mac-required scope. Mandatory reconnect-before-save and universal 15-minute Mac-disconnection expiry no longer apply to browser-owned capture or saved results. Any native-transfer expiry must be separate and cannot erase the browser result.
 
-Core standalone scope includes area capture, annotations, notes, annotation-based element context, a local round, an agent-neutral prompt, and portable export. Rolling Round follows its own off-by-default flag and existing selected-history requirements. Full diagnostic breadth and standalone Jev remain product decisions below.
+Core standalone scope includes area capture, annotations, notes, annotation-based element context, a local round, an agent-neutral prompt, and portable export. Rolling Round follows its own off-by-default flag and existing selected-history requirements. Drew selects lightweight diagnostics on October 28. Deeper debugger access is deferred. Standalone Jev remains a product decision below.
 
 Design for current desktop Chrome. Validate on the Mac first. Keep the browser core portable, but claim no Windows, Linux, Edge, or Safari support before validation. Preserve Nextshot's macOS 15 floor for optional native integration.
 
@@ -77,7 +77,7 @@ Retain the approved Stop, cancel, tab-close, browser-close, permission-loss, and
 | Network summaries | Observe only during armed tracking and within permitted origins. Do not request headers, bodies, blocking access, or blanket origin access. |
 | Native integration | Request `nativeMessaging` when native integration is enabled. Missing/denied access leaves core browser use intact. |
 | Export/copy | Prefer user-initiated platform actions. Use downloads or clipboard permissions only where the validated flow requires them. Honor Chrome's download settings. |
-| Deep debugging | Decision pending. `debugger` cannot be an optional permission. Do not add it silently as a later runtime toggle. |
+| Deep debugging | Excluded from the first extension, confirmed by Drew on 2026-10-28. `debugger` cannot be an optional permission. Any later expansion needs a new scope decision. |
 
 No native presence polling, permanent native port, idle recording, continuous Jev requests, always-open sidebar, or whole-page mutation observer belongs in the default flow. One Save accepts the displayed selected steps. Generate titles and filenames automatically. Keep format/size optimization internal. Exact controls await visual design and later approval.
 
@@ -97,7 +97,7 @@ Asked live through structured questions on 2026-10-28. These are material workfl
 
 | Question | Recommended direction | Status |
 |---|---|---|
-| Diagnostic breadth | Use lightweight observable errors and permitted request summaries. Label gaps instead of requiring debugger permissions. | Awaiting Drew |
+| Diagnostic breadth | Use lightweight observable errors and permitted request summaries. Label gaps. Exclude debugger permission from the first extension. | Confirmed by Drew on 2026-10-28 |
 | Installed app is closed | Save in the browser. Launch Nextshot only when the reviewer requests native use. | Awaiting Drew |
 | Standalone Jev | Start with local suggestions. Add eligible native Jev when available. A standalone remote service requires separate scope. | Awaiting Drew |
 
