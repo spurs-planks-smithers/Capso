@@ -14,7 +14,7 @@ struct FeedbackCaptureSettingsSection: View {
                         .toggleStyle(.switch)
                         .controlSize(.small)
                 }
-                SettingRow(visibility: .screenshotsCaptureClipboardFormat, label: "Clipboard Format", sublabel: "Image copied with Escape before adding marks", showDivider: true) {
+                SettingRow(visibility: .screenshotsCaptureClipboardFormat, label: "Clipboard Format", sublabel: clipboardFormatHelp, showDivider: true) {
                     Picker("", selection: $viewModel.screenshotClipboardFormat) {
                         Text("PNG").tag(ScreenshotClipboardFormat.png)
                         Text("JPEG").tag(ScreenshotClipboardFormat.jpeg)
@@ -26,5 +26,11 @@ struct FeedbackCaptureSettingsSection: View {
                 }
             }
         }
+    }
+
+    private var clipboardFormatHelp: LocalizedStringKey {
+        Capabilities.current.screenshotCopy
+            ? "Copy Screenshot copies an area in this format for pasting."
+            : "Images copied with Escape use this format."
     }
 }
