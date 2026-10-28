@@ -21,7 +21,7 @@ enum SingleInstanceGuard {
 
     /// Returns when this copy should start. Otherwise exits, after it brings
     /// the copy that stays to the front or installs this one.
-    static func quitIfAnotherCopyRuns() {
+    static func quitIfAnotherCopyRuns(loginLaunch: Bool = false) {
         guard let bundleID = Bundle.main.bundleIdentifier else { return }
         waitForInstallerToExit()
 
@@ -29,6 +29,7 @@ enum SingleInstanceGuard {
         let others = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
             .filter { !$0.isTerminated && $0.processIdentifier != current.processIdentifier }
         let me = copy(of: current, bundleURL: Bundle.main.bundleURL, launchedNow: true)
+        if loginLaunch && me.onReadOnlyVolume { exit(0) }
         let destination = me.onReadOnlyVolume ? DiskImageInstaller.destination(runningCopies: others) : nil
         let installedBuild = destination.flatMap { FileManager.default.fileExists(atPath: $0.path) ? DiskImageInstaller.build(of: $0) : nil }
 
@@ -52,7 +53,7 @@ enum SingleInstanceGuard {
             if !waitUntilGone(pids, timeout: 10), let stuck = older.first(where: { !$0.isTerminated }) {
                 // Two running copies would fight over the hotkeys, so the old one stays.
                 logger.notice("Older copy pid \(stuck.processIdentifier) did not quit. Quitting pid \(current.processIdentifier).")
-                stuck.activate()
+                if !loginLaunch { stuck.activate() }
                 exit(0)
             }
         case .yield(let pid):
@@ -60,7 +61,7 @@ enum SingleInstanceGuard {
                 DiskImageInstaller.offerReplaceNewer(destination: destination, runningCopies: installed)
             }
             logger.notice("Another copy runs (pid \(pid)). Quitting pid \(current.processIdentifier).")
-            others.first { $0.processIdentifier == pid }?.activate()
+            if !loginLaunch { others.first { $0.processIdentifier == pid }?.activate() }
             exit(0)
         case .openInstalled:
             if let destination {

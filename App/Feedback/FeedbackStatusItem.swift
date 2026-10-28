@@ -160,8 +160,9 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
             insertBasketItems(into: menu, count: count)
         }
         for row in roundRows {
-            row.item.subtitle = Self.rowSubtitle(
-                row.round,
+            Self.updateRoundSubtitle(
+                row.item,
+                round: row.round,
                 active: row.active,
                 selectedCount: basket.count(inFolder: row.round.folderName)
             )
@@ -322,8 +323,9 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     private func makeRoundRow(_ round: FeedbackRound, active: Bool, now: Date, basket: FeedbackBasket) -> RoundRow {
         let title = FeedbackLibrary.title(startedAt: round.startedAt, now: now, timeZone: .current)
         let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
-        item.subtitle = Self.rowSubtitle(
-            round,
+        Self.updateRoundSubtitle(
+            item,
+            round: round,
             active: active,
             selectedCount: basket.count(inFolder: round.folderName)
         )
@@ -344,11 +346,20 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         return RoundRow(item: item, menu: submenu, round: round, active: active)
     }
 
-    /// The active round's subtitle starts with "Active round", so the row says
-    /// in words what its green dot shows (Drew, 2026-10-24).
-    private static func rowSubtitle(_ round: FeedbackRound, active: Bool, selectedCount: Int) -> String {
-        let subtitle = FeedbackLibrary.subtitle(for: round, selectedCount: selectedCount)
-        return active ? "Active round, \(subtitle)" : subtitle
+    /// Reserve the counts and active prefix before fitting the app names.
+    /// Measure with the menu font and leave room for menu margins and arrows.
+    private static func updateRoundSubtitle(_ item: NSMenuItem, round: FeedbackRound, active: Bool, selectedCount: Int) {
+        let prefix = active ? "Active round, " : ""
+        let attributes: [NSAttributedString.Key: Any] = [.font: NSFont.menuFont(ofSize: 0)]
+        let maximumWidth: CGFloat = 240
+        var subtitle = prefix + FeedbackLibrary.subtitle(for: round, selectedCount: selectedCount)
+        let longestName = round.captures.compactMap(\.sourceApp).map(\.count).max() ?? 1
+        for limit in stride(from: longestName, through: 1, by: -1) {
+            if (subtitle as NSString).size(withAttributes: attributes).width <= maximumWidth { break }
+            subtitle = prefix + FeedbackLibrary.subtitle(for: round, selectedCount: selectedCount, appNameLimit: limit)
+        }
+        item.subtitle = subtitle
+        item.toolTip = prefix + FeedbackLibrary.fullSubtitle(for: round, selectedCount: selectedCount)
     }
 
     // MARK: - Basket lines

@@ -1,5 +1,7 @@
 # Screenshot Copy: Nextshot Dev Review
 
+Current status, October 28: Native acceptance passes on Nextshot Dev 0.4.0-dev (892). The latest-main merge passes all 247 existing app checks.
+
 Issue: [Screenshot image copy, 123](https://github.com/spurs-planks-smithers/Capso/issues/123). Separate open backlog: [Search capture history, 125](https://github.com/spurs-planks-smithers/Capso/issues/125).
 
 This build prepares the screenshot workflow for local testing. It does not publish v0.5.0. The new screenshotCopy capability defaults off. The installed Dev trial receives a local override only.
@@ -63,3 +65,36 @@ The native review finds that a browser row can predate the completed note panel.
 Round JSON serializes capture dates to whole seconds. Screenshot sidecars retain fractional seconds. Provenance checks now compare dates at the round format's precision. Source identity, image size, and complete marks still match. A Foundation encoding probe reproduces the earlier exact-date mismatch and confirms the stored-precision comparison.
 
 A scratch probe compiles the real index and metadata sources. The old index hides clean copy for a verified unmarked capture after the round timestamp loses fractions. The fixed index keeps clean copy available. A second probe step resolves the same source identity with newly saved badge instructions and a general note. It preserves those current values. No UI or stored user data enters the probe.
+
+### Partial native acceptance: build 892
+
+Nextshot Dev 0.4.0-dev (892) is installed from combined source 920a2eb. It includes the public PR 149 repair 0ccecd7. Native acceptance remains incomplete.
+
+Verified cases:
+
+- Actual PNG images paste into an unsent Gmail draft and a TextEdit document. No message is sent. Evidence: verification.json and textedit-paste.png.
+- Copy Without Annotations keeps deliberate redactions. Evidence: redacted-clean-copy.png.
+- Annotation creates immutable versions and assigns new badge numbers. Source images remain unchanged. Evidence: annotated-version.json and annotated-text-version.json.
+- Reopening the same browser row after note completion asks only for badge 4. The promoted capture retains instructions 1, 2, and 3 plus earlier general notes. Evidence: promotion-B892-final-capture.json and promotion-B892-manifest.md.
+- Explicit image copy during pending note completion remains PNG afterward: 66,886 bytes, with no text clipboard content. Evidence: image-priority-after-notes.png.
+- The current-source storage probe passes retention, failed-save recovery, owned-path checks, round deduplication, and legacy conservatism. Evidence: storage-probe-B892.log.
+
+Remaining manual checks require an unlocked native review: image copy during an active round while preserving selection, reassignment of a shortcut skipped at startup, and failure or legacy UI behavior.
+
+The latest-main merge is prepared with the merged subtitle formatter and startup hooks. Its final app check requires an unlocked test window. The app run under screen lock fails capture and window checks, so it is not accepted as a passing result. No acceptance completion or release is claimed.
+
+### Final native acceptance, October 28
+
+All screenshot-copy acceptance scenarios pass on build 892, combined source 920a2eb with public repair 0ccecd7. The earlier partial record is superseded by these results. Evidence names below refer to the native review artifacts.
+
+- Image copy during an active round preserves all 47 round files, 14 captures, and three prompt selections. Evidence: active-round-instant-copy-B892.png and verification.json.
+- A saved conflicting shortcut is skipped at startup. The recorder saves Option+Shift+4. The real global key creates a fresh screenshot in the same process without a restart. Evidence: shortcut-reassigned-B892.png and shortcut-activation-B892.json.
+- A write failure retains captured pixels in Screenshot Recovery. Command+W keeps that window open. Try Copy Again succeeds after permissions recover, without opening notes. Evidence: storage-recovery-B892.png.
+- Legacy captures without verified clean provenance show a disabled clean-copy action and an explanation. Missing app metadata displays Unknown App. Evidence: legacy-clean-disabled-B892.png.
+- A missing synthetic image produces a clear error. Restoring the identical file makes copy succeed. Evidence: missing-image-alert-B892.png.
+
+The recorder sequence is click, Escape, then the shortcut chord without another click. Escape exposes Press Shortcut mode. The successful reassignment and capture occur in the same app process. No source change is required for that input sequence.
+
+The test round is ended. No round remains active, and test preferences are restored. This acceptance concerns screenshot copy and does not claim a real OS sign-in or a released-app install.
+
+Final current-main verification: the unlocked Capso app run passes all 247 existing tests with zero failures. The earlier locked-screen result remains an invalid acceptance run.
