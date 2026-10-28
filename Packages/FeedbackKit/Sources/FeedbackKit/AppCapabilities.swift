@@ -9,6 +9,7 @@ public struct AppCapabilities: Sendable, Equatable {
     public let cloudShare: Bool
     public let automationURLs: Bool
     public let automaticUpdates: Bool
+    public let screenshotCopy: Bool
 
     public var recordingCloudShare: Bool { recordingTools && cloudShare }
 
@@ -20,5 +21,6 @@ public struct AppCapabilities: Sendable, Equatable {
         cloudShare = standalone && state(.cloudShare) == .on
         automationURLs = standalone && state(.automationURLs) == .on
         automaticUpdates = state(.automaticUpdates) == .on
+        screenshotCopy = state(.screenshotCopy) == .on
     }
 }

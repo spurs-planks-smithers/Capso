@@ -18,7 +18,8 @@ final class InlineAnnotationEditorWindow: NSPanel, NSWindowDelegate {
         onSave: @escaping (CGImage) -> Void,
         onCopy: @escaping (CGImage) -> Void,
         onPin: @escaping (CGImage, CGRect?) -> Void,
-        onClose: @escaping () -> Void
+        onClose: @escaping () -> Void,
+        copyResult: ((CGImage) -> Bool)? = nil
     ) {
         self.document = AnnotationDocument(
             imageSize: CGSize(width: image.width, height: image.height)
@@ -66,7 +67,11 @@ final class InlineAnnotationEditorWindow: NSPanel, NSWindowDelegate {
                 self?.close()
             },
             onCopy: { [weak self] rendered in
-                onCopy(rendered)
+                if let copyResult {
+                    guard copyResult(rendered) else { return }
+                } else {
+                    onCopy(rendered)
+                }
                 self?.close()
             },
             onPin: { [weak self] rendered in

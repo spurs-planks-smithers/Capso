@@ -140,6 +140,8 @@ public enum SettingsVisibilityFlag: String, Sendable, CaseIterable {
     case shortcutsSelection = "shortcuts.selection"
     case shortcutsSelectionCenterFromClick = "shortcuts.selection.centerFromClick"
     case shortcutsContextual = "shortcuts.contextual"
+    case shortcutsCoreScreenshotCapture = "shortcuts.core.screenshotCapture"
+    case shortcutsCoreScreenshotAnnotate = "shortcuts.core.screenshotAnnotate"
     case shortcutsCoreFeedbackCapture = "shortcuts.core.feedbackCapture"
     case shortcutsCoreFeedbackCopyLastCapture = "shortcuts.core.feedbackCopyLastCapture"
     case shortcutsCoreFeedbackCopyPromptAndEndRound = "shortcuts.core.feedbackCopyPromptAndEndRound"

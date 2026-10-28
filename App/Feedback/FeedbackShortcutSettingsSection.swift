@@ -17,6 +17,10 @@ struct FeedbackShortcutSettingsSection: View {
     var body: some View {
         SettingGroup(visibility: .shortcutsCore, title: "Round Controls") {
             SettingCard {
+                if Capabilities.current.screenshotCopy {
+                    row("Copy Screenshot", visibility: .shortcutsCoreScreenshotCapture, name: .screenshotCapture)
+                    row("Annotate Latest Screenshot", visibility: .shortcutsCoreScreenshotAnnotate, name: .screenshotAnnotate)
+                }
                 row("Start Round or Capture Area", visibility: .shortcutsCoreFeedbackCapture, name: .feedbackCapture)
                 row("Copy Last Capture Prompt", visibility: .shortcutsCoreFeedbackCopyLastCapture, name: .feedbackCopyLastCapture, roundOnly: true)
                 row("Copy Prompt and End Round", visibility: .shortcutsCoreFeedbackCopyPromptAndEndRound, name: .feedbackCopyPromptAndEndRound, roundOnly: true)

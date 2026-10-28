@@ -9,6 +9,9 @@ extension KeyboardShortcuts.Name {
     /// (`FeedbackShortcutSettingsSection`), and so does the Nshot menu.
     static let feedbackCapture = Self("feedbackCapture", default: .init(.f, modifiers: [.option, .shift]))
 
+    static let screenshotCapture = Self("screenshotCapture", default: .init(.four, modifiers: [.option, .shift]))
+    static let screenshotAnnotate = Self("screenshotAnnotate", default: .init(.a, modifiers: [.option, .shift]))
+
     /// Fork: the round keys (Drew, 2026-10-24). Each runs the same path as
     /// its row in the Nshot menu.
     static let feedbackCopyLastCapture = Self("feedbackCopyLastCapture", default: .init(.c, modifiers: [.option, .shift]))
@@ -25,7 +28,9 @@ extension KeyboardShortcuts.Name {
     ]
 
     /// The fork's five keys: the start key and the round keys.
-    static let nextshotKeys: [Self] = [.feedbackCapture] + feedbackRoundKeys
+    @MainActor static var nextshotKeys: [Self] {
+        [.feedbackCapture] + feedbackRoundKeys + (Capabilities.current.screenshotCopy ? [.screenshotCapture, .screenshotAnnotate] : [])
+    }
 }
 
 /// Fork: keeps each Nextshot key apart from every other action's key (#24).
@@ -43,9 +48,15 @@ enum FeedbackShortcutGuard {
 
     /// Call once at launch, before any recorder can change a key.
     static func rememberCurrentKeys() {
-        for name in KeyboardShortcuts.Name.nextshotKeys {
+        for name in KeyboardShortcuts.Name.allCapso + KeyboardShortcuts.Name.nextshotKeys {
             accepted[name] = KeyboardShortcuts.getShortcut(for: name)
         }
+    }
+
+    static func isAvailable(_ name: KeyboardShortcuts.Name) -> Bool {
+        guard let shortcut = KeyboardShortcuts.getShortcut(for: name) else { return true }
+        let others = (KeyboardShortcuts.Name.allCapso.filter { Capabilities.allowsShortcut($0) } + KeyboardShortcuts.Name.nextshotKeys).filter { $0 != name }
+        return !others.contains { KeyboardShortcuts.getShortcut(for: $0) == shortcut }
     }
 
     /// Call from a recorder's `onChange`. A key that another action uses is
@@ -56,6 +67,7 @@ enum FeedbackShortcutGuard {
         defer {
             accepted[name] = KeyboardShortcuts.getShortcut(for: name)
             FeedbackController.shared.updateRoundShortcuts()
+            FeedbackController.shared.updateScreenshotShortcuts()
         }
         let others = (KeyboardShortcuts.Name.allCapso.filter { Capabilities.allowsShortcut($0) } + KeyboardShortcuts.Name.nextshotKeys).filter { $0 != name }
         guard let shortcut, others.contains(where: { KeyboardShortcuts.getShortcut(for: $0) == shortcut }) else {

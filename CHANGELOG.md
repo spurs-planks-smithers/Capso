@@ -14,6 +14,8 @@ Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This for
 
 ### Added
 
+- Optional screenshot copy with Option+Shift+4, Annotate Last Screenshot with Option+Shift+A, and combined image history with explicit Add to Round. The capability stays off by default during Dev review.
+
 - Fresh installations offer Launch at Login on by default. Login startup stays quiet, and disabling it in Nextshot or macOS stays off across updates.
 
 - An email-only intake shutdown mode preserves website, native, processing, screening, and notification controls.
@@ -27,6 +29,10 @@ Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This for
 - Show More in Recent Rounds gives access to older rounds grouped by day, week, and month, with the same round actions.
 
 ### Changed
+
+- Annotating a saved screenshot uses current round notes. Clean copy stays available after round dates lose fractional seconds.
+
+- Keep screenshot startup quiet when image history cannot open.
 
 - Support buttons open the online feedback form. Settings hide repository links and Diagnostics. Pointer labels and functional shortcut groups use clear wording. Centered-selection settings start hidden.
 

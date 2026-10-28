@@ -41,6 +41,10 @@ struct AnnotationToolbar: View {
     var onSavePreset: () -> Void = {}
     var onRemovePreset: (AnnotationStylePreset) -> Void = { _ in }
 
+    var allowsCanvasResize = true
+    var allowsPin = true
+    var onAddToRound: (() -> Void)? = nil
+
     /// The size slider serves multiple tools: in text / editing mode it means
     /// font size; for other tools it retains its existing role.
     private var isFontSizeMode: Bool {
@@ -62,10 +66,12 @@ struct AnnotationToolbar: View {
                         strokeGroup
                         presetsMenu
                         toolbarDivider
-                        cropGroup
-                        toolbarDivider
-                        beautifyGroup
-                        toolbarDivider
+                        if allowsCanvasResize {
+                            cropGroup
+                            toolbarDivider
+                            beautifyGroup
+                            toolbarDivider
+                        }
                         undoGroup
                     }
                 }
@@ -330,10 +336,17 @@ struct AnnotationToolbar: View {
 
             dragActionButton
 
+            if let onAddToRound {
+                Button("Add to Round", action: onAddToRound)
+                    .help("Add this image to a feedback round")
+            }
+
             copyActionButton
 
-            actionButton(icon: "pin", help: "Pin", action: onPin)
-                .keyboardShortcut("p", modifiers: .command)
+            if allowsPin {
+                actionButton(icon: "pin", help: "Pin", action: onPin)
+                    .keyboardShortcut("p", modifiers: .command)
+            }
 
             actionButton(icon: "square.and.arrow.down", help: "Save", isPrimary: true, action: onSave)
                 .keyboardShortcut("s", modifiers: .command)

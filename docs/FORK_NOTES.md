@@ -147,6 +147,26 @@ Issue: [Simplify Settings for feedback rounds](https://github.com/spurs-planks-s
 | `App/Tests/RecordingSelectionModeTests.swift` | Explicit enabled profiles for existing optional-tool checks | 156, 179, 200, 220 | Existing AppDelegate/menu/shortcut hook overlap; other upstream risk not refreshed in this change |
 | `App/Tests/ScreenshotClipboardContentTests.swift` | Explicit enabled profiles for existing optional-tool checks | 19, 44, 63, 87, 113, 151, 188, 229 | Existing AppDelegate/menu/shortcut hook overlap; other upstream risk not refreshed in this change |
 
+### October 27, 2026: Screenshot image copy, issue 123
+
+The isolated screenshot capability starts off in both channels. New screenshot storage, indexing, browsing, and orchestration stay in fork files under App/Feedback.
+
+| Upstream file | Lines in source commit 7fe0d18 | Hook and reason | Merge risk |
+| --- | --- | --- | --- |
+| App/Sources/AnnotationEditor/AnnotationEditorWindow.swift | 38-39, 126-140, 155 | Failure-aware Copy, Add to Round, unavailable Pin guard | Window callback changes |
+| App/Sources/AnnotationEditor/InlineAnnotationEditorWindow.swift | 22, 70-76 | Failure-aware Copy callback | Inline lifecycle changes |
+| App/Sources/AnnotationEditor/AnnotationEditorView.swift | 98-99, 319, 359-369, 506, 677-684, 779-800 | Promotion, fixed geometry, and Pin policy | Toolbar and export changes |
+| App/Sources/AnnotationEditor/AnnotationToolbar.swift | 44-46, 68-73, 338-350 | Optional Add to Round; hide unavailable actions | Toolbar layout changes |
+| App/Sources/AnnotationEditor/AnnotationCanvasNSView.swift | 275, 938-958 | Inherited badge reservations | Counter editing changes |
+| Packages/AnnotationKit/Sources/AnnotationKit/AnnotationDocument.swift | 13-18, 43-49, 106-130 | Badge collisions and document policies | Annotation model changes |
+| App/Sources/Preferences/Tabs/ShortcutSettingsView.swift | 197-206 | Refuse enabled fork shortcut collisions | Open upstream shortcut edits |
+| App/Sources/Capture/CaptureCoordinator.swift | 47, 64, 435-452, 642-685, 975-1028, 1415-1439, 1694 | Explicit request token through fallback delivery and cancellation | Capture overlay lifecycle changes |
+| Packages/FeedbackKit/Sources/FeedbackKit/FeedbackRoundStore.swift | 6-39, 182 | Commit inherited general note in the initial capture | Fork store input changes |
+
+The capture hook preserves instant-copy ownership across frozen/live fallback. The store input keeps inherited notes and images in one capture commit. New screenshot code remains in App/Feedback.
+Existing feedback shortcuts and disabled capability behavior remain intact. Search stays separate in issue 125. No release version or public Guide reviewedFor value changes in this work.
+
+The final isolation fix adds an explicit unique-counter policy, enabled only by ScreenshotWorkflow. Existing editor numbering remains unchanged with the capability off. Source: a92469f.
 ## Settings review hooks, October 27, 2026
 
 Issues 128 through 137 cover this review. Fork-owned visibility policy stays in FeedbackKit and App/Feedback. These upstream edits connect the typed keys and user-facing corrections.
@@ -170,6 +190,8 @@ Issues 128 through 137 cover this review. Fork-owned visibility policy stays in 
 | `App/Sources/Preferences/Tabs/RecordingSettingsView.swift` | Wire discrete Settings visibility and preserve existing behavior | 13, 15, 20, 25, 46, 48, 53, 58, 63, 81, 89, 91, 99 | Preferences and shortcut hooks can conflict. Upstream PR status is not refreshed here. |
 | `App/Sources/Preferences/Tabs/ScreenshotSettingsView.swift` | Wire discrete Settings visibility and preserve existing behavior | 21, 28, 36, 38, 43, 48, 62, 77, 87, 89, 94, 107, 109, 122, 124, 140, 165, 167, 174, 184, 194, 201, 220, 222, 251, 273, 294, 316, 321, 356, 366, 375, 385, 395, 404 | Preferences and shortcut hooks can conflict. Upstream PR status is not refreshed here. |
 | `App/Sources/Preferences/Tabs/ShortcutSettingsView.swift` | Visibility keys, functional groups, Delete wording, and hidden selection control | 50, 60, 81, 93, 99, 103, 105, 120, 122, 126, 132, 136, 147, 156, 167, 169, 178, 189, 208, 213, 226, 372, 386 | Preferences and shortcut hooks can conflict. Upstream PR status is not refreshed here. |
+
+The PR 149 main reconciliation preserves Settings visibility for every shortcut row. The two screenshot rows have separate typed keys. Existing shortcut recorders retain collision checks.
 
 ## Recent round subtitle width (2026-10-27, issue #32)
 

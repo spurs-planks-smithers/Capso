@@ -23,6 +23,7 @@ enum SettingsVisibility {
     /// Keep headings out when the launch policy removes every child.
     private static func isRelevant(_ flag: SettingsVisibilityFlag) -> Bool {
         switch flag {
+        case .shortcutsCoreScreenshotCapture, .shortcutsCoreScreenshotAnnotate: Capabilities.current.screenshotCopy
         case .generalAutomation: Capabilities.current.automationURLs
         case .generalSound, .generalScreenshotHistory, .generalStartupShowCaptureMenu,
              .screenshotsAfterCapture, .screenshotsBeautify, .screenshotsSelfTimer,

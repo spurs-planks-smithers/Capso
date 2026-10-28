@@ -53,6 +53,9 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     var onShowSettings: (() -> Void)?
 
     var onStartRound: (() -> Void)?
+    var onScreenshotCapture: (() -> Void)?
+    var onScreenshotAnnotate: (() -> Void)?
+    var onScreenshotHistory: (() -> Void)?
     var onOpenAllRounds: (() -> Void)?
     var onCopySelected: (() -> Void)?
     var onZipSelected: (() -> Void)?
@@ -98,6 +101,8 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     /// Made once and added again on each rebuild. `setShortcut(for:)` adds a
     /// notification observer that nothing removes, so a new item on every menu
     /// open would leave one more observer and one more item behind.
+    private lazy var screenshotCaptureItem = shortcutItem("Copy Screenshot", action: #selector(screenshotCapture), name: .screenshotCapture)
+    private lazy var screenshotAnnotateItem = shortcutItem("Annotate Latest Screenshot", action: #selector(screenshotAnnotate), name: .screenshotAnnotate)
     private lazy var startRoundItem: NSMenuItem = shortcutItem(
         "Start Round", action: #selector(startRound), name: .feedbackCapture
     )
@@ -216,6 +221,12 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         menu.addItem(grayLine(ForkBranding.versionLine))
         menu.addItem(.separator())
 
+        if Capabilities.current.screenshotCopy {
+            addReused(screenshotCaptureItem, to: menu)
+            addReused(screenshotAnnotateItem, to: menu)
+            menu.addItem(menuItem("Screenshot History", action: #selector(screenshotHistory)))
+            menu.addItem(.separator())
+        }
         if let active = state.active {
             menu.addItem(grayLine("Round: \(active.slug)"))
             menu.addItem(.separator())
@@ -508,6 +519,9 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     @objc private func showShortcut() { onShowShortcut?() }
     @objc private func showSettings() { onShowSettings?() }
     @objc private func quit() { NSApp.terminate(nil) }
+    @objc private func screenshotCapture() { onScreenshotCapture?() }
+    @objc private func screenshotAnnotate() { onScreenshotAnnotate?() }
+    @objc private func screenshotHistory() { onScreenshotHistory?() }
     @objc private func startRound() { onStartRound?() }
     @objc private func openAllRounds() { onOpenAllRounds?() }
     @objc private func copySelected() { onCopySelected?() }

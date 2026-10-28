@@ -10,6 +10,14 @@ public final class AnnotationDocument {
     public private(set) var objects: [any AnnotationObject] = []
     public private(set) var selectedObjectID: ObjectID?
     public private(set) var cropRect: CGRect?
+    /// Badge numbers already flattened into the source image.
+    public var reservedCounterNumbers: Set<Int> = []
+    /// Enabled only by screenshot version editing.
+    public var enforcesUniqueCounterNumbers = false
+    /// False when existing image coordinates must remain unchanged.
+    public var allowsCanvasResize = true
+    /// False for image-only annotation workflows without a pin service.
+    public var allowsPin = true
 
     private var undoStack: [Snapshot] = []
     private var redoStack: [Snapshot] = []
@@ -36,6 +44,12 @@ public final class AnnotationDocument {
     }
 
     public func addObject(_ object: any AnnotationObject) {
+        if enforcesUniqueCounterNumbers, let counter = object as? CounterObject {
+            let occupied = reservedCounterNumbers.union(objects.compactMap { ($0 as? CounterObject)?.number })
+            if occupied.contains(counter.number) {
+                counter.number = (occupied.max() ?? 0) + 1
+            }
+        }
         pushUndo()
         objects.append(object)
         selectedObjectID = object.id
@@ -93,6 +107,7 @@ public final class AnnotationDocument {
     }
 
     public func setCropRect(_ rect: CGRect?) {
+        guard allowsCanvasResize else { return }
         pushUndo()
         cropRect = rect
     }
@@ -103,6 +118,7 @@ public final class AnnotationDocument {
     /// Callers are expected to avoid calling this when `objects` is non-empty
     /// — the annotations' coordinates would be invalidated.
     public func replaceImage(size: CGSize) {
+        guard allowsCanvasResize else { return }
         pushUndo()
         imageSize = size
         cropRect = nil
@@ -111,6 +127,7 @@ public final class AnnotationDocument {
     /// Updates the backing image size while keeping annotation coordinates meaningful.
     /// Used when the visible canvas grows or shifts around already-created objects.
     public func updateImageSizePreservingObjects(size: CGSize, objectOffset: CGSize = .zero) {
+        guard allowsCanvasResize else { return }
         imageSize = size
         cropRect = nil
         if objectOffset != .zero {
