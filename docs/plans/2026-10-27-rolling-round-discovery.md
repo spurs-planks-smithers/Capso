@@ -18,7 +18,7 @@ The user may need only the last 10 seconds. That is Drew's example, not a fixed 
 |---|---|
 | Name | Rolling Round |
 | Availability | Separate feature flag within the Chrome extension feature set. The flag starts off under the project's existing policy. |
-| Dependency | Work with or without the Mac app, corrected by Drew on 2026-10-28. Optional native integration must preserve standalone use. |
+| Dependency | Work with or without the Mac app. Release on Mac first. Quietly start the correctly paired installed app on Save and import automatically. Keep the browser result if native delivery fails. Confirmed on 2026-10-28. |
 | Arming | Reviewer explicitly arms the current tab. Site permission is approved per site. |
 | Available history | Retain the last 60 seconds while tracking is active. Overwrite older unsaved data. The review default below counts recorded time and labels pause gaps. |
 | Stop | Stop tracking and clear all unsaved local history, including review snapshots, extracted frames, and cached assist payloads. Saved bundles remain saved. |
@@ -29,7 +29,7 @@ The user may need only the last 10 seconds. That is Drew's example, not a fixed 
 | Mac disconnection | Standalone capture and save stay usable. The earlier pause, mandatory reconnection, and 15-minute Mac-loss expiry are superseded on 2026-10-28. Research retention and retry for optional native transfer separately. |
 | Tab switching | Pause when the reviewer leaves the armed tab. Preserve its buffer. Resume when that tab is active again, subject to other pause reasons. |
 | Cross-site navigation | Pause and preserve current history. Require explicit re-arming for the new site. Request site permission when needed. |
-| Assistance | Use Jev and other rapid assist tools to recommend discrete captured steps or actions. Additional tool choices remain open. |
+| Assistance | Use Jev and rapid local tools for captured steps. Standalone Jev uses a separate authenticated service for invited pilot users. Nextshot funds a bounded allowance. Local suggestions continue at its limit. Confirmed on 2026-10-28. |
 | Jev fallback | If Jev adds no useful improvement or fails, continue normally with local suggestions and manual editing. Require no retry and show no blocking error. |
 | Later enhancement | Investigate integrated Apple Intelligence in [#148](https://github.com/spurs-planks-smithers/Capso/issues/148). This is an optional Later follow-up. It does not block Rolling Round or its required local fallback. |
 | Jev inputs | Sanitized action timeline, relevant diagnostics, and selected still frames. Send no GIF or video animation to Jev. |
@@ -129,7 +129,7 @@ Review date: 2026-10-27. These are Codex decisions under Drew's delegation. They
 
 ## Remaining design work
 
-The October 27 review resolved its product questions. The October 28 standalone scope introduces new choices in the draft architecture specification. Exact control layout, media storage, resource limits, field filters, encoder settings, diagnostic mechanisms, and pilot thresholds belong to later design. Begin with representative local/staging cases. Next test actual Claude/Artifacts previews, then live websites. Record support limits honestly. Any new scope or data allowance needs a product decision.
+The October 27 review resolved its product questions. October 28 answers confirm quiet native saving, standalone Jev, invited pilot access, sponsor-funded limits, and a Mac-first release. The [service specification](../superpowers/specs/2026-10-28-standalone-jev-service.md) defines the planned remote boundary. Exact control layout, media storage, resource limits, field filters, encoder settings, diagnostic mechanisms, and pilot thresholds belong to later design. Begin with representative local/staging cases. Next test actual Claude/Artifacts previews, then live websites. Record support limits honestly. Any new scope or data allowance needs a product decision.
 
 Drew separately approves bounded Jev help for ordinary browser annotations on 2026-10-27. It may use sanitized candidate-element details and selected still frames. Exclude sensitive fields and honor existing consent. Keep a local fallback. This does not expand Rolling Round's approved input categories.
 

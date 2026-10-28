@@ -41,11 +41,11 @@ The October 28 direction supersedes the October 27 Mac-required scope. In partic
 | Thin extension with all work in Swift | More direct reuse of native code and UI | Requires the app and adds an interprocess hop to basic use | Reject for the October 28 scope |
 | Swift compiled to WebAssembly | Potential reuse of portable logic | Added toolchain, runtime/interface work, and unmeasured package cost | Defer pending measured value |
 | Extension plus persistent local server | Flexible bidirectional transport | Extra process lifetime, installation, port, and local-service behavior | Reject for the current low-overhead direction |
-| Hosted capture application or remote backend | Cross-device storage and centralized services | Network dependency, accounts, data handling, and operating cost | Outside core scope; a standalone Jev service needs a separate product decision |
+| Hosted round platform | Cross-device storage and team services | Network dependency, accounts, data handling, and operating cost | Outside core scope. Drew separately approves a narrow standalone Jev service, not hosted round storage. |
 
 ## Resource and integration limits
 
-A retained native port also affects the worker lifetime. Use one short connection for an operation rather than a fresh process for every media chunk. Close it after acknowledgement. Use a cheap availability handshake only during a requested native action. Do not poll for app presence.
+A retained native port also affects the worker lifetime. Use one short connection for an operation rather than a fresh process for every media chunk. Close it after acknowledgement. Use a cheap availability handshake on Save or a requested native action. Drew approves quiet startup of installed Nextshot on Save. Do not poll for app presence or launch it during idle tracking.
 
 Native messages use framed UTF-8 JSON. Chrome limits host-to-extension messages to 1 megabyte and extension-to-host messages to 64 mebibytes. Keep control replies small. Use bounded acknowledged transfer for selected evidence, never the unsaved 60-second buffer. See [native protocol](https://developer.chrome.com/docs/extensions/develop/concepts/native-messaging).
 
@@ -59,7 +59,9 @@ Avoid continuous GIF encoding, duplicated full-resolution frames, whole-page mut
 
 Browser-local storage and automatic native import need explicit ownership rules. Proposed rule: save durably in the browser first. Native receipt confirms a separate import. Failed or duplicate transfers cannot lose or duplicate the browser result.
 
-Jev's existing Swift client obtains a key through the Mac Keychain. A browser-only extension cannot reuse that native path without the bridge. Never embed the project's service key in a distributed extension. A new authenticated service is an explicit scope and network-policy decision. Local suggestions provide the existing fallback.
+Jev's existing Swift client obtains a key through the Mac Keychain. A browser-only extension cannot reuse that native path without the bridge. Never embed the project's service key in a distributed extension. On 2026-10-28, Drew approves planning a separate authenticated service for standalone Jev. The first audience is invited pilot users. Nextshot funds a bounded allowance. Local suggestions continue when the service is unavailable or capped. This authorizes no deployment, paid calls, or change to existing native network restrictions.
+
+Drew confirms a Mac-first release with a portable browser core on 2026-10-28. Quiet native launch, standalone Jev, invited access, and sponsor-funded limits are product decisions. Their implementation and measured performance remain unverified. Authentication research uses [Chrome Identity](https://developer.chrome.com/docs/extensions/reference/api/identity) and [OAuth security best practice](https://www.rfc-editor.org/rfc/rfc9700). The [service specification](../superpowers/specs/2026-10-28-standalone-jev-service.md) separates the approved scope from proposed mechanisms.
 
 ## Research outcome and next evidence
 

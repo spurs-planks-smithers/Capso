@@ -24,16 +24,16 @@ Source: screenshot supplied by Drew on October 27, 2026. The quote preserves its
 
 | Topic | Confirmed answer | State |
 |---|---|---|
-| Product | General Nextshot browser companion | Confirmed by Drew |
+| Product | General Nextshot browser companion. Release on Mac first; keep the browser core portable. | Mac-first scope confirmed by Drew on 2026-10-28 |
 | Primary value | Help an agent find the exact element by attaching element details to marked feedback | Confirmed by Drew |
 | Handoff destinations | One capture supports both a design conversation and a coding agent in a repository | Confirmed by Drew |
-| Installation | Work seamlessly with and without the Nextshot Mac app. Native integration remains optional. | Corrected by Drew on 2026-10-28; supersedes the October 27 Mac-required answer |
+| Installation | Work with and without Nextshot. On Save, quietly start the correctly paired installed app and import automatically. Browser save remains available if native delivery fails. | Confirmed by Drew on 2026-10-28; supersedes the October 27 Mac-required scope |
 | Capture workflow | Keep area selection, annotations, and notes. The extension adds element details. | Confirmed by Drew |
 | Element lookup | Try to detect element details from annotation locations | Confirmed by Drew |
 | Location result | Identify the exact page element; include source file details when available | Confirmed by Drew |
 | Ambiguous matches | Offer a quick choice. The reviewer chooses the element. | Confirmed by Drew |
 | Site permission | Approve each site once. Later captures on that site retain the current flow. | Confirmed by Drew |
-| Jev assistance | Bounded help for ambiguous ordinary annotations may use sanitized candidate-element details and selected still frames. Exclude sensitive fields, honor existing consent, and keep a local fallback. | Confirmed by Drew on 2026-10-27 |
+| Jev assistance | Bounded candidate details and selected still frames, with consent and a local fallback. Include standalone Jev through an authenticated service for invited pilot users. Nextshot funds a bounded allowance. | Payload confirmed on October 27. Service, audience, and funding confirmed on 2026-10-28. |
 | Surfaces | Claude Design and Artifacts previews, local development and staging, and live websites all matter | Confirmed by Drew |
 | Validation order | Local development/staging proves the first pilot. Claude previews and live websites remain in scope. | Confirmed by Drew on 2026-10-27 |
 | Bugs | Record the bug with observable errors and permitted request summaries. Label gaps. The first extension excludes debugger access. | Diagnostic scope confirmed by Drew on 2026-10-28 |
@@ -181,13 +181,13 @@ Review date: 2026-10-27. The routine defaults below are Codex recommendations un
 | Save integrity | Publish one complete ended bundle. Repeated Save or reconnect delivery cannot duplicate it. Preserve a retryable draft after a save failure. Do not alter the ordinary active round. |
 | Privacy defaults | Allowlist structured fields. Exclude typed values, secrets, cookies, storage, and hidden DOM content. Sanitize URLs and diagnostics. Mask sensitive form fields in media. Do not claim complete redaction. |
 | Jev decision | Drew approves bounded ambiguous-element help outside Rolling Round on 2026-10-27. Use sanitized candidate details and selected still frames under existing consent. Keep a local fallback. |
-| Remaining work | Resolve exact controls, byte/event limits, sanitization mechanisms, supported surfaces, and pilot thresholds in design. Validate them only after separate trial authorization. The October 27 review is complete. New October 28 product choices appear in the draft architecture specification. |
+| Remaining work | Resolve exact controls, byte/event limits, sanitization mechanisms, supported surfaces, and pilot thresholds in design. Validate them only after separate trial authorization. The October 27 review is complete. October 28 answers confirm quiet native saving, an authenticated invited-user Jev service, sponsor-funded limits, and Mac-first support. See the architecture and service specifications. |
 
 Ask only material product questions that arise from new evidence. Settle routine choices without extra reviewer inputs.
 
 ## Deferred scope
 
-No automatic code editing, browser control, account system, hosted team board, generic session replay service, or direct issue publishing is approved. No claim of support for every website, every frame, original source code, or mobile browsers is justified by this spike.
+No automatic code editing, browser control, hosted team board, generic session replay service, or direct issue publishing is approved. Minimum authentication for the approved standalone Jev service is in scope. A broader account product remains deferred. No claim of support for every website, every frame, original source code, or mobile browsers is justified by this spike.
 
 ## Backlog record
 
