@@ -132,7 +132,7 @@ final class FeedbackController {
                         try await self.promoteScreenshot(input)
                     }, imageIntent: { [weak self] in self?.clipboardRevision &+= 1 },
                     toast: { [weak self] text in self?.showToast(text, screen: nil) })
-            } catch { report(error, context: "Screenshot history could not start") }
+            } catch { report(error, context: "Screenshot history could not start", audible: false) }
             updateScreenshotShortcuts()
             statusItem.onScreenshotCapture = { [weak self] in self?.captureScreenshot() }
             statusItem.onScreenshotAnnotate = { [weak self] in self?.annotateScreenshot() }
@@ -1289,12 +1289,12 @@ final class FeedbackController {
         var screenLines: [FeedbackTextLine]?
     }
 
-    private func report(_ error: Error, context: String) {
+    private func report(_ error: Error, context: String, audible: Bool = true) {
         // Error descriptions can contain file names, which hold window-title
         // text, so only the domain and code are public.
         let nsError = error as NSError
         FeedbackLog.logger.error("\(context, privacy: .public): \(nsError.domain, privacy: .public) \(nsError.code) \(nsError.localizedDescription, privacy: .private)")
         DiagnosticLogger.append(error: error, context: context, category: "Feedback")
-        NSSound.beep()
+        if audible { NSSound.beep() }
     }
 }

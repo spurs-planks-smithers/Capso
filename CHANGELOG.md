@@ -24,6 +24,8 @@ Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This for
 
 ### Changed
 
+- Keep screenshot startup quiet when image history cannot open.
+
 - Support buttons open the online feedback form. Settings hide repository links and Diagnostics. Pointer labels and functional shortcut groups use clear wording. Centered-selection settings start hidden.
 
 ## [0.4.0] - 2026-10-27
