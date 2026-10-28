@@ -66,7 +66,7 @@ The steps and the checks are at the top of `scripts/release.sh`, and the plan is
 site/deploy.sh
 ```
 
-The script builds Guides before staging. Its default inputs are the fixed `build/releases/Nextshot-onboarding-2026.10.24.mp4` and `build/site-poster.jpg`. Flags override each input:
+The script builds Guides before staging. Its default inputs are the fixed `build/releases/Nextshot-onboarding-2026.10.27.mp4` (onboarding video v5, live since 2026-10-28; v3.2 was `Nextshot-onboarding-2026.10.24.mp4`) and `build/site-poster.jpg`. Flags override each input:
 
 ```bash
 site/deploy.sh --video build/releases/<new cut>.mp4 --poster <image>
@@ -74,7 +74,8 @@ site/deploy.sh --video build/releases/<new cut>.mp4 --poster <image>
 
 The script stops when a file is 25 MiB or larger (the static asset limit), when `LICENSE` is missing, or when R2 holds no valid `latest.json` (the new Worker would have nothing to serve). After the deploy it runs `site/smoke.sh`: page, noindex header, `/latest.json`, the "Version" line, the `/download` redirect, the DMG SHA-256 and size, Range replies (206, and 416 past the end), that a path cannot leave `releases/`, a video Range request, the www redirect, and `/stats`.
 
-- New video cut: render it, then pass explicit `--video` and `--poster` inputs.
+- New video cut: render it, then pass explicit `--video` and `--poster` inputs. When the cut becomes the live video, change the `video=` default in `site/deploy.sh` and its fixture in `site/test/releases.test.mjs` in the same change, or the next deploy puts the old cut back.
+- Deploy from a worktree on `origin/main` when the main checkout is on another branch. The deploy stages Guides from the checkout it runs in, so a branch behind main removes newer Guides edits from the live site (2026-10-28).
 - Local check: `site/deploy.sh --stage-only`. Use the preview command it prints with its generated configuration. Populate its local R2 binding before checking app routes.
 - Exact retry: `site/deploy.sh --deploy-staged /absolute/path/to/artifact`. This verifies the file inventory without rebuilding.
 - Guides failure: restore and verify the previous Worker deployment. Preserve the new app files and `latest.json` in R2. App promotion and rollback change only the app pointer.
@@ -91,7 +92,7 @@ node scripts/video/nextshot-onboarding/make_poster.mjs build/site-poster.jpg
 ```
 
 ```bash
-site/deploy.sh --video build/releases/Nextshot-onboarding-2026.10.24.mp4 --poster build/site-poster.jpg
+site/deploy.sh --video build/releases/Nextshot-onboarding-2026.10.27.mp4 --poster build/site-poster.jpg
 ```
 
 - **Tagline.** "Show AI what you mean." with the line "Stop trying to describe issues to your agents. Start giving visual directions. One-click handoffs built for LLMs." under it, and in the meta descriptions (Drew, 2026-10-25, site review). Until 2026-10-25 the line said "fixes" and "visual feedback" (Drew, 2026-10-24). Above 640 pixels each sentence stays on one line, so the line breaks only between sentences. On 2026-10-24 it also said "Stop describing to AI what to fix. Start pointing at it." Drew dropped that because "AI" repeated the headline and "it" was unclear. Before that it said "Visual feedback for AI coding agents, on your Mac."
