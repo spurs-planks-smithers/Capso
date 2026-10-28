@@ -64,6 +64,7 @@ enum DiskImageInstaller {
     /// Asks the user, then installs this copy at `destination` and exits.
     /// Returns only when the user says Not Now or the install fails.
     static func offerInstall(destination: URL, runningCopies: [NSRunningApplication]) {
+        let offersStartupChoice = LoginStartupController.canOfferInstallerChoice(destination: destination, runningCopies: runningCopies)
         let folderName = FileManager.default.displayName(atPath: destination.deletingLastPathComponent().path)
         let alert = NSAlert()
         alert.messageText = "Install Nextshot \(versionText(of: Bundle.main.bundleURL))?"
@@ -74,6 +75,10 @@ enum DiskImageInstaller {
         } else {
             alert.informativeText = "This copies Nextshot to \(folderName) and opens it there."
         }
+        let startupChoice: NSButton? = offersStartupChoice
+            ? NSButton(checkboxWithTitle: "Launch Nextshot at Login", target: nil, action: nil) : nil
+        startupChoice?.state = .on
+        alert.accessoryView = startupChoice
         alert.addButton(withTitle: "Install")
         alert.addButton(withTitle: "Not Now")
         NSApp.activate(ignoringOtherApps: true)
@@ -81,7 +86,7 @@ enum DiskImageInstaller {
             logger.notice("Install declined.")
             return
         }
-        install(destination: destination, runningCopies: runningCopies)
+        install(destination: destination, runningCopies: runningCopies, startupChoice: startupChoice.map { $0.state == .on })
     }
 
     /// The copy on the image is not newer. Before 2026-10-25 it exited with no
@@ -104,7 +109,7 @@ enum DiskImageInstaller {
 
     /// Quits the running copies, puts this copy at `destination`, opens it,
     /// and exits. Returns only when a step fails.
-    private static func install(destination: URL, runningCopies: [NSRunningApplication]) {
+    private static func install(destination: URL, runningCopies: [NSRunningApplication], startupChoice: Bool? = nil) {
         for app in runningCopies {
             app.terminate()
         }
@@ -127,7 +132,8 @@ enum DiskImageInstaller {
             return
         }
         logger.notice("Installed build \(build(of: Bundle.main.bundleURL).description, privacy: .public) at \(destination.path, privacy: .public).")
-        openAndExit(destination)
+        let token = startupChoice.flatMap { LoginStartupController.stageInstallerChoice($0) }
+        openAndExit(destination, startupToken: token)
     }
 
     /// Copies the running bundle next to `destination`, then swaps it in, so
@@ -176,10 +182,13 @@ enum DiskImageInstaller {
 
     /// Opens the copy at `url` as a new instance and exits this one. The new
     /// copy gets this process ID, and waits for it to exit before it starts.
-    static func openAndExit(_ url: URL) -> Never {
+    static func openAndExit(_ url: URL, startupToken: String? = nil) -> Never {
         let configuration = NSWorkspace.OpenConfiguration()
         configuration.createsNewApplicationInstance = true
         configuration.arguments = [SingleInstanceGuard.installedByArgument, String(getpid())]
+        if let startupToken {
+            configuration.arguments += [LoginStartupController.installerTokenArgument, startupToken]
+        }
         let opened = DispatchSemaphore(value: 0)
         // The handler runs on a background queue, so the wait below cannot block it.
         NSWorkspace.shared.openApplication(at: url, configuration: configuration) { _, error in

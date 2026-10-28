@@ -5,6 +5,7 @@ import ShareKit
 import OCRKit
 import KeyboardShortcuts
 import Sparkle
+import LaunchAtLogin // Fork: login launch detection
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -36,7 +37,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
             return
         }
-        SingleInstanceGuard.quitIfAnotherCopyRuns() // Fork: App/Feedback
+        let loginLaunch = LaunchAtLogin.wasLaunchedAtLogin // Fork: read during the launch Apple Event
+        SingleInstanceGuard.quitIfAnotherCopyRuns(loginLaunch: loginLaunch) // Fork: App/Feedback
+        let showStartupChoice = LoginStartupController.shared.prepareLaunch(loginLaunch: loginLaunch) // Fork: App/Feedback
         ForkDefaults.register() // Fork: App/Feedback
 
         Self.shared = self
@@ -50,7 +53,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         UserDefaults.standard.set(300, forKey: "NSInitialToolTipDelay")
 
         _ = Capabilities.current
-        if Capabilities.current.automaticUpdates { updateManager = UpdateManager() }
+        if !loginLaunch && Capabilities.current.automaticUpdates { updateManager = UpdateManager() }
         if Capabilities.current.standaloneCapture { migrateShortcutsIfNeeded() }
         settings.startTrial()
         captureCoordinator = CaptureCoordinator(settings: settings)
@@ -70,7 +73,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             recordingCoordinator?.openEditor(for: source)
         }
         recordingCoordinator!.desktopIconsCover = desktopIconsCover
-        if Capabilities.current.recordingTools { recordingCoordinator!.recoverInterruptedRecording() }
+        if !loginLaunch && Capabilities.current.recordingTools { recordingCoordinator!.recoverInterruptedRecording() }
         preferencesWindow = PreferencesWindow(settings: settings, permissionManager: permissionManager, updateManager: updateManager)
         if settings.diagnosticLoggingEnabled {
             DiagnosticLogger.append(
@@ -89,9 +92,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onShowPreferences: { [weak self] in self?.showPreferences() }
         )
         registerGlobalShortcuts()
-        FeedbackController.shared.start(captureCoordinator: captureCoordinator!, settings: settings) // Fork: App/Feedback
-        performPendingAutomationURLAction()
-        performPendingImageFileOpen()
+        FeedbackController.shared.start(captureCoordinator: captureCoordinator!, settings: settings, loginLaunch: loginLaunch) // Fork: App/Feedback
+        if !loginLaunch { // Fork: login must not open a capture or file window
+            performPendingAutomationURLAction()
+            performPendingImageFileOpen()
+        }
         if Capabilities.current.standaloneCapture { historyCoordinator?.runCleanup() }
 
         NotificationCenter.default.addObserver(
@@ -116,8 +121,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.preferencesWindow?.show(tab: tab)
             }
         }
-        Task {
-            await permissionManager.checkScreenRecordingPermission()
+        if !loginLaunch { // Fork: query screen permission only after a deliberate launch
+            Task { await permissionManager.checkScreenRecordingPermission() }
+        }
+        if showStartupChoice,
+           SettingsVisibility.isVisible(.generalStartup),
+           SettingsVisibility.isVisible(.generalStartupLaunchAtLogin) {
+            preferencesWindow?.show(tab: .general)
         }
         // Load Vision's OCR models off the critical path so the first
         // "Capture Text" of a session doesn't stall on one-time model setup.
@@ -371,6 +381,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func showPreferences() {
+        // Fork: automatic update setup waits for an explicit action after login.
+        if updateManager == nil && Capabilities.current.automaticUpdates {
+            updateManager = UpdateManager()
+            preferencesWindow = PreferencesWindow(settings: settings, permissionManager: permissionManager, updateManager: updateManager)
+        }
         preferencesWindow?.show()
     }
 
