@@ -1,22 +1,22 @@
 ---
 title: Startup and support
-description: Start Nextshot at login and find its version and support links.
-reviewedFor: 0.4.0
-minVersion: 0.4.0
+description: Start Nextshot at login, check its version, and open the feedback form.
+reviewedFor: 0.5.0
+minVersion: 0.5.0
 ---
 
 import Step from '../../../components/Step.astro';
 import GuideImage from '../../../components/GuideImage.astro';
 
-Use **General** to start Nextshot when you log in, check its version, or find help.
+Use **General** to start Nextshot at login, check its version, or open the Nextshot feedback form.
 
-<GuideImage src="/guides/media/settings-general.png" alt="The General tab with Launch at Login, About, and Diagnostics." caption="Daily controls come first. Open Diagnostics only when you need troubleshooting files." />
+<GuideImage src="/guides/media/settings-general.png" alt="The General tab shows Launch at Login, Version, Report a Bug, and Request a Feature." caption="General keeps startup, version, and feedback controls together." />
 
 <Step number={1} title="Choose startup behavior">
 
-Open **Settings**, then **General**. Use **Launch at Login** to choose whether Nextshot starts when you sign in to your Mac.
+Open **Settings**, then **General**. Choose whether Nextshot starts when you sign in to your Mac. On first use, select **Done** to save your choice.
 
-Turning it off keeps startup off after updates. Disabling Nextshot in macOS **System Settings > General > Login Items** also keeps it off. Enable it again only when you want it.
+If macOS requires approval, choose **Open Login Items** and allow Nextshot. Turning startup off keeps it off after updates. Disabling Nextshot in macOS Login Items also keeps it off.
 
 This control does not start a round or make a capture.
 
@@ -24,35 +24,21 @@ This control does not start a round or make a capture.
 
 <Step number={2} title="Check the installed version">
 
-Find the version in **About**. Include it when you report a problem. The Nshot menu also shows the running version and build.
-
-Use **Report a Bug** for a broken action. Use **Request a Feature** for an idea. **Source Code** opens the project on GitHub.
-
-Opening one of these links submits nothing. Review what you share before you post it.
+Find the version in **About**. The Nshot menu also shows the running version and build.
 
 </Step>
 
 | Control | Default | When to use it |
 | --- | --- | --- |
-| Launch at Login | Off in 0.4.0 | Keep Nextshot available after login. |
+| Launch at Login | Your saved choice | Keep Nextshot available after login. |
 | Version | Installed build | Identify the running copy when you need help. |
-| Report a Bug | n/a | Describe a problem and the steps that cause it. |
-| Request a Feature | n/a | Explain the task you want to complete. |
-| Source Code | n/a | Read the public project. |
+| Report a Bug | n/a | Open the Nextshot feedback form for a problem. |
+| Request a Feature | n/a | Open the same form for an idea. |
 
-<details>
-<summary>Diagnostics: local troubleshooting files</summary>
+## Send feedback
 
-Open **Diagnostics** to reveal these controls.
+Choose **Report** beside **Report a Bug** or **Request** beside **Request a Feature**. Both open the Nextshot feedback form at [feedback.nextshot.dev](https://feedback.nextshot.dev).
 
-| Control | Default | Effect |
-| --- | --- | --- |
-| Diagnostic Logging | Off | Writes local troubleshooting logs when enabled. |
-| Diagnostic Logs | n/a | Reveals the local log file in Finder. |
-| Crash Reports | n/a | Opens the macOS diagnostic reports folder. |
-
-Turn on logging before you repeat a problem. Turn it off afterward. Review files before you share them. Opening a folder uploads nothing.
-
-</details>
+Opening the form sends no report. Review your message and any files before you submit them.
 
 Updates use a new installer. [Install an update](/guides/install/#install-an-update) when a newer release is available.
