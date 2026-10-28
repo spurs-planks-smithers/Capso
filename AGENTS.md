@@ -155,9 +155,10 @@ Agent access:
 
 ## App capabilities
 
-- `AppCapabilities` in FeedbackKit resolves six off/on flags for the app. All start off in dev and release: `standaloneCapture`, `recordingTools`, `translationTools`, `cloudShare`, `automationURLs`, and `automaticUpdates` (issue #119). These flags are not dev-only.
-- `Capabilities.current` in `App/Feedback/Capabilities.swift` freezes that policy once per launch. Flag changes require a normal quit and reopen. Recording, translation, cloud sharing, and URL automation require `standaloneCapture` as well. Updates are independent.
+- `AppCapabilities` in FeedbackKit resolves eight off/on flags for the app. All start off in dev and release: `standaloneCapture`, `recordingTools`, `translationTools`, `cloudShare`, `automationURLs`, and `automaticUpdates` (issue #119), `screenshotCopy` (issue #123), and `diagnostics` (issue #118). These flags are not dev-only.
+- `Capabilities.current` in `App/Feedback/Capabilities.swift` freezes that policy once per launch. Flag changes require a normal quit and reopen. Recording, translation, cloud sharing, and URL automation require `standaloneCapture` as well. Updates, screenshot copy, and Diagnostics are independent.
 - Default Settings show General, Permissions, Screenshots, and Shortcuts. Shared round capture, annotation, local OCR, and Escape image copy remain available. Optional History cleanup, recording recovery, shortcut registration, provider key reads, and service creation stay off with their capability.
+- Diagnostics writes local files only when its capability and saved logging preference are both on.
 - A saved preference never overrides an off capability. Keep saved settings, Keychain items, rounds, and History files intact. Gate alternate menus, URL actions, file opening, and coordinator entry points as well as Settings.
 
 ## Jev (dev builds only)

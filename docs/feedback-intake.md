@@ -6,7 +6,7 @@ Implementation plan: [[2026-10-26-secure-feedback-intake]]. Security rules: [[SE
 
 The website intake runs at https://feedback.nextshot.dev/. Cloudflare Access protects `/review` and its child routes with the exact owner policy. The application also verifies the signed Access token. Owner sign-in and a rebuilt JPEG download pass without bypassing browser protections.
 
-The base configuration remains closed. The explicit production profile reuses the approved private scanner digest. Website admission, processing, contextual checks, and fixed-recipient notifications are enabled. Native admission and inbound email remain disabled. Native app defaults remain off until the release owner activates them for 0.5.0 through [[2026-10-27-feedback-release-handoff]]. No production app is built by the website launch task.
+The base configuration remains closed. The explicit production profile reuses the approved private scanner digest. Website and native admission, processing, contextual checks, and fixed-recipient notifications are enabled. Inbound email remains disabled. Native app defaults remain off in 0.4.0. The reviewed 0.5.0 release activates native submission through [[2026-10-27-feedback-release-handoff]]. No production app is built by the website launch task.
 
 The public human test receives receipt 086892f7, completes screening, prepares a private draft, and completes its notification send. The browser with automation attached returns Turnstile error 300030. After the owner disconnects automation, the normal browser verification and submission pass. Keep browser protections and server verification enabled. The form preserves accepted receipt messages after later challenge callbacks or status-poll outages.
 
@@ -21,6 +21,12 @@ python3 scripts/feedback-cloudflare-preflight.py
 ```
 
 That probe reports API permissions and destination verification. It deliberately never reports full launch readiness. It does not mutate Cloudflare.
+
+## Native release verification, October 28, 2026
+
+Signed Nextshot Dev build 882 submits a fictional round through the real support panel. Cancellation, a blank optional note, service-unavailable retry, immutable package reuse, and duplicate-click handling pass. The reduced package contains one annotated JPEG and support.json. Its source round remains unchanged.
+
+Receipt d8fe470a-3be4-4b19-a9d5-2c18ebfbe08b completes screening, prepares a private draft, and completes notification. Owner sign-in and the protected rebuilt-image download pass. The 23,745-byte JPEG matches its recorded SHA-256. Inbound email remains off. Release evidence and the accepted installer/sign-in limits are in [[2026-10-28-v0.5.0-release]].
 
 ## Credential handling
 

@@ -8,36 +8,23 @@ Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This for
 
 ## [Unreleased]
 
-### Fixed
-
-- The shortcut field’s clear button clears the assigned keys while keeping the action available.
-
-- Clipboard Format help describes screenshot copying when the feature is enabled and Escape image copy otherwise.
-- Recent round subtitles fit app names to one line, preserve capture and selection counts, and show complete app names in a tooltip.
-
 ### Added
 
-- Optional screenshot copy with Option+Shift+4, Annotate Last Screenshot with Option+Shift+A, and combined image history with explicit Add to Round. The capability stays off by default during Dev review.
-
-- Fresh installations offer Launch at Login on by default. Login startup stays quiet, and disabling it in Nextshot or macOS stays off across updates.
-
-- An email-only intake shutdown mode preserves website, native, processing, screening, and notification controls.
-
-- Screen Recording help explains screen access beside the permission label.
-- Discrete visibility flags cover Settings tabs, sections, and controls.
-- Public website feedback for bug reports, feature requests, questions, and optional screenshots or Nextshot exports, with private screening and owner review.
-- Native round submission for 0.5.0, activated through the release checklist after the live transport and Dev app review.
-
-- Settings guide with startup, screen access, capture preferences, and shortcut customization.
 - Show More in Recent Rounds gives access to older rounds grouped by day, week, and month, with the same round actions.
+- Submit Round to Nextshot sends a reviewed round's annotated screenshots and notes after an explicit Submit action. Clean copies and stored screen text stay on the Mac.
+- Settings guides explain startup, screen access, capture preferences, and shortcut customization.
+- Report a Bug and Request a Feature open the online feedback form for messages and optional attachments.
 
 ### Changed
 
-- Annotating a saved screenshot uses current round notes. Clean copy stays available after round dates lose fractional seconds.
+- Fresh installations offer Launch at Login on by default. Login startup stays quiet. Disabling it in Nextshot or macOS keeps it off across updates.
+- Settings use clearer pointer labels, functional shortcut groups, and compact Screen Recording help. Repository links, Diagnostics, and centered-selection settings stay hidden by default.
 
-- Keep screenshot startup quiet when image history cannot open.
+### Fixed
 
-- Support buttons open the online feedback form. Settings hide repository links and Diagnostics. Pointer labels and functional shortcut groups use clear wording. Centered-selection settings start hidden.
+- The shortcut field's clear button clears the assigned keys while keeping the action available.
+- Recent round subtitles fit app names to one line and preserve capture and selection counts.
+- Clipboard Format help describes the available Escape image-copy action.
 
 ## [0.4.0] - 2026-10-27
 
