@@ -5,6 +5,8 @@ import FeedbackKit
 enum ScreenshotHistoryIndex {
     static func items(local: [ScreenshotHistoryItem], rounds: [FeedbackRound], rootURL: URL) -> [ScreenshotHistoryItem] {
         let root = rootURL.standardizedFileURL.resolvingSymlinksInPath()
+        // Round JSON stores whole seconds. Sidecars retain fractional seconds.
+        let captureDates = ISO8601DateFormatter()
         var indexed: [ScreenshotSourceID: ScreenshotHistoryItem] = [:]
         for item in local { indexed[item.id] = item }
         for round in rounds where round.schemaVersion <= FeedbackRound.currentSchemaVersion {
@@ -31,7 +33,8 @@ enum ScreenshotHistoryIndex {
                    let data = try? Data(contentsOf: provenance),
                    let recorded = try? JSONDecoder().decode(ScreenshotMetadata.self, from: data),
                    recorded.schemaVersion == ScreenshotMetadata.currentSchemaVersion,
-                   recorded.size == capture.size, recorded.capturedAt == capture.capturedAt,
+                   recorded.size == capture.size,
+                   captureDates.string(from: recorded.capturedAt) == captureDates.string(from: capture.capturedAt),
                    recorded.marks == capture.marks {
                     metadata.hasReliableCleanImage = recorded.hasReliableCleanImage
                     metadata.hasReliableBadges = recorded.hasReliableBadges

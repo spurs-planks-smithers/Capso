@@ -55,3 +55,11 @@ Instant-copy failures now open Screenshot Recovery with the captured pixels and 
 A screenshot shortcut that conflicts at launch receives its handler when Settings changes it to an available key. Registration remains conditional because KeyboardShortcuts registers onKeyDown immediately and disables by key combination. Current-main Settings visibility and grouping remain intact. Both screenshot rows have independent visibility keys.
 
 Follow-up verification passes on the reconciled source: SharedKit 279, AnnotationKit 117, CaptureKit 95, RecordingKit 27, OCRKit 8, FeedbackKit 341, HistoryKit 4, JevKit Release 369, and CapsoTests 247. Total: 1,487 existing checks. App compilation and the full app test command succeed. Native failure recovery and repaired-shortcut delivery still require the acceptance review. No new tests or gates are added.
+
+### Native stale-row correction
+
+The native review finds that a browser row can predate the completed note panel. Opening that cached round capture then repeats inherited badge questions and loses earlier notes in the promoted result. Annotation now resolves the selected source identity against the current index before constructing the editor. A missing source fails instead of using stale metadata. Annotate Latest already reads the current index and opens that fresh result directly.
+
+Round JSON serializes capture dates to whole seconds. Screenshot sidecars retain fractional seconds. Provenance checks now compare dates at the round format's precision. Source identity, image size, and complete marks still match. A Foundation encoding probe reproduces the earlier exact-date mismatch and confirms the stored-precision comparison.
+
+A scratch probe compiles the real index and metadata sources. The old index hides clean copy for a verified unmarked capture after the round timestamp loses fractions. The fixed index keeps clean copy available. A second probe step resolves the same source identity with newly saved badge instructions and a general note. It preserves those current values. No UI or stored user data enters the probe.

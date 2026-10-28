@@ -76,7 +76,7 @@ final class ScreenshotWorkflow {
                     return
                 }
                 busy = false
-                annotate(latest)
+                openAnnotationEditor(latest)
             } catch { busy = false; report(error) }
         }
     }
@@ -147,7 +147,24 @@ final class ScreenshotWorkflow {
         }
     }
 
-    private func annotate(_ item: ScreenshotHistoryItem) {
+    private func annotate(_ selected: ScreenshotHistoryItem) {
+        guard !editorIsOpen, !busy else { NSSound.beep(); return }
+        busy = true
+        Task {
+            do {
+                // Browser rows can predate completed notes. Resolve by stable source identity.
+                let currentItems = try await items()
+                guard let current = currentItems.first(where: { $0.id == selected.id }) else {
+                    throw WorkflowError.image
+                }
+                browser?.update(items: currentItems)
+                busy = false
+                openAnnotationEditor(current)
+            } catch { busy = false; report(error) }
+        }
+    }
+
+    private func openAnnotationEditor(_ item: ScreenshotHistoryItem) {
         guard !editorIsOpen, !busy else { NSSound.beep(); return }
         do {
             let image = try load(item.annotatedURL)
