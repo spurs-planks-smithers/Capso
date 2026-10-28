@@ -4,7 +4,7 @@ Date: 2026-10-27. Status: reviewed discovery, Later backlog. Issue: [Rolling Rou
 
 This document records product decisions. It does not authorize implementation, a prototype, dependencies, flag changes, or deployment. The entire Chrome extension stays outside v0.5.0. v1.0 or later remains tentative.
 
-Scope correction, 2026-10-28: Drew requires seamless extension use with and without the Mac app. This supersedes the October 27 mandatory Mac dependency, reconnect-before-save rule, and universal Mac-loss expiry. Research standalone ownership and optional native handoff before finalizing replacement contracts.
+Scope correction, 2026-10-28: Drew requires seamless extension use with and without the Mac app. This supersedes the October 27 mandatory Mac dependency, reconnect-before-save rule, and universal Mac-loss expiry. See the [research record](../research/2026-10-28-chrome-swift-integration.md) and [draft architecture specification](../superpowers/specs/2026-10-28-chrome-extension-architecture.md) for standalone ownership and optional native handoff.
 
 ## Product purpose
 
@@ -45,7 +45,7 @@ The user may need only the last 10 seconds. That is Drew's example, not a fixed 
 | Existing round | Leave any ordinary Nextshot round active. |
 | Destinations | The same report supports a design conversation and a coding agent with a repository. |
 
-Explicit start-and-stop bug recording is a separate confirmed path. Both paths belong to the broader browser feedback feature set. Bug evidence includes console errors and network summaries. Rolling Round output, no-audio scope, 5-megabyte target, and disconnected-draft lifetime are defined. Internal buffer representation and encoder settings remain open.
+Explicit start-and-stop bug recording is a separate confirmed path. Both paths belong to the broader browser feedback feature set. Bug evidence includes console errors and network summaries. Rolling Round output, no-audio scope, and the 5-megabyte target remain defined. The standalone correction replaces the earlier Mac-dependent draft lifetime. Internal buffer representation and encoder settings remain open.
 
 ## Proposed review behavior
 
@@ -129,7 +129,7 @@ Review date: 2026-10-27. These are Codex decisions under Drew's delegation. They
 
 ## Remaining design work
 
-No material Rolling Round product question remains from this review. Exact control layout, media storage, resource limits, field filters, encoder settings, diagnostic mechanisms, and pilot thresholds belong to later design. Begin with representative local/staging cases. Next test actual Claude/Artifacts previews, then live websites. Record support limits honestly. Any new scope or data allowance needs a product decision.
+The October 27 review resolved its product questions. The October 28 standalone scope introduces new choices in the draft architecture specification. Exact control layout, media storage, resource limits, field filters, encoder settings, diagnostic mechanisms, and pilot thresholds belong to later design. Begin with representative local/staging cases. Next test actual Claude/Artifacts previews, then live websites. Record support limits honestly. Any new scope or data allowance needs a product decision.
 
 Drew separately approves bounded Jev help for ordinary browser annotations on 2026-10-27. It may use sanitized candidate-element details and selected still frames. Exclude sensitive fields and honor existing consent. Keep a local fallback. This does not expand Rolling Round's approved input categories.
 
