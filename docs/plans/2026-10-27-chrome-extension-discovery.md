@@ -36,7 +36,7 @@ Source: screenshot supplied by Drew on October 27, 2026. The quote preserves its
 | Jev assistance | Bounded help for ambiguous ordinary annotations may use sanitized candidate-element details and selected still frames. Exclude sensitive fields, honor existing consent, and keep a local fallback. | Confirmed by Drew on 2026-10-27 |
 | Surfaces | Claude Design and Artifacts previews, local development and staging, and live websites all matter | Confirmed by Drew |
 | Validation order | Local development/staging proves the first pilot. Claude previews and live websites remain in scope. | Confirmed by Drew on 2026-10-27 |
-| Bugs | Record the bug with console errors and network request summaries | Confirmed by Drew |
+| Bugs | Record the bug with observable errors and permitted request summaries. Label gaps. The first extension excludes debugger access. | Diagnostic scope confirmed by Drew on 2026-10-28 |
 | Network collection | Sanitized addresses, methods, status codes, timing, and failures. No headers or bodies. | Confirmed by Drew |
 | Explicit recording | Reviewer starts before reproducing the bug and stops when finished | Confirmed by Drew |
 | Rolling Round | Separate feature flag; retain the last 60 seconds for unexpected bugs | Confirmed by Drew |
