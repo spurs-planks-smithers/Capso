@@ -65,13 +65,14 @@ struct CloudShareSettingsView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity)
+        .settingsVisibility(.cloudShareSetup)
     }
 
     private var configuredView: some View {
         VStack(alignment: .leading, spacing: 24) {
-            SettingGroup(title: "Status") {
+            SettingGroup(visibility: .cloudShareStatus, title: "Status") {
                 SettingCard {
-                    SettingRow(label: "Provider") {
+                    SettingRow(visibility: .cloudShareStatusProvider, label: "Provider") {
                         HStack(spacing: 6) {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundStyle(.green)
@@ -81,20 +82,20 @@ struct CloudShareSettingsView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
-                    SettingRow(label: "Public URL Prefix", showDivider: true) {
+                    SettingRow(visibility: .cloudShareStatusPublicURLPrefix, label: "Public URL Prefix", showDivider: true) {
                         Text(viewModel.cloudShareURLPrefix ?? "—")
                             .font(.system(size: 12))
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                             .truncationMode(.middle)
                     }
-                    SettingRow(label: "Bucket", showDivider: true) {
+                    SettingRow(visibility: .cloudShareStatusBucket, label: "Bucket", showDivider: true) {
                         Text(viewModel.cloudShareBucket ?? "—")
                             .font(.system(size: 12))
                             .foregroundStyle(.secondary)
                     }
                     if let region = viewModel.cloudShareRegion, !region.isEmpty {
-                        SettingRow(label: "Region / Endpoint", showDivider: true) {
+                        SettingRow(visibility: .cloudShareStatusRegionEndpoint, label: "Region / Endpoint", showDivider: true) {
                             Text(region)
                                 .font(.system(size: 12))
                                 .foregroundStyle(.secondary)
@@ -103,7 +104,7 @@ struct CloudShareSettingsView: View {
                         }
                     }
                     if let pathPrefix = viewModel.cloudSharePathPrefix, !pathPrefix.isEmpty {
-                        SettingRow(label: "Path Prefix", showDivider: true) {
+                        SettingRow(visibility: .cloudShareStatusPathPrefix, label: "Path Prefix", showDivider: true) {
                             Text(pathPrefix)
                                 .font(.system(size: 12))
                                 .foregroundStyle(.secondary)
@@ -112,9 +113,9 @@ struct CloudShareSettingsView: View {
                 }
             }
 
-            SettingGroup(title: "Behavior") {
+            SettingGroup(visibility: .cloudShareBehavior, title: "Behavior") {
                 SettingCard {
-                    SettingRow(
+                    SettingRow(visibility: .cloudShareBehaviorAutomaticallyUploadNewCaptures,
                         label: "Automatically Upload New Captures",
                         sublabel: "Upload new screenshots and recordings, then copy the share link"
                     ) {
@@ -122,7 +123,7 @@ struct CloudShareSettingsView: View {
                             .toggleStyle(.switch)
                             .controlSize(.small)
                     }
-                    SettingRow(
+                    SettingRow(visibility: .cloudShareBehaviorCopyLinkWhenUploadStarts,
                         label: "Copy Link When Upload Starts",
                         sublabel: "Paste the link right away; it works once the upload finishes",
                         showDivider: true
@@ -134,15 +135,15 @@ struct CloudShareSettingsView: View {
                 }
             }
 
-            SettingGroup(title: "Actions") {
+            SettingGroup(visibility: .cloudShareActions, title: "Actions") {
                 SettingCard {
-                    SettingRow(label: "Change Provider", sublabel: "Update storage provider or credentials") {
+                    SettingRow(visibility: .cloudShareActionsChangeProvider, label: "Change Provider", sublabel: "Update storage provider or credentials") {
                         Button(String(localized: "Configure")) {
                             showWizard = true
                         }
                         .controlSize(.small)
                     }
-                    SettingRow(label: "Test Connection", sublabel: "Verify the bucket is reachable", showDivider: true) {
+                    SettingRow(visibility: .cloudShareActionsTestConnection, label: "Test Connection", sublabel: "Verify the bucket is reachable", showDivider: true) {
                         Button {
                             Task { await testConnection() }
                         } label: {
@@ -158,7 +159,7 @@ struct CloudShareSettingsView: View {
                         .controlSize(.small)
                         .disabled(testing)
                     }
-                    SettingRow(label: "Reset Configuration", sublabel: "Remove all Cloud Share credentials", showDivider: true) {
+                    SettingRow(visibility: .cloudShareActionsResetConfiguration, label: "Reset Configuration", sublabel: "Remove all Cloud Share credentials", showDivider: true) {
                         Button(String(localized: "Reset"), role: .destructive) {
                             resetConfig()
                         }
@@ -322,7 +323,7 @@ struct CloudShareSettingsView: View {
             let list = keychainErrors.joined(separator: ", ")
             testResult = TestResultAlert(
                 title: String(localized: "Couldn't fully clear Keychain"),
-                message: String(format: String(localized: "Some credentials may still be in Keychain: %@.\n\nOpen 'Keychain Access.app' and search for 'com.awesomemacapps.capso.share' to remove them manually."), list)
+                message: String(format: String(localized: "Some credentials may still be in Keychain: %@.\n\nOpen 'Keychain Access.app' to remove them manually."), list)
             )
         }
     }

@@ -31,6 +31,7 @@ final class FeedbackController {
 
     private weak var captureCoordinator: CaptureCoordinator?
     private var settings: AppSettings?
+    private var screenshotShortcutHandlers: Set<KeyboardShortcuts.Name> = []
     private var screenshot: ScreenshotWorkflow?
     private var capturePurpose: ScreenshotCapturePurpose?
     private var clipboardRevision: UInt64 = 0
@@ -132,12 +133,7 @@ final class FeedbackController {
                     }, imageIntent: { [weak self] in self?.clipboardRevision &+= 1 },
                     toast: { [weak self] text in self?.showToast(text, screen: nil) })
             } catch { report(error, context: "Screenshot history could not start") }
-            if FeedbackShortcutGuard.isAvailable(.screenshotCapture) {
-                KeyboardShortcuts.onKeyDown(for: .screenshotCapture) { [weak self] in self?.captureScreenshot() }
-            }
-            if FeedbackShortcutGuard.isAvailable(.screenshotAnnotate) {
-                KeyboardShortcuts.onKeyDown(for: .screenshotAnnotate) { [weak self] in self?.annotateScreenshot() }
-            }
+            updateScreenshotShortcuts()
             statusItem.onScreenshotCapture = { [weak self] in self?.captureScreenshot() }
             statusItem.onScreenshotAnnotate = { [weak self] in self?.annotateScreenshot() }
             statusItem.onScreenshotHistory = { [weak self] in self?.screenshot?.showHistory() }
@@ -157,7 +153,7 @@ final class FeedbackController {
                     windowName: result.windowName ?? underneath?.title, appName: underneath?.ownerName ?? result.appName,
                     appBundleIdentifier: underneath == nil ? result.appBundleIdentifier : nil,
                     timestamp: result.timestamp, displayID: result.displayID)
-                screenshot.copyFresh(identified.image, result: identified, objects: [])
+                screenshot.copyFresh(identified.image, result: identified, objects: [], retainOnFailure: true)
             } else { self.openEditor(for: result) }
         }
         KeyboardShortcuts.onKeyDown(for: .feedbackCapture) { [weak self] in
@@ -228,6 +224,21 @@ final class FeedbackController {
         // round left active before a relaunch shows its count.
         Task { await refresh() }
         jev.warmUp()
+    }
+
+    /// Register each handler once when its saved key becomes available.
+    /// The shortcut library registers immediately and removes by key combination.
+    func updateScreenshotShortcuts() {
+        guard Capabilities.current.screenshotCopy, screenshot != nil else { return }
+        for name in [KeyboardShortcuts.Name.screenshotCapture, .screenshotAnnotate] {
+            guard !screenshotShortcutHandlers.contains(name), FeedbackShortcutGuard.isAvailable(name) else { continue }
+            KeyboardShortcuts.onKeyDown(for: name) { [weak self] in
+                guard FeedbackShortcutGuard.isAvailable(name) else { return }
+                if name == .screenshotCapture { self?.captureScreenshot() }
+                else { self?.annotateScreenshot() }
+            }
+            screenshotShortcutHandlers.insert(name)
+        }
     }
 
     private func captureScreenshot() {

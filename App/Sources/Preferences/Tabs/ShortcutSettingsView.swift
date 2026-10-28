@@ -48,6 +48,7 @@ struct ShortcutSettingsView: View {
     @State private var shortcutRefusal: String?
     private struct ContextualShortcut: Identifiable {
         let id: String
+        let visibility: SettingsVisibilityFlag
         let scope: LocalizedStringKey
         let action: LocalizedStringKey
         /// One or more keycaps to render for this action. `.copy` in
@@ -57,16 +58,16 @@ struct ShortcutSettingsView: View {
     }
 
     private let contextualShortcuts: [ContextualShortcut] = [
-        ContextualShortcut(id: "all-in-one-copy", scope: "All-in-One", action: "Copy selected area", shortcuts: ["⌘C", "⏎", "⌘⇧C"]),
-        ContextualShortcut(id: "all-in-one-save", scope: "All-in-One", action: "Save selected area", shortcuts: ["⌘S"]),
-        ContextualShortcut(id: "all-in-one-pin", scope: "All-in-One", action: "Pin selected area", shortcuts: ["⌘P"]),
-        ContextualShortcut(id: "all-in-one-cancel", scope: "All-in-One", action: "Cancel", shortcuts: ["Esc"]),
-        ContextualShortcut(id: "window-multi-select", scope: "Window Capture", action: "Select multiple windows", shortcuts: ["⇧ + click"]),
-        ContextualShortcut(id: "window-multi-confirm", scope: "Window Capture", action: "Capture selected windows", shortcuts: ["Release ⇧"]),
-        ContextualShortcut(id: "quick-access-copy", scope: "Quick Access", action: "Copy", shortcuts: ["⌘C"]),
-        ContextualShortcut(id: "quick-access-save", scope: "Quick Access", action: "Save", shortcuts: ["⌘S"]),
-        ContextualShortcut(id: "quick-access-annotate", scope: "Quick Access", action: "Annotate", shortcuts: ["⌘E"]),
-        ContextualShortcut(id: "quick-access-pin", scope: "Quick Access", action: "Pin", shortcuts: ["⌘P"])
+        ContextualShortcut(id: "all-in-one-copy", visibility: .shortcutsContextualAllInOneCopy, scope: "All-in-One", action: "Copy selected area", shortcuts: ["⌘C", "⏎", "⌘⇧C"]),
+        ContextualShortcut(id: "all-in-one-save", visibility: .shortcutsContextualAllInOneSave, scope: "All-in-One", action: "Save selected area", shortcuts: ["⌘S"]),
+        ContextualShortcut(id: "all-in-one-pin", visibility: .shortcutsContextualAllInOnePin, scope: "All-in-One", action: "Pin selected area", shortcuts: ["⌘P"]),
+        ContextualShortcut(id: "all-in-one-cancel", visibility: .shortcutsContextualAllInOneCancel, scope: "All-in-One", action: "Cancel", shortcuts: ["Esc"]),
+        ContextualShortcut(id: "window-multi-select", visibility: .shortcutsContextualWindowMultiSelect, scope: "Window Capture", action: "Select multiple windows", shortcuts: ["⇧ + click"]),
+        ContextualShortcut(id: "window-multi-confirm", visibility: .shortcutsContextualWindowMultiConfirm, scope: "Window Capture", action: "Capture selected windows", shortcuts: ["Release ⇧"]),
+        ContextualShortcut(id: "quick-access-copy", visibility: .shortcutsContextualQuickAccessCopy, scope: "Quick Access", action: "Copy", shortcuts: ["⌘C"]),
+        ContextualShortcut(id: "quick-access-save", visibility: .shortcutsContextualQuickAccessSave, scope: "Quick Access", action: "Save", shortcuts: ["⌘S"]),
+        ContextualShortcut(id: "quick-access-annotate", visibility: .shortcutsContextualQuickAccessAnnotate, scope: "Quick Access", action: "Annotate", shortcuts: ["⌘E"]),
+        ContextualShortcut(id: "quick-access-pin", visibility: .shortcutsContextualQuickAccessPin, scope: "Quick Access", action: "Pin", shortcuts: ["⌘P"])
     ]
 
     var body: some View {
@@ -78,7 +79,7 @@ struct ShortcutSettingsView: View {
             HStack(spacing: 8) {
                 Image(systemName: "info.circle")
                     .foregroundStyle(.blue)
-                Text("Select a shortcut, then press the new keys. Escape cancels. Delete removes it.")
+                Text("Select a shortcut, then press new keys. Escape cancels. Delete clears its keys. The action stays available but inactive.")
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
             }
@@ -90,6 +91,7 @@ struct ShortcutSettingsView: View {
                 RoundedRectangle(cornerRadius: 8)
                     .stroke(Color.blue.opacity(0.2), lineWidth: 0.5)
             )
+            .settingsVisibility(.shortcutsInstructions)
 
             FeedbackShortcutSettingsSection()
             if let shortcutRefusal { Text(verbatim: shortcutRefusal).font(.system(size: 12)).foregroundStyle(.orange) }
@@ -100,70 +102,87 @@ struct ShortcutSettingsView: View {
 
             if Capabilities.current.standaloneCapture {
                 SystemScreenshotShortcutsCard()
+                    .settingsVisibility(.shortcutsSystem)
             }
 
             if Capabilities.current.standaloneCapture {
-                SettingGroup(title: "Customizable Shortcuts") {
+                SettingGroup(visibility: .shortcutsCapture, title: "Screenshots") {
                     SettingCard {
-                        shortcutRow("All-in-One", name: .captureAllInOne)
-                        shortcutRow("Capture Area", name: .captureArea, showDivider: true)
-                        shortcutRow("Capture Fullscreen", name: .captureFullscreen, showDivider: true)
-                        shortcutRow("Capture Window", name: .captureWindow, showDivider: true)
-                        shortcutRow("Capture Text (OCR)", name: .captureText, showDivider: true)
-                        shortcutRow("Scrolling Capture", name: .captureScrolling, showDivider: true)
-                        shortcutRow("Self-Timer", name: .selfTimerCapture, showDivider: true)
-                        shortcutRow("Capture Area to Clipboard", name: .captureAreaToClipboard, showDivider: true)
+                        shortcutRow("All-in-One", visibility: .shortcutsCaptureCaptureAllInOne, name: .captureAllInOne)
+                        shortcutRow("Capture Area", visibility: .shortcutsCaptureCaptureArea, name: .captureArea, showDivider: true)
+                        shortcutRow("Capture Fullscreen", visibility: .shortcutsCaptureCaptureFullscreen, name: .captureFullscreen, showDivider: true)
+                        shortcutRow("Capture Window", visibility: .shortcutsCaptureCaptureWindow, name: .captureWindow, showDivider: true)
+                        shortcutRow("Capture Text (OCR)", visibility: .shortcutsCaptureCaptureText, name: .captureText, showDivider: true)
+                        shortcutRow("Scrolling Capture", visibility: .shortcutsCaptureCaptureScrolling, name: .captureScrolling, showDivider: true)
+                        shortcutRow("Self-Timer", visibility: .shortcutsCaptureSelfTimerCapture, name: .selfTimerCapture, showDivider: true)
+                        shortcutRow("Capture Previous Area", visibility: .shortcutsCaptureCaptureLastArea, name: .captureLastArea, showDivider: true)
+                    }
+                }
+
+                SettingGroup(visibility: .shortcutsClipboardPins, title: "Clipboard and Pins") {
+                    SettingCard {
+                        shortcutRow("Capture Area to Clipboard", visibility: .shortcutsClipboardPinsCaptureAreaToClipboard, name: .captureAreaToClipboard)
                         if Capabilities.current.cloudShare {
-                            shortcutRow("Capture and Share to Cloud", name: .captureAreaAndShare, showDivider: true)
+                            shortcutRow("Capture and Share to Cloud", visibility: .shortcutsClipboardPinsCaptureAreaAndShare, name: .captureAreaAndShare, showDivider: true)
                         }
-                        shortcutRow("Capture Area & Annotate", name: .captureAreaAndAnnotate, showDivider: true)
-                        shortcutRow("Capture Area & Pin", name: .captureAreaAndPin, showDivider: true)
+                        shortcutRow("Capture Area & Annotate", visibility: .shortcutsClipboardPinsCaptureAreaAndAnnotate, name: .captureAreaAndAnnotate, showDivider: true)
+                        shortcutRow("Capture Area & Pin", visibility: .shortcutsClipboardPinsCaptureAreaAndPin, name: .captureAreaAndPin, showDivider: true)
                         shortcutRow(
                             "Pin from Clipboard",
-                            name: .pinFromClipboard,
+                            visibility: .shortcutsClipboardPinsPinFromClipboard, name: .pinFromClipboard,
                             showDivider: true,
                             help: "Float copied images, text, colors, or files above other windows"
                         )
                         shortcutRow(
                             "Edit Clipboard Image",
-                            name: .editClipboardImage,
+                            visibility: .shortcutsClipboardPinsEditClipboardImage, name: .editClipboardImage,
                             showDivider: true,
                             help: "Open the image currently copied to the clipboard in Annotate"
                         )
-                        shortcutRow("Hide / Show All Pins", name: .togglePins, showDivider: true)
-                        if Capabilities.current.translationTools {
-                            shortcutRow("Capture & Translate", name: .captureAndTranslate, showDivider: true)
+                        shortcutRow("Hide / Show All Pins", visibility: .shortcutsClipboardPinsTogglePins, name: .togglePins, showDivider: true)
+                    }
+                }
+
+                if Capabilities.current.translationTools {
+                    SettingGroup(visibility: .shortcutsTranslation, title: "Translation") {
+                        SettingCard {
+                            shortcutRow("Capture & Translate", visibility: .shortcutsTranslationCaptureAndTranslate, name: .captureAndTranslate)
+                            shortcutRow("Translate Selected Text", visibility: .shortcutsTranslationTranslateSelectedText, name: .translateSelectedText, showDivider: true)
+                            shortcutRow("Translate Typed Text", visibility: .shortcutsTranslationTranslateTypedText, name: .translateTypedText, showDivider: true)
                         }
-                        if Capabilities.current.translationTools {
-                            shortcutRow("Translate Selected Text", name: .translateSelectedText, showDivider: true)
+                    }
+                }
+
+                if Capabilities.current.recordingTools {
+                    SettingGroup(visibility: .shortcutsRecording, title: "Recording") {
+                        SettingCard {
+                            shortcutRow("Record Area", visibility: .shortcutsRecordingRecordScreen, name: .recordScreen)
+                            shortcutRow("Record Full Screen", visibility: .shortcutsRecordingRecordFullscreen, name: .recordFullscreen, showDivider: true)
                         }
-                        if Capabilities.current.translationTools {
-                            shortcutRow("Translate Typed Text", name: .translateTypedText, showDivider: true)
-                        }
-                        shortcutRow("Capture Previous Area", name: .captureLastArea, showDivider: true)
-                        if Capabilities.current.recordingTools {
-                            shortcutRow("Record Area", name: .recordScreen, showDivider: true)
-                        }
-                        if Capabilities.current.recordingTools {
-                            shortcutRow("Record Full Screen", name: .recordFullscreen, showDivider: true)
-                        }
-                        shortcutRow("Screenshot History", name: .screenshotHistory, showDivider: true)
+                    }
+                }
+
+                SettingGroup(visibility: .shortcutsHistory, title: "History") {
+                    SettingCard {
+                        shortcutRow("Screenshot History", visibility: .shortcutsHistoryScreenshotHistory, name: .screenshotHistory)
                     }
                 }
             }
 
             if Capabilities.current.standaloneCapture {
-                SettingGroup(title: "Contextual Shortcuts") {
+                SettingGroup(visibility: .shortcutsContextual, title: "Contextual Shortcuts") {
                     SettingCard {
-                        centerLockRow
-                        ForEach(Array(contextualShortcuts.enumerated()).filter { _ in Capabilities.current.standaloneCapture }, id: \.element.id) { _, item in
-                            contextualShortcutRow(item, showDivider: true)
+                        if SettingsVisibility.hasVisibleContent(.shortcutsSelection) {
+                            centerLockRow
+                        }
+                        ForEach(Array(contextualShortcuts.filter { SettingsVisibility.isVisible($0.visibility) }.enumerated()), id: \.element.id) { index, item in
+                            contextualShortcutRow(item, showDivider: index > 0 || SettingsVisibility.hasVisibleContent(.shortcutsSelection))
                         }
                     }
                 }
             }
-            if !Capabilities.current.standaloneCapture {
-                DisclosureGroup("Advanced") {
+            if !Capabilities.current.standaloneCapture && SettingsVisibility.hasVisibleContent(.shortcutsSelection) {
+                DisclosureGroup("Selection") {
                     SettingCard { centerLockRow }
                         .padding(.top, 8)
                 }
@@ -173,6 +192,7 @@ struct ShortcutSettingsView: View {
 
     private var centerLockRow: some View {
         SettingRow(
+            visibility: .shortcutsSelectionCenterFromClick,
             label: "Center 1:1 from click",
             sublabel: "Selection",
             showDivider: false
@@ -191,11 +211,12 @@ struct ShortcutSettingsView: View {
     @ViewBuilder
     private func shortcutRow(
         _ label: LocalizedStringKey,
+        visibility: SettingsVisibilityFlag,
         name: KeyboardShortcuts.Name,
         showDivider: Bool = false,
         help: LocalizedStringKey? = nil
     ) -> some View {
-        let row = SettingRow(label: label, showDivider: showDivider) {
+        let row = SettingRow(visibility: visibility, label: label, showDivider: showDivider) {
             KeyboardShortcuts.Recorder(for: name) { shortcut in
                 shortcutRefusal = FeedbackShortcutGuard.check(shortcut, for: name, label: "Shortcut")
             }
@@ -210,7 +231,7 @@ struct ShortcutSettingsView: View {
     }
 
     private func contextualShortcutRow(_ item: ContextualShortcut, showDivider: Bool = false) -> some View {
-        SettingRow(label: item.action, sublabel: item.scope, showDivider: showDivider) {
+        SettingRow(visibility: item.visibility, label: item.action, sublabel: item.scope, showDivider: showDivider) {
             HStack(spacing: 6) {
                 ForEach(Array(item.shortcuts.enumerated()), id: \.offset) { _, shortcut in
                     ShortcutKeycap(text: shortcut)
@@ -356,6 +377,7 @@ private struct SystemScreenshotShortcutsCard: View {
                     text: "macOS still uses ⇧⌘3, ⇧⌘4 and ⇧⌘5 for its own screenshots. To use them for Capso, turn off the shortcuts under Keyboard Shortcuts → Screenshots."
                 ) {
                     Button("Open Keyboard Settings") { NSWorkspace.shared.open(SystemScreenshotShortcuts.settingsURL) }
+                        .settingsVisibility(.shortcutsSystemOpenSettings)
                 }
             } else if !capsoUsesAny {
                 banner(
@@ -369,6 +391,7 @@ private struct SystemScreenshotShortcutsCard: View {
                         }
                         capsoUsesAny = true
                     }
+                    .settingsVisibility(.shortcutsSystemUseKeys)
                 }
             }
         }

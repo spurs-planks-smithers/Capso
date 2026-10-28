@@ -15,17 +15,17 @@ struct FeedbackShortcutSettingsSection: View {
     @State private var refusal: String?
 
     var body: some View {
-        SettingGroup(title: LocalizedStringKey(ForkBranding.name)) {
+        SettingGroup(visibility: .shortcutsCore, title: "Round Controls") {
             SettingCard {
                 if Capabilities.current.screenshotCopy {
-                    row("Copy Screenshot", name: .screenshotCapture)
-                    row("Annotate Latest Screenshot", name: .screenshotAnnotate)
+                    row("Copy Screenshot", visibility: .shortcutsCoreScreenshotCapture, name: .screenshotCapture)
+                    row("Annotate Latest Screenshot", visibility: .shortcutsCoreScreenshotAnnotate, name: .screenshotAnnotate)
                 }
-                row("Start Round or Capture Area", name: .feedbackCapture)
-                row("Copy Last Capture Prompt", name: .feedbackCopyLastCapture, roundOnly: true)
-                row("Copy Prompt and End Round", name: .feedbackCopyPromptAndEndRound, roundOnly: true)
-                row("Open Round Folder", name: .feedbackOpenRoundFolder, roundOnly: true)
-                row("End Round", name: .feedbackEndRound, roundOnly: true)
+                row("Start Round or Capture Area", visibility: .shortcutsCoreFeedbackCapture, name: .feedbackCapture)
+                row("Copy Last Capture Prompt", visibility: .shortcutsCoreFeedbackCopyLastCapture, name: .feedbackCopyLastCapture, roundOnly: true)
+                row("Copy Prompt and End Round", visibility: .shortcutsCoreFeedbackCopyPromptAndEndRound, name: .feedbackCopyPromptAndEndRound, roundOnly: true)
+                row("Open Round Folder", visibility: .shortcutsCoreFeedbackOpenRoundFolder, name: .feedbackOpenRoundFolder, roundOnly: true)
+                row("End Round", visibility: .shortcutsCoreFeedbackEndRound, name: .feedbackEndRound, roundOnly: true)
             }
             if let refusal {
                 Text(verbatim: refusal)
@@ -42,8 +42,9 @@ struct FeedbackShortcutSettingsSection: View {
     /// says so. `FeedbackShortcutGuard` refuses a key that another action
     /// uses, and it asks the controller to remove a changed round key again
     /// when no round is active.
-    private func row(_ label: String, name: KeyboardShortcuts.Name, roundOnly: Bool = false) -> some View {
+    private func row(_ label: String, visibility: SettingsVisibilityFlag, name: KeyboardShortcuts.Name, roundOnly: Bool = false) -> some View {
         SettingRow(
+            visibility: visibility,
             label: LocalizedStringKey(label),
             sublabel: roundOnly ? LocalizedStringKey(Self.roundOnlyNote) : nil,
             showDivider: name != .feedbackCapture

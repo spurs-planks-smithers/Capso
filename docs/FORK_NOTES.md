@@ -163,3 +163,28 @@ The capture hook preserves instant-copy ownership across frozen/live fallback. T
 Existing feedback shortcuts and disabled capability behavior remain intact. Search stays separate in issue 125. No release version or public Guide reviewedFor value changes in this work.
 
 The final isolation fix adds an explicit unique-counter policy, enabled only by ScreenshotWorkflow. Existing editor numbering remains unchanged with the capability off. Source: a92469f.
+## Settings review hooks, October 27, 2026
+
+Issues 128 through 137 cover this review. Fork-owned visibility policy stays in FeedbackKit and App/Feedback. These upstream edits connect the typed keys and user-facing corrections.
+
+| File | Reason | Changed line starts | Upstream merge risk |
+| --- | --- | --- | --- |
+| `App/Resources/Localizable.xcstrings` | Pointer translations and removal of unused repository text | 17899, 24130, 27273, 32288, 44475, 45695, 45697, 45700, 45832, 53373 | Preferences and shortcut hooks can conflict. Upstream PR status is not refreshed here. |
+| `App/Sources/Editor/EditorSettingsPanel.swift` | Use Pointer in visible editor labels | 265, 463 | Preferences and shortcut hooks can conflict. Upstream PR status is not refreshed here. |
+| `App/Sources/OCR/OCRProcessFallback.swift` | Use Nextshot in the executable error | 227 | Preferences and shortcut hooks can conflict. Upstream PR status is not refreshed here. |
+| `App/Sources/Preferences/Components/AutomationURLsSheetView.swift` | Wire discrete Settings visibility and preserve existing behavior | 8, 15, 28, 31, 46, 49, 56, 59, 67, 70, 76, 79, 86, 89, 96, 117, 150, 158, 198 | Preferences and shortcut hooks can conflict. Upstream PR status is not refreshed here. |
+| `App/Sources/Preferences/Components/SettingCard.swift` | Wire discrete Settings visibility and preserve existing behavior | 15, 20 | Preferences and shortcut hooks can conflict. Upstream PR status is not refreshed here. |
+| `App/Sources/Preferences/Components/SettingRow.swift` | Wire discrete Settings visibility and preserve existing behavior | 4, 9, 13, 34, 37, 40 | Preferences and shortcut hooks can conflict. Upstream PR status is not refreshed here. |
+| `App/Sources/Preferences/Components/UpdatesSettingsSection.swift` | Wire discrete Settings visibility and preserve existing behavior | 15, 17, 25, 34, 44 | Preferences and shortcut hooks can conflict. Upstream PR status is not refreshed here. |
+| `App/Sources/Preferences/PreferencesView.swift` | Wire discrete Settings visibility and preserve existing behavior | 18, 28, 65, 146 | Preferences and shortcut hooks can conflict. Upstream PR status is not refreshed here. |
+| `App/Sources/Preferences/Tabs/CloudShareSettingsView.swift` | Wire discrete Settings visibility and preserve existing behavior | 68, 73, 75, 85, 92, 98, 107, 116, 118, 126, 138, 140, 146, 162, 326 | Preferences and shortcut hooks can conflict. Upstream PR status is not refreshed here. |
+| `App/Sources/Preferences/Tabs/ExportSettingsView.swift` | Wire discrete Settings visibility and preserve existing behavior | 24, 27, 37, 55, 73, 75, 89, 94, 100, 102, 166, 182, 186 | Preferences and shortcut hooks can conflict. Upstream PR status is not refreshed here. |
+| `App/Sources/Preferences/Tabs/GeneralSettingsView.swift` | Visibility keys, web feedback links, and repository row removal | 32, 34, 40, 50, 52, 60, 75, 77, 91, 93, 98, 111, 113, 119, 121, 124, 126, 133, 142 | Preferences and shortcut hooks can conflict. Upstream PR status is not refreshed here. |
+| `App/Sources/Preferences/Tabs/OCRSettingsView.swift` | Wire discrete Settings visibility and preserve existing behavior | 20, 22, 27, 36, 38, 46, 62, 68, 74, 78, 85, 91, 106, 110, 115, 120 | Preferences and shortcut hooks can conflict. Upstream PR status is not refreshed here. |
+| `App/Sources/Preferences/Tabs/PermissionSettingsView.swift` | Visibility keys and screen access explanation | 17, 20, 23, 27, 32, 42, 52, 62, 78, 89, 94, 97 | Preferences and shortcut hooks can conflict. Upstream PR status is not refreshed here. |
+| `App/Sources/Preferences/Tabs/QuickAccessSettingsView.swift` | Wire discrete Settings visibility and preserve existing behavior | 13, 34, 38, 40, 45, 56 | Preferences and shortcut hooks can conflict. Upstream PR status is not refreshed here. |
+| `App/Sources/Preferences/Tabs/RecordingSettingsView.swift` | Wire discrete Settings visibility and preserve existing behavior | 13, 15, 20, 25, 46, 48, 53, 58, 63, 81, 89, 91, 99 | Preferences and shortcut hooks can conflict. Upstream PR status is not refreshed here. |
+| `App/Sources/Preferences/Tabs/ScreenshotSettingsView.swift` | Wire discrete Settings visibility and preserve existing behavior | 21, 28, 36, 38, 43, 48, 62, 77, 87, 89, 94, 107, 109, 122, 124, 140, 165, 167, 174, 184, 194, 201, 220, 222, 251, 273, 294, 316, 321, 356, 366, 375, 385, 395, 404 | Preferences and shortcut hooks can conflict. Upstream PR status is not refreshed here. |
+| `App/Sources/Preferences/Tabs/ShortcutSettingsView.swift` | Visibility keys, functional groups, Delete wording, and hidden selection control | 50, 60, 81, 93, 99, 103, 105, 120, 122, 126, 132, 136, 147, 156, 167, 169, 178, 189, 208, 213, 226, 372, 386 | Preferences and shortcut hooks can conflict. Upstream PR status is not refreshed here. |
+
+The PR 149 main reconciliation preserves Settings visibility for every shortcut row. The two screenshot rows have separate typed keys. Existing shortcut recorders retain collision checks.

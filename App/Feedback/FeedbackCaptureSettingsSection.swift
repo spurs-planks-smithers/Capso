@@ -7,14 +7,14 @@ struct FeedbackCaptureSettingsSection: View {
     @Bindable var viewModel: PreferencesViewModel
 
     var body: some View {
-        SettingGroup(title: "Capture") {
+        SettingGroup(visibility: .screenshotsCapture, title: "Capture") {
             SettingCard {
-                SettingRow(label: "Show Cursor", sublabel: "Include the mouse pointer in captures") {
+                SettingRow(visibility: .screenshotsCaptureShowCursor, label: "Show Pointer", sublabel: "Include the mouse pointer in captures") {
                     Toggle("", isOn: $viewModel.screenshotShowsCursor)
                         .toggleStyle(.switch)
                         .controlSize(.small)
                 }
-                SettingRow(label: "Clipboard Format", sublabel: "Image copied with Escape before adding marks", showDivider: true) {
+                SettingRow(visibility: .screenshotsCaptureClipboardFormat, label: "Clipboard Format", sublabel: "Image copied with Escape before adding marks", showDivider: true) {
                     Picker("", selection: $viewModel.screenshotClipboardFormat) {
                         Text("PNG").tag(ScreenshotClipboardFormat.png)
                         Text("JPEG").tag(ScreenshotClipboardFormat.jpeg)

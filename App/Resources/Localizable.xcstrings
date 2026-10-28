@@ -17896,6 +17896,12 @@
     },
     "Cursor" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pointer"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -24121,6 +24127,12 @@
     },
     "Follow Cursor" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Follow Pointer"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -27255,71 +27267,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "影像大小："
-          }
-        }
-      }
-    },
-    "In `R2 → Overview`, click `Create bucket`. Name it something memorable like `capso-shares`." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Klicke unter `R2 → Overview` auf `Create bucket`. Gib ihm einen einprägsamen Namen wie `capso-shares`."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "En `R2 → Overview`, haz clic en `Create bucket`. Ponle un nombre fácil de recordar, como `capso-shares`."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dans `R2 → Overview`, cliquez sur `Create bucket`. Donnez-lui un nom facile à retenir, comme `capso-shares`."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "In `R2 → Overview`, fai clic su `Create bucket`. Dagli un nome facile da ricordare, come `capso-shares`."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "`R2 → Overview` で `Create bucket` をクリックします。`capso-shares` のような覚えやすい名前を付けます。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "`R2 → Overview`에서 `Create bucket`을 클릭하세요. `capso-shares`처럼 기억하기 쉬운 이름을 지정하세요."
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Em `R2 → Overview`, clique em `Create bucket`. Dê um nome fácil de lembrar, como `capso-shares`."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "В `R2 → Overview` нажмите `Create bucket`. Дайте ему запоминающееся имя, например `capso-shares`."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在 `R2 → Overview` 中点击 `Create bucket`。取一个容易记住的名称，比如 `capso-shares`。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在 `R2 → Overview` 中按一下 `Create bucket`。取一個好記的名稱，例如 `capso-shares`。"
           }
         }
       }
@@ -32338,7 +32285,7 @@
       }
     },
     "Open" : {
-      "comment" : "Button label in About → Source Code row. Opens the GitHub repository in the browser.",
+      "comment" : "Button label that opens the selected destination.",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -44525,6 +44472,12 @@
     },
     "Show Cursor" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Pointer"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -45739,66 +45692,12 @@
         }
       }
     },
-    "Some credentials may still be in Keychain: %@.\n\nOpen 'Keychain Access.app' and search for 'com.awesomemacapps.capso.share' to remove them manually." : {
+    "Some credentials may still be in Keychain: %@.\n\nOpen 'Keychain Access.app' to remove them manually." : {
       "localizations" : {
-        "de" : {
+        "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Einige Zugangsdaten befinden sich eventuell noch im Schlüsselbund: %@.\n\nÖffne „Schlüsselbundverwaltung.app“ und suche nach 'com.awesomemacapps.capso.share', um sie manuell zu entfernen."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Puede que queden credenciales en el llavero: %@.\n\nAbre «Acceso a Llaveros.app» y busca «com.awesomemacapps.capso.share» para eliminarlas manualmente."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Certains identifiants sont peut-être encore dans le trousseau : %@.\n\nOuvrez « Trousseaux d'accès.app » et recherchez « com.awesomemacapps.capso.share » pour les supprimer manuellement."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Alcune credenziali potrebbero essere ancora nel Portachiavi: %@.\n\nApri 'Accesso Portachiavi.app' e cerca 'com.awesomemacapps.capso.share' per rimuoverle manualmente."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "一部の資格情報が Keychain に残っている可能性があります：%@。\n\n「キーチェーンアクセス.app」を開き、'com.awesomemacapps.capso.share' で検索して手動で削除してください。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "일부 자격 증명이 Keychain에 남아 있을 수 있습니다: %@.\n\n'키체인 접근.app'을 열고 'com.awesomemacapps.capso.share'를 검색하여 수동으로 삭제하세요."
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Algumas credenciais ainda podem estar nas Chaves: %@.\n\nAbra o 'Acesso às Chaves.app' e procure por 'com.awesomemacapps.capso.share' para removê-las manualmente."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Некоторые учетные данные могут остаться в Связке ключей: %@.\n\nОткройте «Связка ключей.app» и найдите «com.awesomemacapps.capso.share», чтобы удалить их вручную."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "部分凭据可能仍保留在 Keychain 中：%@。\n\n请打开“钥匙串访问.app”，搜索 'com.awesomemacapps.capso.share' 手动删除。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "部分憑證可能仍保留在鑰匙圈中：%@。\n\n請打開「鑰匙圈存取.app」並搜尋「com.awesomemacapps.capso.share」以手動移除。"
+            "value" : "Some credentials may still be in Keychain: %@.\n\nOpen 'Keychain Access.app' to remove them manually."
           }
         }
       }
@@ -45927,70 +45826,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "聲音"
-          }
-        }
-      }
-    },
-    "Source Code" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quellcode"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Código fuente"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Code source"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Codice sorgente"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ソースコード"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "소스 코드"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Código-Fonte"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Исходный код"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "源代码"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "原始碼"
           }
         }
       }
@@ -53532,135 +53367,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "檢視指令…"
-          }
-        }
-      }
-    },
-    "View on GitHub" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Auf GitHub ansehen"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ver en GitHub"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Voir sur GitHub"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Visualizza su GitHub"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "GitHub で表示"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "GitHub에서 보기"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ver no GitHub"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Открыть на GitHub"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在 GitHub 上查看"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在 GitHub 上查看"
-          }
-        }
-      }
-    },
-    "Want a provider added? Open an issue on GitHub" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Weiteren Anbieter gewünscht? Erstelle ein Issue auf GitHub"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "¿Quieres que añadamos un proveedor? Abre una incidencia en GitHub"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vous souhaitez un autre fournisseur ? Ouvrez une issue sur GitHub"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vuoi un altro provider? Apri una segnalazione su GitHub"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "他のプロバイダーを追加してほしい場合は GitHub でリクエストしてください"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "다른 제공업체를 추가하고 싶으신가요? GitHub에서 이슈를 열어주세요"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quer outro provedor? Abra uma issue no GitHub"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Хотите добавить провайдера? Создайте issue на GitHub"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "想添加其他服务商？请在 GitHub 提交 Issue"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "想新增其他服務供應商？請在 GitHub 上提交 Issue"
           }
         }
       }

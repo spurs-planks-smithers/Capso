@@ -19,9 +19,20 @@ FLAGS = {'INTAKE_ENABLED', 'NATIVE_ENABLED', 'PROCESSING_ENABLED',
 IMAGE = 'registry.cloudflare.com/' + ACCOUNT + '/nextshot-feedback-scanner-scanner@sha256:582ec345c20a1db2eddb5193a0b371c15442ad656af59ba7ef1129ef622762e1'
 
 
+def launch_flags(settings):
+    controls = [b for b in settings['bindings'] if b['name'].endswith('_ENABLED')]
+    if not controls or len(controls) != len(FLAGS) or {b['name'] for b in controls} != FLAGS:
+        raise RuntimeError('Launch control verification is incomplete')
+    if any(b.get('type') != 'plain_text' or b.get('text') not in {'true', 'false'} for b in controls):
+        raise RuntimeError('Launch control values are invalid')
+    if {b['name'] for b in settings['bindings'] if b['type'] == 'secret_text'} != {'INTAKE_SECRET', 'TURNSTILE_SECRET'}:
+        raise RuntimeError('Required secret bindings are absent')
+    return {b['name']: b['text'] for b in controls}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('mode', choices=['status', 'web', 'native', 'pause'])
+    parser.add_argument('mode', choices=['status', 'web', 'native', 'pause', 'email-pause'])
     args = parser.parse_args()
     credential = subprocess.run(['security', 'find-generic-password', '-s',
         'CLOUDFLARE_API_TOKEN_NEXTSHOT_FEEDBACK', '-w'], capture_output=True,
@@ -64,8 +75,11 @@ def main():
             raise RuntimeError('Unexpected launch controls')
         if config['send_email'] != [{'name': 'CONTACT_NOTIFY', 'destination_address': OWNER}] or config['workers_dev'] or config['preview_urls']:
             raise RuntimeError('Unexpected public or mail binding')
+        if args.mode == 'email-pause':
+            config['vars'].update(launch_flags(api('/workers/scripts/nextshot-feedback/settings')))
+        else:
+            config['vars']['NATIVE_ENABLED'] = 'true' if args.mode == 'native' else 'false'
         config['vars']['EMAIL_ENABLED'] = 'false'
-        config['vars']['NATIVE_ENABLED'] = 'true' if args.mode == 'native' else 'false'
         if args.mode == 'pause':
             for flag in FLAGS:
                 config['vars'][flag] = 'false'
@@ -82,13 +96,9 @@ def main():
                 env=environment, cwd=SERVICE, stdin=subprocess.DEVNULL, check=True)
         application = access()
     settings = api('/workers/scripts/nextshot-feedback/settings')
-    flags = {b['name']: b.get('text') for b in settings['bindings'] if b['name'] in FLAGS}
-    if set(flags) != FLAGS:
-        raise RuntimeError('Launch control verification is incomplete')
+    flags = launch_flags(settings)
     if args.mode != 'status' and flags != {name: config['vars'][name] for name in FLAGS}:
         raise RuntimeError('Deployed launch controls differ')
-    if {b['name'] for b in settings['bindings'] if b['type'] == 'secret_text'} != {'INTAKE_SECRET', 'TURNSTILE_SECRET'}:
-        raise RuntimeError('Required secret bindings are absent')
     print(json.dumps({'worker': 'nextshot-feedback', 'accessDomain': application['domain'], 'ownerPolicyVerified': True, 'flags': flags}, indent=2))
 
 

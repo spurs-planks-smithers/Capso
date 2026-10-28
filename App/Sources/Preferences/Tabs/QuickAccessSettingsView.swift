@@ -10,7 +10,7 @@ struct QuickAccessSettingsView: View {
             Text("Quick Access")
                 .font(.system(size: 20, weight: .bold))
 
-            SettingGroup(title: "Position") {
+            SettingGroup(visibility: .quickAccessPosition, title: "Position") {
                 SettingCard {
                     VStack(alignment: .leading, spacing: 8) {
                         VStack(alignment: .leading, spacing: 2) {
@@ -31,17 +31,18 @@ struct QuickAccessSettingsView: View {
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
+                    .settingsVisibility(.quickAccessPositionPreviewPosition)
                 }
             }
 
-            SettingGroup(title: "Auto-Close") {
+            SettingGroup(visibility: .quickAccessAutoClose, title: "Auto-Close") {
                 SettingCard {
-                    SettingRow(label: "Auto-Close Preview", sublabel: "Dismiss after timeout") {
+                    SettingRow(visibility: .quickAccessAutoCloseAutoClosePreview, label: "Auto-Close Preview", sublabel: "Dismiss after timeout") {
                         Toggle("", isOn: $viewModel.quickAccessAutoClose)
                             .toggleStyle(.switch)
                             .controlSize(.small)
                     }
-                    SettingRow(label: "Close After", showDivider: true) {
+                    SettingRow(visibility: .quickAccessAutoCloseCloseAfter, label: "Close After", showDivider: true) {
                         Picker("", selection: $viewModel.quickAccessAutoCloseInterval) {
                             Text("5s").tag(5)
                             Text("10s").tag(10)
@@ -52,7 +53,7 @@ struct QuickAccessSettingsView: View {
                         .frame(width: 180)
                         .disabled(!viewModel.quickAccessAutoClose)
                     }
-                    SettingRow(label: "Close After Dragging", sublabel: "Close the preview once it's dropped into another app", showDivider: true) {
+                    SettingRow(visibility: .quickAccessAutoCloseCloseAfterDragging, label: "Close After Dragging", sublabel: "Close the preview once it's dropped into another app", showDivider: true) {
                         Toggle("", isOn: $viewModel.quickAccessCloseAfterDrag)
                             .toggleStyle(.switch)
                             .controlSize(.small)

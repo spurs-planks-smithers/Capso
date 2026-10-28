@@ -47,3 +47,11 @@ Implementation and testing handoff: [draft PR 149](https://github.com/spurs-plan
 The handoff query reports no hosted workflow run for the draft PR. The 1,487-test result refers to the existing local checks.
 
 Final isolation check: unique badge enforcement is enabled only in screenshot version editors. Existing editors retain their earlier numbering behavior while the capability is off. AnnotationKit 117, CapsoTests 247, and JevKit Release 369 pass again after this change. Signed build 820 supersedes the earlier build 817.
+
+### Follow-up source review fixes
+
+Instant-copy failures now open Screenshot Recovery with the captured pixels and Try Copy Again. This path retains the image before clipboard encoding or history saving succeeds. Discard Screenshot explicitly releases it. It starts no feedback notes.
+
+A screenshot shortcut that conflicts at launch receives its handler when Settings changes it to an available key. Registration remains conditional because KeyboardShortcuts registers onKeyDown immediately and disables by key combination. Current-main Settings visibility and grouping remain intact. Both screenshot rows have independent visibility keys.
+
+Follow-up verification passes on the reconciled source: SharedKit 279, AnnotationKit 117, CaptureKit 95, RecordingKit 27, OCRKit 8, FeedbackKit 341, HistoryKit 4, JevKit Release 369, and CapsoTests 247. Total: 1,487 existing checks. App compilation and the full app test command succeed. Native failure recovery and repaired-shortcut delivery still require the acceptance review. No new tests or gates are added.

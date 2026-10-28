@@ -14,18 +14,22 @@ struct PermissionSettingsView: View {
                     Label("Refresh", systemImage: "arrow.clockwise")
                 }
                 .controlSize(.small)
+                .settingsVisibility(.permissionsRefresh)
             }
 
-            SettingGroup(title: "Privacy & Security") {
+            SettingGroup(visibility: .permissionsPrivacySecurity, title: "Privacy & Security") {
                 SettingCard {
                     permissionRow(
+                        visibility: .permissionsPrivacySecurityScreenRecording,
                         kind: .screenRecording,
                         title: "Screen Recording",
                         subtitle: "Required for screenshots and recording",
-                        isGranted: viewModel.screenRecordingGranted
+                        isGranted: viewModel.screenRecordingGranted,
+                        explanation: Self.screenRecordingExplanation
                     )
                     if Capabilities.current.translationTools {
                         permissionRow(
+                            visibility: .permissionsPrivacySecurityAccessibility,
                             kind: .accessibility,
                             title: "Accessibility",
                             subtitle: "Required for selected text translation",
@@ -35,6 +39,7 @@ struct PermissionSettingsView: View {
                     }
                     if Capabilities.current.recordingTools {
                         permissionRow(
+                            visibility: .permissionsPrivacySecurityInputMonitoring,
                             kind: .inputMonitoring,
                             title: "Input Monitoring",
                             subtitle: "Required to show key presses while recording",
@@ -44,6 +49,7 @@ struct PermissionSettingsView: View {
                     }
                     if Capabilities.current.recordingTools {
                         permissionRow(
+                            visibility: .permissionsPrivacySecurityCamera,
                             kind: .camera,
                             title: "Camera",
                             subtitle: "Required for camera overlay",
@@ -53,6 +59,7 @@ struct PermissionSettingsView: View {
                     }
                     if Capabilities.current.recordingTools {
                         permissionRow(
+                            visibility: .permissionsPrivacySecurityMicrophone,
                             kind: .microphone,
                             title: "Microphone",
                             subtitle: "Required for microphone recording",
@@ -68,14 +75,26 @@ struct PermissionSettingsView: View {
         }
     }
 
+    private static let screenRecordingExplanation = """
+    macOS uses Screen Recording access for still screenshots too. It lets Nextshot read pixels across your screen, including other apps. The permission is broader than the area you select.
+
+    When you start a capture, Nextshot freezes the screen so you can select an area. Anything visible may contain private information. Check the image before sharing.
+
+    Captures stay on your Mac by default. Sharing, support uploads, and optional AI features have separate controls. This permission alone does not send images.
+
+    Revoke access in System Settings > Privacy & Security > Screen & System Audio Recording. New screen captures then stop working. Saved captures remain.
+    """
+
     private func permissionRow(
+        visibility: SettingsVisibilityFlag,
         kind: PermissionKind,
         title: LocalizedStringKey,
         subtitle: LocalizedStringKey,
         isGranted: Bool,
-        showDivider: Bool = false
+        showDivider: Bool = false,
+        explanation: String? = nil
     ) -> some View {
-        SettingRow(label: title, sublabel: subtitle, showDivider: showDivider) {
+        SettingRow(visibility: visibility, label: title, sublabel: subtitle, showDivider: showDivider, explanation: explanation) {
             HStack(spacing: 10) {
                 statusBadge(isGranted)
                 Button(action: { request(kind) }) {

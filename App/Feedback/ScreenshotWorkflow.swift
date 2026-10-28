@@ -25,10 +25,10 @@ final class ScreenshotWorkflow {
     private let quickLook = FeedbackQuickLook()
     private var editor: AnnotationEditorWindow?
     private var busy = false
-    private var pendingWrite: ScreenshotWrite?
+    private var recovery: ScreenshotRecoveryWindow?
     private var browser: ScreenshotHistoryWindow?
     private var savedEditorSnapshot: (png: Data, marks: [FeedbackMark], item: ScreenshotHistoryItem)?
-    var editorIsOpen: Bool { editor != nil }
+    var editorIsOpen: Bool { editor != nil || recovery != nil }
     var isBusy: Bool { busy }
 
     init(settings: AppSettings, rootURL: URL,
@@ -100,7 +100,7 @@ final class ScreenshotWorkflow {
     }
 
     func copyFresh(_ rendered: CGImage, result: CaptureResult, objects: [any AnnotationObject],
-                   close: @escaping () -> Void = {}) {
+                   retainOnFailure: Bool = false, close: @escaping () -> Void = {}) {
         guard !busy else { NSSound.beep(); return }
         busy = true
         Task {
@@ -121,15 +121,28 @@ final class ScreenshotWorkflow {
                     hasReliableBadges: sameSize && Set(marks.compactMap(\.badge)).count == marks.compactMap(\.badge).count
                 )
                 let write = try encoded(rendered, clean: clean, metadata: metadata)
-                pendingWrite = write
                 _ = try await history.save(write)
-                pendingWrite = nil
+                recovery?.close()
+                recovery = nil
                 close()
                 toast(history.retentionError == nil ? "Screenshot copied and saved" : "Screenshot saved. History cleanup needs a retry.")
                 await refreshBrowser()
             } catch {
                 busy = false
-                report(error) { [weak self] in self?.copyFresh(rendered, result: result, objects: objects, close: close) }
+                let retry: () -> Void = { [weak self] in
+                    self?.copyFresh(rendered, result: result, objects: objects,
+                                    retainOnFailure: retainOnFailure, close: close)
+                }
+                if retainOnFailure {
+                    recovery?.close()
+                    recovery = ScreenshotRecoveryWindow(image: rendered, error: error, retry: retry) { [weak self] in
+                        self?.recovery?.close()
+                        self?.recovery = nil
+                    }
+                    recovery?.makeKeyAndOrderFront(nil)
+                } else {
+                    report(error, retry: retry)
+                }
             }
         }
     }
@@ -227,10 +240,8 @@ final class ScreenshotWorkflow {
         let cleanPNG = clean.flatMap(ImageUtilities.pngData)
         guard clean == nil || cleanPNG != nil else { throw WorkflowError.encoding }
         let write = ScreenshotWrite(metadata: metadata, annotatedPNG: annotatedPNG, cleanPNG: cleanPNG)
-        pendingWrite = write
         let result = try await history.save(write)
         savedEditorSnapshot = (write.annotatedPNG, marks, result)
-        pendingWrite = nil
         return result
     }
 
@@ -284,7 +295,7 @@ final class ScreenshotWorkflow {
             switch self {
             case .image: "The screenshot file is missing or unreadable."
             case .encoding: "The screenshot could not be encoded safely."
-            case .clipboard: "The screenshot could not be copied. Keep the editor open and try again."
+            case .clipboard: "The screenshot could not be copied. Try again."
             case .cleanUnavailable: "A reliable clean image or badge history is unavailable for this older screenshot."
             case .geometry: "This edit changes the canvas size. Keep the original size to preserve clean copy."
             case .badges: "A new badge duplicates an earlier number. Choose a different number."
