@@ -10,7 +10,7 @@ Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This for
 
 ### Fixed
 
-- Recent round subtitles show up to two app names plus a count of other apps, preserving capture and selection counts.
+- Recent round subtitles fit app names to one line, preserve capture and selection counts, and show complete app names in a tooltip.
 
 ### Added
 

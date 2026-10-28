@@ -166,3 +166,7 @@ Issues 128 through 137 cover this review. Fork-owned visibility policy stays in 
 | `App/Sources/Preferences/Tabs/RecordingSettingsView.swift` | Wire discrete Settings visibility and preserve existing behavior | 13, 15, 20, 25, 46, 48, 53, 58, 63, 81, 89, 91, 99 | Preferences and shortcut hooks can conflict. Upstream PR status is not refreshed here. |
 | `App/Sources/Preferences/Tabs/ScreenshotSettingsView.swift` | Wire discrete Settings visibility and preserve existing behavior | 21, 28, 36, 38, 43, 48, 62, 77, 87, 89, 94, 107, 109, 122, 124, 140, 165, 167, 174, 184, 194, 201, 220, 222, 251, 273, 294, 316, 321, 356, 366, 375, 385, 395, 404 | Preferences and shortcut hooks can conflict. Upstream PR status is not refreshed here. |
 | `App/Sources/Preferences/Tabs/ShortcutSettingsView.swift` | Visibility keys, functional groups, Delete wording, and hidden selection control | 50, 60, 81, 93, 99, 103, 105, 120, 122, 126, 132, 136, 147, 156, 167, 169, 178, 189, 208, 213, 226, 372, 386 | Preferences and shortcut hooks can conflict. Upstream PR status is not refreshed here. |
+
+## Recent round subtitle width (2026-10-27, issue #32)
+
+The fork-only menu formatter measures subtitle text against a 240-point budget. It shortens at most two app names with ellipses while preserving the extra app count, capture count, selection count, and active prefix. A tooltip keeps every complete app name. No upstream file changes.

@@ -121,21 +121,37 @@ public enum FeedbackLibrary {
 
     /// At most two distinct apps in capture order, then any extra app count,
     /// the capture count, and the selection count when some are picked.
-    public static func subtitle(for round: FeedbackRound, selectedCount: Int) -> String {
+    public static func subtitle(for round: FeedbackRound, selectedCount: Int, appNameLimit: Int = .max) -> String {
+        let apps = sourceApps(for: round)
+        let limit = max(1, appNameLimit)
+        var parts = apps.prefix(2).map { app in
+            let singleLine = app.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
+            return singleLine.count > limit
+                ? String(singleLine.prefix(limit - 1)) + "…"
+                : singleLine
+        }
+        if apps.count > 2 { parts.append("+\(apps.count - 2)") }
+        return (parts + counts(for: round, selectedCount: selectedCount)).joined(separator: ", ")
+    }
+
+    /// Full app names for a tooltip, including apps omitted from the subtitle.
+    public static func fullSubtitle(for round: FeedbackRound, selectedCount: Int) -> String {
+        (sourceApps(for: round) + counts(for: round, selectedCount: selectedCount)).joined(separator: ", ")
+    }
+
+    private static func sourceApps(for round: FeedbackRound) -> [String] {
         var apps: [String] = []
         for app in round.captures.compactMap(\.sourceApp) where !apps.contains(app) {
             apps.append(app)
         }
+        return apps
+    }
+
+    private static func counts(for round: FeedbackRound, selectedCount: Int) -> [String] {
         let count = round.captures.count
-        var parts = Array(apps.prefix(2))
-        if apps.count > 2 {
-            parts.append("+\(apps.count - 2)")
-        }
-        parts.append(count == 1 ? "1 capture" : "\(count) captures")
-        if selectedCount > 0 {
-            parts.append("\(selectedCount) selected")
-        }
-        return parts.joined(separator: ", ")
+        var parts = [count == 1 ? "1 capture" : "\(count) captures"]
+        if selectedCount > 0 { parts.append("\(selectedCount) selected") }
+        return parts
     }
 
     /// The round's captures for a menu list: the newest first. A tie in capture
