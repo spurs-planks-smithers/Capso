@@ -12,6 +12,7 @@ Compile risk: `PostCaptureAction.feedback` is a new enum case. An upstream chang
 
 | File | Reason | Lines | Upstream PRs at risk |
 |---|---|---|---|
+| `App/Sources/Preferences/Tabs/ShortcutSettingsView.swift` | Use the shared native recorder wrapper so the existing clear button acts on mouse-down before the library consumes mouse-up (#159, 2026-10-28). | 220 (changed) | none |
 | `App/Sources/AppDelegate.swift` | Quiet login startup (#154, 2026-10-27): read the login Apple Event, prepare one-time consent before settings writes, suppress permission queries, optional recovery, update setup, file actions, and automation at login. Explicit Settings opens can start the updater later. | 8, 40-42, 56, 76, 96-99, 124-131, 383-389 | [#349](https://github.com/lzhgus/Capso/pull/349), [#291](https://github.com/lzhgus/Capso/pull/291) |
 | `App/Sources/Preferences/Tabs/GeneralSettingsView.swift` | Replace the library Boolean switch with the fork's system-status control and explicit first-use confirmation (#154). The control never restores a saved on preference. | 33-35 | [#348](https://github.com/lzhgus/Capso/pull/348) |
 | `project.yml` | Add the Foundation-only StartupKit package and app dependency (#154). | 56-57, 107 | [#349](https://github.com/lzhgus/Capso/pull/349), [#348](https://github.com/lzhgus/Capso/pull/348) |

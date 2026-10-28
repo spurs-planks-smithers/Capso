@@ -217,7 +217,7 @@ struct ShortcutSettingsView: View {
         help: LocalizedStringKey? = nil
     ) -> some View {
         let row = SettingRow(visibility: visibility, label: label, showDivider: showDivider) {
-            KeyboardShortcuts.Recorder(for: name) { shortcut in
+            FeedbackShortcutRecorder(for: name) { shortcut in
                 shortcutRefusal = FeedbackShortcutGuard.check(shortcut, for: name, label: "Shortcut")
             }
                 .controlSize(.small)

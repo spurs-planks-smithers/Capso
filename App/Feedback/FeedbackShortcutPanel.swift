@@ -50,7 +50,7 @@ private struct FeedbackShortcutView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(verbatim: "Start round or capture area:")
-                KeyboardShortcuts.Recorder(for: .feedbackCapture) { shortcut in
+                FeedbackShortcutRecorder(for: .feedbackCapture) { shortcut in
                     refusal = FeedbackShortcutGuard.check(shortcut, for: .feedbackCapture, label: "The start key")
                 }
             }

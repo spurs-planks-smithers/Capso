@@ -49,7 +49,7 @@ struct FeedbackShortcutSettingsSection: View {
             sublabel: roundOnly ? LocalizedStringKey(Self.roundOnlyNote) : nil,
             showDivider: name != .feedbackCapture
         ) {
-            KeyboardShortcuts.Recorder(for: name) { shortcut in
+            FeedbackShortcutRecorder(for: name) { shortcut in
                 refusal = FeedbackShortcutGuard.check(shortcut, for: name, label: label)
             }
             .controlSize(.small)
