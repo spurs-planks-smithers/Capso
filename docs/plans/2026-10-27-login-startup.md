@@ -43,3 +43,28 @@
 - Native sign-in, system approval, and first-use layout checks remain pending. The held installed Dev build is unchanged.
 
 The final review also checks restored active rounds. Login suppresses their help overlay and optional key warm-up until a user begins another capture.
+
+## Signed Dev acceptance, October 27, 2026
+
+This acceptance replaces the pending native status above. One review owner controls the installed Dev app throughout the combined review.
+
+| Candidate | Source | Build | Signature |
+| --- | --- | --- | --- |
+| Before update | `0a7333f7181bdfc29eace58c183bceb388db8eb2` | 888 | Apple Development, team `M586UD979K` |
+| After update | `920a2eb4ca72a255e4bfcaf40451a59bd5995275` | 892 | Apple Development, team `M586UD979K` |
+
+Both sources include PR #156 at `54bfd672625fe0c054ed004d33e25b1daee8f55e`. StartupKit and both login adapter files match that commit exactly.
+
+- Strict signature verification passes for both app bundles. Both use `com.drewschulz.nextshot.dev`, claim only `nextshot-dev`, and include the unchanged license.
+- Ordinary launch restores the active round's help window in 196 of 200 samples. The detector observes that window despite its screenshot exclusion.
+- Native login Apple Event launches on builds 888 and 892 each pass 200 samples over 20 seconds. The app stays alive. No app content window or focus change appears. Every sample has a valid, nonempty system window inventory.
+- The actual Dev Settings control enables login startup. Disabling Nextshot Dev in macOS Login Items then changes the app control to off.
+- The saved keys remain `nextshot.login.setupCompleted = 1` and `nextshot.login.userChoice = 1` before and after replacement. The saved on choice cannot override macOS.
+- Build 892 replaces build 888 at the same installed path. App Settings and macOS Login Items remain off after the update and subsequent launches.
+- Explicit reopen still opens Settings with startup off. Ordinary Quit leaves no Dev process. The final macOS login choice remains off.
+
+The review preserves the old signed bundle, before/after settings snapshots, window samples, and screenshots under `build/native-pr149-151-review` in the main project checkout.
+
+These checks use native login Apple Events. They do not perform an actual macOS sign-in or record audio. Production Nextshot never runs on m5pro. The temporary policy probe covers fresh release consent and one-use installer handoff.
+
+The existing FeedbackKit suite and all 72 isolated policy checks pass again before this acceptance record. No repository test or gate is added.
