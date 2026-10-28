@@ -48,7 +48,8 @@ try {
     // End Round" row. These times follow the hand-off code in index.html.
     const m0 = T.cues.menu;
     const arrive = Math.max(m0 + 0.75, Math.min(T.cues.copy - 0.2, m0 + 0.85));
-    const handT = arrive + 0.08;
+    // After the click blink (copy + 0.02 to copy + 0.09) and before the menu closes (copy + 0.4).
+    const handT = Math.max(arrive + 0.08, T.cues.copy + 0.15);
     tl.seek(handT, false);
     const keep = ["#menubar", "#menu", "#cursor", "#copyRow", "#copyRow .hk", "#nshotItem"];
     const saved = keep.map((s) => [s, $(s).getAttribute("style"), $(s).getAttribute("class")]);

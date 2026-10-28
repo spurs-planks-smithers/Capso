@@ -272,7 +272,7 @@ function releaseFixture() {
   }
   f.put("VERSION", "0.3.0");
   f.put("CHANGELOG.md", "## [Unreleased]\n\n- Add Guides.\n\n## [0.3.0] - 2026-10-25\n\n- Previous release.\n");
-  f.put("build/releases/Nextshot-onboarding-2026.10.24.mp4", "pinned video");
+  f.put("build/releases/Nextshot-onboarding-2026.10.27.mp4", "pinned video");
   f.put("build/site-poster.jpg", "pinned poster");
   for (const name of ["swift", "xcodegen", "xcodebuild", "xcrun", "github-route"]) f.put(`bin/${name}`, "#!/bin/bash\nexit 0\n", true);
   f.put("bin/security", '#!/bin/bash\necho "Developer ID Application"\n', true);

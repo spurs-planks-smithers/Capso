@@ -97,10 +97,16 @@
 </style>
 </head>
 <body>
-<div id="root" data-composition-id="root" data-start="0" data-auto-duration data-duration="81.731" data-width="1920" data-height="1080">
-  <audio id="soundtrack" class="clip" src="audio/final.wav" data-start="0" data-auto-duration data-duration="81.731" data-volume="1"></audio>
+<div id="root" data-composition-id="root" data-start="0" data-auto-duration data-duration="68.851" data-width="1920" data-height="1080">
+  <audio id="soundtrack" class="clip" src="audio/final.wav" data-start="0" data-auto-duration data-duration="68.851" data-volume="1"></audio>
 
   <div id="sketch" class="layer"></div>
+  <!-- A 3, 2, 1 countdown on a red dot, over the dimmed stand. The first frame shows it. -->
+  <div id="countVeil" class="layer" style="background:rgba(255,243,201,0.74);"></div>
+  <div id="count" style="position:absolute;left:860px;top:340px;width:200px;height:200px;">
+    <svg width="200" height="200" viewBox="0 0 200 200" style="position:absolute;left:0;top:0;"><circle id="countRing" cx="100" cy="100" r="92" fill="none" stroke="#FF543E" stroke-width="8" stroke-linecap="butt" pathLength="100" transform="rotate(-90 100 100)"/></svg>
+    <div id="countNum" style="position:absolute;left:30px;top:30px;width:140px;height:140px;border-radius:50%;background:#FF543E;color:#fff;font-size:84px;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 6px #fff, 0 6px 18px rgba(0,0,0,0.25);">3</div>
+  </div>
 
   <div id="sleek" class="layer">
     <div id="wordmark" style="position:absolute;left:0;top:630px;width:1920px;text-align:center;color:#fff;font-size:96px;font-weight:800;letter-spacing:-1px;">Nextshot</div>
@@ -213,7 +219,6 @@
           <path d="M2 11 Q2 20 11 20 Q20 20 20 11 M11 20 V25" fill="none" stroke="#3CCDBE" stroke-width="2.4" stroke-linecap="round"/>
         </svg>
       </div>
-      <div style="font-size:15px;color:#9AA6AD;margin-top:10px;">Return saves and goes on. Esc skips this one. Arrow keys go back and forward.</div>
       <div id="preview" style="position:relative;margin-top:14px;width:610px;height:250px;border-radius:7px;overflow:hidden;background:#ECEEF0;border:1px solid rgba(255,255,255,0.2);"></div>
     </div>
 
@@ -227,7 +232,7 @@
 
     <!-- hand-off -->
     <div id="menu" style="width:420px;left:1460px;">
-      <div class="row gray">Nextshot 2026.10.24 (516)</div>
+      <div class="row gray">Nextshot 0.4.0 (804)</div>
       <div class="sep"></div>
       <div class="row gray">Round: feedback</div>
       <div class="sep"></div>
@@ -271,13 +276,12 @@
 
     <div class="panel" id="pkg" style="left:340px;top:110px;width:1240px;padding:34px 44px 30px;background:#1B1F22;">
       <div style="display:flex;align-items:baseline;justify-content:space-between;">
-        <div style="font-size:28px;font-weight:800;letter-spacing:2px;color:var(--mint);text-transform:uppercase;">Built the way AI reads</div>
-        <div id="fchips" style="display:flex;gap:10px;"><span class="fchip">PNG</span><span class="fchip">manifest.md</span><span class="fchip">feedback.json</span><span class="fchip">prompt.md</span></div>
+        <div style="font-size:28px;font-weight:800;letter-spacing:2px;color:var(--mint);text-transform:uppercase;">Built the way AI reads best</div>
       </div>
       <div class="crow"><div class="cicon"><span class="pbadge" style="width:66px;height:66px;font-size:30px;">1</span></div><div><div class="ctitle">Numbered dots</div><div class="csub">Dot 1 in image 1 is item 1.1 in the text</div></div></div>
-      <div class="crow"><div class="cicon">Aa</div><div><div class="ctitle">A note on each dot</div><div class="csub">AI follows a picture best with words beside it</div></div></div>
-      <div class="crow"><div class="cicon" style="font-size:28px;">x, y</div><div><div class="ctitle">Exact pixels and screen text</div><div class="csub">So the agent finds the right code to change</div></div></div>
-      <div class="crow"><div class="cicon"><svg width="58" height="58" viewBox="0 0 58 58" fill="none" stroke="#8FF3E4" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10 L9 15 L18 5"/><path d="M27 10 H54"/><rect x="5" y="23" width="12" height="12" rx="3" stroke-width="3"/><path d="M27 29 H54"/><rect x="5" y="42" width="12" height="12" rx="3" stroke-width="3"/><path d="M27 48 H54"/></svg></div><div><div class="ctitle">A plan before it edits</div><div class="csub">Then a re-check of every item</div></div></div>
+      <div class="crow"><div class="cicon">Aa</div><div><div class="ctitle">Clear notes</div><div class="csub">AI follows a picture best with words beside it</div></div></div>
+      <div class="crow"><div class="cicon" style="font-size:28px;">x, y</div><div><div class="ctitle">Exact spots</div><div class="csub">Pixels and screen text point to the right code</div></div></div>
+      <div class="crow"><div class="cicon"><svg width="58" height="58" viewBox="0 0 58 58" fill="none" stroke="#8FF3E4" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10 L9 15 L18 5"/><path d="M27 10 H54"/><rect x="5" y="23" width="12" height="12" rx="3" stroke-width="3"/><path d="M27 29 H54"/><rect x="5" y="42" width="12" height="12" rx="3" stroke-width="3"/><path d="M27 48 H54"/></svg></div><div><div class="ctitle">A plan first</div><div class="csub">Then a re-check of every item</div></div></div>
       <div id="pkgSrc" style="margin-top:28px;font-size:22px;color:#8D979E;">Research: Set-of-Mark (Microsoft Research, 2023), FronTalk (ICML 2026), MT-Web2Code (2026)</div>
     </div>
 
@@ -489,7 +493,7 @@
   const hook = scene('hook');
   const labels = actor(0, 0, 1920, 1080); // hand-written labels, in frame coordinates
   const label = (text, x, y, size, t) => { const el = hand(labels, text, x, y, size || 42); write(el, t, 0.3); return el; };
-  const showFilled = (a, t) => { hide(a.el); show(a.el, t, 0.08); };
+  const showFilled = (a, t, d = 0.08) => { hide(a.el); show(a.el, t, d); };
   const drawn = (nodes) => [].concat(nodes).forEach((n) => $$('path', n).forEach((p) => { p.style.strokeDashoffset = 0; }));
 
   const page = actor(636, 110, 900, 600);
@@ -499,6 +503,17 @@
   drawn([pageNodes.frame, pageNodes.header, ...pageNodes.cup, pageNodes.button]);
   ['nav', 'title', 'tag', 'price', 'buy'].forEach((k) => { pageNodes[k].style.clipPath = 'none'; });
   tl.fromTo(page.el, { scale: 0.69 }, { scale: 0.72, duration: 1.6, ease: 'power2.out' }, 0);
+  // The countdown: people coming off mute see that the video starts. Each number gets a tick,
+  // and the ring empties once per number.
+  const counts = ['count3', 'count2', 'count1', 'go'].map(cue);
+  gsap.set('#countRing', { strokeDasharray: '100 100', strokeDashoffset: 0 });
+  [0, 1, 2].forEach((k) => {
+    if (k) tl.fromTo('#countNum', { text: String(4 - k) }, { text: String(3 - k), duration: 0.01 }, counts[k]);
+    tl.fromTo('#countNum', { scale: 0.82 }, { scale: 1, duration: 0.18, ease: 'back.out(2.5)' }, counts[k]);
+    tl.fromTo('#countRing', { strokeDashoffset: 0 }, { strokeDashoffset: 100, duration: counts[k + 1] - counts[k], ease: 'none' }, counts[k]);
+  });
+  tl.fromTo('#count', { scale: 1, autoAlpha: 1 }, { scale: 0, autoAlpha: 0, duration: 0.25, ease: 'back.in(2)' }, counts[3]);
+  tl.fromTo('#countVeil', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.35 }, counts[3]);
 
   const robot = actor(690, 615, 420, 560);
   gsap.set(robot.el, { transformOrigin: '0 0', scale: 0.55 });
@@ -526,7 +541,7 @@
   ];
   const appTitle = hand(app, 'Lemonaid', 46, 66, 34, { font: 'Marker' });
   const appBtn = hand(app, 'ORDER NOW', 128, 300, 30);
-  showFilled(app, tI);
+  showFilled(app, tI, 0.35);
   drawOn(appNodes, tI, 0.4);
   write(appTitle, tI + 0.2, 0.2);
   write(appBtn, tI + 0.3, 0.15);
@@ -541,7 +556,7 @@
   ];
   const legalTitle = hand(legal, 'Terms', 34, 26, 52, { font: 'Marker' });
   const legalBad = hand(legal, 'Refunds: never!!', 34, 212, 38);
-  showFilled(legal, tI + 0.2);
+  showFilled(legal, tI + 0.2, 0.35);
   drawOn(legalNodes, tI + 0.2, 0.4);
   write(legalTitle, tI + 0.35, 0.2);
   write(legalBad, tI + 0.45, 0.2);
@@ -556,7 +571,7 @@
   ];
   const mailTo = hand(mail, 'To: everyone', 28, 16, 34);
   const mailSubj = hand(mail, 'Subject: Grand opneing!', 28, 86, 42);
-  showFilled(mail, tI + 0.4);
+  showFilled(mail, tI + 0.4, 0.35);
   drawOn(mailNodes, tI + 0.4, 0.4);
   write(mailTo, tI + 0.5, 0.15);
   write(mailSubj, tI + 0.6, 0.25);
@@ -570,7 +585,7 @@
     draw(flyer, 'line', [170, 130, 184, 110]),
   ];
   const flyerTitle = hand(flyer, 'LEMONAID', 58, 30, 44, { font: 'Marker' });
-  showFilled(flyer, tI + 0.6);
+  showFilled(flyer, tI + 0.6, 0.35);
   drawOn(flyerNodes, tI + 0.6, 0.4);
   write(flyerTitle, tI + 0.75, 0.25);
   label('marketing', 1370, 905, 42, tI + 0.85);
@@ -596,7 +611,7 @@
   });
   hide(dots);
   const tD = cue('dots');
-  dots.forEach((d, k) => pop(d, tD + 2.0 * k / DOTS.length, 0.3));
+  dots.forEach((d, k) => pop(d, tD + 1.6 * k / DOTS.length, 0.3));
 
   const board = [page.el, robot.el, you.el, app.el, legal.el, mail.el, flyer.el, labels.el, dotsLayer];
   const tShot = cue('shot');
@@ -715,10 +730,26 @@
   });
   minis.forEach((m, k) => pop(m, tA + 0.1 + againSpan * k / minis.length, 0.3));
   tl.fromTo(me.el, { rotation: 0, y: 0 }, { rotation: 7, y: 26, duration: againSpan * 0.8, ease: 'power1.inOut', transformOrigin: '50% 100%' }, tA + 0.2);
+  // Paste after paste: a crop flies from your hand into the pile on each swish.
+  const tPs = cue('pastes');
+  const pasteSnips = [[700, 590, -5], [830, 640, 4], [740, 690, -2]].map(([x, y, r], k) => {
+    const s = actor(330, 470, 200, 130);
+    drawn([draw(s, 'rectangle', [6, 6, 188, 118], { fill: '#FFFFFF', fillStyle: 'solid', strokeWidth: 3 }),
+           draw(s, 'line', [22, 40, 140, 40], { strokeWidth: 2.2 })]);
+    const d = document.createElement('div');
+    d.className = 'dot small';
+    Object.assign(d.style, { left: '140px', top: '70px' });
+    s.el.appendChild(d);
+    gsap.set(s.el, { autoAlpha: 0 });
+    const t = tPs + 0.9 * k / 3;
+    show(s.el, t, 0.05);
+    tl.fromTo(s.el, { x: 0, y: 0, rotation: -12, scale: 0.7 }, { x: x - 330, y: y - 470, rotation: r, scale: 1, duration: 0.3, ease: 'power2.in' }, t);
+    return s.el;
+  });
 
   // Why not all at once? The clutter clears, and every red dot gathers in one place.
   const ask = line('ask');
-  const clutter = [me.el, thumb.el, crop.el, chat.el, tally.el, qm, ...minis, ...chats];
+  const clutter = [me.el, thumb.el, crop.el, chat.el, tally.el, qm, ...minis, ...chats, ...pasteSnips];
   tl.fromTo(clutter, { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.3 }, ask.start - 0.1);
   tl.fromTo(board, { autoAlpha: 0.1 }, { autoAlpha: 1, duration: 0.35 }, ask.start - 0.05);
   tl.fromTo([youLab, appLab], { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.35 }, ask.start - 0.05);
@@ -729,7 +760,7 @@
     tl.fromTo(d, { x: 0, y: 0 }, { x: 960 + CLUSTER[k][0] - x, y: 460 + CLUSTER[k][1] - y, duration: 0.6, ease: 'power3.inOut' }, tG + k * 0.05);
   });
   const boardOnly = board.filter((e) => e !== dotsLayer);
-  tl.fromTo(boardOnly, { autoAlpha: 1 }, { autoAlpha: 0.15, duration: 0.5 }, tG + 0.1);
+  tl.fromTo(boardOnly, { autoAlpha: 1 }, { autoAlpha: 0.05, duration: 0.5 }, tG + 0.1);
 
   // One round: a teal circle gathers every dot. One prompt: an arrow to a single box.
   const roundA = actor(0, 0, 1920, 1080);
@@ -758,7 +789,7 @@
   // A slow push-in holds the eye until the wipe.
   const LOGO_END = 1.1;
   tl.fromTo(logo, { scale: 1 }, { scale: LOGO_END, duration: Math.max(0.3, cue('wipe') + 0.6 - (tM + 0.6)), ease: 'sine.inOut' }, tM + 0.6);
-  tl.fromTo(boardOnly, { autoAlpha: 0.15 }, { autoAlpha: 0, duration: 0.3 }, tM);
+  tl.fromTo(boardOnly, { autoAlpha: 0.05 }, { autoAlpha: 0, duration: 0.3 }, tM);
   // The round becomes Nextshot: the circle closes in to the icon's size as the icon appears.
   tl.fromTo([roundLab, promptLab, promptBox, ...arrowR], { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.25 }, tM - 0.1);
   tl.fromTo(ring, { scale: 1 }, { scale: 0.62, svgOrigin: '960 460', duration: 0.4, ease: 'power3.in' }, tM - 0.15);
@@ -775,14 +806,19 @@
 
   // ---------- scene 4: how ----------
   const how = scene('how');
-  tl.fromTo(logo, { x: 0, y: 0, scale: LOGO_END, autoAlpha: 1 }, { x: 685, y: -455, scale: 0.08, autoAlpha: 0, duration: 0.5, ease: 'power3.in' }, how.start);
-  fade('#wordmark', how.start, 0.25);
+  const land = cue('land');
+  tl.fromTo(logo, { x: 0, y: 0, scale: LOGO_END, autoAlpha: 1 }, { x: 685, y: -455, scale: 0.08, autoAlpha: 0, duration: 0.5, ease: 'power3.in' }, land - 0.5);
+  fade('#wordmark', land - 0.5, 0.25);
   const markSvg = '<svg viewBox="0 0 27 20"><rect x="2" y="2" width="16" height="16" rx="4.4" fill="#fff" fill-opacity="0.5"/><path d="M14.5 4.5 L20 10 L14.5 15.5" fill="none" stroke="#15191C" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><path d="M14.5 4.5 L20 10 L14.5 15.5" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   $('#nshotItem').insertAdjacentHTML('afterbegin', markSvg);
   $('#lensMark').innerHTML = markSvg.replace('<svg ', '<svg width="62" height="46" ') + '<span class="gdot" style="left:50px;top:-2px;width:18px;height:18px;"></span>';
   hide('#menubar');
-  show('#menubar', how.start + 0.35, 0.3);
-  const stepAt = [how.start + 0.3, cue('mark_click') - 0.1, scene('session').start + 0.1, cue('menu') - 0.6, cue('paste') - 0.3];
+  show('#menubar', land - 0.55, 0.25);
+  // The mark lands in the menu bar as the Nshot item, which answers with a small pulse.
+  hide('#nshotItem');
+  show('#nshotItem', land - 0.04, 0.06);
+  tl.fromTo('#nshotItem', { scale: 1 }, { scale: 1.3, duration: 0.12, yoyo: true, repeat: 1, ease: 'power2.out' }, land);
+  const stepAt = [land + 0.15, cue('mark_click') - 0.1, scene('session').start + 0.1, cue('menu') - 0.05, cue('paste') - 0.3];
   hide(['#step1', '#step2', '#step3', '#step4']);
   ['#step1', '#step2', '#step3', '#step4'].forEach((st, k) => {
     tl.fromTo(st, { autoAlpha: 0, y: -12 }, { autoAlpha: 1, y: 0, duration: 0.3 }, stepAt[k]);
@@ -809,7 +845,7 @@
   hide([card1, card2, card3, '#sel', '#crosshair', '#flash1', '#keysF', '#keysS', '#notePanel', '#tray', '#lens', '#flash2', '#flash3',
         '#notePanel3', '#menu', '#callout', '#agent', '#cursor', '#pkg', '#plan', '#closeCard', ...$$('#tray .slotlabel')]);
   gsap.set($$('.badge', card1).concat($$('.badge', card2), $$('.badge', card3)), { scale: 0, autoAlpha: 0 });
-  tl.fromTo(card1, { autoAlpha: 0, y: 80 }, { autoAlpha: 1, y: 0, duration: 0.45, ease: 'power3.out' }, how.start + 0.15);
+  tl.fromTo(card1, { autoAlpha: 0, y: 80 }, { autoAlpha: 1, y: 0, duration: 0.45, ease: 'power3.out' }, land - 0.05);
 
   const keysF = $$('#keysF .key');
   show('#keysF', cue('key_opt') - 0.15, 0.15);
@@ -855,11 +891,6 @@
   tl.fromTo('#ph1', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.05 }, a1);
   tl.fromTo('#answer', { text: '' }, { text: 'Spell it Lemonade.', duration: 0.6, ease: 'none' }, a1);
   tl.fromTo('#mic', { scale: 1 }, { scale: 1.25, duration: 0.2, yoyo: true, repeat: 3, ease: 'sine.inOut', transformOrigin: '50% 50%' }, a1);
-  const step2 = how.end - 0.75;
-  tl.fromTo('#question', { text: 'Circle 1 (1 of 3): what should change?' }, { text: 'Circle 2 (2 of 3): what should change?', duration: 0.01 }, step2);
-  tl.fromTo('#answer', { text: 'Spell it Lemonade.' }, { text: '', duration: 0.01 }, step2);
-  tl.fromTo(prevCard, { scale: 1, x: -30, y: -45 }, { scale: 1, x: -30, y: -238, duration: 0.3, ease: 'power2.inOut' }, step2);
-  tl.fromTo('#answer', { text: '' }, { text: 'Make it $3.', duration: 0.4, ease: 'none' }, step2 + 0.15);
 
   // ---------- scene 5: session ----------
   const ses = scene('session');
@@ -883,7 +914,7 @@
     el.dataset.len = L;
   });
   pop($$('.badge', card2)[0], cue('m_circle'));
-  pop($$('.badge', card3)[0], cue('m_circle') + 0.08);
+  pop($$('.badge', card3)[0], cue('m_arrow') - 0.1);
   tl.fromTo(box2, { strokeDashoffset: +box2.dataset.len }, { strokeDashoffset: 0, duration: 0.35, ease: 'none' }, cue('m_box'));
   pop($$('.badge', card2)[1], cue('m_box') + 0.3);
   tl.fromTo(arrow3, { strokeDashoffset: +arrow3.dataset.len }, { strokeDashoffset: 0, duration: 0.3, ease: 'none' }, cue('m_arrow'));
@@ -891,20 +922,20 @@
   tl.fromTo('#notePanel3', { autoAlpha: 0, y: 30 }, { autoAlpha: 1, y: 0, duration: 0.3 }, cue('m_note'));
 
   const tr = cue('tray');
-  fade('#notePanel3', tr - 0.05, 0.2);
+  fade('#notePanel3', tr + 0.25, 0.2);
   tl.fromTo('#tray', { x: 0 }, { x: 718, duration: 0.6, ease: 'power3.inOut' }, tr);
   tl.fromTo(card1, { x: -50 }, { x: 668, duration: 0.6, ease: 'power3.inOut' }, tr);
   tl.fromTo(card2, { x: 0, y: 0, scale: 1 }, { x: 368, y: 180, scale: 0.4167, duration: 0.6, ease: 'power3.inOut' }, tr);
   tl.fromTo(card3, { x: 0, y: 0, scale: 1 }, { x: -352, y: 422, scale: 0.4167, duration: 0.6, ease: 'power3.inOut' }, tr + 0.08);
   show('#slot2', tr + 0.45, 0.2);
   show('#slot3', tr + 0.57, 0.2);
-  tl.fromTo('#nshotCount', { text: 'Nshot (1)' }, { text: 'Nshot (2)', duration: 0.01 }, tr + 0.5);
-  tl.fromTo('#nshotCount', { text: 'Nshot (2)' }, { text: 'Nshot (3)', duration: 0.01 }, tr + 0.65);
-  tl.fromTo('#nshotItem', { scale: 1 }, { scale: 1.15, duration: 0.12, yoyo: true, repeat: 1 }, tr + 0.65);
-  const mid = tr + 0.55;
-  pop('#lens', mid + 0.2, 0.4);
+  [[c2, 'Nshot (1)', 'Nshot (2)'], [c3, 'Nshot (2)', 'Nshot (3)']].forEach(([t, a, b]) => {
+    tl.fromTo('#nshotCount', { text: a }, { text: b, duration: 0.01 }, t + 0.1);
+    tl.fromTo('#nshotItem', { scale: 1 }, { scale: 1.15, duration: 0.12, yoyo: true, repeat: 1 }, t + 0.1);
+  });
+  pop('#lens', tr + 0.6, 0.35);
   tl.fromTo('#tray', { boxShadow: '0 0 0px 0px rgba(60,205,190,0)' }, { boxShadow: '0 0 44px 6px rgba(60,205,190,0.4)', duration: 0.4 }, cue('tray'));
-  fade('#lens', cue('menu') - 0.6, 0.2);
+  fade('#lens', cue('menu') - 0.15, 0.15);
 
   // ---------- scene 6: hand-off ----------
   const hand6 = scene('handoff');
@@ -936,13 +967,13 @@
 
   const toast = cue('toast');
   const tCall = closeMenu + 0.25;
-  pop('#callout', tCall, 0.45);
-  tl.fromTo('#calloutLine', { strokeDashoffset: 1100 }, { strokeDashoffset: 0, duration: 0.5, ease: 'power2.out' }, tCall + 0.3);
+  pop('#callout', tCall + 0.3, 0.45);
+  tl.fromTo('#calloutLine', { strokeDashoffset: 1100 }, { strokeDashoffset: 0, duration: 0.5, ease: 'power2.out' }, tCall + 0.6);
   // "Every screen, every dot, every note": each count pops on its word.
   const subs = $$('#calloutSub .csubi');
   gsap.set(subs, { autoAlpha: 0 });
   [toast, cue('sub2'), cue('sub3')].forEach((t, k) => pop(subs[k], t, 0.3));
-  tl.fromTo('#callout > div', { scale: 1 }, { scale: 1.04, duration: Math.max(0.5, cue('paste') - 0.2 - (tCall + 0.45)), ease: 'sine.inOut' }, tCall + 0.45);
+  tl.fromTo('#callout > div', { scale: 1 }, { scale: 1.04, duration: Math.max(0.5, cue('paste') - 0.2 - (tCall + 0.75)), ease: 'sine.inOut' }, tCall + 0.75);
   tl.fromTo([card1, card2, card3], { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.3 }, tCall - 0.05);
   fade('#tray', tCall, 0.3);
   ['#slot1', '#slot2', '#slot3'].forEach((s) => fade(s, tCall, 0.3));
@@ -961,22 +992,22 @@
 
   // The package, opened: why an agent can act on it. Each row arrives on its spoken word.
   const tK = cue('pkg');
-  tl.fromTo('#agent', { autoAlpha: 1, filter: 'blur(0px)' }, { autoAlpha: 0.15, filter: 'blur(8px)', duration: 0.5, ease: 'power2.inOut' }, tK - 0.5);
-  show('#pkg', tK - 0.35, 0.25);
+  fade('#agent', tK - 0.6, 0.25);
+  show('#pkg', tK - 0.3, 0.25);
   const rows = $$('#pkg .crow');
   gsap.set(rows, { autoAlpha: 0 });
   ['pkg', 'pkg2', 'pkg3', 'pkg4'].forEach((c, k) => tl.fromTo(rows[k], { autoAlpha: 0, x: 40 }, { autoAlpha: 1, x: 0, duration: 0.3, ease: 'power3.out' }, cue(c) - 0.05));
 
   // The proof: the agent's plan table builds, then each item gets its check.
   const tPr = cue('proof');
-  fade(['#pkg', '#agent'], tPr - 0.1, 0.25);
+  fade('#pkg', tPr - 0.1, 0.25);
   tl.fromTo('#plan', { autoAlpha: 0, y: 40 }, { autoAlpha: 1, y: 0, duration: 0.35, ease: 'power3.out' }, tPr);
   const planRows = $$('#plan .prr');
   gsap.set(planRows, { autoAlpha: 0 });
-  planRows.forEach((r, k) => tl.fromTo(r, { autoAlpha: 0, x: 30 }, { autoAlpha: 1, x: 0, duration: 0.25 }, tPr + 0.35 + k * 0.3));
+  planRows.forEach((r, k) => tl.fromTo(r, { autoAlpha: 0, x: 30 }, { autoAlpha: 1, x: 0, duration: 0.25 }, tPr + 0.2 + k * 0.15));
   const pcks = $$('#plan .pck');
   gsap.set(pcks, { scale: 0, autoAlpha: 0 });
-  pcks.forEach((c, k) => pop(c, tPr + 1.4 + k * 0.3, 0.3));
+  pcks.forEach((c, k) => pop(c, tPr + 0.6 + k * 0.15, 0.3));
 
   // ---------- scene 7: close. Clean and on brand ----------
   const close = scene('close');
@@ -1028,7 +1059,13 @@
     const el = document.createElement('div');
     el.className = 'cap';
     el.innerHTML = '<span></span>';
-    el.firstChild.textContent = c.text;
+    const inAsk = c.start >= line('ask').start && c.start < line('ask').end;
+    c.text.split(/(one round|one prompt)/).forEach((part, k) => {
+      if (!part) return;
+      const node = k % 2 && inAsk ? document.createElement('b') : document.createTextNode(part);
+      if (node.nodeType === 1) { node.textContent = part; Object.assign(node.style, { color: '#8FF3E4', fontWeight: 800 }); }
+      el.firstChild.appendChild(node);
+    });
     caps.appendChild(el);
     gsap.set(el, { autoAlpha: 0 });
     tl.fromTo(el, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.08 }, c.start);

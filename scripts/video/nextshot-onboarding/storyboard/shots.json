@@ -1,11 +1,11 @@
 {
- "version": "v3.1",
- "frameio": "https://f.io/jk8os9Pz",
+ "version": "v5",
+ "watch": "https://nextshot.dev",
  "scenes": {
   "hook": {
    "look": "sketch",
    "name": "Hook",
-   "job": "Make you stay. You and AI built a whole business, and it looks done."
+   "job": "Tell you the video starts, then make you stay. You and AI built a whole business, and it looks done."
   },
   "problem": {
    "look": "sketch",
@@ -20,7 +20,7 @@
   "how": {
    "look": "sleek",
    "name": "How",
-   "job": "Teach the first capture: shortcut, select, dots, answer."
+   "job": "Teach the first capture: shortcut, select, dots, a spoken answer."
   },
   "session": {
    "look": "sleek",
@@ -30,7 +30,7 @@
   "handoff": {
    "look": "sleek",
    "name": "Hand-off",
-   "job": "The payoff: one click copies the whole round, and any agent gets one prompt built the way AI reads."
+   "job": "The payoff: one click hands AI the whole round, as one prompt built the way AI reads best."
   },
   "close": {
    "look": "sleek",
@@ -40,7 +40,7 @@
  },
  "lines": {
   "built": {
-   "see": "Yellow paper. The stand's web page is drawn from the first frame: \"Lemonaid\", \"$9 a cup\", a tiny Buy button. After 1 second of music, a robot labeled \"AI\" and a stick figure labeled \"you\" draw in. Then four more things they built pop in, each with a hand-written label: an app, legal docs, an email, and a marketing flyer."
+   "see": "Yellow paper. The stand's web page shows dimmed from the first frame, with a red dot in the center that counts 3, 2, 1 while a red ring empties, one tick per number. The dot pops away and the page brightens: \"Lemonaid\", \"$9 a cup\", a tiny Buy button. A robot labeled \"AI\" and a stick figure labeled \"you\" draw in. Then an app, legal docs, an email, and a marketing flyer pop in, each with a hand-written label."
   },
   "flawed": {
    "see": "The figure squints. Seven red dots pop, one per mistake: the sign, the price, the tiny Buy button, an app button off the screen, \"Refunds: never!!\" in the legal docs, \"Grand opneing!\" in the email, and a lime on the flyer."
@@ -56,43 +56,40 @@
    "see": "The prompt gets long and messy: \"the button. no, the OTHER one.\", \"left of that. smaller. by the lemon?\", \"no wait...\". Red question marks pop, and sweat drops appear. On \"screens\", four more AI chats stack up one after another, each with its own screenshot and fix: the terms, the email subject, the lime, the app button."
   },
   "again": {
-   "see": "A tally climbs. Eight more pages, each with a red dot, pile up. The figure droops."
+   "see": "A tally climbs. Eight more pages, each with a red dot, pile up. On \"Paste after paste\", three crops fly from the figure's hand into the pile, one swish each. The figure droops, then a short silence."
   },
   "ask": {
-   "see": "The clutter clears, and the first picture comes back with all seven red dots. On \"gather\", the dots fly to the center. On \"round\", a teal circle draws around them, labeled \"1 round\". On \"give\", an arrow points to one box labeled \"1 prompt\"."
+   "see": "The clutter clears, and all seven red dots come back. On \"gather\", the dots fly to the center. On \"round\", a teal circle draws around them, labeled \"1 round\". On \"give\", an arrow points to one box labeled \"1 prompt\". A warm plucked note lands on each. The caption shows \"one round\" and \"one prompt\" in mint."
   },
   "meet": {
-   "see": "The circle closes in, and the dots become the Nextshot icon. On \"Introducing\", a teal circle grows from the center and turns the screen into the dark Nextshot look. The word \"Nextshot\" rises in once the screen is dark."
+   "see": "On \"Now\", the circle closes in and the dots snap into the Nextshot icon, with a shutter sound. On \"Introducing\", a teal circle grows from the center and turns the screen into the dark Nextshot look, with a rising plucked chord. The word \"Nextshot\" rises in once the screen is dark."
   },
   "g": {
    "frames": [
     0.3,
     0.75
    ],
-   "see": "The menu bar slides in at the top, and the lemonade page appears as a clean web page. A \"1 Grab\" step label shows at the bottom left. Option, Shift, and F keycaps press one by one, then leave as a crosshair drags a selection over the page. A white flash marks the capture."
+   "see": "The wordmark holds, then the icon flies up into the menu bar as the Nshot item, with a tick. The lemonade page rises as a clean web page, and a \"1 Grab\" step label shows. Then the voice starts. Option, Shift, and F keycaps press one by one, then leave as a crosshair drags a selection over the page. A white flash marks the capture."
   },
   "h": {
-   "see": "A \"2 Mark\" step label shows. No key comes first. The cursor clicks the sign, the price, and the Buy button, and red numbered dots 1, 2, 3 drop where it clicks. A Command+S keycap shows with \"saves the capture\". The note panel slides in with \"Circle 1 (1 of 3): what should change?\" and a preview zoomed on dot 1. \"Spell it Lemonade.\" types in while a mic icon pulses. The menu bar shows \"Nshot (1)\" with a green dot. Then \"Circle 2 (2 of 3)\" and \"Make it $3.\""
+   "see": "A \"2 Mark\" step label shows. No key comes first. The cursor clicks the sign, the price, and the Buy button, and red numbered dots 1, 2, 3 drop where it clicks. A Command+S keycap shows with \"saves the capture\". The note panel slides in with \"Circle 1 (1 of 3): what should change?\" and a preview zoomed on dot 1. \"Spell it Lemonade.\" types in while a mic icon pulses. The menu bar shows \"Nshot (1)\" with a green dot."
   },
   "i": {
-   "see": "A \"3 Repeat\" step label shows. The first capture shrinks into a teal \"Round\" outline on the left. A Checkout page and a Flavors page appear and flash white."
-  },
-  "j": {
-   "see": "Marks land on the new pages: a circle on \"Cash only\", a box around the Total, an arrow at the \"Coming soon\" slot, and a general note, \"Keep the fonts.\" On \"round\", the Round outline moves to the center, and both pages fly into it. The menu bar counts up to \"Nshot (3)\", and a zoom lens makes the count large."
+   "see": "A \"3 Repeat\" step label shows. The first capture shrinks into a teal \"Round\" outline on the left. A Checkout page and a Flavors page flash white as they are captured. With no voice of their own, marks land: a circle on \"Cash only\", a box around the Total, an arrow at the \"Coming soon\" slot, and a general note, \"Keep the fonts.\" On \"round\", the Round outline moves to the center, and both pages fly into it. The menu bar count goes to \"Nshot (2)\" and \"Nshot (3)\" with each capture, and a zoom lens enlarges it."
   },
   "handoff": {
    "frames": [
     0.12,
     0.7
    ],
-   "see": "A \"4 Hand off\" step label shows. The cursor opens the Nshot menu, which zooms in so its rows read, and clicks \"Copy Prompt and End Round\". The menu closes, and \"Nshot (3)\" and the green dot leave the menu bar: the round has ended. Large brand type says \"One round. One prompt.\" with a teal rule. On \"every screen, every dot, every note\", three chips pop in: \"3 screens\", \"6 dots\", and \"7 notes\"."
+   "see": "A \"4 Hand off\" step label shows. The cursor opens the Nshot menu, which zooms in so its rows read, and clicks \"Copy Prompt and End Round\". The menu closes, and \"Nshot (3)\" and the green dot leave the menu bar: the round has ended. Large brand type says \"One round. One prompt.\" with a teal rule. On \"the whole round\", three chips pop in with no voice of their own: \"3 screens\", \"6 dots\", and \"7 notes\"."
   },
   "paste": {
    "frames": [
     0.2,
     0.92
    ],
-   "see": "An agent window rises with one pasted message: <feedback_bundle captures=\"3\" items=\"6\">, the Goal line, three thumbnails, and the six items grouped by page. Claude Code and Codex light up, then \"or any agent\". The window blurs and dims, and a \"Built the way AI reads\" panel adds one row per spoken part: Numbered dots, A note on each dot, Exact pixels and screen text, A plan before it edits. A footnote names the research. After the line, the agent's plan table builds three rows (item, file, planned change) and checks each one."
+   "see": "An agent window rises with one pasted message: <feedback_bundle captures=\"3\" items=\"6\">, the Goal line, three thumbnails, and the six items grouped by page. Claude Code and Codex light up, then \"or any agent\". The window fades, and a \"Built the way AI reads best\" panel adds one row per spoken part: Numbered dots, Clear notes, Exact spots, A plan first. A footnote names the research. After the line, the agent's plan table builds three rows (item, file, planned change) and checks each one."
   },
   "tagline": {
    "frames": [
@@ -104,6 +101,10 @@
  },
  "cues": {
   "stand": "Stand page, drawn from the first frame",
+  "count3": "Countdown 3",
+  "count2": "Countdown 2",
+  "count1": "Countdown 1",
+  "go": "The countdown dot pops away",
   "duo": "AI and you draw in",
   "items": "App, docs, email, flyer pop in",
   "dots": "Seven red dots",
@@ -114,11 +115,13 @@
   "explain": "The messy prompt",
   "chats": "Four more AI chats stack up",
   "again": "Tally and page pile",
+  "pastes": "Three crops fly into the pile",
   "gather": "Red dots gather",
   "round": "Teal circle: \"1 round\"",
   "oneprompt": "Arrow to \"1 prompt\"",
-  "mark": "The round becomes the Nextshot icon",
+  "mark": "The dots snap into the Nextshot icon",
   "wipe": "Teal wipe to the Nextshot look",
+  "land": "The icon lands in the menu bar",
   "key_opt": "Option key",
   "key_shift": "Shift key",
   "key_f": "F key",
@@ -133,9 +136,9 @@
   "cap2": "Checkout page captured",
   "cap3": "Flavors page captured",
   "m_circle": "Circle marks",
-  "m_box": "Box mark",
+  "m_box": "Box mark (silent)",
   "m_arrow": "Arrow mark",
-  "m_note": "General note",
+  "m_note": "General note (silent)",
   "tray": "Pages fly into the round",
   "menu": "Nshot menu opens and zooms",
   "copy": "Copy Prompt and End Round",
@@ -145,9 +148,9 @@
   "paste": "Paste into the agent",
   "chips": "Agent chips light up",
   "pkg": "Row 1: Numbered dots",
-  "pkg2": "Row 2: A note on each dot",
-  "pkg3": "Row 3: Exact pixels and screen text",
-  "pkg4": "Row 4: A plan before it edits",
+  "pkg2": "Row 2: Clear notes",
+  "pkg3": "Row 3: Exact spots",
+  "pkg4": "Row 4: A plan first",
   "proof": "The agent's plan table",
   "fix": "The sketch returns, then the clean stand",
   "brand": "Icon and name",
@@ -168,7 +171,13 @@
   "pops": "run of pops",
   "snip": "scissors snip",
   "tick": "tick",
-  "ding": "ding"
+  "ding": "ding",
+  "tick_lo": "countdown tick",
+  "swishes": "run of swishes",
+  "pluck_lo": "low plucked note",
+  "pluck_hi": "high plucked note",
+  "snap": "shutter snap",
+  "signature": "rising plucked chord"
  },
  "music": "\"Curiosity\" by Diego Nava, from Mixkit under its free stock music license. It fades in over the first second, drops under the voice, and fades out over the last 2.5 seconds."
 }

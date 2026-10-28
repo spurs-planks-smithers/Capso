@@ -397,6 +397,63 @@ def sfx_snip():
     return out
 
 
+def sfx_tick_lo():
+    """A soft wooden countdown tick, lower than the tally ticks."""
+    out = tone(1250, 0.07, 0.42, 0.014)
+    add(out, tone(625, 0.07, 0.25, 0.02), 0)
+    add(out, noise(0.008, 0.18, 0.002), 0)
+    return out
+
+
+def sfx_swishes(span, count):
+    """Paste after paste: short swishes, evenly spaced, each a little louder."""
+    out = blank(span + 0.35)
+    for k in range(count):
+        add(out, sfx_whoosh(0.28, 0.32 + 0.06 * k), span * k / max(1, count))
+    return out
+
+
+def sfx_pluck_weight(note):
+    """One warm plucked note over a soft low thump, so a key word lands with weight."""
+    out = blank(1.0)
+    add(out, pluck(note, 0.95, 0.5, 0.996), 0)
+    add(out, tone(98, 0.3, 0.35, 0.07, attack=0.004), 0)
+    return out
+
+
+def sfx_snap():
+    """The red dots snap into the icon: a light shutter over a short low pluck."""
+    out = blank(0.6)
+    add(out, sfx_shutter(), 0, 0.6)
+    add(out, pluck(55, 0.55, 0.42, 0.993), 0.012)
+    return out
+
+
+def sfx_dot(scale):
+    """A dot pop, pitched by scale, so a run of dots can rise."""
+    out = blank(0.12)
+    phase = 0.0
+    for i in range(len(out)):
+        t = i / SR
+        freq = (380 + 620 * math.exp(-t / 0.018)) * scale
+        phase += 2 * math.pi * freq / SR
+        out[i] = 0.7 * min(1.0, t / 0.002) * math.exp(-t / 0.03) * math.sin(phase)
+    return out
+
+
+def sfx_signature():
+    """Introducing Nextshot, from the product's own sounds: three rising dot pops (mark),
+    the shutter (capture), then a plucked C major chord that rings out (hand off)."""
+    out = blank(1.6)
+    for k, scale in enumerate([1.0, 1.26, 1.5]):  # a major triad, like the three dots
+        add(out, sfx_dot(scale), 0.085 * k)
+    add(out, sfx_shutter(), 0.27, 0.55)
+    for k, note in enumerate([60, 64, 67, 72]):  # C4 E4 G4 C5, strummed
+        add(out, pluck(note, 1.25, 0.26, 0.9975), 0.3 + 0.022 * k)
+    add(out, tone(2093.0, 1.0, 0.035, 0.3, attack=0.03), 0.34)  # a faint C7 shimmer
+    return out
+
+
 def make_sfx(name, span, count=None):
     if name == "typing":
         return sfx_typing(span)
@@ -404,13 +461,17 @@ def make_sfx(name, span, count=None):
         return sfx_ticks(span, count or 10)
     if name == "pops":
         return sfx_pops(span, count or 3)
+    if name == "swishes":
+        return sfx_swishes(span, count or 3)
     if name == "snip":
         return sfx_snip()
     if name == "whoosh_small":
         return sfx_whoosh(0.3, 0.4)
+    if name in ("pluck_lo", "pluck_hi"):
+        return sfx_pluck_weight(60 if name == "pluck_lo" else 67)
     return {"pop": sfx_pop, "click": sfx_click, "key": sfx_key, "shutter": sfx_shutter,
-            "tick": sfx_tick, "whoosh": sfx_whoosh, "ding": sfx_ding,
-            "sparkle": sfx_sparkle}[name]()
+            "tick": sfx_tick, "tick_lo": sfx_tick_lo, "whoosh": sfx_whoosh, "ding": sfx_ding,
+            "sparkle": sfx_sparkle, "snap": sfx_snap, "signature": sfx_signature}[name]()
 
 
 # ---------- music: plucked strings (Karplus-Strong) ----------

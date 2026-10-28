@@ -8,7 +8,7 @@
 set -euo pipefail
 repo="$(cd "$(dirname "$0")/.." && pwd)"
 source "$repo/scripts/release-lib.sh"
-video="$repo/build/releases/Nextshot-onboarding-2026.10.24.mp4"
+video="$repo/build/releases/Nextshot-onboarding-2026.10.27.mp4"
 poster="$repo/build/site-poster.jpg"
 stage_only=0 artifact="" snapshot="" custom_media=0
 fail() { echo "deploy: $*" >&2; exit 1; }

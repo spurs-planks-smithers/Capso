@@ -70,7 +70,7 @@ site/deploy.sh --deploy-staged /absolute/path/to/artifact
 
 The publish command checks the inventory and never rebuilds. It verifies the live app before accepting the current Worker as a rollback target. A failed Guides check restores that Worker without changing R2 or the app download.
 
-The default media inputs are `build/releases/Nextshot-onboarding-2026.10.24.mp4` and `build/site-poster.jpg`. Pass explicit `--video` and `--poster` inputs to change them. A guide correction must not change the homepage media by accident.
+The default media inputs are `build/releases/Nextshot-onboarding-2026.10.27.mp4` (onboarding video v5, since 2026-10-28) and `build/site-poster.jpg`. Pass explicit `--video` and `--poster` inputs to change them. A guide correction must not change the homepage media by accident.
 
 ## When a feature changes
 
