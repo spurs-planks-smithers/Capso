@@ -10,6 +10,14 @@ Specs: [architecture](../specs/2026-10-28-chrome-extension-architecture.md), [Je
 
 Drew approves a $25 per calendar month hard ceiling for paid Jev pilot work. The service must reserve bounded cost before paid requests. Keep it disabled if a defensible per-request bound or required credentials are unavailable. No public enrollment or recurring charge beyond that ceiling is authorized.
 
+### October 29 usability refinement
+
+Drew reports that the pilot feels heavy. Seamless, unobtrusive operation remains the primary product requirement. Functional smoke alone does not establish product acceptance. [Workflow refinement #177](https://github.com/spurs-planks-smithers/Capso/issues/177) follows the functional pilot and precedes umbrella acceptance.
+
+Prioritize fewer visible controls, decisions, prompts, and screen transitions before adding capabilities. Keep configuration and diagnostics outside routine capture. Use safe defaults and reuse granted setup. Keep one clear final Save action. Preserve explicit arming, site permission, content consent, and local fallback.
+
+Show a rendered refinement proposal before interface changes. Review the ordinary-capture and Rolling Round paths with Drew. Record the remaining friction. Keep the work in Later and outside v0.5.0.
+
 ## Global constraints
 
 External browser evidence uses schema namespace `nextshot.browser`, version 1. Native image-only rounds stay schema 1. Native browser imports use schema 2 with browser evidence attachments. Older native apps must hide schema 2. New code must continue reading schema 1. C3 verifies this mapping before native delivery.
@@ -44,6 +52,7 @@ External browser evidence uses schema namespace `nextshot.browser`, version 1. N
 | C4 correction | [Monotonic recording clocks](https://github.com/spurs-planks-smithers/Capso/issues/175) | #169 |
 | C5 correction | [Resource-loss coverage](https://github.com/spurs-planks-smithers/Capso/issues/176) | #175 |
 | C9 | [Chrome C9: install package and browser/native smoke test](https://github.com/spurs-planks-smithers/Capso/issues/172) | #171, #174, #176 (Apple optional) |
+| Usability refinement | [Simplify capture and Rolling Round](https://github.com/spurs-planks-smithers/Capso/issues/177) | #172 functional baseline; required before #124 acceptance |
 
 
 | Order | Deliverable | Prerequisite | Acceptance evidence |

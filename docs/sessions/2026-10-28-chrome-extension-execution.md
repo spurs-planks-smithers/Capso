@@ -106,3 +106,11 @@ Two additional bugs receive separate Later sub-issues under #124. Issue #175 rep
 Issue #176 adds a bounded resource-loss warning through 9523e7a. Nine checks cover early eviction, oversized frames, event limits, normal expiry, selected warnings, Clear, and tiny budgets. One fixed control marker remains outside the payload budget. A subsequent real offscreen test finds diagnostic saturation can prevent explicit-recording selection. The final selection cap reserves the coordinator's coverage row and preserves omission warnings. Both modes now create drafts with 1,000 diagnostics and valid selected timestamps.
 
 The [performance record](../research/2026-10-29-chrome-pilot-performance.md) separates steady idle from active-state measurements. It proves natural worker suspension and cleanup. It makes no battery-life or universal-overhead claim. Final package reload and Drew's native/Rolling smoke remain in #172. Keep the umbrella open until those results exist.
+
+## October 29 usability feedback
+
+Drew reports that the extension feels heavy and falls short of the seamless, unobtrusive principle. Issue #177 records refinement before umbrella acceptance. Reduce visible controls, decisions, prompts, and transitions before expanding capabilities. Functional smoke remains separate evidence. A successful Save alone does not establish usability acceptance.
+
+The smoke harness also adds avoidable friction. Chrome automatically closes agent-created tabs at turn end unless they are marked. The omitted handoff mark closes the source and correctly clears unsaved rolling history. The test now preserves its source tab across each user step. This correction changes no product code.
+
+Drew opens the live review. The final selection covers 8 to 18 recorded seconds and includes the observed click. Its annotation matches the captured button. The new draft is ready for Save. Native readback and cleanup remain pending. The planning update introduces no runtime change or required extension reload.
