@@ -54,7 +54,7 @@ Use a controlled local or staging page with a button, a visible failure message,
 
 | Check | Expected result |
 |---|---|
-| Standalone capture | Choose Capture an area, approve the site, mark the screenshot, add a note, and click Done. It saves and copies the prompt without the Mac app. |
+| Standalone capture | Choose Capture an area, approve the site, mark the screenshot, add a note, and click Save & copy instructions. It saves and copies text for the agent without the Mac app. |
 | Context and masks | The mark matches the intended element. The harmless form field is covered in saved evidence. Missing source context remains explicit. |
 | Export | Export the saved browser round. The ZIP has relative paths, readable notes, and the selected images. |
 | Native optional | Enable native saving and save a fresh capture. Nextshot Dev imports it. Repeated delivery does not duplicate it. |

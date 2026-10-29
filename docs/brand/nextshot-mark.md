@@ -56,7 +56,13 @@ macOS makes the dark, clear, and tinted appearances from these layers. Do not su
 3. Check every appearance with Icon Composer's `ictool`. For example: `"/Applications/Xcode.app/Contents/Applications/Icon Composer.app/Contents/Executables/ictool" Branding/Nextshot.icon --export-image --output-file /tmp/icon.png --platform macOS --rendition Default --width 512 --height 512 --scale 1`. The renditions are Default, Dark, ClearLight, ClearDark, TintedLight, and TintedDark.
 4. Update the previews in `docs/brand/` and `.github/assets/nextshot-icon.png`.
 
-## Rules
+## Chrome Exports
+
+Chrome requires raster extension icons. The browser uses PNG exports of the approved `Branding/Nextshot.icon`, without changing its artwork. Generate them with `python3 -I browser-extension/export-icons.py` on a Mac with Icon Composer. The checked-in 16, 24, 32, 48, and 128 pixel exports serve the toolbar, extension listing, page favicon, and headers. See [Chrome icon formats](https://developer.chrome.com/docs/extensions/reference/manifest/icons).
+
+The macOS app continues to ship the original `.icon` file. The package guard rejects missing browser icons and incorrect pixel dimensions.
+
+## Rules For The Mac App
 
 - Ship the `.icon` file, never a flat PNG app icon. macOS adds the glass, highlights, and shadows.
 - Add no custom shine, shadow, bevel, blur, or glow to the layers (Apple Human Interface Guidelines, App icons).

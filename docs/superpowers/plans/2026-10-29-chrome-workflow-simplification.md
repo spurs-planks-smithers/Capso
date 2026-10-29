@@ -103,3 +103,17 @@ Draft saving runs only during editing. It introduces no idle polling or permanen
 A real immediate-reload check exposes a race before the debounced IndexedDB write starts. A tab-local sessionStorage journal retains only bounded marks and reviewer notes. Restore it only over an existing valid draft and validate the merged capture. Clear it after the latest durable write, final save, explicit discard, a missing draft, or Rolling invalidation. It contains no image or page evidence and has no wall-clock expiry. It cannot restore a missing or expired source draft.
 
 The HTTP fixture verifies production editor logic and a real browser store. It cannot establish installed-extension acceptance or Windows behavior. Keep those limits explicit.
+
+## October 29 Branding And Clarity Correction
+
+Drew rejects the remaining unclear workflow, generic icon, and missing Nextshot branding. He asks for keyboard capture, clearer dot-to-note guidance, and sharing labels that explain their results. This supersedes the earlier Done label. The implementation keeps one completion action named Save & copy instructions. Sharing uses Copy instructions and Download ZIP, with a short explanation of text versus image handoff.
+
+- Export browser raster icons from the existing approved Icon Composer source. Preserve its artwork. Use those assets in both manifests, toolbar, page favicon, and visible headers.
+- Query Chrome's actual capture shortcut in the popup and editor. Show setup when it is unassigned. Never silently replace another extension's key.
+- Keep the configured Option+Shift+B or Alt+Shift+B suggestion. Dev and Pilot request the same combination, so a collision is possible. User-managed assignment remains Chrome's responsibility.
+- Explain that each numbered dot owns one note. Keep the selected dot and note label aligned. Use the approved graphite and teal palette.
+- Reject missing or incorrectly sized brand icons during packaging. Add no permissions or dependencies.
+
+Chrome's [Commands API](https://developer.chrome.com/docs/extensions/reference/api/commands) documents blank assignments and collisions. Its [icon rules](https://developer.chrome.com/docs/extensions/reference/manifest/icons) require raster formats. The macOS app continues to ship the original Icon Composer file.
+
+The assigned and unassigned shortcut states are tested in the isolated browser fixture. This does not establish the key assigned to Drew's installed Pilot. A manifest reload is required to activate new toolbar icons. Prepare and verify the full package before requesting that manual action.

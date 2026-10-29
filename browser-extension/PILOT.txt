@@ -23,20 +23,23 @@ MAKE FEEDBACK
 1. Open a safe website. Click Nextshot Pilot, then Capture an area.
 2. Approve access to that site if Chrome asks. Drag around the area to capture.
 3. Click the image to add a numbered dot. Add a note beside it.
-4. Click Done. Your feedback is saved and its prompt is copied.
-5. Click Export round to create a ZIP you can share.
+4. Click Save & copy instructions. Your feedback is saved and its instructions are copied.
+5. Click Download ZIP. Chrome downloads screenshots, notes, and page details.
 
-Paste the copied prompt into a text editor or coding agent.
+Paste the copied instructions into a text editor or coding agent.
 Click an existing numbered dot to read or change its note.
 Page details are included automatically when available. They need no review.
-If several parts could match a dot, you can choose one or continue with Done.
+If several parts could match a dot, you can choose one or continue saving.
 
 When using a coding agent, attach that exported ZIP.
 It contains the images and element details.
 The copied text names files inside that ZIP.
 
-Option+Shift+B starts capture on Mac. Alt+Shift+B starts it on Windows.
-If the shortcut conflicts, use the toolbar button.
+The suggested capture key is Option+Shift+B on Mac or Alt+Shift+B on Windows.
+The popup and editor show the key Chrome actually assigns.
+If another extension uses that key, choose Set capture shortcut once.
+Chrome opens its shortcut settings. Assign an available key to Nextshot Pilot.
+After setup, use that key in Chrome to capture without opening the popup.
 Command+S saves on Mac. Ctrl+S saves on Windows.
 Saved rounds are available from the extension's popup.
 End current round starts a fresh group on your next capture.
@@ -45,6 +48,7 @@ DATA AND LIMITS
 
 Captures and notes stay in this Chrome profile. Nothing uploads automatically.
 No AI, native integration, recording, or Rolling Round is included in this pilot.
+The toolbar, popup, and editor use Nextshot's approved logo.
 Form fields and unreadable embedded previews receive covers.
 Field details contain structure and position, without field contents or labels.
 A mark beside an element can suggest a nearby target. Check that suggestion.

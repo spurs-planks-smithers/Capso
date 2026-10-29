@@ -2,6 +2,7 @@ import type {AssistInput,AssistResult} from './assistance.ts';
 import {getDraft,saveDraft,discardDraft,saveCapture,roundById,assetsForRound,renderPrompt,exportBundle,validateCapture} from './core/index.ts';
 import type {Capture,Asset,Mark,MarkKind,ElementEvidence,Round} from './core/model.ts';
 import {deliverNative} from './native.ts';
+import {mountCaptureShortcut} from './shortcut.ts';
 const $=<T extends HTMLElement=HTMLElement>(selector:string)=>document.querySelector<T>(selector)!;
 const canvas=$<HTMLCanvasElement>('#canvas'),context=canvas.getContext('2d')!;
 const note=$<HTMLTextAreaElement>('#note'),status=$('#status'),save=$<HTMLButtonElement>('#save');
@@ -58,7 +59,8 @@ function select(id:number,saveCurrent=true):void {
   selected=capture.marks.some(m=>m.id===id)?id:0;
   const mark=capture.marks.find(m=>m.id===selected);note.value=mark?.note??capture.note;
   note.maxLength=mark?10000:20000;
-  $('#note-label').textContent=mark?`${markName(mark)}: what should change?`:'General note (optional)';
+  $('#note-label').textContent=mark?`Note for ${markName(mark).toLowerCase()}`:'General note (optional)';
+  $('#note-help').textContent=mark?'Click a dot or its tab to read or edit its note.':'Add a dot to comment on a specific spot, or write a general note.';
   renderControls();showElements();draw();
 }
 function renderControls():void{
@@ -135,8 +137,8 @@ function draw(highlight=true):void {
     context.beginPath();context.arc(mark.x,mark.y,radius,0,Math.PI*2);context.fill();context.fillStyle='#fff';context.font=`600 ${radius*1.1}px -apple-system,sans-serif`;context.textAlign='center';context.textBaseline='middle';context.fillText(String(mark.id),mark.x,mark.y);context.fillStyle='#df3037';
   }
   const mark=capture.marks.find(m=>m.id===selected);
-  if(highlight&&mark){context.strokeStyle='#2d66bc';context.lineWidth=Math.max(2,line);context.beginPath();context.arc(mark.x,mark.y,radius+line*2,0,Math.PI*2);context.stroke();}
-  $('#hint').textContent=saved?'Your feedback is saved. Copy or export it when ready.':capture.marks.length?`Done saves and copies your feedback. ${/Mac/i.test(navigator.platform)?'Command':'Ctrl'}+S also works.`:'Click the image to add your first dot, then describe the change.';
+  if(highlight&&mark){context.strokeStyle='#23282c';context.lineWidth=Math.max(2,line);context.beginPath();context.arc(mark.x,mark.y,radius+line*2,0,Math.PI*2);context.stroke();}
+  $('#hint').textContent=saved?'Feedback saved. Copy instructions or download the ZIP when ready.':capture.marks.length?`Each dot has its own note. ${/Mac/i.test(navigator.platform)?'Command':'Ctrl'}+S saves and copies your instructions.`:'Click the image to add a numbered dot. Each dot has its own note.';
 }
 function point(event:PointerEvent):{x:number;y:number}{const rect=canvas.getBoundingClientRect();return{x:Math.max(0,Math.min(canvas.width,(event.clientX-rect.left)*canvas.width/rect.width)),y:Math.max(0,Math.min(canvas.height,(event.clientY-rect.top)*canvas.height/rect.height))};}
 canvas.onpointerdown=e=>{if(saving||closing)return;down=point(e);canvas.setPointerCapture(e.pointerId);};
@@ -160,16 +162,16 @@ save.onclick=async()=>{
     assets=assets.filter(a=>a.name!==capture.imageFile);assets.push({name:capture.imageFile,mime:annotated.type,bytes:new Uint8Array(await annotated.arrayBuffer())});
     capture=validateCapture(capture);saved=await saveCapture(capture,assets);clearJournal(capture.id);status.textContent='Feedback saved in this browser.';
     void chrome.runtime.sendMessage({type:'nextshot-forget-draft',id:capture.id}).catch(()=>{});
-    try{await navigator.clipboard.writeText(renderPrompt(saved));status.textContent='Saved. Prompt copied. Paste it into your agent.';}catch{status.textContent='Feedback saved. Use Copy prompt or Export round to share it.';}
+    try{await navigator.clipboard.writeText(renderPrompt(saved));status.textContent='Saved. Instructions copied. Paste them into your coding agent and attach the ZIP.';}catch{status.textContent='Feedback saved. Use Copy instructions or Download ZIP to share it.';}
     void deliverNative(capture,assets).then(receipt=>{if(receipt)$('#delivery-status').textContent=receipt.state==='imported'?'Also saved in Nextshot Dev.':'Saved here. Nextshot Dev is unavailable.';}).catch(()=>{$('#delivery-status').textContent='Saved here. Nextshot Dev could not receive it.';});
   }catch(error){status.textContent=error instanceof Error?error.message:'Save failed. Your draft remains available.';}
   finally{saving=false;renderControls();showElements();draw();}
 };
-$('#copy').onclick=async()=>{if(saved){try{await navigator.clipboard.writeText(renderPrompt(saved));status.textContent='Prompt copied.';}catch{status.textContent='Your feedback is saved. Clipboard access is unavailable. Export the round to share it.';}}};
+$('#copy').onclick=async()=>{if(saved){try{await navigator.clipboard.writeText(renderPrompt(saved));status.textContent='Instructions copied. Paste them into your coding agent and attach the ZIP.';}catch{status.textContent='Feedback saved. Clipboard access is unavailable. Use Download ZIP to share it.';}}};
 $('#export').onclick=async()=>{
   if(!saved)return;
-  try{const bytes=exportBundle(saved,await assetsForRound(saved));const url=URL.createObjectURL(new Blob([new Uint8Array(bytes).buffer],{type:'application/zip'}));const a=document.createElement('a');a.href=url;a.download=`nextshot-round-${saved.createdAt.slice(0,16).replace(/[:T]/g,'-')}.zip`;a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);status.textContent='Export download started.';}
-  catch(error){status.textContent=error instanceof Error?error.message:'Export failed.';}
+  try{const bytes=exportBundle(saved,await assetsForRound(saved));const url=URL.createObjectURL(new Blob([new Uint8Array(bytes).buffer],{type:'application/zip'}));const a=document.createElement('a');a.href=url;a.download=`nextshot-round-${saved.createdAt.slice(0,16).replace(/[:T]/g,'-')}.zip`;a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);status.textContent='ZIP download started. Find it in Chrome Downloads.';}
+  catch(error){status.textContent=error instanceof Error?error.message:'ZIP download failed.';}
 };
 $('#cancel').onclick=async()=>{
   if(saving||closing)return;cancelElementAssistance();closing=true;renderControls();
@@ -194,6 +196,7 @@ async function load():Promise<void> {
   const recovered=!saved&&restoreJournal();loaded=true;if(recovered)scheduleDraft();reconcileMatches();select(capture.marks[0]?.id??0,false);
 }
 void load().catch(error=>{status.textContent=error.message;save.disabled=true;});
+mountCaptureShortcut($('#shortcut'),$<HTMLButtonElement>('#shortcut-setup'));
 
 chrome.runtime.onMessage.addListener(m=>{if(m.type==='nextshot-rolling-invalidated'&&capture?.kind==='rolling'&&!saved){
   closing=true;if(draftTimer!==undefined){clearTimeout(draftTimer);draftTimer=undefined;}clearJournal(capture.id);assets=[];image?.close();

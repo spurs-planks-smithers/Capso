@@ -27,6 +27,7 @@ async function copyAssets(directory,destination){
 }
 if(pilot){
   for(const name of ['style.css','review.html'])await copyFile(path.join(root,'public',name),path.join(output,name));
+  await copyAssets(path.join(root,'public/icons'),path.join(output,'icons'));
   await copyFile(path.join(root,'public/pilot-popup.html'),path.join(output,'popup.html'));
 }else await copyAssets(path.join(root,'public'),output);
 console.log(`Nextshot browser build: ${output}`);

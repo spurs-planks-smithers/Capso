@@ -28,11 +28,16 @@
   },
   "action": {
     "default_title": "Nextshot",
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/nextshot-16.png",
+      "24": "icons/nextshot-24.png",
+      "32": "icons/nextshot-32.png"
+    }
   },
   "commands": {
     "capture": {
-      "description": "Capture browser feedback",
+      "description": "Select an area for Nextshot feedback",
       "suggested_key": {
         "default": "Alt+Shift+B",
         "mac": "Alt+Shift+B"
@@ -45,5 +50,11 @@
         "mac": "Alt+Shift+G"
       }
     }
+  },
+  "icons": {
+    "16": "icons/nextshot-16.png",
+    "32": "icons/nextshot-32.png",
+    "48": "icons/nextshot-48.png",
+    "128": "icons/nextshot-128.png"
   }
 }

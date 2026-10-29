@@ -1,4 +1,5 @@
 import {mountFramePermissions} from './frame-permissions.ts';
+import {mountCaptureShortcut} from './shortcut.ts';
 import {rounds,renderPrompt,endRound,assetsForRound,exportBundle} from './core/index.ts';
 import type {Round} from './core/model.ts';
 const status=document.querySelector<HTMLElement>('#status')!;
@@ -28,14 +29,15 @@ function addRound(round:Round):void {
   const row=document.createElement('div');row.className='round';
   const title=document.createElement('button');title.className='round-title';title.textContent=`${round.endedAt?'':'Active: '}${round.name} (${round.captures.length})`;
   title.onclick=()=>{void chrome.tabs.create({url:chrome.runtime.getURL(`review.html?round=${round.id}`)});};
-  const copy=document.createElement('button');copy.textContent='Copy prompt';copy.onclick=async()=>{await navigator.clipboard.writeText(renderPrompt(round));status.textContent='Prompt copied.';};
-  const zip=document.createElement('button');zip.textContent='Export';zip.onclick=async()=>{
-    try{const bytes=exportBundle(round,await assetsForRound(round));const url=URL.createObjectURL(new Blob([new Uint8Array(bytes).buffer],{type:'application/zip'}));const a=document.createElement('a');a.href=url;a.download=`nextshot-round-${round.createdAt.slice(0,16).replace(/[:T]/g,'-')}.zip`;a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);}
+  const copy=document.createElement('button');copy.textContent='Copy instructions';copy.onclick=async()=>{await navigator.clipboard.writeText(renderPrompt(round));status.textContent='Instructions copied. Paste them into your coding agent and attach the ZIP.';};
+  const zip=document.createElement('button');zip.textContent='Download ZIP';zip.onclick=async()=>{
+    try{const bytes=exportBundle(round,await assetsForRound(round));const url=URL.createObjectURL(new Blob([new Uint8Array(bytes).buffer],{type:'application/zip'}));const a=document.createElement('a');a.href=url;a.download=`nextshot-round-${round.createdAt.slice(0,16).replace(/[:T]/g,'-')}.zip`;a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);status.textContent='ZIP download started. Find it in Chrome Downloads.';}
     catch(error){status.textContent=error instanceof Error?error.message:'Export failed.';}
   };
   row.append(title,copy,zip);document.querySelector('#rounds')!.append(row);
 }
 void load().catch(error=>{status.textContent=error.message;});
+mountCaptureShortcut(document.querySelector<HTMLElement>('#shortcut')!,document.querySelector<HTMLButtonElement>('#shortcut-setup')!);
 
 const trial=document.querySelector<HTMLInputElement>('#recording-trial')!,recordStart=document.querySelector<HTMLButtonElement>('#record-start')!,recordReview=document.querySelector<HTMLButtonElement>('#record-review')!;
 void chrome.storage.local.get('recordingEnabled').then(v=>{trial.checked=!!v.recordingEnabled;recordStart.hidden=!trial.checked;});

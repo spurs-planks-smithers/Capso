@@ -5,8 +5,8 @@ Use harmless content. The goal is one useful capture, not a full bug report.
 1. Open https://example.com in Google Chrome.
 2. Capture the heading and nearby text.
 3. Put one dot on the heading. Write: Change this heading to Pilot test.
-4. Click Done and paste the copied prompt into a text editor.
-5. Export the round. Extract the ZIP and open README.md and the marked image.
+4. Click Save & copy instructions and paste into a text editor.
+5. Click Download ZIP. Extract it and open README.md and the marked image.
 6. Close and reopen Chrome. Confirm the round is still in Saved rounds.
 
 Then try one capture on a website you normally review.
@@ -19,7 +19,7 @@ Operating system version:
 Chrome version:
 Installed Nextshot Pilot:
 Captured the intended area and added notes:
-Saved and pasted the prompt:
+Saved and pasted the instructions:
 Exported and opened the ZIP:
 Round remained after restarting Chrome:
 Confusing or unnecessary step:

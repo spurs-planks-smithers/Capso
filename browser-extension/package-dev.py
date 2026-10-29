@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 import re
 import shutil
+import struct
 import subprocess
 import zipfile
 
@@ -51,6 +52,18 @@ if manifest.get('host_permissions') or set(manifest.get('optional_host_permissio
     raise SystemExit('Review changed host access before packaging.')
 if any(key in manifest for key in ['externally_connectable', 'update_url']):
     raise SystemExit('Review external access or update endpoints before packaging.')
+for field, sizes in [(manifest.get('icons', {}), (16, 32, 48, 128)),
+                     (manifest.get('action', {}).get('default_icon', {}), (16, 24, 32))]:
+    for size in sizes:
+        relative = f'icons/nextshot-{size}.png'
+        if not isinstance(field, dict) or field.get(str(size)) != relative:
+            raise SystemExit('Nextshot brand icons must be declared before packaging.')
+        icon = BUILD / relative
+        if not icon.is_file() or icon.is_symlink():
+            raise SystemExit(f'Missing brand icon: {relative}')
+        data = icon.read_bytes()
+        if data[:8] != b'\x89PNG\r\n\x1a\n' or len(data) < 24 or struct.unpack('>II', data[16:24]) != (size, size):
+            raise SystemExit(f'Invalid brand icon size: {relative}')
 
 files = {}
 network_literals = set()

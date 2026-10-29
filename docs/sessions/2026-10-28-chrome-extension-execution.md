@@ -180,3 +180,17 @@ TypeScript, both profiles, thirteen runtime checks, twelve existing editor check
 The isolated HTTP fixture uses production editor code and real IndexedDB in regular Chrome. A real save and downloaded export retain both marked notes, the general note, and button/input element IDs. The field text remains empty, the pixels remain covered, and both JPEGs are 824 by 675. Navigating a reopened saved round and exporting again produces identical ZIP bytes. Ambiguity stays optional in the running editor. Empty, one-mark, two-mark, ambiguous, saved, and 1440 by 900 layout states are rendered and inspected.
 
 The fixture export is explicitly labeled with its isolated origin. It is not installed-extension evidence. The user's live capture stays untouched. Keep #177 open for broader native/Rolling usability acceptance. Keep #183 and #184 open until the corrected installed export exists, and #182 open for actual friend results on Windows and Mac.
+
+## October 29 Installed Matching Acceptance
+
+Drew exports the existing installed Pilot capture. Its latest image is 1414 by 620. Dot 1 saves a button element ID at 19.058 CSS pixels distance. Dot 2 saves the field element ID at 21.493 CSS pixels. Both satisfy the 24 pixel limit. Field pixels stay covered in both images and field text remains empty. The ZIP validates and retains earlier historical captures. The button note is present. The empty field note has no prior confirmed entered value, so no note-loss claim follows. Independent artifact review finds no matching blocker. Issues #183 and #184 close. CI passes at 25080fe. The new Done interface still lacks user usability acceptance.
+
+## October 29 Branding And Shortcut Feedback
+
+Drew rejects the remaining unclear controls, missing logo, and generic extension icon. The manifests omit icons, which explains Chrome's generated icon. Both profiles request the same capture key. Chrome documents that an occupied key leaves the second extension's command unassigned. Do not claim which key the installed Pilot owns without actual readback.
+
+The correction exports 16, 24, 32, 48, and 128 pixel PNGs from the approved Icon Composer source. Both manifests declare Nextshot icons. Visible headers and page favicons use the same assets. A shared helper shows Chrome's actual key or a one-time shortcut setup action. It updates only while the interface is open and becomes visible again. No idle polling, permission, or dependency is added.
+
+The primary action becomes Save & copy instructions. Saved actions become Copy instructions and Download ZIP. Help connects each numbered dot to its note and explains text instructions versus the ZIP's screenshots and page details. The existing brand palette replaces generic blue accents. The capture image aligns with the note panel without a large gray container.
+
+TypeScript, both profiles, runtime checks, workflow checks, matching regressions, profile boundaries, and existing Jev checks pass. The icon guard accepts the real assets and rejects missing files or incorrect dimensions. Shortcut checks cover Mac and Windows labels, assigned, unassigned, API failure, settings destination, and event-only refresh. Real Chrome renders the logo and both shortcut states. A new placed mark in the lighter layout maps within 0.000015 pixels of its expected location. Save, copy, and Download ZIP preserve its button match and note. This is isolated browser evidence. Source review finds no actionable issue. Installed toolbar appearance and actual key assignment remain pending. Keep #177 open.
