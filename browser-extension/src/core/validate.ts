@@ -38,6 +38,10 @@ export function validateCapture(input:unknown):Capture {
     result.actions=result.actions.filter(e=>e.at>=start&&e.at<=end);
     result.diagnostics=result.diagnostics.filter(e=>e.at>=start&&e.at<=end);
   }
+  if(c.keyFrames){
+    if(!c.clip||!Array.isArray(c.keyFrames)||c.keyFrames.length>12)throw Error('Invalid key frames');
+    const files=new Set<string>();result.keyFrames=c.keyFrames.map(f=>{const file=safeFileName(f.file);if(!file.startsWith(`${c.id}-`)||!/\.(jpg|jpeg|png|webp)$/.test(file)||files.has(file))throw Error('Invalid key frame file');files.add(file);return {at:finite(f.at,c.clip!.start,c.clip!.end),file,width:finite(f.width,1,20000),height:finite(f.height,1,20000)};});
+  }
   return result;
 }
 export function validateRound(input:unknown):Round {

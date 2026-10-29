@@ -74,6 +74,16 @@ enum BrowserEvidence {
             }
             result["clip"] = c; actions = actions.filter(selected); diagnostics = diagnostics.filter(selected)
         }
+        if input["keyFrames"] != nil {
+            guard let clip = input["clip"] as? [String: Any], let id = input["id"] as? String else { throw BrowserBridgeError.invalid }
+            let start = try number(clip, "start"), end = try number(clip, "end", min: start)
+            result["keyFrames"] = try array(input, "keyFrames", max: 12).map { frame -> [String: Any] in
+                guard let file = frame["file"] as? String, BrowserPayload.safeName(file), file.hasPrefix(id + "-"),
+                      ["jpg", "jpeg", "png", "webp"].contains((file as NSString).pathExtension) else { throw BrowserBridgeError.invalid }
+                return ["at": try number(frame, "at", min: start, max: end), "file": file,
+                        "width": try number(frame, "width", min: 1, max: 16000), "height": try number(frame, "height", min: 1, max: 16000)]
+            }
+        }
         result["actions"] = actions; result["diagnostics"] = diagnostics
         return result
     }

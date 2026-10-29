@@ -1,3 +1,4 @@
+import {armRolling,stopRolling,openRolling,rollingStatus,rollingPause,pauseForSelection,rollingEvent,rollingPreview,rollingSelection,finishRollingReview} from './rolling.ts';
 import {startRecording,pauseRecording,resumeRecording,stopRecording,discardRecording,recordingStatus,selectRecording,recordObservedEvent} from './recording.ts';
 import {newCapture,saveDraft,discardDraft,pruneDrafts,sanitizeURL,sanitizeText,redactSensitive} from './core/index.ts';
 import type {Capture,ElementEvidence} from './core/model.ts';
@@ -15,11 +16,11 @@ async function inject(tabId:number):Promise<void> {await chrome.scripting.execut
 async function startCapture(tabId:number):Promise<void> {
   const tab=await chrome.tabs.get(tabId);
   if(!tab.url||!/^https?:/.test(tab.url))throw new Error('Choose a website tab to capture.');
-  await inject(tabId);await chrome.tabs.sendMessage(tabId,{type:'nextshot-select'});
+  await pauseForSelection();try{await inject(tabId);await chrome.tabs.sendMessage(tabId,{type:'nextshot-select'});}catch(e){await rollingPause('selection',false);throw e;}
 }
-registerIntents(async intent=>{if(intent.kind==='capture')await startCapture(intent.tabId!);else if(intent.kind==='recording')await startRecording(intent.tabId!);else await chrome.storage.local.set({nativeSave:true});});
+registerIntents(async intent=>{if(intent.kind==='capture')await startCapture(intent.tabId!);else if(intent.kind==='rolling')await armRolling(intent.tabId!);else if(intent.kind==='recording')await startRecording(intent.tabId!);else await chrome.storage.local.set({nativeSave:true});});
 chrome.commands.onCommand.addListener(async command=>{
-  if(command!=='capture')return;
+  if(command==='rolling-round'){await openRolling().catch(()=>{});return;}if(command!=='capture')return;
   const [tab]=await chrome.tabs.query({active:true,currentWindow:true});if(tab?.id)await startCapture(tab.id).catch(()=>{});
 });
 chrome.tabs.onRemoved.addListener(tabId=>{void(async()=>{const associations=await draftAssociations(),id=associations[tabId];if(id){await discardDraft(id);delete associations[tabId];await chrome.storage.session.set({draftTabs:associations});}})();});
@@ -29,7 +30,9 @@ chrome.runtime.onMessage.addListener((message,sender,respond)=>{
   const trustedPage=sender.url?.startsWith(chrome.runtime.getURL(''));
   if(message.type==='nextshot-intent'&&trustedPage){prepareIntent(message.kind,message.tabId).then(respond,e=>respond({error:e.message}));return true;}
   if(message.type==='nextshot-intent-finish'&&trustedPage){finishIntent(message.id).then(()=>respond({ok:true}),e=>respond({error:e.message}));return true;}
-  if(message.type==='nextshot-record-event'&&sender.tab?.id&&sender.frameId===0){void recordObservedEvent(sender.tab.id,message.kind,message.label);return;}
+  if(message.type==='nextshot-record-event'&&sender.tab?.id&&sender.frameId===0){void recordObservedEvent(sender.tab.id,message.kind,message.label);void rollingEvent(sender.tab.id,message.kind,message.label);return;}
+  if(message.type==='nextshot-selection-ended'&&sender.tab?.id){void rollingStatus().then(s=>{if(s.tabId===sender.tab?.id)void rollingPause('selection',false);});return;}
+  if(message.type==='nextshot-rolling'&&trustedPage){const run=async()=>{switch(message.action){case 'status':return rollingStatus();case 'open':await openRolling();break;case 'stop':await stopRolling();break;case 'cancel':await finishRollingReview();break;case 'pause':await rollingPause('manual',true);break;case 'resume':await rollingPause('manual',false);break;case 'preview':return rollingPreview(message.at);case 'select':{const id=await rollingSelection(message.start,message.end,message.issue,message.steps,message.identity,message.revision);if(sender.tab?.id){const associations=await draftAssociations();associations[sender.tab.id]=id;await chrome.storage.session.set({draftTabs:associations});}return {id};}default:throw Error('Unknown Rolling Round action');}return {ok:true};};run().then(respond,e=>respond({error:e.message}));return true;}
   if(message.type==='nextshot-record'&&trustedPage&&!sender.url?.endsWith('offscreen.html')){
     const run=async()=>{switch(message.action){case 'start':await startRecording(Number(message.tabId));break;case 'pause':await pauseRecording();break;case 'resume':await resumeRecording();break;case 'stop':await stopRecording();break;case 'discard':await discardRecording();break;case 'select':{const id=await selectRecording(message.start,message.end,message.issue);if(Number.isInteger(message.reviewTab)){const tab=await chrome.tabs.get(message.reviewTab);if(tab.url===sender.url){const associations=await draftAssociations();associations[message.reviewTab]=id;await chrome.storage.session.set({draftTabs:associations});}}return {id};}case 'status':return recordingStatus();default:throw Error('Unknown recording action');}return {ok:true};};
     run().then(respond,e=>respond({error:e.message}));return true;
@@ -40,7 +43,7 @@ chrome.runtime.onMessage.addListener((message,sender,respond)=>{
   if(message.type==='nextshot-region'&&sender.tab?.id&&sender.frameId===0&&/^https?:/.test(sender.url??'')){
     captureRegion(sender.tab.id,sender.tab.windowId,message).then(result=>respond(result),error=>respond({error:String(error.message)}));return true;
   }
-  if(message.type==='nextshot-forget-draft'&&trustedPage){draftAssociations().then(async associations=>{for(const [tab,id] of Object.entries(associations))if(id===message.id)delete associations[tab];await chrome.storage.session.set({draftTabs:associations});respond({ok:true});});return true;}
+  if(message.type==='nextshot-forget-draft'&&trustedPage){draftAssociations().then(async associations=>{const rolling=await rollingStatus();if(rolling.draftId===message.id)await finishRollingReview();for(const [tab,id] of Object.entries(associations))if(id===message.id)delete associations[tab];await chrome.storage.session.set({draftTabs:associations});respond({ok:true});});return true;}
 });
 async function captureRegion(tabId:number,windowId:number,message:any):Promise<{ok:true}> {
   const tab=await chrome.tabs.get(tabId);

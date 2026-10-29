@@ -11,6 +11,7 @@ export interface Capture {
   marks:Mark[];note:string;elements:ElementEvidence[];actions:ActionEvent[];diagnostics:Diagnostic[];
   viewport?:{width:number;height:number;scale:number;scrollX:number;scrollY:number;cropX:number;cropY:number};
   clip?:Clip;
+  keyFrames?:{at:number;file:string;width:number;height:number}[];
 }
 export interface Round {schema:'nextshot.browser';schemaVersion:1;id:string;name:string;createdAt:string;endedAt?:string;captures:Capture[];}
 export interface Asset {name:string;mime:string;bytes:Uint8Array;}

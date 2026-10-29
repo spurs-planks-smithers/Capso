@@ -36,6 +36,13 @@
         "default": "Alt+Shift+B",
         "mac": "Alt+Shift+B"
       }
+    },
+    "rolling-round": {
+      "description": "Review Rolling Round",
+      "suggested_key": {
+        "default": "Alt+Shift+G",
+        "mac": "Alt+Shift+G"
+      }
     }
   }
 }

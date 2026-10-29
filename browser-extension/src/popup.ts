@@ -46,3 +46,11 @@ recordStart.onclick=async()=>{
 };
 recordReview.onclick=()=>{void chrome.tabs.create({url:chrome.runtime.getURL('recording.html')});};
 void chrome.runtime.sendMessage({type:'nextshot-record',action:'status'}).then(r=>{recordReview.hidden=!r?.tabId;if(r?.tabId)recordStart.disabled=true;});
+
+const rollingTrial=document.querySelector<HTMLInputElement>('#rolling-trial')!,arm=document.querySelector<HTMLButtonElement>('#rolling-arm')!,openRolling=document.querySelector<HTMLButtonElement>('#rolling-open')!,stopRolling=document.querySelector<HTMLButtonElement>('#rolling-stop')!;
+async function refreshRolling():Promise<void>{const flag=!!(await chrome.storage.local.get('rollingEnabled')).rollingEnabled;rollingTrial.checked=flag;const s=await chrome.runtime.sendMessage({type:'nextshot-rolling',action:'status'});arm.hidden=!flag;openRolling.hidden=stopRolling.hidden=!s.id;if(s.id){arm.textContent=s.reasons.includes('navigation')?'Re-arm current site':'Replace armed tab';status.textContent=s.reasons.length?'Rolling Round paused. History stays in memory.':'Rolling Round armed. Last 60 recorded seconds stay in memory.';}}
+rollingTrial.onchange=async()=>{await chrome.storage.local.set({rollingEnabled:rollingTrial.checked});if(!rollingTrial.checked)await chrome.runtime.sendMessage({type:'nextshot-rolling',action:'stop'});await refreshRolling();};
+arm.onclick=async()=>{try{await requestAction('rolling');window.close();}catch(e){status.textContent=e instanceof Error?e.message:'Arming unavailable';}};
+openRolling.onclick=async()=>{const r=await chrome.runtime.sendMessage({type:'nextshot-rolling',action:'open'});if(r.error)status.textContent=r.error;else window.close();};
+stopRolling.onclick=async()=>{await chrome.runtime.sendMessage({type:'nextshot-rolling',action:'stop'});await refreshRolling();};
+void refreshRolling();

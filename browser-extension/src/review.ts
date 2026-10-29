@@ -84,9 +84,11 @@ async function load():Promise<void> {
   if(capture.clip){
     const media=assets.find(a=>a.name===capture.clip?.mediaFile);
     const details=document.createElement('section'),label=document.createElement('p');label.textContent='Selected sampled evidence. Frames can contain gaps. Diagnostics cover only observed page errors and resource completions.';details.append(label);
-    if(media){const video=document.createElement('video');video.controls=true;video.muted=true;video.style.maxWidth='100%';const url=URL.createObjectURL(new Blob([new Uint8Array(media.bytes).buffer],{type:media.mime}));video.src=url;details.append(video);addEventListener('pagehide',()=>URL.revokeObjectURL(url),{once:true});}
+    if(media){const video=media.mime==='image/gif'?document.createElement('img'):document.createElement('video');if(video instanceof HTMLVideoElement){video.controls=true;video.muted=true;}video.style.maxWidth='100%';const url=URL.createObjectURL(new Blob([new Uint8Array(media.bytes).buffer],{type:media.mime}));video.src=url;details.append(video);addEventListener('pagehide',()=>URL.revokeObjectURL(url),{once:true});}
     const events=document.createElement('ul');for(const e of [...capture.actions,...capture.diagnostics].sort((a,b)=>a.at-b.at)){const item=document.createElement('li');item.textContent=`${(e.at/1000).toFixed(1)}s: ${'label' in e?e.label:e.text}`;events.append(item);}details.append(events);status.after(details);
   }
   select(0);draw();
 }
 void load().catch(error=>{status.textContent=error.message;save.disabled=true;});
+
+chrome.runtime.onMessage.addListener(m=>{if(m.type==='nextshot-rolling-invalidated'&&capture?.kind==='rolling'&&!saved){assets=[];image?.close();location.replace(chrome.runtime.getURL('rolling.html'));}});

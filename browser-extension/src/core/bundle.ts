@@ -22,7 +22,7 @@ export function renderPrompt(input:Round):string {
 }
 export function exportBundle(input:Round,assets:Asset[]):Uint8Array {
   const round=validateRound(input),wanted=new Set<string>();
-  for(const c of round.captures){wanted.add(c.imageFile);wanted.add(c.cleanImageFile);if(c.clip?.mediaFile)wanted.add(c.clip.mediaFile);}
+  for(const c of round.captures){wanted.add(c.imageFile);wanted.add(c.cleanImageFile);for(const frame of c.keyFrames??[])wanted.add(frame.file);if(c.clip?.mediaFile)wanted.add(c.clip.mediaFile);}
   const files:{name:string;bytes:Uint8Array}[]=[],found=new Set<string>();
   for(const a of assets){safeFileName(a.name);if(wanted.has(a.name)){if(found.has(a.name))throw new Error('Duplicate asset');found.add(a.name);files.push({name:a.name,bytes:a.bytes});}}
   for(const name of wanted)if(!found.has(name))throw new Error(`Missing evidence file: ${name}`);

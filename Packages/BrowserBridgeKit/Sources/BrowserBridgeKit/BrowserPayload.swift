@@ -22,6 +22,13 @@ public struct BrowserMark: Codable, Sendable {
     public let elementId: String?
 }
 
+public struct BrowserKeyFrame: Codable, Sendable {
+    public let at: Double
+    public let file: String
+    public let width: Int
+    public let height: Int
+}
+
 public struct BrowserCapture: Codable, Sendable {
     public let id: String
     public let kind: String
@@ -31,6 +38,7 @@ public struct BrowserCapture: Codable, Sendable {
     public let height: Int
     public let imageFile: String
     public let cleanImageFile: String
+    public let keyFrames: [BrowserKeyFrame]?
     public let marks: [BrowserMark]
     public let note: String
 }
@@ -67,6 +75,17 @@ public struct BrowserPayload: Decodable, Sendable {
                   properties[kCGImagePropertyPixelWidth] as? Int == c.width,
                   properties[kCGImagePropertyPixelHeight] as? Int == c.height else { throw BrowserBridgeError.invalid }
         }
+        guard (c.keyFrames?.count ?? 0) <= 12 else { throw BrowserBridgeError.invalid }
+        for frame in c.keyFrames ?? [] {
+            guard frame.at.isFinite, frame.at >= 0, (1...16000).contains(frame.width), (1...16000).contains(frame.height),
+                  frame.width * frame.height <= 40_000_000,
+                  let asset = value.assets.first(where: { $0.name == frame.file }),
+                  ["image/jpeg", "image/png", "image/webp"].contains(asset.mime),
+                  let image = CGImageSourceCreateWithData(asset.bytes as CFData, nil), CGImageSourceGetCount(image) == 1,
+                  let properties = CGImageSourceCopyPropertiesAtIndex(image, 0, nil) as? [CFString: Any],
+                  properties[kCGImagePropertyPixelWidth] as? Int == frame.width,
+                  properties[kCGImagePropertyPixelHeight] as? Int == frame.height else { throw BrowserBridgeError.invalid }
+        }
         for (offset, mark) in c.marks.enumerated() {
             guard mark.id == offset + 1, ["dot", "arrow", "box"].contains(mark.kind), mark.note.count <= 10000,
                   mark.x.isFinite, mark.y.isFinite, (0...Double(c.width)).contains(mark.x), (0...Double(c.height)).contains(mark.y),
@@ -82,7 +101,8 @@ public struct BrowserPayload: Decodable, Sendable {
               let diagnostics = capture["diagnostics"] as? [[String: Any]], diagnostics.count <= 2000 else { throw BrowserBridgeError.invalid }
         let clip = capture["clip"] as? [String: Any]
         let media = clip?["mediaFile"] as? String
-        let referenced = Set([c.imageFile, c.cleanImageFile] + [media].compactMap { $0 })
+        let referenced = Set([c.imageFile, c.cleanImageFile] + (c.keyFrames ?? []).map(\.file) + [media].compactMap { $0 })
+        guard Set((c.keyFrames ?? []).map(\.file)).count == (c.keyFrames?.count ?? 0) else { throw BrowserBridgeError.invalid }
         guard names == referenced else { throw BrowserBridgeError.invalid }
         _ = try BrowserEvidence.capture(capture)
         return value

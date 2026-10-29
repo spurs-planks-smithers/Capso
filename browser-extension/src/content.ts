@@ -33,14 +33,14 @@ function initialize():void {
           observer=new MutationObserver(records=>{if(captureProof&&records.some(r=>!(r.target instanceof Element?r.target:r.target.parentElement)?.closest('[data-nextshot-overlay]')))captureProof.dirty=true;});
           const options={subtree:true,attributes:true,childList:true,characterData:true};observer.observe(document.documentElement,options);
           for(const root of new Set(allElements().map(e=>e.getRootNode())))if(root instanceof ShadowRoot)observer.observe(root,options);
-          respond({proofId,region,elements:snapshot(region),url:location.href,title:document.title,privateRects:privateRects(),viewportWidth:innerWidth,viewportHeight:innerHeight});
+          respond({proofId,region,elements:snapshot(region),url:location.href,title:document.title,privateRects:privateRects(),alerts:allElements().filter(e=>e.matches('[role=alert],[aria-live=assertive]')).filter(e=>{const r=rectOf(e),s=getComputedStyle(e);return r.width>0&&r.height>0&&r.x<innerWidth&&r.y<innerHeight&&r.x+r.width>0&&r.y+r.height>0&&s.visibility==='visible'&&s.display!=='none'&&s.opacity!=='0';}).slice(0,8).map(e=>redactSensitive([...e.childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).map(n=>n.textContent??'').join(' '),200)),viewportWidth:innerWidth,viewportHeight:innerHeight});
           const release=frameCleanup;setTimeout(()=>{if(frameCleanup===release)release?.();},1500);
         }catch{frameCleanup?.();respond({error:'Privacy snapshot unavailable'});}
       })();return true;
     }
   });
   chrome.runtime.onMessage.addListener((message,_sender,respond)=>{
-    if(message?.type==='nextshot-select'&&!selecting){selecting=true;select(()=>{selecting=false;});}
+    if(message?.type==='nextshot-select'&&!selecting){selecting=true;select(()=>{selecting=false;void chrome.runtime.sendMessage({type:'nextshot-selection-ended'}).catch(()=>{});});}
     if(message?.type==='nextshot-confirm-capture'){
       const proof=captureProof;
       respond({ok:!!proof&&!proof.dirty&&proof.id===message.proofId&&proof.url===location.href&&proof.fingerprint===fingerprint(proof.region)});return false;

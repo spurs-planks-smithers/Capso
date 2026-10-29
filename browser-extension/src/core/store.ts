@@ -23,7 +23,7 @@ export async function roundById(id:string):Promise<Round|undefined> {
   const db=await open(),r=await value(db.transaction('rounds').objectStore('rounds').get(id));return r?validateRound(r):undefined;
 }
 export async function assetsForRound(round:Round):Promise<Asset[]> {
-  const db=await open(),names=new Set(round.captures.flatMap(c=>[c.imageFile,c.cleanImageFile,...(c.clip?.mediaFile?[c.clip.mediaFile]:[])]));
+  const db=await open(),names=new Set(round.captures.flatMap(c=>[c.imageFile,c.cleanImageFile,...(c.keyFrames??[]).map(f=>f.file),...(c.clip?.mediaFile?[c.clip.mediaFile]:[])]));
   const rows=await Promise.all([...names].map(async name=>value<Asset|undefined>(db.transaction('assets').objectStore('assets').get(name))));
   if(rows.some(r=>!r))throw new Error('Some saved evidence is unavailable');return rows as Asset[];
 }
@@ -41,7 +41,7 @@ function validateAssets(assets:Asset[]):void {
   for(const a of assets){safeFileName(a.name);if(names.has(a.name)||!(a.bytes instanceof Uint8Array)||!['image/jpeg','image/png','image/webp','image/gif','video/webm','video/mp4'].includes(a.mime))throw new Error('Invalid evidence asset');names.add(a.name);total+=a.bytes.length;if(total>128*1024*1024)throw new Error('Evidence exceeds processing limit');}
 }
 function referencedAssets(capture:Capture,assets:Asset[]):Asset[] {
-  const wanted=new Set([capture.imageFile,capture.cleanImageFile,...(capture.clip?.mediaFile?[capture.clip.mediaFile]:[])]);
+  const wanted=new Set([capture.imageFile,capture.cleanImageFile,...(capture.keyFrames??[]).map(f=>f.file),...(capture.clip?.mediaFile?[capture.clip.mediaFile]:[])]);
   const selected=assets.filter(a=>wanted.has(a.name));validateAssets(selected);
   const names=new Set(selected.map(a=>a.name));for(const name of wanted)if(!names.has(name))throw new Error('Missing capture evidence');
   return selected;

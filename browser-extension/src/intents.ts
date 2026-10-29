@@ -1,18 +1,18 @@
 /** Resume an explicit popup action after Chrome closes its permission sheet. */
-export type IntentKind='capture'|'recording'|'native';
+export type IntentKind='capture'|'recording'|'rolling'|'native';
 interface Intent {id:string;kind:IntentKind;tabId?:number;permissions:chrome.permissions.Permissions;expires:number;}
 let run:(intent:Intent)=>Promise<void>,queue=Promise.resolve();
 export function registerIntents(action:(intent:Intent)=>Promise<void>):void {
   run=action;chrome.permissions.onAdded.addListener(()=>{void finishIntent();});
 }
 export async function prepareIntent(kind:IntentKind,tabId?:number):Promise<{id:string;needsPermission:boolean;permissions:chrome.permissions.Permissions}> {
-  if(!['capture','recording','native'].includes(kind))throw Error('Unknown requested action');
+  if(!['capture','recording','rolling','native'].includes(kind))throw Error('Unknown requested action');
   let permissions:chrome.permissions.Permissions;
   if(kind==='native')permissions={permissions:['nativeMessaging']};
   else{
     if(!Number.isInteger(tabId))throw Error('Choose a website tab.');
     const tab=await chrome.tabs.get(tabId!);if(!tab.url||!/^https?:/.test(tab.url))throw Error('Choose a website tab.');
-    permissions={permissions:kind==='recording'?['offscreen']:[],origins:[new URL(tab.url).origin+'/*']};
+    permissions={permissions:['recording','rolling'].includes(kind)?['offscreen']:[],origins:[new URL(tab.url).origin+'/*']};
   }
   const intent:Intent={id:crypto.randomUUID(),kind,tabId,permissions,expires:Date.now()+120000};
   await chrome.storage.session.set({pendingIntent:intent});

@@ -10,7 +10,9 @@ async function persistOwner():Promise<void>{
 }
 // Worker suspension preserves offscreen memory. Browser startup clears session metadata.
 const recovery=(async()=>{
-  const saved=(await chrome.storage.session.get('recordingOwner')).recordingOwner as RecordingOwner|undefined;
+  const state=await chrome.storage.session.get(['recordingOwner','rollingOwner']);
+  if(state.rollingOwner)return;
+  const saved=state.recordingOwner as RecordingOwner|undefined;
   const exists=await chrome.permissions.contains({permissions:['offscreen']})&&await chrome.offscreen.hasDocument();
   if(saved&&exists){
     try{await chrome.tabs.get(saved.tabId);owner=saved;
@@ -25,11 +27,12 @@ export const recorderCall=(type:string,values:Record<string,unknown>={})=>chrome
 export async function recordingStatus():Promise<any>{await recovery;return owner?{...owner,...await recorderCall('status')}:{stopped:true,frames:[]};}
 export async function startRecording(tabId:number):Promise<void>{
   await recovery;
-  if(owner)throw Error('Stop or discard the current recording first.');
+  if(owner||(await chrome.storage.session.get('rollingOwner')).rollingOwner)throw Error('Stop the current recording or Rolling Round first.');
   if(!(await chrome.storage.local.get('recordingEnabled')).recordingEnabled)throw Error('Enable the recording trial first.');
   const tab=await chrome.tabs.get(tabId);if(!tab.url||!/^https?:/.test(tab.url))throw Error('Choose a website tab.');
   if(!await chrome.permissions.contains({permissions:['offscreen'],origins:[new URL(tab.url).origin+'/*']}))throw Error('Recording needs explicit site and offscreen permission.');
   await chrome.offscreen.createDocument({url:'offscreen.html',reasons:[chrome.offscreen.Reason.BLOBS],justification:'Hold only explicitly recorded masked frames in memory and encode selected evidence.'});
+  await recorderCall('configure',{rolling:false});
   owner={tabId,windowId:tab.windowId,origin:new URL(tab.url).origin,started:Date.now(),paused:false,stopped:false};
   await persistOwner();
   try{await chrome.scripting.executeScript({target:{tabId},files:['content.js']});await chrome.tabs.sendMessage(tabId,{type:'nextshot-record-observe'});
@@ -42,7 +45,7 @@ export async function resumeRecording():Promise<void>{await recovery;if(!owner||
 const limitMessage='Recording stopped to preserve browser performance. Review the captured steps.';
 async function stopAtLimit():Promise<void>{if(!owner||owner.stopped)return;owner.stopReason=limitMessage;await recorderCall('limit',{at:Date.now()-owner.started,label:limitMessage});await stopRecording();}
 export async function stopRecording():Promise<void>{await recovery;if(!owner)return;owner.stopped=true;await persistOwner();while(busy)await new Promise(r=>setTimeout(r,20));if(timer)clearInterval(timer);timer=undefined;await chrome.tabs.sendMessage(owner.tabId,{type:'nextshot-record-cleanup'}).catch(()=>{});}
-export async function discardRecording():Promise<void>{await stopRecording();owner=undefined;await persistOwner();if(await chrome.permissions.contains({permissions:['offscreen']})&&await chrome.offscreen.hasDocument())await chrome.offscreen.closeDocument();}
+export async function discardRecording():Promise<void>{await recovery;if(!owner)return;await stopRecording();owner=undefined;await persistOwner();if(await chrome.permissions.contains({permissions:['offscreen']})&&await chrome.offscreen.hasDocument())await chrome.offscreen.closeDocument();}
 export async function sampleRecording():Promise<void>{
   if(!owner||owner.paused||owner.stopped||busy)return;busy=true;const current=owner;
   try{
