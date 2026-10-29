@@ -2,6 +2,10 @@
 
 Date: 2026-10-28. Execution is authorized in chat. Tracking stays in Later. No public release is authorized.
 
+## October 29 extension
+
+The [native-first decision](2026-10-29-browser-native-first.md) supersedes browser-first publication and launch only after Save. The finished-report transport below remains verified. Editable native drafts and a temporary active-review command connection remain proposed work in #178 through #181. No permanent port or idle polling is approved.
+
 ## Decision
 
 Use Chrome native messaging for a save operation and optional on-device assistance. Embed a signed Swift helper inside Nextshot. The helper exits after its receipt. No permanent helper, local web server, general automation URL, or network listener is required.

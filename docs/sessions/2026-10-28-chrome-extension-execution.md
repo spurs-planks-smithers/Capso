@@ -114,3 +114,17 @@ Drew reports that the extension feels heavy and falls short of the seamless, uno
 The smoke harness also adds avoidable friction. Chrome automatically closes agent-created tabs at turn end unless they are marked. The omitted handoff mark closes the source and correctly clears unsaved rolling history. The test now preserves its source tab across each user step. This correction changes no product code.
 
 Drew opens the live review. The final selection covers 8 to 18 recorded seconds and includes the observed click. Its annotation matches the captured button. The new draft is ready for Save. Native readback and cleanup remain pending. The planning update introduces no runtime change or required extension reload.
+
+## October 29 native-first review
+
+Drew requires native annotation and review when Nextshot is available. Browser editing remains the standalone fallback. Fable 5.1 is unavailable in the agent catalog. Drew approves one Astra review instead. That read-only review uses source `206c4e0` and the supplied smoke screenshots. It identifies native draft ownership, closed-app discovery, element transforms, active review commands, and media playback as unfinished contracts.
+
+The current source opens browser review and imports a completed report afterward. Native saving also resizes images and persists before the note flow finishes. Reusing those operations unchanged cannot establish native-first acceptance. The dated decision records the correction explicitly. Four new serial Later sub-issues cover feasibility, drafts, annotation/context, and native Rolling review. #177 covers design and simplification. #172 remains final smoke.
+
+At review start, ten of twelve formal #124 children are closed. Optional #148 is also closed. #124, #172, and #177 stay open. PRs #161 and #173 remain draft and unmerged. CI passes for `206c4e0`. These counts describe the earlier browser pilot. They do not measure completion of the new native experience.
+
+The live browser draft remains unsaved. The source tab retains its handoff mark. A fresh screenshot audit cannot proceed because browser policy rejects access to the internal extension page. No alternate access path is attempted. This is a code and plan review, not a completed current-screen usability audit. Rendered design and running-app acceptance remain in #177 and #172.
+
+GitHub readback verifies sixteen formal children under #124: ten closed and six open. New issues #178 through #181 are sequential, open, and in Later. #172 and #177 stay open. Every open enhancement has one severity label. Both PR descriptions now identify the native-first correction.
+
+This update changes documents and tracking only. It requires no extension reload. Jev processing stays paused. No provider call, app installation, release, or runtime change occurs.

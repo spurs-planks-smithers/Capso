@@ -1,12 +1,12 @@
 # Nextshot Chrome extension: architecture and specification plan
 
-Execution update, 2026-10-28: Drew authorizes implementation in chat. The [implementation plan](../plans/2026-10-28-chrome-extension-implementation.md) supersedes historical planning-only restrictions below. The [native bridge decision](../../decisions/2026-10-28-browser-native-bridge.md) records the verified transport. Keep Later and the v0.5.0 exclusion.
+Current direction, 2026-10-29: use native editing when Nextshot is available. Keep standalone browser editing without the app. The [native-first decision](../../decisions/2026-10-29-browser-native-first.md) supersedes browser-first review and quiet launch only after Save. Native draft editing is not implemented by the current finished-report importer.
 
-Date: 2026-10-28. Historical planning status: draft for product decisions and future feasibility review. Research and documentation are authorized. Building is not authorized. Keep [#124](https://github.com/spurs-planks-smithers/Capso/issues/124), [#157](https://github.com/spurs-planks-smithers/Capso/issues/157), and optional [#148](https://github.com/spurs-planks-smithers/Capso/issues/148) in Later. Exclude v0.5.0. v1.0 or later is tentative.
+Execution remains authorized through the [implementation plan](../plans/2026-10-28-chrome-extension-implementation.md). Keep #124, #157, optional #148, and all follow-up issues in Later. Exclude v0.5.0. No public release is authorized. v1.0 or later is tentative.
 
 ## Priority and scope
 
-Drew's top priority is a lightweight, unobtrusive extension with low overhead and few inputs. Chrome use must feel consistent with Nextshot on the Mac. The extension must also complete its core workflow without the app. Native integration is an enhancement, never a prerequisite.
+Drew's top priority is a lightweight, unobtrusive extension with low overhead and few inputs. Chrome use must feel consistent with Nextshot on the Mac. The extension must also complete its core workflow without the app. Use the native app by default when available. Basic capture, editing, save, and export also work without it.
 
 The October 28 request supersedes the October 27 Mac-required scope. Mandatory reconnect-before-save and universal 15-minute Mac-disconnection expiry no longer apply to browser-owned capture or saved results. Any native-transfer expiry must be separate and cannot erase the browser result.
 
@@ -24,28 +24,31 @@ Use TypeScript compiled to packaged JavaScript, semantic HTML, and small CSS. St
 |---|---|---|
 | Extension coordinator | Commands, permission checks, state recovery, routing, and selected metadata | Event-driven Manifest V3 worker; sleep when idle |
 | Page adapter | Area selection and bounded element lookup. Armed interaction/error collection where permitted | Inject for deliberate capture; attach recording listeners only while armed |
-| Browser review | Frozen image/history, notes, selected issue, accepted steps, and handoff controls | Open on reviewer action; never a permanent sidebar or floating page control |
+| Native review | Draft image/history, annotations, notes, selected issue, accepted steps, and publication | Open for deliberate native editing; reuse the existing native tools |
+| Browser review | Standalone editing, notes, selected issue, accepted steps, and local save | Open when native editing cannot run; no permanent sidebar |
 | Recorder/export worker | No-audio stream, bounded rolling media, masking, selected frames, encoding | Offscreen document only while a task or unsaved buffer needs it |
 | Browser round store | Saved round metadata and assets, portable bundle generation | Extension-owned local storage; no page storage or cloud sync |
-| Optional Swift bridge | Host identity, version handshake, validated selected-payload transfer, native receipt | Chrome starts the signed helper for one operation; close its connection afterward |
-| Native app coordinator | Existing round mutation, independent ended Rolling Round import, eligible Jev work | Quietly start installed Nextshot on Save when closed. Reuse its existing instance when running. |
+| Swift bridge | Host identity, capabilities, draft ownership, validated selected transfer, status, and publication receipt | Short operations where sufficient; proposed bounded connection only during active native review |
+| Native app coordinator | Native draft editing, ordinary round publication, independent ended Rolling Round, eligible assistance | Start the paired installed app for deliberate editing. Reuse its existing instance when running. |
 | Standalone Jev service | Invited-user authentication, bounded allowance, sanitized inference, and response validation | Run a bounded request during deliberate review. No tracking-time stream or hosted round archive. |
 
-The first direction keeps review in Chrome even when Nextshot is installed. It avoids moving between two annotation interfaces. Mac integration imports the same capture data into native rounds and can provide consented assistance. This is a proposed design choice, not an approved screen layout.
+Native-first flow: freeze and mask the browser capture, then hand an editable draft to Nextshot. Use native annotations and notes. Publish once after completion and copy the native prompt. Do not open a browser annotation page during a successful native path. Standalone mode uses the browser editor and local store.
 
-Native delivery candidate: the helper writes a bounded payload to a private import inbox. It notifies the selected app with an opaque import identifier. App-side code validates and imports it. The inbox requires user-only access, unpredictable identifiers, exclusive creation, bounded lifetime, and rejection of symlinks or substituted files. A private path alone does not authenticate its creator. No page-supplied path or media data travels in a URL. No general URL-automation capability is implicitly enabled. Delivery to the existing app instance is unverified. Compare direct native interprocess communication during a later feasibility trial before fixing the transport.
+The current signed helper and authenticated Apple Events deliver completed reports. They do not implement editable drafts, reliable closed-app discovery, or native control of a browser-owned review. Preserve their verified security boundaries. Define the new capabilities, owner, status, cancel, and final-publication contracts through #178 and #179 before dependent coding.
 
-On Save, persist the browser result first. Then quietly open the correctly paired installed app and import automatically. Do not activate its main window or require another confirmation. Verify actual quiet behavior in the later trial. Do not launch on extension install, page load, idle, arming, or app-presence probing. A failed launch or unavailable bridge preserves the browser save.
+A deliberate native edit may start the paired app before Save. This supersedes quiet launch only after browser Save. Never launch for installation, page load, idle, or presence polling. Disabled integration stays disabled. Preserve the draft after failure. Resolve uncertain transfer ownership before opening another editor. Keep the required privacy and site grants.
 
 The app remains the only writer of its active round state. The helper must not create a second independent writer over `FeedbackRoundStore` or `.active.json`. Proposed ordinary-capture routing joins the native active round or starts the default round when none exists. Use stable source IDs for deduplication and preserve the app's capture numbering. Native Rolling Round import creates an ended round and preserves any ordinary active round. Browser-only capture has no native active-round dependency.
 
 ## Contracts and lifecycle
 
-### One browser-owned result
+### Draft and publication ownership
 
-Save to the browser round store before optional native transfer. Use a stable capture/draft identifier. Retrying transfer returns the same receipt. Preserve the saved browser result when the helper, app, or protocol is unavailable. Native import creates a related copy, not a silent move or a background two-way synchronization system.
+Resolve the editor once per deliberate operation. Chrome owns frozen browser evidence, masks, permission checks, and the rolling buffer. Nextshot owns editing and saved rounds on a native path. Browser-only editing owns its local result. Avoid duplicate finished reports by default.
 
-Pending native work may have a bounded retry lifetime. Its expiry clears temporary transfer files, never the browser-saved report. Do not loop indefinitely, launch the app repeatedly, or require the reviewer to retry a successful browser save. Opening an app confirms no import. A durable app-written receipt establishes completed publication. A bridge may acknowledge queued delivery first. Never label that result imported. Retrieve final status through a bounded active operation or the next requested native action, without idle polling.
+Use stable draft IDs, source digests, edit revisions, version negotiation, and explicit editor ownership. Distinguish staged, editing, saved, canceled, and failed states. A staged acknowledgement confirms no publication. Retry and status recovery must preserve one editor and one saved capture. The final edited digest is separate from the source digest.
+
+Do not expire a saved result as temporary transfer cleanup. Do not loop indefinitely, launch repeatedly, or poll while idle. Retrieve uncertain status through a bounded active operation. Keep a usable standalone draft when native editing cannot run.
 
 ### Shared evidence contract
 
@@ -60,13 +63,13 @@ Pending native work may have a bounded retry lifetime. Its expiry clears tempora
 | Diagnostics | Sanitized permitted error text and request summaries. Include collection start/stop and unavailable coverage. No headers, bodies, secrets, or entered values. |
 | Receipt | Stable import ID, accepted schema/channel, completion state, and bounded error category. Emit success only after a complete publication. |
 
-Share one documented schema and example fixtures across browser and Swift. Map the native side through typed Codable values. Existing `FeedbackRound.currentSchemaVersion` is 1. Plan compatibility and an explicit schema decision before adding media/DOM fields. Do not reuse the current native shape as an unchecked external command interface.
+Share one documented schema and example fixtures across browser and Swift. Map the native side through typed Codable values. Native-only rounds use schema 1. Browser imports use schema 2. Preserve backward reading and the older-app compatibility guard. Do not reuse the current native shape as an unchecked external command interface.
 
 For native transfer, allow only named capabilities and operations. Validate the extension sender before forwarding and validate again in Swift. Permit no arbitrary shell command, source filename, destination path, endpoint, or app selection from page data. Use exact extension IDs and channel-specific host names. Registration and schema allowlists do not prove immunity from locally compromised software.
 
 ### Storage and cleanup
 
-Keep unsaved rolling media in bounded memory owned by the active recorder/review context initially. Persist only small session-control metadata. Saved rounds use extension-owned IndexedDB. Do not place images or logs in Chrome sync storage. Restrict storage visibility to trusted extension contexts.
+Keep unsaved rolling media in bounded memory owned by the active recorder/review context initially. Persist only small session-control metadata. Standalone saved rounds use extension-owned IndexedDB. Native saves use the native round store. Do not place images or logs in Chrome sync storage. Restrict storage visibility to trusted extension contexts.
 
 Memory pressure or recorder loss can shorten available history. Record the gap and keep the remaining history usable. Do not silently promise a complete 60 seconds. If later measurements require disk-backed unsaved media, design restart/crash cleanup before adopting it. Browser shutdown callbacks cannot be assumed to run.
 
@@ -84,7 +87,7 @@ Retain the approved Stop, cancel, tab-close, browser-close, permission-loss, and
 | Export/copy | Prefer user-initiated platform actions. Use downloads or clipboard permissions only where the validated flow requires them. Honor Chrome's download settings. |
 | Deep debugging | Excluded from the first extension, confirmed by Drew on 2026-10-28. `debugger` cannot be an optional permission. Any later expansion needs a new scope decision. |
 
-No native presence polling, permanent native port, idle recording, continuous Jev requests, always-open sidebar, or whole-page mutation observer belongs in the default flow. One Save accepts the displayed selected steps. Generate titles and filenames automatically. Keep format/size optimization internal. Exact controls await visual design and later approval.
+No native presence polling, permanent native port, idle recording, continuous Jev requests, always-open sidebar, or whole-page mutation observer belongs in the default flow. A temporary active-review connection remains a feasibility proposal and must tear down after review. One Save accepts the displayed selected steps. Generate titles and filenames automatically. Keep format/size optimization internal. Exact controls await visual design and later approval.
 
 ### Recording, excerpt, and assistance rules
 
@@ -103,7 +106,7 @@ Asked live through structured questions on 2026-10-28. These are material workfl
 | Topic | Decision | Status |
 |---|---|---|
 | Diagnostic breadth | Use lightweight observable errors and permitted request summaries. Label gaps. Exclude debugger permission from the first extension. | Confirmed by Drew on 2026-10-28 |
-| Installed app is closed | Save in the browser first. Quietly start installed Nextshot on Save and import into its native library automatically. | Confirmed by Drew on 2026-10-28 |
+| Installed app is closed | Start the paired app for deliberate native editing before Save. | October 29 native-first direction supersedes the October 28 Save-only launch decision |
 | Standalone Jev | Include a separate authenticated service. Preserve local suggestions when it is unavailable or capped. | Confirmed by Drew on 2026-10-28 |
 | First supported platform | Mac first. Keep the browser core portable for later expansion. | Confirmed by Drew on 2026-10-28 |
 | Service audience | Invited pilot users first. Public access is a later product decision. | Confirmed by Drew on 2026-10-28 |
@@ -115,11 +118,11 @@ The [standalone Jev specification](2026-10-28-standalone-jev-service.md) records
 
 Use local suggestions immediately. Send one bounded request through the service only when the selected assistance and content consent allow it. The service holds upstream credentials and enforces access and limits. Never ship an upstream key in the extension. Late answers cannot overwrite reviewer edits.
 
-Planning includes operating costs and a spending-control design. No paid usage, service deployment, hosting purchase, or public opening is authorized. A later pilot-activation proposal must include measured unit-cost estimates and explicit caps. No numeric allowance or spending commitment is invented here.
+Drew authorizes a hard $25 monthly pilot ceiling on October 28. The invited service is deployed and verified. Processing remains paused after bounded synthetic acceptance. This native-first review enables no paid calls, public enrollment, new endpoint, or release default. See the execution record for current operational evidence.
 
 ## Specifications and future evidence
 
-Write one focused specification for each deliverable below. These are planned specifications and exit evidence, not execution instructions. No implementation task or trial starts under this request.
+The original specification areas below remain useful. Current native-first engineering follows #178 through #181, with design and simplification in #177. Final native-first smoke remains #172.
 
 | Order | Specification | Required exit evidence |
 |---|---|---|
@@ -130,8 +133,8 @@ Write one focused specification for each deliverable below. These are planned sp
 | 5 | Standalone Jev and native assistance | Invited-user authentication, content consent, sponsor-funded allowance, global cost controls, retention, failure fallback, native release limits, and optional #148 |
 | 6 | Performance and pilot | Baseline comparisons for idle, capture, armed, paused, review, and export. Set measured budgets before implementation approval. |
 
-A later bounded trial must prove the difficult platform boundaries first: actual Claude/Artifacts frames, capture gesture and pause/resume behavior, exact excerpt export, and native delivery without a persistent process. Get separate trial authorization. Choose the smallest representative local/staging pilot before making cross-site claims.
+The execution record verifies embedded previews, exact selected export, and finished native delivery. Native capture triggering, temporary native review transport, draft editing, and native media playback remain unproven. Verify them before native-first acceptance.
 
 Do not claim zero overhead, universal source mapping, universal console coverage, invisible recording, or automatic first-run native pairing. Measure startup latency, wakeups, memory, processor/energy use, bundle bytes, and export time. Do not invent targets from documentation.
 
-Keep the current docs-only PR open for review. Do not merge, promote a release milestone, enable flags, install a native host, run an encoder, or modify product code under this plan.
+Both PR #161 and implementation PR #173 remain draft and unmerged. This review changes planning documents and tracking only. Keep native-first flags off pending Dev acceptance. Do not promote a release milestone or publicly release this work.

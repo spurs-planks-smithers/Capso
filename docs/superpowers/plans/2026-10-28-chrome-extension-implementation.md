@@ -4,7 +4,7 @@ Date: 2026-10-28. Owner: Drew. Execution authorized in chat on October 28. This 
 
 ## Goal and authority
 
-Build the Mac-first Chrome extension with browser-only operation, optional quiet native save, explicit recording, Rolling Round, invited standalone Jev, and optional Apple Intelligence. Close an issue only after its acceptance evidence exists. Preserve unfinished issues as open. Finish with automated browser/native checks and a guided user smoke test.
+Build the Mac-first Chrome extension with native editing when available and standalone browser editing otherwise. Preserve explicit recording, Rolling Round, invited standalone Jev, and optional Apple Intelligence. Close an issue only after its acceptance evidence exists. Preserve unfinished issues as open. Finish with automated browser/native checks and a guided user smoke test.
 
 Specs: [architecture](../specs/2026-10-28-chrome-extension-architecture.md), [Jev service](../specs/2026-10-28-standalone-jev-service.md), [Rolling Round](../../plans/2026-10-27-rolling-round-discovery.md), and [Chrome discovery](../../plans/2026-10-27-chrome-extension-discovery.md).
 
@@ -17,6 +17,28 @@ Drew reports that the pilot feels heavy. Seamless, unobtrusive operation remains
 Prioritize fewer visible controls, decisions, prompts, and screen transitions before adding capabilities. Keep configuration and diagnostics outside routine capture. Use safe defaults and reuse granted setup. Keep one clear final Save action. Preserve explicit arming, site permission, content consent, and local fallback.
 
 Show a rendered refinement proposal before interface changes. Review the ordinary-capture and Rolling Round paths with Drew. Record the remaining friction. Keep the work in Later and outside v0.5.0.
+
+## October 29 native-first correction
+
+Drew requires annotation and review in the native app when Nextshot is available. The [native-first decision](../../decisions/2026-10-29-browser-native-first.md) supersedes browser-first review and launch only after browser Save. Existing finished-report import does not satisfy native editing. Closed pilot issues retain their original scope and evidence.
+
+The approved Astra review identifies four serial engineering items. A rendered design checkpoint in #177 precedes interface implementation. #177 remains open through simplification and usability acceptance. It is not a circular prerequisite requiring closure before engineering can begin.
+
+| Order | Issue | Prerequisite and exit |
+| --- | --- | --- |
+| Design checkpoint | [Workflow refinement #177](https://github.com/spurs-planks-smithers/Capso/issues/177) | Show the native and standalone proposal. Review it with Drew before interface changes. |
+| N1 | [Native trigger and active review feasibility #178](https://github.com/spurs-planks-smithers/Capso/issues/178) | Design checkpoint. Prove capture gestures, closed-app discovery, temporary transport, teardown, and media limits. |
+| N2 | [Native drafts and routing #179](https://github.com/spurs-planks-smithers/Capso/issues/179) | #178. Prove one editor, staged versus saved receipts, recovery, cancellation, and standalone fallback. |
+| N3 | [Native annotations and element context #180](https://github.com/spurs-planks-smithers/Capso/issues/180) | #179. Use native tools and notes, retain snapshot geometry, publish once, and copy the native prompt. |
+| N4 | [Native Rolling Round #181](https://github.com/spurs-planks-smithers/Capso/issues/181) | #180. Review in Swift, save selected evidence only, and preserve the ordinary active round. |
+| Usability acceptance | [Workflow refinement #177](https://github.com/spurs-planks-smithers/Capso/issues/177) | #181. Reduce routine browser controls and decisions. Verify the real native and standalone flows. |
+| Final acceptance | [Packaging and smoke #172](https://github.com/spurs-planks-smithers/Capso/issues/172) | #181 and #177, plus the existing pilot corrections. Package and verify the revised experience. |
+
+The current product question concerns automatic browser context through the normal native shortcut. The recommended target remains subject to Chrome trigger feasibility. Native editing itself does not require that choice to be resolved first.
+
+Keep Chrome as the capture/privacy owner and Nextshot as the native editing/store owner. Keep the full rolling buffer in browser memory. Native review requests bounded metadata and masked frames. No permanent native connection, idle polling, or full-history disk copy is planned.
+
+Preserve existing consent, masks, explicit arming, pause/re-arm rules, no audio, soft package sizing, and local fallback. Tracking resumes after Save or Cancel when the armed source tab is active and eligible. Jev processing remains paused. This review changes no runtime code, installed package, or feature default.
 
 ## Global constraints
 
@@ -36,7 +58,7 @@ External browser evidence uses schema namespace `nextshot.browser`, version 1. N
 - Preserve all unrelated local work. Stage explicit paths. Never edit .gitignore. Log upstream hooks in FORK_NOTES.
 - Keep personal-repo tests minimal. Use existing checks plus task smoke evidence. Add no unrelated test framework or CI gate.
 
-## Serial issue sequence
+## Original browser pilot sequence
 
 | Order | Issue | Prerequisite |
 |---|---|---|
@@ -51,8 +73,8 @@ External browser evidence uses schema namespace `nextshot.browser`, version 1. N
 | C8 | [Apple Intelligence: improve local Rolling Round suggestions (Later research)](https://github.com/spurs-planks-smithers/Capso/issues/148) | #171 |
 | C4 correction | [Monotonic recording clocks](https://github.com/spurs-planks-smithers/Capso/issues/175) | #169 |
 | C5 correction | [Resource-loss coverage](https://github.com/spurs-planks-smithers/Capso/issues/176) | #175 |
-| C9 | [Chrome C9: install package and browser/native smoke test](https://github.com/spurs-planks-smithers/Capso/issues/172) | #171, #174, #176 (Apple optional) |
-| Usability refinement | [Simplify capture and Rolling Round](https://github.com/spurs-planks-smithers/Capso/issues/177) | #172 functional baseline; required before #124 acceptance |
+| C9 | [Chrome C9: install package and browser/native smoke test](https://github.com/spurs-planks-smithers/Capso/issues/172) | #171, #174, #176, #181, and #177 (Apple optional) |
+| Usability refinement | [Simplify capture and Rolling Round](https://github.com/spurs-planks-smithers/Capso/issues/177) | Native design checkpoint first; verify refinement before #172 and #124 acceptance |
 
 
 | Order | Deliverable | Prerequisite | Acceptance evidence |
@@ -70,7 +92,9 @@ External browser evidence uses schema namespace `nextshot.browser`, version 1. N
 
 #124 remains the umbrella. #157 remains its formal Rolling Round sub-issue. #148 remains a linked optional follow-up. Other delivery issues become formal children of #124. Every issue records its predecessor. Apple support never blocks the core fallback.
 
-October 28 scope correction: Drew's later standalone requirement supersedes the earlier Mac-required pilot. Browser capture and tracking continue without the Mac app. A native-save failure preserves the browser report and offers a later retry. The earlier disconnect-only 15-minute draft policy does not govern browser-only operation. Unsaved rolling media remains in memory and clears on Stop or browser restart. Native assistance probes an already-running app. Only Save can launch the app quietly.
+Historical October 28 scope correction, updated by the native-first decision above: Drew's later standalone requirement supersedes the earlier Mac-required pilot. Browser capture and tracking continue without the Mac app. A native-save failure preserves the browser report and offers a later retry. The earlier disconnect-only 15-minute draft policy does not govern browser-only operation. Unsaved rolling media remains in memory and clears on Stop or browser restart. Native assistance probes an already-running app. The October 29 native-first direction also allows launching the app for deliberate editing.
+
+The tasks below describe the original browser pilot. New native-first implementation follows the N1 through N4 contracts above.
 
 ### Task 1: Browser evidence and local handoff
 
