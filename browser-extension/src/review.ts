@@ -30,7 +30,8 @@ function matches(mark:Mark):ElementEvidence[] {
   const candidates=capture.elements.filter(e=>x>=e.bounds.x&&x<=e.bounds.x+e.bounds.width&&y>=e.bounds.y&&y<=e.bounds.y+e.bounds.height)
     .sort((a,b)=>a.bounds.width*a.bounds.height-b.bounds.width*b.bounds.height).filter(e=>e.tag!=='html'&&e.tag!=='body');
   const interactive=candidates.filter(e=>['button','a'].includes(e.tag)||['button','link','tab','menuitem'].includes(e.role??''));
-  return (interactive.length?interactive:candidates).slice(0,4);
+  const meaningful=candidates.filter(e=>e.text?.trim()||e.role);
+  return (interactive.length?interactive:meaningful.length?meaningful:candidates).slice(0,4);
 }
 function showElements():void {
   const container=$('#elements');container.replaceChildren();

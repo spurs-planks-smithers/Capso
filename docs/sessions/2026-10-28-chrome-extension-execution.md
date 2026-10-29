@@ -148,3 +148,9 @@ The candidate ZIP contains thirteen files, plain-text setup, and a test card. No
 CI passes for runtime commit `465b23b`. Drew confirms loading Nextshot Pilot in regular Chrome. He captures the synthetic test page, adds dot 1 and the requested smoke note, and saves. He then pastes into a text document and confirms the Feedback round header and smoke note. The automation clipboard reader returns empty, so the user paste supplies the actual clipboard evidence. This is not a reproduced product copy failure.
 
 Export inspection, saved-round recovery, and Windows acceptance remain pending. The friend instructions now state that the exported ZIP supplies images and element details to an agent. The text-only guide update requires no extension reload. No runtime source changes accompany it.
+
+## October 29 first export finding
+
+The actual export preserves the note and images. Its input field is covered. The dot is on the paragraph below the heading. The note is a shorter, differently capitalized smoke note, so the initial exact-text assertion is too strict. Inspection finds a separate real gap: the mark has no elementId. The paragraph and two empty overlay containers produce three candidates.
+
+Bug #183 is a child of pilot #182. The actual export reproduces the mismatch. The matcher now prefers meaningful text or roles after interactive targets. It preserves genuine ambiguity and empty-container fallback. The regression fails before the change and passes after it. Existing editor and profile checks pass. A fresh installed capture still gates operational acceptance. The original export remains unchanged.
