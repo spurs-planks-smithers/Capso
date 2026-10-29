@@ -1,6 +1,7 @@
 import {startRecording,pauseRecording,resumeRecording,stopRecording,discardRecording,recordingStatus,selectRecording,recordObservedEvent} from './recording.ts';
 import {newCapture,saveDraft,discardDraft,pruneDrafts,sanitizeURL,sanitizeText,redactSensitive} from './core/index.ts';
 import type {Capture,ElementEvidence} from './core/model.ts';
+import {registerIntents,prepareIntent,finishIntent} from './intents.ts';
 
 async function draftAssociations():Promise<Record<string,string>> {return ((await chrome.storage.session.get('draftTabs')).draftTabs??{}) as Record<string,string>;}
 async function cleanDrafts():Promise<void> {
@@ -16,6 +17,7 @@ async function startCapture(tabId:number):Promise<void> {
   if(!tab.url||!/^https?:/.test(tab.url))throw new Error('Choose a website tab to capture.');
   await inject(tabId);await chrome.tabs.sendMessage(tabId,{type:'nextshot-select'});
 }
+registerIntents(async intent=>{if(intent.kind==='capture')await startCapture(intent.tabId!);else if(intent.kind==='recording')await startRecording(intent.tabId!);else await chrome.storage.local.set({nativeSave:true});});
 chrome.commands.onCommand.addListener(async command=>{
   if(command!=='capture')return;
   const [tab]=await chrome.tabs.query({active:true,currentWindow:true});if(tab?.id)await startCapture(tab.id).catch(()=>{});
@@ -25,9 +27,11 @@ chrome.permissions.onRemoved.addListener(()=>{void cleanDrafts();});
 chrome.runtime.onMessage.addListener((message,sender,respond)=>{
   if(!message||typeof message!=='object'||typeof message.type!=='string')return;
   const trustedPage=sender.url?.startsWith(chrome.runtime.getURL(''));
+  if(message.type==='nextshot-intent'&&trustedPage){prepareIntent(message.kind,message.tabId).then(respond,e=>respond({error:e.message}));return true;}
+  if(message.type==='nextshot-intent-finish'&&trustedPage){finishIntent(message.id).then(()=>respond({ok:true}),e=>respond({error:e.message}));return true;}
   if(message.type==='nextshot-record-event'&&sender.tab?.id&&sender.frameId===0){void recordObservedEvent(sender.tab.id,message.kind,message.label);return;}
   if(message.type==='nextshot-record'&&trustedPage&&!sender.url?.endsWith('offscreen.html')){
-    const run=async()=>{switch(message.action){case 'start':await startRecording(Number(message.tabId));break;case 'pause':await pauseRecording();break;case 'resume':await resumeRecording();break;case 'stop':await stopRecording();break;case 'discard':await discardRecording();break;case 'select':return {id:await selectRecording(message.start,message.end,message.issue)};case 'status':return recordingStatus();default:throw Error('Unknown recording action');}return {ok:true};};
+    const run=async()=>{switch(message.action){case 'start':await startRecording(Number(message.tabId));break;case 'pause':await pauseRecording();break;case 'resume':await resumeRecording();break;case 'stop':await stopRecording();break;case 'discard':await discardRecording();break;case 'select':{const id=await selectRecording(message.start,message.end,message.issue);if(Number.isInteger(message.reviewTab)){const tab=await chrome.tabs.get(message.reviewTab);if(tab.url===sender.url){const associations=await draftAssociations();associations[message.reviewTab]=id;await chrome.storage.session.set({draftTabs:associations});}}return {id};}case 'status':return recordingStatus();default:throw Error('Unknown recording action');}return {ok:true};};
     run().then(respond,e=>respond({error:e.message}));return true;
   }
   if(message.type==='nextshot-start'&&trustedPage){
@@ -54,6 +58,7 @@ async function captureRegion(tabId:number,windowId:number,message:any):Promise<{
   }finally{chrome.tabs.onActivated.removeListener(activation);}
   const image=await createImageBitmap(await (await fetch(screenshot)).blob());
   const scaleX=image.width/message.viewportWidth,scaleY=image.height/message.viewportHeight;
+  if(Math.abs(scaleX-scaleY)>Math.max(scaleX,scaleY)*.01){image.close();throw new Error('This browser view cannot be captured safely. Use a standard tab view.');}
   const width=Math.max(1,Math.round(region.width*scaleX)),height=Math.max(1,Math.round(region.height*scaleY));
   const canvas=new OffscreenCanvas(width,height),context=canvas.getContext('2d');if(!context)throw new Error('Cannot prepare image');
   context.drawImage(image,region.x*scaleX,region.y*scaleY,width,height,0,0,width,height);image.close();

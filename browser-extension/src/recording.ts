@@ -38,7 +38,7 @@ export async function startRecording(tabId:number):Promise<void>{
   }catch(e){await discardRecording();throw e;}
 }
 export async function pauseRecording(reason='Recording paused.'):Promise<void>{await recovery;if(!owner||owner.stopped)return;owner.paused=true;await persistOwner();const result=await recorderCall('event',{at:Date.now()-owner.started,kind:'gap',label:reason});if(result.full)void stopAtLimit();}
-export async function resumeRecording():Promise<void>{await recovery;if(!owner||owner.stopped)return;const tab=await chrome.tabs.get(owner.tabId);if(new URL(tab.url??'').origin!==owner.origin)throw Error('The site changed. Stop and start a new recording.');owner.paused=false;await persistOwner();if(!timer)timer=setInterval(()=>{void sampleRecording();},1000);}
+export async function resumeRecording():Promise<void>{await recovery;if(!owner||owner.stopped)return;const tab=await chrome.tabs.get(owner.tabId);if(new URL(tab.url??'').origin!==owner.origin)throw Error('The site changed. Stop and start a new recording.');await chrome.scripting.executeScript({target:{tabId:owner.tabId},files:['content.js']});await chrome.tabs.sendMessage(owner.tabId,{type:'nextshot-record-observe'});owner.paused=false;await persistOwner();if(!timer)timer=setInterval(()=>{void sampleRecording();},1000);}
 const limitMessage='Recording stopped to preserve browser performance. Review the captured steps.';
 async function stopAtLimit():Promise<void>{if(!owner||owner.stopped)return;owner.stopReason=limitMessage;await recorderCall('limit',{at:Date.now()-owner.started,label:limitMessage});await stopRecording();}
 export async function stopRecording():Promise<void>{await recovery;if(!owner)return;owner.stopped=true;await persistOwner();while(busy)await new Promise(r=>setTimeout(r,20));if(timer)clearInterval(timer);timer=undefined;await chrome.tabs.sendMessage(owner.tabId,{type:'nextshot-record-cleanup'}).catch(()=>{});}
@@ -66,7 +66,8 @@ export async function selectRecording(start:number,end:number,issue:number):Prom
   if(!owner||!owner.stopped)throw Error('Stop recording before selecting evidence.');
   if(!Number.isFinite(issue)||issue<start||issue>end)throw Error('Choose an issue frame within the selected range.');
   const selected=await recorderCall('select',{start,end,issue});if(selected.error)throw Error(selected.error);
-  const tab=await chrome.tabs.get(owner.tabId),capture=newCapture({title:'Sampled recording',url:tab.url,width:selected.frame.width,height:selected.frame.height});
+  const capture=newCapture({title:selected.frame.title||'Sampled recording',url:selected.frame.url,width:selected.frame.width,height:selected.frame.height});
+  capture.elements=selected.frame.elements??[];capture.createdAt=selected.frame.capturedAt??capture.createdAt;
   capture.actions=selected.actions;capture.diagnostics=[{at:start,kind:'coverage',text:'Sampled visual evidence, at most one frame per second. Fields and embedded frames are covered. Gaps are possible. No audio or typed values. Console, request headers/bodies, methods/status, and complete network coverage are unavailable.'},...selected.diagnostics];capture.clip={start,end,issue,steps:selected.actions};
   const bytes=new Uint8Array(selected.frame.bytes),assets:Asset[]=[{name:capture.imageFile,mime:'image/jpeg',bytes},{name:capture.cleanImageFile,mime:'image/jpeg',bytes}];
   if(selected.media){capture.clip.mediaFile=`${capture.id}-selected.webm`;capture.clip.mime='video/webm';assets.push({name:capture.clip.mediaFile,mime:'video/webm',bytes:new Uint8Array(selected.media)});}

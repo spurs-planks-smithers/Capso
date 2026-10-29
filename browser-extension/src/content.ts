@@ -33,7 +33,7 @@ function initialize():void {
           observer=new MutationObserver(records=>{if(captureProof&&records.some(r=>!(r.target instanceof Element?r.target:r.target.parentElement)?.closest('[data-nextshot-overlay]')))captureProof.dirty=true;});
           const options={subtree:true,attributes:true,childList:true,characterData:true};observer.observe(document.documentElement,options);
           for(const root of new Set(allElements().map(e=>e.getRootNode())))if(root instanceof ShadowRoot)observer.observe(root,options);
-          respond({proofId,region,privateRects:privateRects(),viewportWidth:innerWidth,viewportHeight:innerHeight});
+          respond({proofId,region,elements:snapshot(region),url:location.href,title:document.title,privateRects:privateRects(),viewportWidth:innerWidth,viewportHeight:innerHeight});
           const release=frameCleanup;setTimeout(()=>{if(frameCleanup===release)release?.();},1500);
         }catch{frameCleanup?.();respond({error:'Privacy snapshot unavailable'});}
       })();return true;
