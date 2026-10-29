@@ -81,13 +81,13 @@ export function frameProbe(action:'begin'|'confirm'|'release',token:string):Proo
     if(!/^https?:$/.test(location.protocol)||visualViewport&&(visualViewport.scale!==1||visualViewport.offsetLeft!==0||visualViewport.offsetTop!==0))throw Error('Unsupported viewport');
     const all=nodes();
     // Conservatively reject animations in this frame. Never pause them in a recording.
-    if(document.getAnimations().some(a=>a.playState==='running'))throw Error('Animated frame');
+    if([document,...new Set(all.map(e=>e.getRootNode()).filter((r):r is ShadowRoot=>r instanceof ShadowRoot))].some(root=>root.getAnimations().some(a=>a.playState==='running')))throw Error('Animated frame');
     const children:Child[]=[],privateRects:Bounds[]=[],elements:ElementEvidence[]=[];
     for(const e of all){
       const box=rect(e);if(box.width<=0||box.height<=0)continue;
       if(e instanceof HTMLIFrameElement||e instanceof HTMLFrameElement){
         let index=-1;for(let i=0;i<window.length;i++)if(window.frames[i]===e.contentWindow){index=i;break;}
-        let safe=index>=0&&e instanceof HTMLIFrameElement;
+        let safe=index>=0&&e instanceof HTMLIFrameElement&&e.getRootNode()===document&&Math.abs(box.width-e.offsetWidth)<.5&&Math.abs(box.height-e.offsetHeight)<.5;
         for(let ancestor:Element|null=e;ancestor;ancestor=ancestor.parentElement){const s=getComputedStyle(ancestor);if(s.transform!=='none'||s.translate!=='none'||s.rotate!=='none'||s.scale!=='none'||s.perspective!=='none'||s.clipPath!=='none'||s.filter!=='none'||s.zoom!=='1'||s.borderRadius!=='0px'||s.maskImage!=='none')safe=false;const a=rect(ancestor);if(ancestor!==e&&([s.overflowX,s.overflowY].some(v=>['hidden','clip','scroll','auto'].includes(v)))&&(box.x<a.x||box.y<a.y||box.x+box.width>a.x+a.width||box.y+box.height>a.y+a.height))safe=false;}
         // Scrollbar/frame border geometry must agree with the child viewport.
         const viewport={x:box.x+e.clientLeft,y:box.y+e.clientTop,width:e.clientWidth,height:e.clientHeight};
