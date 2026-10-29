@@ -26,6 +26,10 @@ MAKE FEEDBACK
 4. Click Save and copy prompt. Paste into a text editor or coding agent.
 5. Click Export round to create a ZIP you can share.
 
+When using a coding agent, attach that exported ZIP.
+It contains the images and element details.
+The copied text names files inside that ZIP.
+
 Option+Shift+B starts capture on Mac. Alt+Shift+B starts it on Windows.
 If the shortcut conflicts, use the toolbar button.
 Command+S saves on Mac. Ctrl+S saves on Windows.
@@ -41,6 +45,7 @@ Images and notes can still contain private data. Review them before sharing.
 Only capture content you are comfortable sharing with your coding agent.
 An embedded preview may need its own site grant. Allow preview details appears
 in the popup after a capture discovers a preview that needs permission.
+Return to the source website tab before opening that popup.
 Changing pages during capture can require another capture.
 Chrome internal pages, the Web Store, PDFs, and local files are outside this test.
 Source file locations are unavailable unless the page provides reliable details.

@@ -142,3 +142,9 @@ A distinct Nextshot Pilot profile uses identity `ffnikmhbnlgmfeniemlmfniihooipmc
 The common capture body matches its prior verified implementation exactly. Both profiles build. TypeScript, thirteen mocked runtime checks, twelve editor fixture checks, the profile boundary check, portable ZIP checks, and the existing 57 Jev assertions pass. An independent read-only review reports no actionable finding. Regular Chrome renders the popup preview. These fixtures and source checks do not establish actual installed pilot or Windows acceptance.
 
 The candidate ZIP contains thirteen files, plain-text setup, and a test card. No app, Python, account, provider call, telemetry, or public upload is required. The final clean package and Drew smoke remain next. No broader issue closes from this narrower candidate.
+
+## October 29 installed pilot smoke
+
+CI passes for runtime commit `465b23b`. Drew confirms loading Nextshot Pilot in regular Chrome. He captures the synthetic test page, adds dot 1 and the requested smoke note, and saves. He then pastes into a text document and confirms the Feedback round header and smoke note. The automation clipboard reader returns empty, so the user paste supplies the actual clipboard evidence. This is not a reproduced product copy failure.
+
+Export inspection, saved-round recovery, and Windows acceptance remain pending. The friend instructions now state that the exported ZIP supplies images and element details to an agent. The text-only guide update requires no extension reload. No runtime source changes accompany it.

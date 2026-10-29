@@ -10,6 +10,7 @@ Use harmless content. The goal is one useful capture, not a full bug report.
 6. Close and reopen Chrome. Confirm the round is still in Saved rounds.
 
 Then try one capture on a website you normally review.
+For an agent test, attach the exported ZIP with the copied prompt.
 
 REPORT THESE RESULTS
 
