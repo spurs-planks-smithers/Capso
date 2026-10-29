@@ -1,6 +1,8 @@
 # Nextshot Chrome extension: architecture and specification plan
 
-Date: 2026-10-28. Status: draft for product decisions and future feasibility review. Research and documentation are authorized. Building is not authorized. Keep [#124](https://github.com/spurs-planks-smithers/Capso/issues/124), [#157](https://github.com/spurs-planks-smithers/Capso/issues/157), and optional [#148](https://github.com/spurs-planks-smithers/Capso/issues/148) in Later. Exclude v0.5.0. v1.0 or later is tentative.
+Execution update, 2026-10-28: Drew authorizes implementation in chat. The [implementation plan](../plans/2026-10-28-chrome-extension-implementation.md) supersedes historical planning-only restrictions below. The [native bridge decision](../../decisions/2026-10-28-browser-native-bridge.md) records the verified transport. Keep Later and the v0.5.0 exclusion.
+
+Date: 2026-10-28. Historical planning status: draft for product decisions and future feasibility review. Research and documentation are authorized. Building is not authorized. Keep [#124](https://github.com/spurs-planks-smithers/Capso/issues/124), [#157](https://github.com/spurs-planks-smithers/Capso/issues/157), and optional [#148](https://github.com/spurs-planks-smithers/Capso/issues/148) in Later. Exclude v0.5.0. v1.0 or later is tentative.
 
 ## Priority and scope
 

@@ -24,3 +24,8 @@ targets:
         CODE_SIGN_STYLE: Automatic
         CODE_SIGN_IDENTITY: Apple Development
         ASSETCATALOG_COMPILER_APPICON_NAME: Nextshot
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+    postBuildScripts:
+      - name: Embed signed Nextshot browser host
+        basedOnDependencyAnalysis: false
+        script: bash "${SRCROOT}/scripts/embed-browser-host.sh"

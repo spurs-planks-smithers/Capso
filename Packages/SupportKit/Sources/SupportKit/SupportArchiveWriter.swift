@@ -7,7 +7,7 @@ import ImageIO
 public enum SupportArchiveWriter {
     public static func prepare(round: FeedbackRound, folder: URL, app: SupportApp, note: String, contactEmail: String?, temporaryRoot: URL = FileManager.default.temporaryDirectory) throws -> SupportPackage {
         try SupportInput.validate(note: note, contactEmail: contactEmail)
-        guard round.schemaVersion == FeedbackRound.currentSchemaVersion else { throw SupportError.invalidInput }
+        guard (1...FeedbackRound.currentSchemaVersion).contains(round.schemaVersion) else { throw SupportError.invalidInput }
         guard !round.captures.isEmpty else { throw SupportError.noCaptures }
         guard round.captures.count <= SupportLimits.captures else { throw SupportError.tooLarge }
         let captures = round.captures.sorted { $0.index < $1.index }

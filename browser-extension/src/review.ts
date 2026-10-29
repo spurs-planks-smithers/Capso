@@ -1,5 +1,6 @@
 import {getDraft,saveDraft,discardDraft,saveCapture,roundById,assetsForRound,renderPrompt,exportBundle,validateCapture} from './core/index.ts';
 import type {Capture,Asset,Mark,MarkKind,ElementEvidence,Round} from './core/model.ts';
+import {deliverNative} from './native.ts';
 const $=<T extends HTMLElement=HTMLElement>(selector:string)=>document.querySelector<T>(selector)!;
 const canvas=$<HTMLCanvasElement>('#canvas'),context=canvas.getContext('2d')!;
 const note=$<HTMLTextAreaElement>('#note'),status=$('#status'),save=$<HTMLButtonElement>('#save');
@@ -61,6 +62,7 @@ save.onclick=async()=>{
     capture=validateCapture(capture);saved=await saveCapture(capture,assets);await chrome.runtime.sendMessage({type:'nextshot-forget-draft',id:capture.id});
     note.readOnly=true;save.textContent='Saved';$('#saved-actions').hidden=false;$('#cancel').textContent='Done';status.textContent='Feedback saved in this browser.';
     try{await navigator.clipboard.writeText(renderPrompt(saved));status.textContent='Prompt copied. Paste it into your agent.';}catch{status.textContent+=' Use Copy prompt when ready.';}
+    void deliverNative(capture,assets).then(receipt=>{if(receipt?.state==='imported')status.textContent='Saved in Nextshot Dev. Prompt copied.';else if(receipt)status.textContent='Saved in this browser. Nextshot Dev is unavailable.';});
   }catch(error){status.textContent=error instanceof Error?error.message:'Save failed. Your draft remains available.';save.disabled=false;note.readOnly=false;}
   finally{saving=false;}
 };

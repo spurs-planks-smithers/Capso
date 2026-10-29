@@ -125,6 +125,8 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
     /// its first 2000 characters and asks the agent to name its session, and
     /// a Recent row shows the round's title. Not a Jev feature: code only.
     case sessionTitle
+    /// Signed local browser import. It starts off in both channels.
+    case browserBridge
 
     /// New flags start with both defaults `off`. A release default turns on
     /// only with a released-in build number.
@@ -168,6 +170,8 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
             FlagSpec(issue: 123, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
         case .diagnostics:
             FlagSpec(issue: 118, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
+        case .browserBridge:
+            FlagSpec(issue: 168, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
         case .sessionTitle:
             // On in both channels (Drew, 2026-10-28). The marker is the build
             // number two commits after the 2026-10-28 main tip: this merge,

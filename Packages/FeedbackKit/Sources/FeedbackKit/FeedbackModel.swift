@@ -4,7 +4,7 @@ import Foundation
 /// A feedback round: one folder under the store's root with numbered captures.
 /// `feedback.json` stores this value and is the bundle's source of truth.
 public struct FeedbackRound: Codable, Equatable, Sendable {
-    public static let currentSchemaVersion = 1
+    public static let currentSchemaVersion = 2
 
     public var schemaVersion: Int
     public var name: String
@@ -22,7 +22,7 @@ public struct FeedbackRound: Codable, Equatable, Sendable {
         endedAt: Date? = nil,
         captures: [FeedbackCapture] = []
     ) {
-        self.schemaVersion = Self.currentSchemaVersion
+        self.schemaVersion = captures.contains { $0.browserImportID != nil } ? 2 : 1
         self.name = name
         self.slug = slug
         self.folderName = folderName
@@ -53,6 +53,11 @@ public struct FeedbackCapture: Codable, Equatable, Sendable {
     /// All on-device OCR text of the clean image.
     public var ocrText: String?
     public var marks: [FeedbackMark]
+    /// Browser captures use schema 2. The sidecar retains selected element and bug evidence.
+    public var browserImportID: String?
+    public var browserDigest: String?
+    public var browserEvidenceFile: String?
+    public var browserAssetFiles: [String]?
 
     public init(
         index: Int,

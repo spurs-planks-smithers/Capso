@@ -51,6 +51,7 @@ public actor FeedbackRoundStore {
         case badgeNotFound(Int)
         case markCountMismatch
         case roundNotFound(String)
+        case invalidBrowserImport
     }
 
     private struct ActiveMarker: Codable {
@@ -146,6 +147,71 @@ public actor FeedbackRoundStore {
             return activeRound
         }
         return try start(name: name)
+    }
+
+    /// Publishes browser evidence once. feedback.json is the durable commit record.
+    /// A retry repairs derived text after a crash and returns the same capture.
+    public func importBrowserCapture(_ input: FeedbackCapture, assets: [String: Data], evidence: Data, ended: Bool) throws -> (folderName: String, captureIndex: Int) {
+        guard let id = input.browserImportID, UUID(uuidString: id) != nil, let digest = input.browserDigest,
+              digest.count == 64, let evidenceFile = input.browserEvidenceFile,
+              !assets.isEmpty, assets.keys.allSatisfy({ !$0.contains("/") && !$0.contains("\\") && $0.hasPrefix(id) }),
+              evidenceFile == "\(id)-browser.json" else { throw StoreError.invalidBrowserImport }
+        let manager = FileManager.default
+        let folders = (try? manager.contentsOfDirectory(at: rootURL, includingPropertiesForKeys: nil)) ?? []
+        for folder in folders {
+            guard let existing = FeedbackLibrary.round(named: folder.lastPathComponent, in: rootURL),
+                  let saved = existing.captures.first(where: { $0.browserImportID == id }) else { continue }
+            guard saved.browserDigest == digest else { throw StoreError.invalidBrowserImport }
+            if existing.endedAt == nil && (activeRound == nil || activeRound?.folderName == existing.folderName) {
+                activeRound = existing
+                try writeActiveMarker(folderName: existing.folderName)
+            }
+            try write(existing)
+            return (existing.folderName, saved.index)
+        }
+        let finalRound: FeedbackRound
+        let isNew = ended || activeRound == nil
+        var round: FeedbackRound
+        if ended {
+            let slug = "rolling-round"
+            let base = FeedbackNaming.folderName(startedAt: input.capturedAt, slug: slug, timeZone: timeZone)
+            let name = FeedbackNaming.uniqueName(base) { FileManager.default.fileExists(atPath: rootURL.appendingPathComponent($0).path) }
+            round = FeedbackRound(name: "Rolling Round", slug: slug, folderName: name, startedAt: input.capturedAt, endedAt: now())
+        } else if let activeRound {
+            round = activeRound
+        } else {
+            let slug = FeedbackNaming.defaultSlug
+            let base = FeedbackNaming.folderName(startedAt: input.capturedAt, slug: slug, timeZone: timeZone)
+            let name = FeedbackNaming.uniqueName(base) { FileManager.default.fileExists(atPath: rootURL.appendingPathComponent($0).path) }
+            round = FeedbackRound(name: "feedback", slug: slug, folderName: name, startedAt: input.capturedAt)
+        }
+        var capture = input
+        capture.index = (round.captures.map(\.index).max() ?? 0) + 1
+        round.schemaVersion = 2
+        round.captures.append(capture)
+        finalRound = round
+        let destination = folderURL(for: finalRound)
+        let staging = rootURL.appendingPathComponent(".browser-\(UUID().uuidString)", isDirectory: true)
+        let working = isNew ? staging : destination
+        try manager.createDirectory(at: working, withIntermediateDirectories: true)
+        defer { if isNew { try? manager.removeItem(at: staging) } }
+        for (name, bytes) in assets { try bytes.write(to: working.appendingPathComponent(name), options: .atomic) }
+        try evidence.write(to: working.appendingPathComponent(evidenceFile), options: .atomic)
+        if isNew {
+            // Write all required files before the folder becomes visible to the library.
+            try Self.encoder().encode(finalRound).write(to: working.appendingPathComponent(Self.roundFileName), options: .atomic)
+            let manifest = ManifestWriter.render(finalRound, folderPath: destination.path, timeZone: timeZone)
+            try Data(manifest.utf8).write(to: working.appendingPathComponent(Self.manifestFileName), options: .atomic)
+            try Data(PromptBuilder.render(finalRound, folderPath: destination.path).utf8).write(to: working.appendingPathComponent(Self.promptFileName), options: .atomic)
+            try manager.moveItem(at: staging, to: destination)
+        } else {
+            try write(finalRound)
+        }
+        if !ended {
+            activeRound = finalRound
+            try writeActiveMarker(folderName: finalRound.folderName)
+        }
+        return (finalRound.folderName, capture.index)
     }
 
     @discardableResult

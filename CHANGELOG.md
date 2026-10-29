@@ -10,7 +10,7 @@ Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This for
 
 ### Added
 
-- A development-only Chrome extension supports local area capture, numbered annotations, notes, element context, and portable export. It remains outside the release package.
+- A development-only Chrome extension supports local area capture, numbered annotations, notes, element context, portable export, and optional signed saves into Nextshot Dev. It remains outside the release package.
 
 ### Changed
 

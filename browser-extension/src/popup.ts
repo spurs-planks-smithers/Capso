@@ -2,8 +2,11 @@ import {rounds,renderPrompt,endRound,assetsForRound,exportBundle} from './core/i
 import type {Round} from './core/model.ts';
 const status=document.querySelector<HTMLElement>('#status')!;
 const capture=document.querySelector<HTMLButtonElement>('#capture')!;
+const native=document.querySelector<HTMLInputElement>('#native')!;
+native.onchange=async()=>{if(native.checked&&!await chrome.permissions.request({permissions:['nativeMessaging']}))native.checked=false;await chrome.storage.local.set({nativeSave:native.checked});};
 const query=new URLSearchParams(location.search);let tabId=query.has('tab')?Number(query.get('tab')):undefined;let tabURL:string|undefined;
 async function load():Promise<void> {
+  native.checked=!!(await chrome.storage.local.get('nativeSave')).nativeSave;
   const tab=tabId?await chrome.tabs.get(tabId):(await chrome.tabs.query({active:true,currentWindow:true}))[0];tabId=tab?.id;tabURL=tab?.url;
   if(!tabId||!tabURL?.startsWith('http')){capture.disabled=true;status.textContent='Choose a website tab to capture.';}
   for(const round of (await rounds()).slice(0,8))addRound(round);
