@@ -84,7 +84,8 @@ export function frameProbe(action:'begin'|'confirm'|'release',token:string):Proo
   const nodes=():Element[]=>{const result:Element[]=[],pending:ParentNode[]=[document];while(pending.length){for(const e of pending.pop()!.querySelectorAll('*')){if(e.closest('[data-nextshot-overlay]'))continue;if(result.length>=20000)throw Error('Frame too large');result.push(e);const shadow=(e instanceof HTMLElement?chrome.dom?.openOrClosedShadowRoot(e):null)??e.shadowRoot;if(shadow)pending.push(shadow);}}return result;};
   const selector=(e:Element):string=>{const parts:string[]=[];let current:Element|null=e;for(let i=0;current&&i<5;i++,current=current.parentElement){if(current.id&&!/(?:token|secret|password)/i.test(current.id)){parts.unshift(current.tagName.toLowerCase()+'#'+CSS.escape(current.id));break;}const parent=current.parentElement;const siblings=parent?[...parent.children].filter(n=>n.tagName===current!.tagName):[];parts.unshift(current.tagName.toLowerCase()+(siblings.length>1?`:nth-of-type(${siblings.indexOf(current)+1})`:''));}const root=e.getRootNode();return(root instanceof ShadowRoot?selector(root.host)+' >>> ':'')+parts.join(' > ');};
   const read=():Proof=>{
-    if(!/^https?:$/.test(location.protocol)||visualViewport&&(visualViewport.scale!==1||visualViewport.offsetLeft!==0||visualViewport.offsetTop!==0))throw Error('Unsupported viewport');
+    // The effective origin also detects opaque CSP and inherited sandbox restrictions.
+    if(window.origin==='null'||!/^https?:$/.test(location.protocol)||visualViewport&&(visualViewport.scale!==1||visualViewport.offsetLeft!==0||visualViewport.offsetTop!==0))throw Error('Unsupported viewport');
     const all=nodes();
     // Conservatively reject animations in this frame. Never pause them in a recording.
     if([document,...new Set(all.map(e=>e.getRootNode()).filter((r):r is ShadowRoot=>r instanceof ShadowRoot))].some(root=>root.getAnimations().some(a=>a.playState==='running')))throw Error('Animated frame');
@@ -93,7 +94,7 @@ export function frameProbe(action:'begin'|'confirm'|'release',token:string):Proo
       const box=rect(e);if(box.width<=0||box.height<=0)continue;
       if(e instanceof HTMLIFrameElement||e instanceof HTMLFrameElement){
         let index=-1;for(let i=0;i<window.length;i++)if(window.frames[i]===e.contentWindow){index=i;break;}
-        let safe=index>=0&&e instanceof HTMLIFrameElement&&!e.hasAttribute('sandbox')&&e.getRootNode()===document&&Math.abs(box.width-e.offsetWidth)<.5&&Math.abs(box.height-e.offsetHeight)<.5;
+        let safe=index>=0&&e instanceof HTMLIFrameElement&&(!e.hasAttribute('sandbox')||e.sandbox.contains('allow-same-origin'))&&e.getRootNode()===document&&Math.abs(box.width-e.offsetWidth)<.5&&Math.abs(box.height-e.offsetHeight)<.5;
         for(let ancestor:Element|null=e;ancestor;ancestor=ancestor.parentElement){const s=getComputedStyle(ancestor);if(s.transform!=='none'||s.translate!=='none'||s.rotate!=='none'||s.scale!=='none'||s.perspective!=='none'||s.clipPath!=='none'||s.filter!=='none'||s.zoom!=='1'||s.borderRadius!=='0px'||s.maskImage!=='none')safe=false;const a=rect(ancestor);if(ancestor!==e&&([s.overflowX,s.overflowY].some(v=>['hidden','clip','scroll','auto'].includes(v)))&&(box.x<a.x||box.y<a.y||box.x+box.width>a.x+a.width||box.y+box.height>a.y+a.height))safe=false;}
         // Scrollbar/frame border geometry must agree with the child viewport.
         const viewport={x:box.x+e.clientLeft,y:box.y+e.clientTop,width:e.clientWidth,height:e.clientHeight};
