@@ -31,6 +31,29 @@ def digest(data):
     return hashlib.sha256(data).hexdigest()
 
 
+def check_capture_defaults():
+    pilot = json.loads((EXTENSION / 'pilot-manifest.json').read_text())
+    dev = json.loads((EXTENSION / 'manifest.json').read_text())
+    def key(command, platform):
+        suggestion = command.get('suggested_key', {})
+        value = suggestion if isinstance(suggestion, str) else suggestion.get(platform, suggestion.get('default', ''))
+        aliases = {'option': 'alt', 'ctrl': 'command', 'macctrl': 'control'} if platform == 'mac' else {}
+        return tuple(sorted(aliases.get(part.lower(), part.lower()) for part in value.split('+'))) if value else ()
+    capture = pilot.get('commands', {}).get('capture', {})
+    commands = dev.get('commands', {})
+    if not capture or not commands.get('capture'):
+        raise SystemExit('Both profiles require a capture command.')
+    for platform in ('mac', 'windows'):
+        own = key(capture, platform)
+        other = {key(command, platform) for command in commands.values()}
+        if not own or not other or not key(commands['capture'], platform):
+            raise SystemExit('Both profiles require a default capture shortcut.')
+        if own in other:
+            raise SystemExit(f'Pilot capture shortcut conflicts with Dev on {platform}.')
+
+
+check_capture_defaults()
+
 # Clear only this script's known generated directory. Stale output cannot enter a ZIP.
 if BUILD.exists():
     if BUILD.is_symlink():

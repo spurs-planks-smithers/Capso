@@ -12,7 +12,7 @@ INSTALL ONCE
 3. In Chrome's address bar, type chrome://extensions and press Enter.
 4. Turn on Developer mode. Click Load unpacked.
 5. Select the extension folder inside Nextshot-Pilot.
-6. Verify the name is Nextshot Pilot. Pin it from Chrome's puzzle menu.
+6. Verify the name is Nextshot Pilot.
 
 This is an unpacked private pilot. Chrome may show developer notices.
 If your organization blocks Developer mode, do not bypass that restriction.
@@ -20,7 +20,7 @@ Report it to the person who invited you.
 
 MAKE FEEDBACK
 
-1. Open a safe website. Click Nextshot Pilot, then Capture an area.
+1. Open a safe website. Press Option+Shift+P on Mac or Alt+Shift+P on Windows.
 2. Approve access to that site if Chrome asks. Drag around the area to capture.
 3. Click the image to add a numbered dot. Add a note beside it.
 4. Click Save & copy instructions. Your feedback is saved and its instructions are copied.
@@ -35,11 +35,12 @@ When using a coding agent, attach that exported ZIP.
 It contains the images and element details.
 The copied text names files inside that ZIP.
 
-The suggested capture key is Option+Shift+B on Mac or Alt+Shift+B on Windows.
+Chrome assigns Option+Shift+P on Mac or Alt+Shift+P on Windows at installation
+when that key is available. Nextshot Dev uses a different key.
 The popup and editor show the key Chrome actually assigns.
 If another extension uses that key, choose Set capture shortcut once.
 Chrome opens its shortcut settings. Assign an available key to Nextshot Pilot.
-After setup, use that key in Chrome to capture without opening the popup.
+You can also click Nextshot Pilot in Chrome's puzzle menu, then Capture an area.
 Command+S saves on Mac. Ctrl+S saves on Windows.
 Saved rounds are available from the extension's popup.
 End current round starts a fresh group on your next capture.
@@ -65,6 +66,8 @@ UPDATE OR REMOVE
 
 Keep the same extension folder. Replace its files with the next pilot build.
 Open chrome://extensions and click Reload on Nextshot Pilot.
+Pilot 0.1.1 requests its own default key when the old key was never assigned.
+Chrome preserves a key you set or cleared yourself.
 Reloading preserves saved rounds. Removing the extension clears its browser data.
 Export rounds before removal. Exported ZIP files remain on disk.
 
