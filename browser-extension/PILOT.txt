@@ -23,8 +23,13 @@ MAKE FEEDBACK
 1. Open a safe website. Click Nextshot Pilot, then Capture an area.
 2. Approve access to that site if Chrome asks. Drag around the area to capture.
 3. Click the image to add a numbered dot. Add a note beside it.
-4. Click Save and copy prompt. Paste into a text editor or coding agent.
+4. Click Done. Your feedback is saved and its prompt is copied.
 5. Click Export round to create a ZIP you can share.
+
+Paste the copied prompt into a text editor or coding agent.
+Click an existing numbered dot to read or change its note.
+Page details are included automatically when available. They need no review.
+If several parts could match a dot, you can choose one or continue with Done.
 
 When using a coding agent, attach that exported ZIP.
 It contains the images and element details.

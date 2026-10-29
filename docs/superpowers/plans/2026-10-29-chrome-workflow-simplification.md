@@ -1,0 +1,103 @@
+# Chrome Workflow Simplification Implementation Plan
+
+> For agentic workers: use superpowers:executing-plans for inline execution. The user authorizes execution in chat. One approved Astra planning review supplies this plan.
+
+**Goal:** Make standalone feedback follow mark, note, Done, with automatic optional page context and reliable local recovery.
+
+**Architecture:** Reuse the current browser capture and editor. Keep matching separate from detail rendering. Use the existing IndexedDB draft and round store. Keep native-first delivery in its existing serial issues.
+
+**Tech stack:** TypeScript, browser DOM, IndexedDB, Chrome Manifest V3, existing esbuild tooling.
+
+**Spec:** [Workflow issue #177](https://github.com/spurs-planks-smithers/Capso/issues/177), the rendered review proposal, and the user's October 29 execution instruction. Preserve the [native-first decision](../../decisions/2026-10-29-browser-native-first.md).
+
+## Global Constraints
+
+- Keep every issue in Later and exclude Chrome from v0.5.0. Open no public release.
+- Use the existing isolated checkout and branch. Stage each changed path explicitly.
+- Add no permissions, dependencies, schema fields, permanent test framework, or provider calls.
+- Keep field pixels covered. Exclude field values, labels, and editable text from element evidence.
+- Keep native ownership, native annotation, and native Rolling review in #178 through #181.
+- Use regular Chrome. Do not bypass the browser tool's restrictions on extension-internal pages.
+- Preserve the user's current unsaved capture. Update installed files only after local verification and a clean package.
+- Keep #177 open through its broader native and Rolling usability acceptance. Close matching bugs only after their actual acceptance evidence exists.
+
+## Review Focus
+
+- Initial selection must preserve a stored general note.
+- Saved feedback must not change through note or detail navigation.
+- Undo and redo must preserve notes, choices, and contiguous mark IDs.
+- Draft writes must finish before final save or explicit discard. Late writes must not recreate a saved draft.
+- A failed cleanup message must not misreport a successful store commit.
+- A missing match or unresolved ambiguity must not block Done.
+
+## Task 1: Establish Real Browser Evidence
+
+Files: ignored scratch under `build/chrome-execution/workflow-177/` and the existing editor checks.
+
+- [x] Build the production editor over an isolated HTTP fixture with real IndexedDB.
+- [x] Reproduce general-note loss before changing production code. The seeded note loads empty.
+- [x] Extend the existing scratch editor checks for notes, readonly state, completion failures, and draft ordering.
+- [x] Preserve actual export geometry and existing nearby-match regressions.
+
+## Task 2: Simplify Editing And Matching
+
+Files: `browser-extension/src/review.ts`, `browser-extension/public/review.html`, `browser-extension/public/style.css`.
+
+- [x] Replace the primary action with Done. Explain once that it saves and copies the prompt.
+- [x] Replace Previous/General/Next with explicit mark selection and an optional general note.
+- [x] Clicking an existing badge selects its note. Show the selected badge clearly.
+- [x] Put ordinary page information inside collapsed Page details. Use ordinary element names for optional ambiguity choices.
+- [x] Reconcile matches on editable draft load, mark creation, history restoration, and final save.
+- [x] Preserve a valid existing elementId. Automatically assign only a sole candidate. Leave ambiguity unresolved without blocking Done.
+- [x] Remove the duplicate choices map. Detail rendering never mutates feedback.
+- [x] Keep selectors, nearby inference context, and optional assistance source labels secondary.
+
+## Task 3: Preserve Notes, Drafts, And History
+
+Files: `browser-extension/src/review.ts`. Reuse the existing store without changing its schema.
+
+- [x] Initialize the selected note without writing the empty textarea first.
+- [x] Preserve general and per-mark notes through selection, undo, redo, and readonly viewing.
+- [x] Persist editable drafts after a short edit debounce. Serialize writes and coalesce revisions.
+- [x] Flush the draft queue before final save. Stop and drain writes before explicit discard.
+- [x] Invalidate optional assistance on selection, note, history, and completion changes.
+- [x] Disable unavailable history and saved editing controls. Keep saved note navigation available.
+
+## Task 4: Complete Once And Recover Truthfully
+
+File: `browser-extension/src/review.ts`.
+
+- [x] Freeze editing during Done and commit the capture once.
+- [x] Treat saveCapture completion as durable success. Handle cleanup messaging separately.
+- [x] Attempt prompt copying after save. Keep Copy prompt and Export round available when copying fails.
+- [x] Keep the review page open for sharing. Replace Cancel with Close after saving. Require no second completion step.
+- [x] Keep optional native delivery separate from clipboard and export status. Catch its failures.
+- [x] Retain editable notes and a retryable Done action on store failure.
+
+## Task 5: Verify And Package
+
+Files: pilot instructions, changelog, execution record, and existing packaging scripts.
+
+- [x] Keep the pilot popup's single capture action and collapsed saved rounds.
+- [x] Update instructions for Done. Preserve current Dev trial, consent, and Rolling controls.
+- [x] Run TypeScript, both builds, existing runtime/editor/profile checks, and actual-export matching regressions.
+- [x] Use real Chrome DOM, IndexedDB, and actual downloaded exports to verify note retention, matching, save, copy recovery, and round reopening.
+- [x] Render empty, single-mark, two-mark, ambiguous, and saved states. Check the resulting images.
+- [x] Obtain one focused standard-model source review. Reuse the approved Astra plan without another Astra call.
+
+Commit and push explicit paths. Build a clean, hash-verified pilot package and update the existing visible folder. Record the resulting commit, package checksum, and CI status in #177 and #182.
+
+- [ ] Complete the remaining installed acceptance at the manual browser boundary. Preserve the current capture until saved or explicitly discarded by the user.
+- [ ] Verify corrected exports before closing #183 and #184. Keep #182 open for actual Windows and Mac friend acceptance.
+
+## Scope Rulings
+
+The user explicitly requests planning followed by execution. Do not add a second plan approval step. The earlier rendered proposal establishes the standalone design direction.
+
+The browser review page stays open after Done because standalone users need access to export and clipboard recovery. Closing it automatically would add a recovery step.
+
+Draft saving runs only during editing. It introduces no idle polling or permanent helper. Reuse the existing store and retain feature defaults.
+
+A real immediate-reload check exposes a race before the debounced IndexedDB write starts. A tab-local sessionStorage journal retains only bounded marks and reviewer notes. Restore it only over an existing valid draft and validate the merged capture. Clear it after the latest durable write, final save, explicit discard, a missing draft, or Rolling invalidation. It contains no image or page evidence and has no wall-clock expiry. It cannot restore a missing or expired source draft.
+
+The HTTP fixture verifies production editor logic and a real browser store. It cannot establish installed-extension acceptance or Windows behavior. Keep those limits explicit.

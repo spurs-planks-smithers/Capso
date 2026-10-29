@@ -5,7 +5,7 @@ Use harmless content. The goal is one useful capture, not a full bug report.
 1. Open https://example.com in Google Chrome.
 2. Capture the heading and nearby text.
 3. Put one dot on the heading. Write: Change this heading to Pilot test.
-4. Save and paste the copied prompt into a text editor.
+4. Click Done and paste the copied prompt into a text editor.
 5. Export the round. Extract the ZIP and open README.md and the marked image.
 6. Close and reopen Chrome. Confirm the round is still in Saved rounds.
 
