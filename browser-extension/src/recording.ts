@@ -17,7 +17,7 @@ const recovery=(async()=>{
   const exists=await chrome.permissions.contains({permissions:['offscreen']})&&await chrome.offscreen.hasDocument();
   if(saved&&exists){
     try{await chrome.tabs.get(saved.tabId);owner=saved;
-      if(!owner.stopped){owner.paused=true;await persistOwner();await chrome.runtime.sendMessage({target:'recorder',type:'event',at:Date.now()-owner.started,kind:'gap',label:'Recorder worker restarted. Resume to continue.'});}
+      if(!owner.stopped){owner.paused=true;await persistOwner();await chrome.runtime.sendMessage({target:'recorder',type:'event',kind:'gap',label:'Recorder worker restarted. Resume to continue.'});}
       return;
     }catch{}
   }
@@ -41,10 +41,10 @@ export async function startRecording(tabId:number):Promise<void>{
     timer=setInterval(()=>{void sampleRecording();},1000);await sampleRecording();
   }catch(e){await discardRecording();throw e;}
 }
-export async function pauseRecording(reason='Recording paused.'):Promise<void>{await recovery;if(!owner||owner.stopped)return;owner.paused=true;await persistOwner();const result=await recorderCall('event',{at:Date.now()-owner.started,kind:'gap',label:reason});if(result.full)void stopAtLimit();}
+export async function pauseRecording(reason='Recording paused.'):Promise<void>{await recovery;if(!owner||owner.stopped)return;owner.paused=true;await persistOwner();const result=await recorderCall('event',{kind:'gap',label:reason});if(result.full)void stopAtLimit();}
 export async function resumeRecording():Promise<void>{await recovery;if(!owner||owner.stopped)return;const tab=await chrome.tabs.get(owner.tabId);if(new URL(tab.url??'').origin!==owner.origin)throw Error('The site changed. Stop and start a new recording.');await chrome.scripting.executeScript({target:{tabId:owner.tabId},files:['content.js']});await chrome.tabs.sendMessage(owner.tabId,{type:'nextshot-record-observe'});owner.paused=false;await persistOwner();if(!timer)timer=setInterval(()=>{void sampleRecording();},1000);}
 const limitMessage='Recording stopped to preserve browser performance. Review the captured steps.';
-async function stopAtLimit():Promise<void>{if(!owner||owner.stopped)return;owner.stopReason=limitMessage;await recorderCall('limit',{at:Date.now()-owner.started,label:limitMessage});await stopRecording();}
+async function stopAtLimit():Promise<void>{if(!owner||owner.stopped)return;owner.stopReason=limitMessage;await recorderCall('limit',{label:limitMessage});await stopRecording();}
 export async function stopRecording():Promise<void>{await recovery;if(!owner)return;owner.stopped=true;await persistOwner();while(busy)await new Promise(r=>setTimeout(r,20));if(timer)clearInterval(timer);timer=undefined;await chrome.tabs.sendMessage(owner.tabId,{type:'nextshot-record-cleanup'}).catch(()=>{});}
 export async function discardRecording():Promise<void>{await recovery;if(!owner)return;await stopRecording();owner=undefined;await persistOwner();if(await chrome.permissions.contains({permissions:['offscreen']})&&await chrome.offscreen.hasDocument())await chrome.offscreen.closeDocument();}
 export async function sampleRecording():Promise<void>{
@@ -61,12 +61,12 @@ export async function sampleRecording():Promise<void>{
       const image=await chrome.tabs.captureVisibleTab(current.windowId,{format:'png'}),confirmed=await chrome.tabs.sendMessage(current.tabId,{type:'nextshot-confirm-capture',proofId:proof.proofId});
       const activeNow=(await chrome.tabs.query({active:true,windowId:current.windowId}))[0];
       if(switched||!confirmed?.ok||frames&&!await frames.confirm()||activeNow?.id!==current.tabId||current!==owner||current.stopped)throw Error('Page changed during snapshot');
-      const retained=await recorderCall('frame',{image,proof:frames?{...proof,elements:frames.elements,privateRects:frames.privateRects}:proof,at:Date.now()-current.started});if(retained.full)void stopAtLimit();
+      const retained=await recorderCall('frame',{image,proof:frames?{...proof,elements:frames.elements,privateRects:frames.privateRects}:proof});if(retained.full)void stopAtLimit();
     }finally{await frames?.release();chrome.tabs.onActivated.removeListener(activation);await chrome.tabs.sendMessage(current.tabId,{type:'nextshot-record-release'}).catch(()=>{});}
-  }catch{if(owner===current){const result=await recorderCall('event',{at:Date.now()-current.started,kind:'gap',label:'Frame skipped because capture-time privacy proof was unavailable.'}).catch(()=>undefined);if(result?.full)void stopAtLimit();}}
+  }catch{if(owner===current){const result=await recorderCall('event',{kind:'gap',label:'Frame skipped because capture-time privacy proof was unavailable.'}).catch(()=>undefined);if(result?.full)void stopAtLimit();}}
   finally{busy=false;}
 }
-export async function recordObservedEvent(tabId:number,kind:string,label:string):Promise<void>{await recovery;if(owner?.tabId!==tabId||owner.paused||owner.stopped||!['click','error','request'].includes(kind))return;const result=await recorderCall('event',{at:Date.now()-owner.started,kind,label});if(result.full)await stopAtLimit();}
+export async function recordObservedEvent(tabId:number,kind:string,label:string):Promise<void>{await recovery;if(owner?.tabId!==tabId||owner.paused||owner.stopped||!['click','error','request'].includes(kind))return;const result=await recorderCall('event',{kind,label});if(result.full)await stopAtLimit();}
 export async function selectRecording(start:number,end:number,issue:number):Promise<string>{
   await recovery;
   if(!owner||!owner.stopped)throw Error('Stop recording before selecting evidence.');

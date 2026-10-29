@@ -35,7 +35,7 @@ async function persist(): Promise<void> {
 }
 function tick(): number {
   if (!owner) return 0;
-  const now = Date.now();
+  const now = performance.now();
   if (!owner.reasons.length)
     owner.clock += Math.max(0, Math.min(2000, now - owner.lastTick));
   owner.lastTick = now;
@@ -55,8 +55,15 @@ const recovery = (async () => {
     if (!(await chrome.offscreen.hasDocument())) throw Error();
     await chrome.tabs.get(saved.tabId);
     owner = saved;
-    owner.lastTick = Date.now();
+    const history = await call("status");
+    if (history.error) throw Error("History unavailable");
+    for (const entry of [...history.frames ?? [], ...history.actions ?? [], ...history.diagnostics ?? []])
+      if (Number.isFinite(entry.at)) owner.clock = Math.max(owner.clock, entry.at);
+    // A new worker has a different monotonic origin. Preserve the evidence high-water mark.
+    delete owner.pauseWallStarted;
+    owner.lastTick = performance.now();
     if (!owner.reasons.includes("snapshot")) owner.reasons.push("snapshot");
+    await call("event", { at: owner.clock, kind: "gap", label: "Capture worker restarted. History resumes in a new continuous segment. Pause duration is unavailable." });
     await persist();
     startTimer();
     const tab = await chrome.tabs.get(saved.tabId);
@@ -99,12 +106,14 @@ export async function rollingPause(
     had = current.reasons.includes(reason);
   current.reasons = current.reasons.filter((r) => r !== reason);
   if (paused) current.reasons.push(reason);
-  current.lastTick = Date.now();
+  current.lastTick = performance.now();
   if (!wasPaused && current.reasons.length)
-    current.pauseWallStarted = Date.now();
+    current.pauseWallStarted = performance.now();
   const resumed = wasPaused && !current.reasons.length;
   const gap = resumed
-    ? `Tracking resumed after ${Math.max(0, (Date.now() - (current.pauseWallStarted ?? Date.now())) / 1000).toFixed(1)} seconds paused. New continuous segment.`
+    ? current.pauseWallStarted === undefined
+      ? "Tracking resumed after a worker restart. Pause duration is unavailable. New continuous segment."
+      : `Tracking resumed after ${Math.max(0, (performance.now() - current.pauseWallStarted) / 1000).toFixed(1)} seconds paused. New continuous segment.`
     : undefined;
   if (resumed) delete current.pauseWallStarted;
   if (had !== paused) {
@@ -176,7 +185,7 @@ export async function armRolling(tabId: number): Promise<void> {
     windowId: tab.windowId,
     origin,
     clock: 0,
-    lastTick: Date.now(),
+    lastTick: performance.now(),
     reasons: [],
     stopped: false,
   };

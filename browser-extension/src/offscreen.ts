@@ -2,11 +2,13 @@ import {EvidenceHistory} from './core/history.ts';
 import {compactGIF} from './rolling-gif.ts';
 import {encodeFrames} from './recording-codec.ts';
 import {newCapture,validateCapture,sanitizeURL,redactSensitive} from './core/index.ts';
-let history=new EvidenceHistory(Infinity,24000000,1000,true);
+let history=new EvidenceHistory(Infinity,24000000,1000,true),rolling=false,started=performance.now();
 chrome.runtime.onMessage.addListener((m,s,respond)=>{
   if(s.id!==chrome.runtime.id||(s.url&&!s.url.startsWith(chrome.runtime.getURL('')))||m?.target!=='recorder')return;
   void(async()=>{
-    if(m.type==='configure'){history=new EvidenceHistory(m.rolling?60000:Infinity,24000000,1000,!m.rolling);return {ok:true};}
+    if(m.type==='configure'){rolling=m.rolling===true;started=performance.now();history=new EvidenceHistory(rolling?60000:Infinity,24000000,1000,!rolling);return {ok:true};}
+    // The offscreen clock survives worker suspension and ignores system clock changes.
+    const at=rolling?m.at:Math.max(0,performance.now()-started);
     if(m.type==='preview'){const frame=history.frames.reduce((best,f)=>!best||Math.abs(f.at-m.at)<Math.abs(best.at-m.at)?f:best,undefined as typeof history.frames[number]|undefined);return frame?{at:frame.at,width:frame.width,height:frame.height,bytes:Array.from(frame.bytes)}:{error:'No verified frame remains.'};}
     if(m.type==='frame'){
       const bitmap=await createImageBitmap(await(await fetch(m.image)).blob()),scale=Math.min(1,1280/bitmap.width,800/bitmap.height);
@@ -18,10 +20,10 @@ chrome.runtime.onMessage.addListener((m,s,respond)=>{
       const capture=newCapture({title:'',width:canvas.width,height:canvas.height});
       capture.elements=(m.proof.elements??[]).filter((e:any)=>e.tag!=='html'&&e.tag!=='body').slice(0,300).map((e:any)=>({...e,bounds:{x:e.bounds.x*canvas.width/m.proof.viewportWidth,y:e.bounds.y*canvas.height/m.proof.viewportHeight,width:e.bounds.width*canvas.width/m.proof.viewportWidth,height:e.bounds.height*canvas.height/m.proof.viewportHeight}}));
       const elements=validateCapture(capture).elements,metadataBytes=new TextEncoder().encode(JSON.stringify(elements)).length;
-      const blob=await canvas.convertToBlob({type:'image/jpeg',quality:.72});history.addFrame({at:m.at,width:canvas.width,height:canvas.height,bytes:new Uint8Array(await blob.arrayBuffer()),elements,metadataBytes,url:sanitizeURL(m.proof.url),title:redactSensitive(m.proof.title,200),alerts:(m.proof.alerts??[]).slice(0,8).map((v:string)=>redactSensitive(v,200)),capturedAt:new Date().toISOString()});return {ok:true,full:history.full};
+      const blob=await canvas.convertToBlob({type:'image/jpeg',quality:.72});history.addFrame({at,width:canvas.width,height:canvas.height,bytes:new Uint8Array(await blob.arrayBuffer()),elements,metadataBytes,url:sanitizeURL(m.proof.url),title:redactSensitive(m.proof.title,200),alerts:(m.proof.alerts??[]).slice(0,8).map((v:string)=>redactSensitive(v,200)),capturedAt:new Date().toISOString()});return {ok:true,full:history.full};
     }
-    if(m.type==='event'){history.event(m.at,m.kind,m.label);return {ok:true,full:history.full};}
-    if(m.type==='limit'){history.limit(m.at,m.label);return {ok:true};}
+    if(m.type==='event'){history.event(at,m.kind,m.label);return {ok:true,full:history.full};}
+    if(m.type==='limit'){history.limit(at,m.label);return {ok:true};}
     if(m.type==='status')return {frames:history.frames.map(f=>({at:f.at,width:f.width,height:f.height,alerts:f.alerts})),bytes:history.bytes,full:history.full,actions:history.actions,diagnostics:history.diagnostics};
     if(m.type==='clear'){history.clear();return {ok:true,full:history.full};}
     if(m.type==='select'){
