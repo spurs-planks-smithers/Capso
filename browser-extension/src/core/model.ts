@@ -1,5 +1,5 @@
 export type MarkKind='dot'|'arrow'|'box';
-export interface Mark {id:number;kind:MarkKind;x:number;y:number;endX?:number;endY?:number;note:string;}
+export interface Mark {id:number;kind:MarkKind;x:number;y:number;endX?:number;endY?:number;note:string;elementId?:string;}
 export interface Bounds {x:number;y:number;width:number;height:number;}
 export interface ElementEvidence {id:string;selector:string;tag:string;role?:string;text?:string;bounds:Bounds;frameURL?:string;source?:string;}
 export interface ActionEvent {at:number;kind:string;label:string;elementId?:string;}

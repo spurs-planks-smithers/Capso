@@ -7,8 +7,9 @@ const root=path.dirname(fileURLToPath(import.meta.url));
 const output=path.resolve(root,'../build/chrome-extension');
 await mkdir(output,{recursive:true});
 const names=await readdir(path.join(root,'src'));
-const entries=names.filter(n=>n.endsWith('.ts')).map(n=>path.join(root,'src',n));
+const entries=names.filter(n=>n.endsWith('.ts')&&n!=='content.ts').map(n=>path.join(root,'src',n));
 if(entries.length)await build({entryPoints:entries,outdir:output,bundle:true,format:'esm',target:'chrome120',minify:false,sourcemap:false});
+if(names.includes('content.ts'))await build({entryPoints:[path.join(root,'src/content.ts')],outfile:path.join(output,'content.js'),bundle:true,format:'iife',target:'chrome120'});
 await build({entryPoints:[path.join(root,'src/core/index.ts')],outfile:path.join(output,'core.js'),bundle:true,format:'esm',target:'chrome120'});
 for(const name of await readdir(root)){
   if(name==='manifest.json')await copyFile(path.join(root,name),path.join(output,name));

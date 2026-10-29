@@ -19,7 +19,8 @@ export function validateCapture(input:unknown):Capture {
     width,height,imageFile:safeFileName(c.imageFile),cleanImageFile:safeFileName(c.cleanImageFile),note:sanitizeText(c.note,20000),
     marks:c.marks.map((m,i)=>{
       if(!['dot','arrow','box'].includes(m.kind)||m.id!==i+1)throw new Error('Invalid annotation');
-      return {id:m.id,kind:m.kind,x:finite(m.x,0,width),y:finite(m.y,0,height),endX:m.endX===undefined?undefined:finite(m.endX,0,width),endY:m.endY===undefined?undefined:finite(m.endY,0,height),note:sanitizeText(m.note,10000)};
+      if(m.elementId&&!c.elements.some(e=>e.id===m.elementId))throw new Error('Unknown annotation element');
+      return {id:m.id,kind:m.kind,x:finite(m.x,0,width),y:finite(m.y,0,height),endX:m.endX===undefined?undefined:finite(m.endX,0,width),endY:m.endY===undefined?undefined:finite(m.endY,0,height),note:sanitizeText(m.note,10000),elementId:m.elementId};
     }),
     elements:c.elements.map(e=>({id:sanitizeText(e.id,100),selector:redactSensitive(e.selector,500),tag:sanitizeText(e.tag,30),role:sanitizeText(e.role,60),text:redactSensitive(e.text,300),
       bounds:{x:finite(e.bounds.x,-100000),y:finite(e.bounds.y,-100000),width:finite(e.bounds.width,0),height:finite(e.bounds.height,0)},frameURL:sanitizeURL(e.frameURL),source:undefined})),

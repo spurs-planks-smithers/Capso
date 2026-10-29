@@ -8,6 +8,10 @@ Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This for
 
 ## [Unreleased]
 
+### Added
+
+- A development-only Chrome extension supports local area capture, numbered annotations, notes, element context, and portable export. It remains outside the release package.
+
 ### Changed
 
 - A copied prompt lists your items and notes near the top and asks the agent to name its session, so sessions no longer share one name. Recent Rounds labels each round with your first instruction, and the date moves to the line below.

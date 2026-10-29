@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "Nextshot Dev",
+  "version": "0.1.0",
+  "description": "Capture browser feedback with exact element context. Works with or without Nextshot.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAy8223AoNWbCIPLJIyQSoifkRrmomIf7Y7HwIYtHz0FK5tpEw7/A8rc/nby020d56XNgq797WEPPuOtMRtz2o80LbzZU5soOHIbEN2GwEWKg00lPK314Ya6m+SO4xLqWVEnbQxjtaA9VYnU5NiNK4mQ0C32RkOQi8SXn+xRj8szWGmqvrw1S9Y7o66Lc0mDUR6O0JzdEYMzwslPZp7H2PCS2MjqOWRRol5GCvVdwPNIbIfFlFikXua9vcURJKuEGxpa9z2M7EfaiDlMxQ/qnKAEga8XPCjb24nV8JjPjuBiJcfhoIh85i9pzMdxeOvBAR+LhRwaJzJcXGCPL6R7BubQIDAQAB",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "optional_permissions": [
+    "nativeMessaging",
+    "tabCapture",
+    "webRequest",
+    "downloads",
+    "clipboardWrite",
+    "offscreen"
+  ],
+  "optional_host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Nextshot",
+    "default_popup": "popup.html"
+  },
+  "commands": {
+    "capture": {
+      "description": "Capture browser feedback",
+      "suggested_key": {
+        "default": "Alt+Shift+B",
+        "mac": "Alt+Shift+B"
+      }
+    }
+  }
+}

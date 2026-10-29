@@ -32,6 +32,10 @@ export async function saveDraft(draft:Draft):Promise<void> {
 }
 export async function getDraft(id:string):Promise<Draft|undefined> {const db=await open(),draft=await value<Draft|undefined>(db.transaction('drafts').objectStore('drafts').get(id));if(!draft)return;const capture=validateCapture(draft.capture);return {capture,assets:referencedAssets(capture,draft.assets)};}
 export async function discardDraft(id:string):Promise<void> {const db=await open(),tx=db.transaction('drafts','readwrite'),done=complete(tx);tx.objectStore('drafts').delete(id);await done;}
+export async function pruneDrafts(retained:string[]):Promise<void> {
+  const db=await open(),tx=db.transaction('drafts','readwrite'),done=complete(tx),store=tx.objectStore('drafts');
+  const keep=new Set(retained);for(const id of await value<IDBValidKey[]>(store.getAllKeys()))if(!keep.has(String(id)))store.delete(id);await done;
+}
 function validateAssets(assets:Asset[]):void {
   if(!assets.length||assets.length>100)throw new Error('Missing evidence assets');let total=0;const names=new Set();
   for(const a of assets){safeFileName(a.name);if(names.has(a.name)||!(a.bytes instanceof Uint8Array)||!['image/jpeg','image/png','image/webp','image/gif','video/webm','video/mp4'].includes(a.mime))throw new Error('Invalid evidence asset');names.add(a.name);total+=a.bytes.length;if(total>128*1024*1024)throw new Error('Evidence exceeds processing limit');}
