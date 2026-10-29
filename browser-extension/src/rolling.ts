@@ -1,3 +1,4 @@
+import {beginFrameContext,type FrameContext} from './frame-context.ts';
 import { newCapture, saveDraft, discardDraft } from "./core/index.ts";
 import type { ActionEvent, Asset } from "./core/model.ts";
 export type RollingPause =
@@ -240,11 +241,13 @@ async function sample(): Promise<void> {
   busy = true;
   const current = owner;
   const at = tick();
+  let frames:FrameContext|undefined;
   try {
     const proof = await chrome.tabs.sendMessage(current.tabId, {
       type: "nextshot-record-frame",
     });
     if (!proof?.proofId) throw Error("No proof");
+    frames=await beginFrameContext(current.tabId);
     const image = await chrome.tabs.captureVisibleTab(current.windowId, {
       format: "png",
     });
@@ -264,10 +267,11 @@ async function sample(): Promise<void> {
       current.stopped ||
       current.reasons.length ||
       !confirmed?.ok ||
+      frames&&!await frames.confirm() ||
       new URL(tab.url ?? "").origin !== current.origin
     )
       throw Error("Snapshot changed");
-    await call("frame", { image, proof, at });
+    await call("frame", { image, proof:frames?{...proof,elements:frames.elements,privateRects:frames.privateRects}:proof, at });
   } catch {
     if (current === owner)
       await call("event", {
@@ -277,6 +281,7 @@ async function sample(): Promise<void> {
           "Frame unavailable: capture-time privacy proof could not be verified.",
       }).catch(() => {});
   } finally {
+    await frames?.release();
     await chrome.tabs
       .sendMessage(current.tabId, { type: "nextshot-record-release" })
       .catch(() => {});

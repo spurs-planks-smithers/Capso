@@ -1,3 +1,4 @@
+import {beginFrameContext,type FrameContext} from './frame-context.ts';
 import {newCapture,saveDraft} from './core/index.ts';
 import type {Asset} from './core/model.ts';
 interface RecordingOwner {tabId:number;windowId:number;origin:string;started:number;paused:boolean;stopped:boolean;stopReason?:string;}
@@ -54,12 +55,14 @@ export async function sampleRecording():Promise<void>{
     const tab=await chrome.tabs.get(current.tabId);if(new URL(tab.url??'').origin!==current.origin){await pauseRecording('Site changed. Stop and re-arm on the new site.');return;}
     const proof=await chrome.tabs.sendMessage(current.tabId,{type:'nextshot-record-frame'});if(!proof?.proofId)throw Error('Snapshot unavailable');
     let switched=false;const activation=()=>{switched=true;};chrome.tabs.onActivated.addListener(activation);
+    let frames:FrameContext|undefined;
     try{
+      frames=await beginFrameContext(current.tabId);
       const image=await chrome.tabs.captureVisibleTab(current.windowId,{format:'png'}),confirmed=await chrome.tabs.sendMessage(current.tabId,{type:'nextshot-confirm-capture',proofId:proof.proofId});
       const activeNow=(await chrome.tabs.query({active:true,windowId:current.windowId}))[0];
-      if(switched||!confirmed?.ok||activeNow?.id!==current.tabId||current!==owner||current.stopped)throw Error('Page changed during snapshot');
-      const retained=await recorderCall('frame',{image,proof,at:Date.now()-current.started});if(retained.full)void stopAtLimit();
-    }finally{chrome.tabs.onActivated.removeListener(activation);await chrome.tabs.sendMessage(current.tabId,{type:'nextshot-record-release'}).catch(()=>{});}
+      if(switched||!confirmed?.ok||frames&&!await frames.confirm()||activeNow?.id!==current.tabId||current!==owner||current.stopped)throw Error('Page changed during snapshot');
+      const retained=await recorderCall('frame',{image,proof:frames?{...proof,elements:frames.elements,privateRects:frames.privateRects}:proof,at:Date.now()-current.started});if(retained.full)void stopAtLimit();
+    }finally{await frames?.release();chrome.tabs.onActivated.removeListener(activation);await chrome.tabs.sendMessage(current.tabId,{type:'nextshot-record-release'}).catch(()=>{});}
   }catch{if(owner===current){const result=await recorderCall('event',{at:Date.now()-current.started,kind:'gap',label:'Frame skipped because capture-time privacy proof was unavailable.'}).catch(()=>undefined);if(result?.full)void stopAtLimit();}}
   finally{busy=false;}
 }

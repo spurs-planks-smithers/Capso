@@ -2,7 +2,7 @@ import type {Bounds,ElementEvidence} from './core/model.ts';
 import {redactSensitive,sanitizeURL} from './core/sanitize.ts';
 
 interface Child {index:number;box:Bounds;viewport:Bounds;safe:boolean;origin?:string;}
-interface Proof {token:string;path:number[];url:string;width:number;height:number;elements:ElementEvidence[];privateRects:Bounds[];children:Child[];}
+interface Proof {token:string;path:number[];url:string;width:number;height:number;scrollX:number;scrollY:number;elements:ElementEvidence[];privateRects:Bounds[];children:Child[];}
 interface FrameProof {frameId:number;documentId:string;proof:Proof;}
 export interface FrameContext {
   elements:ElementEvidence[];privateRects:Bounds[];requiredOrigins:string[];
@@ -19,6 +19,11 @@ export interface FrameContext {
  * The caller must still confirm its own region proof and screenshot scaling before retention.
  */
 export async function beginFrameContext(tabId:number):Promise<FrameContext|undefined> {
+  // Discover permission candidates only during an explicit capture or armed sample.
+  try{const found=await chrome.scripting.executeScript({target:{tabId},func:()=>({url:location.href,origins:[...new Set([...document.querySelectorAll('iframe')].flatMap(e=>{try{const u=new URL(e.src,location.href);return /^https?:$/.test(u.protocol)?[u.origin+'/*']:[];}catch{return [];} }))]})});
+    if(found[0]?.result)await chrome.storage.session.set({['frameOrigins:'+tabId]:found[0].result});
+  }catch{}
+  if(!(await chrome.storage.local.get('embeddedPreviewsEnabled')).embeddedPreviewsEnabled)return;
   const token=crypto.randomUUID();let frames:FrameProof[]=[];
   try {
     const results=await chrome.scripting.executeScript({target:{tabId,allFrames:true},func:frameProbe,args:['begin',token]});
@@ -26,6 +31,7 @@ export async function beginFrameContext(tabId:number):Promise<FrameContext|undef
     const top=frames.find(f=>f.frameId===0&&f.proof.path.length===0);
     if(!top){await cleanup();return;}
     const merged=composeFrameContext(frames.map(f=>f.proof));
+    const tab=await chrome.tabs.get(tabId);await chrome.storage.session.set({['frameOrigins:'+tabId]:{url:tab.url,origins:merged.requiredOrigins}});
     return {...merged,confirm:async()=>{
       try {
         for(const frame of frames){
@@ -53,7 +59,7 @@ export function composeFrameContext(proofs:Proof[]):Pick<FrameContext,'elements'
     const map=(b:Bounds)=>clip({x:b.x+x,y:b.y+y,width:b.width,height:b.height},visible);
     const prefix=proof.path.length?`frame[${key(proof.path)}]`:'top';
     const url=sanitizeURL(proof.url);
-    for(const e of proof.elements){const bounds=map(e.bounds);if(bounds.width&&bounds.height)elements.push({...e,id:`${prefix}:${e.id}`,selector:`${prefix} >>> ${e.selector}`,text:redactSensitive(e.text??'',300),frameURL:url,bounds});}
+    for(const e of proof.elements){const bounds=map(e.bounds);if(bounds.width&&bounds.height)elements.push({...e,id:`${prefix}:${e.id}`,selector:redactSensitive(`${prefix} >>> ${e.selector}`,500),text:redactSensitive(e.text??'',300),frameURL:url,bounds});}
     for(const r of proof.privateRects){const b=map(r);if(b.width&&b.height)privateRects.push(b);}
     for(const child of proof.children){
       const matches=groups.get(key([...proof.path,child.index]));const nested=matches?.length===1?matches[0]:undefined;
@@ -76,7 +82,7 @@ export function frameProbe(action:'begin'|'confirm'|'release',token:string):Proo
   const path=():number[]=>{const result:number[]=[];let child:Window=window;while(child!==child.parent){const parent=child.parent;let found=-1;for(let i=0;i<parent.length;i++)if(parent.frames[i]===child){found=i;break;}if(found<0||result.length>=12)throw Error('Unknown frame path');result.unshift(found);child=parent;}return result;};
   const rect=(e:Element):Bounds=>{const r=e.getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height};};
   const nodes=():Element[]=>{const result:Element[]=[],pending:ParentNode[]=[document];while(pending.length){for(const e of pending.pop()!.querySelectorAll('*')){if(e.closest('[data-nextshot-overlay]'))continue;if(result.length>=20000)throw Error('Frame too large');result.push(e);const shadow=(e instanceof HTMLElement?chrome.dom?.openOrClosedShadowRoot(e):null)??e.shadowRoot;if(shadow)pending.push(shadow);}}return result;};
-  const selector=(e:Element):string=>{const parts:string[]=[];let current:Element|null=e;for(let i=0;current&&i<5;i++,current=current.parentElement){const parent=current.parentElement;const siblings=parent?[...parent.children].filter(n=>n.tagName===current!.tagName):[];parts.unshift(current.tagName.toLowerCase()+(siblings.length>1?`:nth-of-type(${siblings.indexOf(current)+1})`:''));}return parts.join(' > ');};
+  const selector=(e:Element):string=>{const parts:string[]=[];let current:Element|null=e;for(let i=0;current&&i<5;i++,current=current.parentElement){if(current.id&&!/(?:token|secret|password)/i.test(current.id)){parts.unshift(current.tagName.toLowerCase()+'#'+CSS.escape(current.id));break;}const parent=current.parentElement;const siblings=parent?[...parent.children].filter(n=>n.tagName===current!.tagName):[];parts.unshift(current.tagName.toLowerCase()+(siblings.length>1?`:nth-of-type(${siblings.indexOf(current)+1})`:''));}const root=e.getRootNode();return(root instanceof ShadowRoot?selector(root.host)+' >>> ':'')+parts.join(' > ');};
   const read=():Proof=>{
     if(!/^https?:$/.test(location.protocol)||visualViewport&&(visualViewport.scale!==1||visualViewport.offsetLeft!==0||visualViewport.offsetTop!==0))throw Error('Unsupported viewport');
     const all=nodes();
@@ -87,7 +93,7 @@ export function frameProbe(action:'begin'|'confirm'|'release',token:string):Proo
       const box=rect(e);if(box.width<=0||box.height<=0)continue;
       if(e instanceof HTMLIFrameElement||e instanceof HTMLFrameElement){
         let index=-1;for(let i=0;i<window.length;i++)if(window.frames[i]===e.contentWindow){index=i;break;}
-        let safe=index>=0&&e instanceof HTMLIFrameElement&&e.getRootNode()===document&&Math.abs(box.width-e.offsetWidth)<.5&&Math.abs(box.height-e.offsetHeight)<.5;
+        let safe=index>=0&&e instanceof HTMLIFrameElement&&!e.hasAttribute('sandbox')&&e.getRootNode()===document&&Math.abs(box.width-e.offsetWidth)<.5&&Math.abs(box.height-e.offsetHeight)<.5;
         for(let ancestor:Element|null=e;ancestor;ancestor=ancestor.parentElement){const s=getComputedStyle(ancestor);if(s.transform!=='none'||s.translate!=='none'||s.rotate!=='none'||s.scale!=='none'||s.perspective!=='none'||s.clipPath!=='none'||s.filter!=='none'||s.zoom!=='1'||s.borderRadius!=='0px'||s.maskImage!=='none')safe=false;const a=rect(ancestor);if(ancestor!==e&&([s.overflowX,s.overflowY].some(v=>['hidden','clip','scroll','auto'].includes(v)))&&(box.x<a.x||box.y<a.y||box.x+box.width>a.x+a.width||box.y+box.height>a.y+a.height))safe=false;}
         // Scrollbar/frame border geometry must agree with the child viewport.
         const viewport={x:box.x+e.clientLeft,y:box.y+e.clientTop,width:e.clientWidth,height:e.clientHeight};
@@ -100,7 +106,7 @@ export function frameProbe(action:'begin'|'confirm'|'release',token:string):Proo
       const own=[...e.childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).map(n=>n.textContent??'').join(' ');
       elements.push({id:`element-${elements.length+1}`,selector:selector(e),tag:e.tagName.toLowerCase(),role:(e.getAttribute('role')??'').slice(0,60),text:(e.getAttribute('aria-label')||own).slice(0,300),bounds:box});
     }
-    return{token,path:path(),url:location.href,width:innerWidth,height:innerHeight,elements,privateRects,children};
+    return{token,path:path(),url:location.href,width:innerWidth,height:innerHeight,scrollX,scrollY,elements,privateRects,children};
   };
   try{
     if(action==='confirm'){const saved=host.__nextshotFrameProof;if(!saved||saved.token!==token||saved.dirty||JSON.stringify(read())!==saved.fingerprint)return;return saved.proof;}

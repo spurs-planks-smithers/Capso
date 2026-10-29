@@ -93,7 +93,7 @@ function fingerprint(region:Bounds):string {
 }
 function masks():HTMLElement[] {
   const covers:HTMLElement[]=[];
-  for(const r of privateRects()){
+  for(const r of privateRects(allElements().filter(e=>e.tagName!=='IFRAME'))){
     const cover=document.createElement('div');cover.dataset.nextshotOverlay='mask';
     Object.assign(cover.style,{position:'fixed',left:`${Math.max(0,r.x)}px`,top:`${Math.max(0,r.y)}px`,width:`${r.width}px`,height:`${r.height}px`,background:'#252527',zIndex:'2147483646',pointerEvents:'none'});
     document.documentElement.append(cover);covers.push(cover);

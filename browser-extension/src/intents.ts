@@ -1,14 +1,22 @@
 /** Resume an explicit popup action after Chrome closes its permission sheet. */
-export type IntentKind='capture'|'recording'|'rolling'|'native';
+export type IntentKind='capture'|'recording'|'rolling'|'native'|'frames';
 interface Intent {id:string;kind:IntentKind;tabId?:number;permissions:chrome.permissions.Permissions;expires:number;}
 let run:(intent:Intent)=>Promise<void>,queue=Promise.resolve();
 export function registerIntents(action:(intent:Intent)=>Promise<void>):void {
   run=action;chrome.permissions.onAdded.addListener(()=>{void finishIntent();});
 }
 export async function prepareIntent(kind:IntentKind,tabId?:number):Promise<{id:string;needsPermission:boolean;permissions:chrome.permissions.Permissions}> {
-  if(!['capture','recording','rolling','native'].includes(kind))throw Error('Unknown requested action');
+  if(!['capture','recording','rolling','native','frames'].includes(kind))throw Error('Unknown requested action');
   let permissions:chrome.permissions.Permissions;
   if(kind==='native')permissions={permissions:['nativeMessaging']};
+  else if(kind==='frames'){
+    if(!Number.isInteger(tabId))throw Error('Choose a website tab.');
+    const tab=await chrome.tabs.get(tabId!),record=(await chrome.storage.session.get('frameOrigins:'+tabId))['frameOrigins:'+tabId] as {url?:string;origins?:unknown[]}|undefined;
+    if(!record||record.url!==tab.url||!Array.isArray(record.origins)||!record.origins.length)throw Error('Capture this page first to find embedded sites.');
+    const origins=record.origins.filter((v:unknown):v is string=>{if(typeof v!=='string')return false;try{const u=new URL(v);return /^https?:$/.test(u.protocol)&&v===u.origin+'/*';}catch{return false;}});
+    if(origins.length!==record.origins.length)throw Error('Embedded site permission is invalid.');
+    permissions={origins};
+  }
   else{
     if(!Number.isInteger(tabId))throw Error('Choose a website tab.');
     const tab=await chrome.tabs.get(tabId!);if(!tab.url||!/^https?:/.test(tab.url))throw Error('Choose a website tab.');

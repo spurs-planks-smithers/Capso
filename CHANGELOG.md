@@ -10,6 +10,8 @@ Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This for
 
 ### Added
 
+- An off-by-default Chrome trial adds element context from permitted embedded previews, with private fields covered before storage.
+
 - The disabled Chrome Rolling Round trial keeps bounded recent history and saves a selected excerpt as a separate ended round.
 
 - The Chrome development trial adds explicit silent sampled recording, bounded local diagnostics, and selected-evidence review. Recording starts disabled.

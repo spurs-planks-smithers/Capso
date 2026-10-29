@@ -1,3 +1,4 @@
+import {beginFrameContext,type FrameContext} from './frame-context.ts';
 import {armRolling,stopRolling,openRolling,rollingStatus,rollingPause,pauseForSelection,rollingEvent,rollingPreview,rollingSelection,finishRollingReview} from './rolling.ts';
 import {startRecording,pauseRecording,resumeRecording,stopRecording,discardRecording,recordingStatus,selectRecording,recordObservedEvent} from './recording.ts';
 import {newCapture,saveDraft,discardDraft,pruneDrafts,sanitizeURL,sanitizeText,redactSensitive} from './core/index.ts';
@@ -18,7 +19,7 @@ async function startCapture(tabId:number):Promise<void> {
   if(!tab.url||!/^https?:/.test(tab.url))throw new Error('Choose a website tab to capture.');
   await pauseForSelection();try{await inject(tabId);await chrome.tabs.sendMessage(tabId,{type:'nextshot-select'});}catch(e){await rollingPause('selection',false);throw e;}
 }
-registerIntents(async intent=>{if(intent.kind==='capture')await startCapture(intent.tabId!);else if(intent.kind==='rolling')await armRolling(intent.tabId!);else if(intent.kind==='recording')await startRecording(intent.tabId!);else await chrome.storage.local.set({nativeSave:true});});
+registerIntents(async intent=>{if(intent.kind==='frames')await chrome.storage.local.set({embeddedPreviewsEnabled:true});if((intent.kind==='capture'||intent.kind==='frames'))await startCapture(intent.tabId!);else if(intent.kind==='rolling')await armRolling(intent.tabId!);else if(intent.kind==='recording')await startRecording(intent.tabId!);else await chrome.storage.local.set({nativeSave:true});});
 chrome.commands.onCommand.addListener(async command=>{
   if(command==='rolling-round'){await openRolling().catch(()=>{});return;}if(command!=='capture')return;
   const [tab]=await chrome.tabs.query({active:true,currentWindow:true});if(tab?.id)await startCapture(tab.id).catch(()=>{});
@@ -53,12 +54,15 @@ async function captureRegion(tabId:number,windowId:number,message:any):Promise<{
   let switched=false,screenshot:string;
   const activation=(info:{tabId:number;windowId:number})=>{if(info.windowId===windowId&&info.tabId!==tabId)switched=true;};
   chrome.tabs.onActivated.addListener(activation);
+  let frames:FrameContext|undefined;
   try{
+    frames=await beginFrameContext(tabId);
     screenshot=await chrome.tabs.captureVisibleTab(windowId,{format:'png'});
     const confirmed=await chrome.tabs.sendMessage(tabId,{type:'nextshot-confirm-capture',proofId:message.proofId});
     const current=(await chrome.tabs.query({active:true,windowId}))[0];
-    if(switched||current?.id!==tabId||!confirmed?.ok)throw new Error('The selected page changed during capture. Capture this area again.');
-  }finally{chrome.tabs.onActivated.removeListener(activation);}
+    if(switched||current?.id!==tabId||!confirmed?.ok||frames&&!await frames.confirm())throw new Error('The selected page changed during capture. Capture this area again.');
+  }finally{chrome.tabs.onActivated.removeListener(activation);await frames?.release();}
+  if(frames){message={...message,elements:frames.elements,privateRects:frames.privateRects};}
   const image=await createImageBitmap(await (await fetch(screenshot)).blob());
   const scaleX=image.width/message.viewportWidth,scaleY=image.height/message.viewportHeight;
   if(Math.abs(scaleX-scaleY)>Math.max(scaleX,scaleY)*.01){image.close();throw new Error('This browser view cannot be captured safely. Use a standard tab view.');}
