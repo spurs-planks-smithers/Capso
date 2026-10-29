@@ -1,6 +1,6 @@
 import {EvidenceHistory} from './core/history.ts';
 import {encodeFrames} from './recording-codec.ts';
-const history=new EvidenceHistory();
+const history=new EvidenceHistory(Infinity,24000000,1000,true);
 chrome.runtime.onMessage.addListener((m,s,respond)=>{
   if(s.id!==chrome.runtime.id||m?.target!=='recorder')return;
   void(async()=>{
@@ -9,11 +9,12 @@ chrome.runtime.onMessage.addListener((m,s,respond)=>{
       const canvas=new OffscreenCanvas(Math.round(bitmap.width*scale),Math.round(bitmap.height*scale)),ctx=canvas.getContext('2d')!;
       ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);bitmap.close();ctx.fillStyle='#252527';
       for(const r of m.proof.privateRects)ctx.fillRect(r.x*canvas.width/m.proof.viewportWidth,r.y*canvas.height/m.proof.viewportHeight,r.width*canvas.width/m.proof.viewportWidth,r.height*canvas.height/m.proof.viewportHeight);
-      const blob=await canvas.convertToBlob({type:'image/jpeg',quality:.72});history.addFrame({at:m.at,width:canvas.width,height:canvas.height,bytes:new Uint8Array(await blob.arrayBuffer())});return {ok:true};
+      const blob=await canvas.convertToBlob({type:'image/jpeg',quality:.72});history.addFrame({at:m.at,width:canvas.width,height:canvas.height,bytes:new Uint8Array(await blob.arrayBuffer())});return {ok:true,full:history.full};
     }
-    if(m.type==='event'){history.event(m.at,m.kind,m.label);return {ok:true};}
-    if(m.type==='status')return {frames:history.frames.map(f=>({at:f.at,width:f.width,height:f.height})),bytes:history.bytes,actions:history.actions,diagnostics:history.diagnostics};
-    if(m.type==='clear'){history.clear();return {ok:true};}
+    if(m.type==='event'){history.event(m.at,m.kind,m.label);return {ok:true,full:history.full};}
+    if(m.type==='limit'){history.limit(m.at,m.label);return {ok:true};}
+    if(m.type==='status')return {frames:history.frames.map(f=>({at:f.at,width:f.width,height:f.height})),bytes:history.bytes,full:history.full,actions:history.actions,diagnostics:history.diagnostics};
+    if(m.type==='clear'){history.clear();return {ok:true,full:history.full};}
     if(m.type==='select'){
       const selected=history.select(m.start,m.end),frame=selected.frames.reduce((best,f)=>Math.abs(f.at-m.issue)<Math.abs(best.at-m.issue)?f:best,selected.frames[0]);
       if(!frame)throw Error('No verified frames in this range.');

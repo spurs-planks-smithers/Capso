@@ -22,9 +22,11 @@ function initialize():void {
     if(message?.type==='nextshot-record-frame'){
       void(async()=>{
         frameCleanup?.();const region={x:0,y:0,width:innerWidth,height:innerHeight};
-        const animations=document.getAnimations().filter(a=>a.playState==='running');animations.forEach(a=>a.pause());
-        const covers=masks();let observer:MutationObserver|undefined;
-        frameCleanup=()=>{observer?.disconnect();captureProof=undefined;covers.forEach(e=>e.remove());animations.forEach(a=>a.play());frameCleanup=undefined;};
+        const privateNodes=allElements().filter(e=>['INPUT','TEXTAREA','SELECT','IFRAME'].includes(e.tagName)||editable(e));
+        const movesPrivate=document.getAnimations().some(a=>{const target=a.effect instanceof KeyframeEffect?a.effect.target:null;return a.playState==='running'&&target instanceof Element&&privateNodes.some(e=>target.contains(e)||e.contains(target));});
+        if(movesPrivate){respond({error:'A private region is animated. This frame is skipped.'});return;}
+        let observer:MutationObserver|undefined;
+        frameCleanup=()=>{observer?.disconnect();captureProof=undefined;frameCleanup=undefined;};
         try{
           await new Promise<void>(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r())));
           const proofId=crypto.randomUUID();captureProof={id:proofId,region,fingerprint:fingerprint(region),url:location.href,dirty:false};

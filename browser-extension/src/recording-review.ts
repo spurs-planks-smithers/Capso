@@ -2,7 +2,7 @@ const $=(id:string)=>document.getElementById(id)!;
 const call=(action:string,extra:Record<string,unknown>={})=>chrome.runtime.sendMessage({type:'nextshot-record',action,...extra});
 async function refresh():Promise<void>{
  const s=await call('status');if(s.error)throw Error(s.error);
- $('status').textContent=s.tabId?`${s.stopped?'Stopped':s.paused?'Paused':'Recording'}: ${s.frames.length} verified frames, ${Math.round((s.bytes??0)/1000)} kilobytes in memory. Last 60 seconds retained.`:'No recording remains in memory.';
+ $('status').textContent=s.tabId?`${s.stopReason??(s.stopped?'Stopped':s.paused?'Paused':'Recording')}: ${s.frames.length} verified frames in memory. Captured evidence stays available until selection or discard.`:'No recording remains in memory.';
  $('selection').hidden=!s.stopped||!s.frames?.length;
  if(s.frames?.length){const first=s.frames[0].at/1000,last=s.frames.at(-1).at/1000;for(const [id,value] of [['start',first],['end',last],['issue',last]] as const){const input=$(id) as HTMLInputElement;if(!input.dataset.edited)input.value=String(value);}}
  $('events').replaceChildren();for(const e of [...s.actions??[],...s.diagnostics??[]].sort((a,b)=>a.at-b.at)){const row=document.createElement('li');row.textContent=`${(e.at/1000).toFixed(1)}s: ${e.label??e.text}${e.url?' '+e.url:''}`;$('events').append(row);}
