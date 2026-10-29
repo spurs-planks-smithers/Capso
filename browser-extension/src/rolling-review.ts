@@ -1,3 +1,4 @@
+import type {AssistInput,AssistResult} from './assistance.ts';
 import type { ActionEvent } from "./core/model.ts";
 const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
   document.getElementById(id)! as T;
@@ -11,6 +12,34 @@ let state: any,
   url: string | undefined,
   previewRevision = 0,
   selectedRevision = 0;
+const originalSteps=new WeakMap<ActionEvent,ActionEvent>();
+let assistRequest:string|undefined;
+function invalidateAssistance():void{
+  selectedRevision++;
+  if(assistRequest){void chrome.runtime.sendMessage({type:'nextshot-assistance',action:'cancel',requestID:assistRequest});assistRequest=undefined;}
+  document.getElementById('assistance-suggestions')?.replaceChildren();
+}
+const assistButton=document.createElement('button');assistButton.id='assist-steps';assistButton.textContent='Suggest relevant steps';
+const assistSuggestions=document.createElement('div');assistSuggestions.id='assistance-suggestions';assistSuggestions.setAttribute('role','status');
+$('add').after(assistButton,assistSuggestions);
+void chrome.storage.local.get('assistanceMode').then(v=>{assistButton.hidden=!['apple','jev'].includes(String(v.assistanceMode));});
+assistButton.onclick=async()=>{
+  invalidateAssistance();const revision=selectedRevision,requestID=crypto.randomUUID();assistRequest=requestID;
+  const candidates=steps.filter(step=>step.at>=start&&step.at<=end&&step.kind!=='excluded'&&originalSteps.has(step)).slice(0,32);
+  if(!candidates.length){assistSuggestions.textContent='Add an observed step first.';return;}
+  const selection:AssistInput={purpose:'steps',requestID,selectionVersion:revision,rollingID:state.id,issueAtMs:Math.round(issue-start),
+    timeline:candidates.map((step,index)=>({id:`s${index}`,kind:originalSteps.get(step)!.kind,label:originalSteps.get(step)!.label,timeMs:Math.round(step.at-start)})),
+    diagnostics:(state.diagnostics??[]).filter((d:any)=>d.at>=start&&d.at<=end).slice(0,8).map((d:any,index:number)=>({id:`d${index}`,kind:d.kind,summary:d.text})),candidates:[]};
+  assistButton.disabled=true;assistSuggestions.textContent='Checking selected text. Your steps stay available.';
+  try{const result:AssistResult=await chrome.runtime.sendMessage({type:'nextshot-assistance',action:'refine',selection});
+    if(revision!==selectedRevision||!state)return;
+    assistSuggestions.replaceChildren();
+    if(!result.available||!result.ids.length){assistSuggestions.textContent='Local steps remain available.';return;}
+    const label=document.createElement('p');label.textContent=`Suggested captured steps (${result.source==='apple'?'Apple':'Jev'}). Your list stays unchanged.`;assistSuggestions.append(label);
+    const list=document.createElement('ul');for(const id of result.ids){const step=candidates[Number(id.slice(1))];if(!step||!/^s[0-9]+$/.test(id))continue;const row=document.createElement('li');row.textContent=step.label;list.append(row);}assistSuggestions.append(list);
+  }catch{if(revision===selectedRevision)assistSuggestions.textContent='Local steps remain available.';}
+  finally{assistButton.disabled=false;if(assistRequest===requestID)assistRequest=undefined;}
+};
 const timeline = $<HTMLInputElement>("timeline");
 function fail(e: unknown): void {
   $("status").textContent =
@@ -36,7 +65,7 @@ function renderSteps(): void {
       check = document.createElement("input"),
       input = document.createElement("input");
     check.type = "checkbox";
-    check.checked = true;
+    check.checked = step.kind !== "excluded";
     input.type = "text";
     input.value = step.label;
     input.setAttribute(
@@ -45,11 +74,11 @@ function renderSteps(): void {
     );
     input.oninput = () => {
       step.label = input.value;
-      selectedRevision++;
+      invalidateAssistance();
     };
     check.onchange = () => {
       step.kind = check.checked ? "click" : "excluded";
-      selectedRevision++;
+      invalidateAssistance();
     };
     row.append(check, input);
     $("steps").append(row);
@@ -77,7 +106,7 @@ function mark(): void {
   steps = (state.actions as ActionEvent[])
     .filter((s) => s.at >= start && s.at <= issue)
     .slice(-12)
-    .map((s) => ({ ...s }));
+    .map((s) => {const copy={...s};originalSteps.set(copy,{...s});return copy;});
   $<HTMLInputElement>("start").value = String(start / 1000);
   $<HTMLInputElement>("end").value = String(end / 1000);
   $("details").hidden = false;
@@ -86,7 +115,7 @@ function mark(): void {
     "The report includes the chosen failure frame and these observed setup steps.";
   $("status").textContent =
     "Selection ready. Continue, or adjust the steps and range.";
-  selectedRevision++;
+  invalidateAssistance();
   renderSteps();
 }
 timeline.oninput = () => {
@@ -97,20 +126,22 @@ for (const id of ["start", "end"])
   $(id).oninput = () => {
     start = Number($<HTMLInputElement>("start").value) * 1000;
     end = Number($<HTMLInputElement>("end").value) * 1000;
-    selectedRevision++;
+    invalidateAssistance();
     renderSteps();
   };
 $("add").onclick = () => {
   steps.push({ at: issue, kind: "click", label: "Describe the observed step" });
-  selectedRevision++;
+  invalidateAssistance();
   renderSteps();
 };
 $("cancel").onclick = async () => {
+  invalidateAssistance();
   await call("cancel");
   window.close();
 };
 $("primary").onclick = async () => {
   const button = $<HTMLButtonElement>("primary");
+  invalidateAssistance();
   button.disabled = true;
   try {
     const r = await call("select", {
@@ -148,6 +179,7 @@ chrome.runtime.onMessage.addListener((m) => {
   if (m.type === "nextshot-rolling-invalidated") {
     if (url) URL.revokeObjectURL(url);
     url = undefined;
+    invalidateAssistance();
     state = undefined;
     steps = [];
     $<HTMLImageElement>("frame").removeAttribute("src");
@@ -187,5 +219,6 @@ async function load(): Promise<void> {
 }
 void load().catch(fail);
 addEventListener("pagehide", () => {
+  invalidateAssistance();
   if (url) URL.revokeObjectURL(url);
 });

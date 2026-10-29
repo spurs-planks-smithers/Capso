@@ -1,3 +1,4 @@
+import type {AssistInput,AssistResult} from './assistance.ts';
 import {getDraft,saveDraft,discardDraft,saveCapture,roundById,assetsForRound,renderPrompt,exportBundle,validateCapture} from './core/index.ts';
 import type {Capture,Asset,Mark,MarkKind,ElementEvidence,Round} from './core/model.ts';
 import {deliverNative} from './native.ts';
@@ -7,9 +8,22 @@ const note=$<HTMLTextAreaElement>('#note'),status=$('#status'),save=$<HTMLButton
 let capture:Capture,assets:Asset[]=[],image:ImageBitmap,selected=0,tool:MarkKind='dot',saved:Round|undefined,saving=false;
 const history:Mark[][]=[],redo:Mark[][]=[];let down:{x:number;y:number}|undefined;
 const choices=new Map<number,string>();
+let assistanceRevision=0,assistanceRequest:string|undefined;
+function cancelElementAssistance():void{assistanceRevision++;document.querySelectorAll('.assist-badge').forEach(el=>el.remove());const button=document.getElementById('suggest-match') as HTMLButtonElement|null;if(button){button.disabled=false;button.textContent='Suggest a match';}if(assistanceRequest){void chrome.runtime.sendMessage({type:'nextshot-assistance',action:'cancel',requestID:assistanceRequest});assistanceRequest=undefined;}}
+addEventListener('pagehide',cancelElementAssistance);
+async function suggestElements(candidates:ElementEvidence[],button:HTMLButtonElement):Promise<void>{
+  if(saving||saved)return;cancelElementAssistance();const revision=assistanceRevision,mark=selected,requestID=crypto.randomUUID();assistanceRequest=requestID;button.disabled=true;button.textContent='Checking selected text...';
+  const rows=candidates.map((element,index)=>({id:`e${index}`,role:element.role||element.tag||'element',label:element.text||element.tag||'Unlabeled'}));
+  const selection:AssistInput={purpose:'elements',requestID,selectionVersion:revision,timeline:[],diagnostics:[],candidates:rows,reviewerNote:note.value};
+  try{const result:AssistResult=await chrome.runtime.sendMessage({type:'nextshot-assistance',action:'refine',selection});if(revision!==assistanceRevision||selected!==mark||saving||saved)return;
+    button.textContent=result.reason==='insufficient_context'?'Add a note and allow reviewer notes in settings.':result.available&&result.ids.length?'Suggestions shown. Choose a match.':'Local matches remain available.';
+    if(result.available)for(const [index,element] of candidates.entries()){const option=document.querySelector<HTMLButtonElement>(`[data-assist-element="${index}"]`);if(option&&result.ids.includes(`e${index}`)){const badge=document.createElement('small');badge.className='assist-badge';badge.textContent=` Suggested by ${result.source==='apple'?'Apple':'Jev'}`;option.append(badge);}}
+  }catch{if(revision===assistanceRevision)button.textContent='Local matches remain available.';}finally{if(assistanceRequest===requestID)assistanceRequest=undefined;if(revision===assistanceRevision&&button.isConnected)button.disabled=false;}
+}
+
 function remember():void{history.push(structuredClone(capture.marks));redo.length=0;}
 function saveNote():void {if(!capture)return;if(selected)capture.marks[selected-1].note=note.value;else capture.note=note.value;}
-function select(id:number):void {if(saving)return;saveNote();selected=id;note.value=id?capture.marks[id-1]?.note??'':capture.note;$('#note-label').textContent=id?`Mark ${id}: what should change?`:'General note';showElements();}
+function select(id:number):void {if(saving)return;cancelElementAssistance();saveNote();selected=id;note.value=id?capture.marks[id-1]?.note??'':capture.note;$('#note-label').textContent=id?`Mark ${id}: what should change?`:'General note';showElements();}
 function matches(mark:Mark):ElementEvidence[] {
   const x=mark.kind==='arrow'?mark.endX??mark.x:mark.kind==='box'?(mark.x+(mark.endX??mark.x))/2:mark.x;
   const y=mark.kind==='arrow'?mark.endY??mark.y:mark.kind==='box'?(mark.y+(mark.endY??mark.y))/2:mark.y;
@@ -23,10 +37,11 @@ function showElements():void {
   if(!selected){$('#element-hint').textContent='Element details follow your mark.';return;}
   const candidates=matches(capture.marks[selected-1]);$('#element-hint').textContent=candidates.length>1?'Choose the element you mean.':candidates.length?'Matched from your mark.':'No reliable element match. The image and note remain usable.';
   if(candidates.length===1&&!choices.has(selected)){choices.set(selected,candidates[0].id);capture.marks[selected-1].elementId=candidates[0].id;}
-  for(const element of candidates){
-    const button=document.createElement('button');button.className='element-option'+(choices.get(selected)===element.id?' selected':'');button.textContent=element.selector+(element.text?`\n${element.text}`:'');
-    button.onclick=()=>{if(saving||saved)return;choices.set(selected,element.id);capture.marks[selected-1].elementId=element.id;showElements();};container.append(button);
+  for(const [index,element] of candidates.entries()){
+    const button=document.createElement('button');button.dataset.assistElement=String(index);button.className='element-option'+(choices.get(selected)===element.id?' selected':'');button.textContent=element.selector+(element.text?`\n${element.text}`:'');
+    button.onclick=()=>{if(saving||saved)return;cancelElementAssistance();choices.set(selected,element.id);capture.marks[selected-1].elementId=element.id;showElements();};container.append(button);
   }
+  if(candidates.length>1&&!saved){const button=document.createElement('button');button.id='suggest-match';button.textContent='Suggest a match';button.onclick=()=>{void suggestElements(candidates,button);};container.append(button);void chrome.storage.local.get('assistanceMode').then(v=>{button.hidden=!['apple','jev'].includes(String(v.assistanceMode));});}
 }
 function draw():void {
   if(!image)return;context.clearRect(0,0,canvas.width,canvas.height);context.drawImage(image,0,0);
@@ -53,9 +68,9 @@ for(const button of document.querySelectorAll<HTMLButtonElement>('[data-tool]'))
 $('#undo').onclick=()=>{if(!history.length||saved||saving)return;saveNote();redo.push(structuredClone(capture.marks));capture.marks=history.pop()!;selected=0;note.value=capture.note;choices.clear();select(0);draw();};
 $('#redo').onclick=()=>{if(!redo.length||saved||saving)return;saveNote();history.push(structuredClone(capture.marks));capture.marks=redo.pop()!;selected=0;note.value=capture.note;select(capture.marks.length);draw();};
 $('#previous').onclick=()=>select(selected>1?selected-1:0);$('#next').onclick=()=>select(selected<capture.marks.length?selected+1:0);$('#general').onclick=()=>select(0);
-note.oninput=()=>saveNote();
+note.oninput=()=>{cancelElementAssistance();saveNote();};
 save.onclick=async()=>{
-  if(saved||saving)return;save.disabled=true;saveNote();saving=true;note.readOnly=true;status.textContent='Saving feedback...';
+  if(saved||saving)return;cancelElementAssistance();save.disabled=true;saveNote();saving=true;note.readOnly=true;status.textContent='Saving feedback...';
   try{
     const annotated=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('Cannot save annotated image')),'image/jpeg',.88));
     assets=assets.filter(a=>a.name!==capture.imageFile);assets.push({name:capture.imageFile,mime:annotated.type,bytes:new Uint8Array(await annotated.arrayBuffer())});
@@ -72,7 +87,7 @@ $('#export').onclick=async()=>{
   try{const bytes=exportBundle(saved,await assetsForRound(saved));const url=URL.createObjectURL(new Blob([new Uint8Array(bytes).buffer],{type:'application/zip'}));const a=document.createElement('a');a.href=url;a.download=`nextshot-round-${saved.createdAt.slice(0,16).replace(/[:T]/g,'-')}.zip`;a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);status.textContent='Round exported.';}
   catch(error){status.textContent=error instanceof Error?error.message:'Export failed.';}
 };
-$('#cancel').onclick=async()=>{if(saving)return;if(capture&&!saved)await discardDraft(capture.id);window.close();};
+$('#cancel').onclick=async()=>{if(saving)return;cancelElementAssistance();if(capture&&!saved)await discardDraft(capture.id);window.close();};
 document.onkeydown=e=>{if((e.metaKey||e.ctrlKey)&&e.key==='s'){e.preventDefault();save.click();}if(e.target instanceof HTMLTextAreaElement||e.target instanceof HTMLInputElement)return;if(e.key==='ArrowLeft'){$('#undo').click();e.preventDefault();}if(e.key==='ArrowRight'){$('#redo').click();e.preventDefault();}if(e.key==='Escape')$('#cancel').click();};
 async function load():Promise<void> {
   const query=new URLSearchParams(location.search),draftId=query.get('draft'),roundId=query.get('round');

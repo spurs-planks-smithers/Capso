@@ -1,14 +1,14 @@
 /** Resume an explicit popup action after Chrome closes its permission sheet. */
-export type IntentKind='capture'|'recording'|'rolling'|'native'|'frames';
+export type IntentKind='capture'|'recording'|'rolling'|'native'|'frames'|'jev'|'apple';
 interface Intent {id:string;kind:IntentKind;tabId?:number;permissions:chrome.permissions.Permissions;expires:number;}
 let run:(intent:Intent)=>Promise<void>,queue=Promise.resolve();
 export function registerIntents(action:(intent:Intent)=>Promise<void>):void {
   run=action;chrome.permissions.onAdded.addListener(()=>{void finishIntent();});
 }
 export async function prepareIntent(kind:IntentKind,tabId?:number):Promise<{id:string;needsPermission:boolean;permissions:chrome.permissions.Permissions}> {
-  if(!['capture','recording','rolling','native','frames'].includes(kind))throw Error('Unknown requested action');
+  if(!['capture','recording','rolling','native','frames','jev','apple'].includes(kind))throw Error('Unknown requested action');
   let permissions:chrome.permissions.Permissions;
-  if(kind==='native')permissions={permissions:['nativeMessaging']};
+  if(kind==='native'||kind==='apple')permissions={permissions:['nativeMessaging']};
   else if(kind==='frames'){
     if(!Number.isInteger(tabId))throw Error('Choose a website tab.');
     const tab=await chrome.tabs.get(tabId!),record=(await chrome.storage.session.get('frameOrigins:'+tabId))['frameOrigins:'+tabId] as {url?:string;origins?:unknown[]}|undefined;
@@ -17,6 +17,7 @@ export async function prepareIntent(kind:IntentKind,tabId?:number):Promise<{id:s
     if(origins.length!==record.origins.length)throw Error('Embedded site permission is invalid.');
     permissions={origins};
   }
+  else if(kind==='jev')permissions={permissions:['identity'],origins:['https://jev.nextshot.dev/*']};
   else{
     if(!Number.isInteger(tabId))throw Error('Choose a website tab.');
     const tab=await chrome.tabs.get(tabId!);if(!tab.url||!/^https?:/.test(tab.url))throw Error('Choose a website tab.');

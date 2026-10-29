@@ -55,3 +55,27 @@ arm.onclick=async()=>{try{await requestAction('rolling');window.close();}catch(e
 openRolling.onclick=async()=>{const r=await chrome.runtime.sendMessage({type:'nextshot-rolling',action:'open'});if(r.error)status.textContent=r.error;else window.close();};
 stopRolling.onclick=async()=>{await chrome.runtime.sendMessage({type:'nextshot-rolling',action:'stop'});await refreshRolling();};
 void refreshRolling();
+
+const assistanceMode=document.querySelector<HTMLSelectElement>('#assistance-mode')!;
+const assistanceStatus=document.querySelector<HTMLElement>('#assistance-status')!;
+async function refreshAssistance():Promise<void>{
+  const settings=await chrome.runtime.sendMessage({type:'nextshot-assistance',action:'status'});
+  if(settings.error){assistanceStatus.textContent='Local suggestions stay available.';return;}
+  assistanceMode.value=settings.assistanceMode;
+  document.querySelector<HTMLElement>('#jev-settings')!.hidden=settings.assistanceMode!=='jev';
+  document.querySelector<HTMLElement>('#apple-help')!.hidden=settings.assistanceMode!=='apple';
+  document.querySelector<HTMLElement>('#apple-grant')!.hidden=settings.assistanceMode!=='apple';
+  for(const [id,key] of [['jev-enabled','jevEnabled'],['jev-page-consent','jevConsentPageData'],['jev-note-consent','jevConsentReviewerText']])document.querySelector<HTMLInputElement>('#'+id)!.checked=settings[key]===true;
+  document.querySelector<HTMLElement>('#jev-signout')!.hidden=!settings.signedIn;
+  document.querySelector<HTMLElement>('#jev-signin')!.hidden=settings.signedIn;
+  assistanceStatus.textContent=settings.assistanceMode==='apple'?(settings.browserAppleIntelligence?'Apple assistance runs only during review.':'Apple trial stays off until Dev review.'):settings.assistanceMode==='jev'?(settings.signedIn?'Signed in. Jev still requires enablement and page consent.':'Invited sign-in is optional. Local suggestions stay available.'):'Local suggestions stay available.';
+}
+assistanceMode.onchange=async()=>{await chrome.storage.local.set({assistanceMode:assistanceMode.value});await refreshAssistance();};
+for(const [id,key] of [['jev-enabled','jevEnabled'],['jev-page-consent','jevConsentPageData'],['jev-note-consent','jevConsentReviewerText']]){
+  const input=document.querySelector<HTMLInputElement>('#'+id)!;
+  input.onchange=async()=>{await chrome.storage.local.set({[key]:input.checked});await refreshAssistance();};
+}
+document.querySelector<HTMLButtonElement>('#jev-signin')!.onclick=async()=>{try{await requestAction('jev');await refreshAssistance();}catch(e){assistanceStatus.textContent=e instanceof Error?e.message:'Sign-in unavailable. Local suggestions remain.';}};
+document.querySelector<HTMLButtonElement>('#jev-signout')!.onclick=async()=>{await chrome.runtime.sendMessage({type:'nextshot-assistance',action:'signout'});await refreshAssistance();};
+document.querySelector<HTMLButtonElement>('#apple-grant')!.onclick=async()=>{try{await requestAction('apple');await refreshAssistance();}catch(e){assistanceStatus.textContent=e instanceof Error?e.message:'Apple assistance unavailable.';}};
+void refreshAssistance().catch(()=>{assistanceStatus.textContent='Local suggestions stay available.';});

@@ -15,7 +15,8 @@
     "webRequest",
     "downloads",
     "clipboardWrite",
-    "offscreen"
+    "offscreen",
+    "identity"
   ],
   "optional_host_permissions": [
     "http://*/*",
