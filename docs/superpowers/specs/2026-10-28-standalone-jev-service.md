@@ -1,5 +1,7 @@
 # Standalone Jev service: product and boundary specification
 
+October 29 acceptance update: invited PIN sign-in, live cap fallback, credential revocation, and bounded provider review pass. Issues #170 and #171 are closed. Processing is paused. The approved $25 monthly ceiling remains enforced. The [execution record](../../sessions/2026-10-28-chrome-extension-execution.md) records actual results and remaining user smoke. Earlier planning and deployment snapshots below remain historical.
+
 Execution update, October 28, 2026: Drew subsequently authorizes implementation and a $25 monthly hard ceiling for paid Jev pilot calls. The [implementation plan](../plans/2026-10-28-chrome-extension-implementation.md) supersedes the planning-only restrictions below. The historical product requirements remain relevant. Current implementation and deployment limits live in [the service guide](../../../site/jev/README.md). The owner-only service is deployed with paid processing disabled. Guest authentication and live paid acceptance remain open. Keep the work in Later and outside v0.5.0.
 
 Date: 2026-10-28. Status: planning only. Part of [Chrome extension #124](https://github.com/spurs-planks-smithers/Capso/issues/124). Rolling Round is [#157](https://github.com/spurs-planks-smithers/Capso/issues/157). Apple Intelligence [#148](https://github.com/spurs-planks-smithers/Capso/issues/148) remains optional. Keep all work in Later. Exclude v0.5.0. No implementation, service deployment, paid request, or purchase is authorized.

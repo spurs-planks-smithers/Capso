@@ -41,7 +41,9 @@ External browser evidence uses schema namespace `nextshot.browser`, version 1. N
 | C6 | [Chrome C6: invited standalone Jev service with hard spending cap](https://github.com/spurs-planks-smithers/Capso/issues/170) | #157 |
 | C7 | [Chrome C7: browser Jev consent, authentication, and refinement](https://github.com/spurs-planks-smithers/Capso/issues/171) | #170 |
 | C8 | [Apple Intelligence: improve local Rolling Round suggestions (Later research)](https://github.com/spurs-planks-smithers/Capso/issues/148) | #171 |
-| C9 | [Chrome C9: install package and browser/native smoke test](https://github.com/spurs-planks-smithers/Capso/issues/172) | #171, #174 (Apple optional) |
+| C4 correction | [Monotonic recording clocks](https://github.com/spurs-planks-smithers/Capso/issues/175) | #169 |
+| C5 correction | [Resource-loss coverage](https://github.com/spurs-planks-smithers/Capso/issues/176) | #175 |
+| C9 | [Chrome C9: install package and browser/native smoke test](https://github.com/spurs-planks-smithers/Capso/issues/172) | #171, #174, #176 (Apple optional) |
 
 
 | Order | Deliverable | Prerequisite | Acceptance evidence |

@@ -31,6 +31,11 @@ chrome.runtime.onMessage.addListener((m,s,respond)=>{
       if(!frame)throw Error('No verified frames in this range.');
       let media:number[]|undefined,mediaMime='video/webm';
       try{const gif=m.rolling?await compactGIF(selected.frames,m.start,m.end):undefined;if(gif){media=Array.from(gif);mediaMime='image/gif';}else media=Array.from(await encodeFrames(selected.frames,{start:m.start,end:m.end}));}catch{selected.diagnostics.push({at:m.issue,kind:'coverage',text:'Animation unavailable. Selected still image is retained.'});}
+      // Leave room for the coordinator's coverage row and retain an explicit omission warning.
+      if(selected.diagnostics.length>999){
+        const resource=selected.diagnostics.find(d=>d.kind==='coverage'&&d.text.includes('resource limits'));
+        selected.diagnostics=[...selected.diagnostics.filter(d=>d!==resource).slice(-998),{at:resource?.at??m.issue,kind:'coverage',text:resource?resource.text+' Additional selected diagnostics were omitted.':'Some selected diagnostics were omitted by browser resource limits.'}];
+      }
       const representatives=[selected.frames[0],frame,...selected.actions.slice(-8).map(e=>selected.frames.reduce((best,f)=>Math.abs(f.at-e.at)<Math.abs(best.at-e.at)?f:best,selected.frames[0])),selected.frames.at(-1)].filter(Boolean);
       const keyFrames=[...new Set(representatives)].sort((a,b)=>a!.at-b!.at).slice(0,12).map(f=>({...f,bytes:Array.from(f!.bytes)}));
       const stillBytes=keyFrames.reduce((n,f)=>n+f.bytes.length,frame.bytes.length*2)+new TextEncoder().encode(JSON.stringify([selected.actions,selected.diagnostics])).length+20000;
