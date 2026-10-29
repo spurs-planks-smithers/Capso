@@ -6,7 +6,7 @@
 
 Create one `createJevClient()` instance in the service worker. Route only messages from known extension pages. Do not route content-script messages to its methods. Never return tokens or storage data to message callers. Central ownership serializes single-use refresh credentials across simultaneous review requests.
 
-Tokens use `chrome.storage.session` with `TRUSTED_CONTEXTS` access. They survive service-worker suspension but disappear when the browser session ends. This deliberately requires a new explicit sign-in after a browser restart. No credentials enter local round records, export bundles, or normal browser storage.
+Tokens use `chrome.storage.local` with `TRUSTED_CONTEXTS` access. They survive service-worker suspension and browser restarts. Refresh credentials expire 30 days after explicit sign-in. No credentials enter round records, export bundles, or page-accessible storage. Sign Out clears the stored credentials.
 
 ## UI and permissions
 

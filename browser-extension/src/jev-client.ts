@@ -8,14 +8,14 @@ export interface JevSelection {
   timeline: {id: string; kind: string; label: string; timeMs: number}[];
   diagnostics: {id: string; kind: string; summary: string}[];
   candidates: {id: string; role: string; label: string}[];
-  reviewerNote?: string;
+  reviewerNote?: string; issueTimeMs?: number;
 }
 export type JevResult = {available: true; candidates: {id: string; confidence: number}[]} | {available: false; fallback: 'local'; reason: string};
 interface Session { access: string; refresh: string; expiresAt: number }
 export interface JevDependencies {
   fetch: typeof fetch;
   identity: Pick<typeof chrome.identity, 'launchWebAuthFlow' | 'getRedirectURL'>;
-  storage: Pick<typeof chrome.storage.session, 'get' | 'set' | 'remove' | 'setAccessLevel'>;
+  storage: Pick<typeof chrome.storage.local, 'get' | 'set' | 'remove' | 'setAccessLevel'>;
   now: () => number;
 }
 const TOKEN = /^[A-Za-z0-9_-]{43}$/;
@@ -35,9 +35,10 @@ function identifier(value: unknown): string { const result = text(value, 64); if
 function encoded(bytes: Uint8Array): string { return btoa(String.fromCharCode(...bytes)).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', ''); }
 function random(): string { return encoded(crypto.getRandomValues(new Uint8Array(32))); }
 function payload(selection: JevSelection, policy: JevPolicy): string {
-  const v = record(selection, ['purpose', 'requestID', 'selectionVersion', 'timeline', 'diagnostics', 'candidates', 'reviewerNote']);
+  const v = record(selection, ['purpose', 'requestID', 'selectionVersion', 'timeline', 'diagnostics', 'candidates', 'reviewerNote', 'issueTimeMs']);
   if (v.purpose !== 'steps' && v.purpose !== 'elements') throw Error('invalid');
   identifier(v.requestID); identifier(v.selectionVersion);
+  if(v.issueTimeMs!==undefined&&(!Number.isInteger(v.issueTimeMs)||(v.issueTimeMs as number)<0||(v.issueTimeMs as number)>60000))throw Error('invalid');
   for (const [field, max, fields] of [
     ['timeline', 32, ['id', 'kind', 'label', 'timeMs']], ['diagnostics', 8, ['id', 'kind', 'summary']], ['candidates', 16, ['id', 'role', 'label']],
   ] as const) {
@@ -57,6 +58,7 @@ function payload(selection: JevSelection, policy: JevPolicy): string {
   // Serialize before yielding so caller mutations cannot change the request or its reply binding.
   const result = JSON.stringify({version: 1, purpose: selection.purpose, requestID: selection.requestID, selectionVersion: selection.selectionVersion,
     consent: {pageData: true, reviewerText: policy.jevConsentReviewerText === true},
+    ...(selection.issueTimeMs!==undefined?{issueTimeMs:selection.issueTimeMs}:{}),
     timeline: selection.timeline.map(({id, kind, label, timeMs}) => ({id, kind, label, timeMs})),
     diagnostics: selection.diagnostics.map(({id, kind, summary}) => ({id, kind, summary})),
     candidates: selection.candidates.map(({id, role, label}) => ({id, role, label})),
@@ -67,7 +69,7 @@ function payload(selection: JevSelection, policy: JevPolicy): string {
 
 /** Instantiate once in the trusted service worker. Never return tokens to extension pages or content scripts. */
 export function createJevClient(dependencies?: JevDependencies) {
-  const d = dependencies ?? {fetch: globalThis.fetch.bind(globalThis), identity: chrome.identity, storage: chrome.storage.session, now: Date.now};
+  const d = dependencies ?? {fetch: globalThis.fetch.bind(globalThis), identity: {getRedirectURL:(path?:string)=>chrome.identity.getRedirectURL(path),launchWebAuthFlow:(options:chrome.identity.WebAuthFlowDetails)=>chrome.identity.launchWebAuthFlow(options)}, storage: chrome.storage.local, now: Date.now};
   let epoch = 0;
   let refreshing: Promise<Session | null> | undefined;
   let signingIn = false;
@@ -184,7 +186,7 @@ export function createJevClient(dependencies?: JevDependencies) {
           const v = record(response.body, ['version', 'available', 'fallback', 'reason', 'requestID', 'selectionVersion', 'purpose', 'candidates']);
           if (v.available === false && v.version === 1 && v.fallback === 'local') return fallback('unavailable');
           record(v, ['version', 'available', 'requestID', 'selectionVersion', 'purpose', 'candidates']);
-          if (v.version !== 1 || v.available !== true || v.requestID !== input.requestID || v.selectionVersion !== input.selectionVersion || v.purpose !== input.purpose || !Array.isArray(v.candidates) || v.candidates.length > 16) throw Error('invalid');
+          if (v.version !== 1 || v.available !== true || v.requestID !== input.requestID || v.selectionVersion !== input.selectionVersion || v.purpose !== input.purpose || !Array.isArray(v.candidates) || v.candidates.length > (input.purpose==='steps'?32:16)) throw Error('invalid');
           const allowed = new Set((input.purpose === 'steps' ? input.timeline : input.candidates).map(c => c.id)), seen = new Set<string>();
           const candidates = v.candidates.map(value => {
             const row = record(value, ['id', 'confidence']), id = identifier(row.id);
