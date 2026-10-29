@@ -1,3 +1,4 @@
+import {startRecording,pauseRecording,resumeRecording,stopRecording,discardRecording,recordingStatus,selectRecording,recordObservedEvent} from './recording.ts';
 import {newCapture,saveDraft,discardDraft,pruneDrafts,sanitizeURL,sanitizeText,redactSensitive} from './core/index.ts';
 import type {Capture,ElementEvidence} from './core/model.ts';
 
@@ -24,6 +25,11 @@ chrome.permissions.onRemoved.addListener(()=>{void cleanDrafts();});
 chrome.runtime.onMessage.addListener((message,sender,respond)=>{
   if(!message||typeof message!=='object'||typeof message.type!=='string')return;
   const trustedPage=sender.url?.startsWith(chrome.runtime.getURL(''));
+  if(message.type==='nextshot-record-event'&&sender.tab?.id&&sender.frameId===0){void recordObservedEvent(sender.tab.id,message.kind,message.label);return;}
+  if(message.type==='nextshot-record'&&trustedPage&&!sender.url?.endsWith('offscreen.html')){
+    const run=async()=>{switch(message.action){case 'start':await startRecording(Number(message.tabId));break;case 'pause':await pauseRecording();break;case 'resume':await resumeRecording();break;case 'stop':await stopRecording();break;case 'discard':await discardRecording();break;case 'select':return {id:await selectRecording(message.start,message.end,message.issue)};case 'status':return recordingStatus();default:throw Error('Unknown recording action');}return {ok:true};};
+    run().then(respond,e=>respond({error:e.message}));return true;
+  }
   if(message.type==='nextshot-start'&&trustedPage){
     startCapture(Number(message.tabId)).then(()=>respond({ok:true}),error=>respond({error:String(error.message)}));return true;
   }

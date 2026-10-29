@@ -34,3 +34,15 @@ function addRound(round:Round):void {
   row.append(title,copy,zip);document.querySelector('#rounds')!.append(row);
 }
 void load().catch(error=>{status.textContent=error.message;});
+
+const trial=document.querySelector<HTMLInputElement>('#recording-trial')!,recordStart=document.querySelector<HTMLButtonElement>('#record-start')!,recordReview=document.querySelector<HTMLButtonElement>('#record-review')!;
+void chrome.storage.local.get('recordingEnabled').then(v=>{trial.checked=!!v.recordingEnabled;recordStart.hidden=!trial.checked;});
+trial.onchange=async()=>{await chrome.storage.local.set({recordingEnabled:trial.checked});recordStart.hidden=!trial.checked;if(!trial.checked)await chrome.runtime.sendMessage({type:'nextshot-record',action:'discard'});};
+recordStart.onclick=async()=>{
+ try{if(!tabId||!tabURL)throw Error('Choose a website tab.');
+ const granted=await chrome.permissions.request({permissions:['offscreen'],origins:[new URL(tabURL).origin+'/*']});if(!granted)throw Error('Recording permission was declined. Basic capture remains available.');
+ const r=await chrome.runtime.sendMessage({type:'nextshot-record',action:'start',tabId});if(r?.error)throw Error(r.error);window.close();
+ }catch(e){status.textContent=e instanceof Error?e.message:'Recording unavailable';}
+};
+recordReview.onclick=()=>{void chrome.tabs.create({url:chrome.runtime.getURL('recording.html')});};
+void chrome.runtime.sendMessage({type:'nextshot-record',action:'status'}).then(r=>{recordReview.hidden=!r?.tabId;if(r?.tabId)recordStart.disabled=true;});

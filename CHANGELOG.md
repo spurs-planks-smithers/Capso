@@ -10,6 +10,8 @@ Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This for
 
 ### Added
 
+- The Chrome development trial adds explicit silent sampled recording, bounded local diagnostics, and selected-evidence review. Recording starts disabled.
+
 - A development-only Chrome extension supports local area capture, numbered annotations, notes, element context, portable export, and optional signed saves into Nextshot Dev. It remains outside the release package.
 
 ### Changed

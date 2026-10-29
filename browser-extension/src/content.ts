@@ -5,6 +5,38 @@ let captureProof:{id:string;region:Bounds;fingerprint:string;url:string;dirty:bo
 if(!state.__nextshotPageAdapter){state.__nextshotPageAdapter=true;initialize();}
 function initialize():void {
   let selecting=false;
+  let recordingCleanup:(()=>void)|undefined,frameCleanup:(()=>void)|undefined;
+  chrome.runtime.onMessage.addListener((message,_sender,respond)=>{
+    if(message?.type==='nextshot-record-observe'){
+      recordingCleanup?.();
+      const send=(kind:string,label:string)=>{void chrome.runtime.sendMessage({type:'nextshot-record-event',kind,label:redactSensitive(label,200)}).catch(()=>{});};
+      const click=(e:MouseEvent)=>{const target=e.composedPath().find(v=>v instanceof Element) as Element|undefined;if(target)send('click',selector(target));};
+      const error=()=>send('error','A page error occurred. Error details are unavailable.');
+      document.addEventListener('click',click,true);window.addEventListener('error',error);window.addEventListener('unhandledrejection',error);
+      const resources=new PerformanceObserver(list=>{for(const entry of list.getEntries())if(entry instanceof PerformanceResourceTiming)send('request',entry.name);});
+      resources.observe({type:'resource'});
+      recordingCleanup=()=>{document.removeEventListener('click',click,true);window.removeEventListener('error',error);window.removeEventListener('unhandledrejection',error);resources.disconnect();};respond({ok:true});
+    }
+    if(message?.type==='nextshot-record-cleanup'){frameCleanup?.();recordingCleanup?.();recordingCleanup=undefined;respond({ok:true});}
+    if(message?.type==='nextshot-record-release'){frameCleanup?.();respond({ok:true});}
+    if(message?.type==='nextshot-record-frame'){
+      void(async()=>{
+        frameCleanup?.();const region={x:0,y:0,width:innerWidth,height:innerHeight};
+        const animations=document.getAnimations().filter(a=>a.playState==='running');animations.forEach(a=>a.pause());
+        const covers=masks();let observer:MutationObserver|undefined;
+        frameCleanup=()=>{observer?.disconnect();captureProof=undefined;covers.forEach(e=>e.remove());animations.forEach(a=>a.play());frameCleanup=undefined;};
+        try{
+          await new Promise<void>(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r())));
+          const proofId=crypto.randomUUID();captureProof={id:proofId,region,fingerprint:fingerprint(region),url:location.href,dirty:false};
+          observer=new MutationObserver(records=>{if(captureProof&&records.some(r=>!(r.target instanceof Element?r.target:r.target.parentElement)?.closest('[data-nextshot-overlay]')))captureProof.dirty=true;});
+          const options={subtree:true,attributes:true,childList:true,characterData:true};observer.observe(document.documentElement,options);
+          for(const root of new Set(allElements().map(e=>e.getRootNode())))if(root instanceof ShadowRoot)observer.observe(root,options);
+          respond({proofId,region,privateRects:privateRects(),viewportWidth:innerWidth,viewportHeight:innerHeight});
+          const release=frameCleanup;setTimeout(()=>{if(frameCleanup===release)release?.();},1500);
+        }catch{frameCleanup?.();respond({error:'Privacy snapshot unavailable'});}
+      })();return true;
+    }
+  });
   chrome.runtime.onMessage.addListener((message,_sender,respond)=>{
     if(message?.type==='nextshot-select'&&!selecting){selecting=true;select(()=>{selecting=false;});}
     if(message?.type==='nextshot-confirm-capture'){
