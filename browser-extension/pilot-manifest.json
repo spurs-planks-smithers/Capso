@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "Nextshot Pilot",
+  "version": "0.1.0",
+  "description": "Private browser-only feedback pilot. Capture, mark, and export locally. No app or account required.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA3K295fvYiimvcbKiuUjWMsyvUgHmUwtuQ0JaOQ+LwSogxsU32jHqX4jnckXfXWd8Av8RDo+Np44CLcPxp3GmadUXKAhX0XpZq7eF0qDC1KWWrAfFUfhzJhRVMmqjfDFkvEVC2KjmqOOnjOP1u+CJSkxgBCoFt/hlVq83LEeChSvj72cx6Wn42qEzkXNR+psubfx53p93EvMCXQB5/or3rp4rjaNPS5BHZQgfNsY3t9HE48rR94TFomNetbA1nGvu8Fn/44WNtfxB8qHacBgu0nldXu/0k/2xn7htJ+e2NoRtssT48mkwzTxI+7HoCachB0Lz8c2jZKXSiJ2w817Q8wIDAQAB",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "optional_host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "pilot-background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Nextshot Pilot",
+    "default_popup": "popup.html"
+  },
+  "commands": {
+    "capture": {
+      "description": "Capture browser feedback",
+      "suggested_key": {
+        "default": "Alt+Shift+B",
+        "mac": "Alt+Shift+B"
+      }
+    }
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; connect-src 'self' data: blob:;"
+  },
+  "minimum_chrome_version": "120"
+}

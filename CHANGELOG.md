@@ -10,6 +10,8 @@ Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This for
 
 ### Added
 
+- A separate private Chrome-only pilot offers ordinary capture, marks, notes, and export for Mac and Windows testing, without native or AI setup. It stays outside v0.5.0.
+
 - An off-by-default Chrome trial adds element context from permitted embedded previews, with private fields covered before storage.
 
 - The disabled Chrome Rolling Round trial keeps bounded recent history and saves a selected excerpt as a separate ended round.

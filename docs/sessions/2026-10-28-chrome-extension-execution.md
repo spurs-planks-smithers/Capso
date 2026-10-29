@@ -132,3 +132,13 @@ This update changes documents and tracking only. It requires no extension reload
 ## October 29 shortcut decision
 
 Drew selects automatic browser context through the normal Nextshot capture shortcut. Add permitted element details when Chrome is frontmost on an approved site. Keep ordinary native capture usable when context is unavailable. Do not require routine extension interaction. The product choice is settled. Trigger feasibility, permission limits, and idle resource behavior remain in #178. This update changes planning and issue text only.
+
+## October 29 Chrome-only friend pilot
+
+Drew requests the fastest useful external test and his own test. His latest instruction makes the friend pilot Chrome-only on Windows and Mac. It supersedes his immediately preceding paired-app selection for this pilot. #182 becomes a formal Later child of #124. Native-first engineering remains separate.
+
+A distinct Nextshot Pilot profile uses identity `ffnikmhbnlgmfeniemlmfniihooipmcd`. It excludes native, AI, account, recording, and Rolling runtime entry points and optional permissions. Remote extension-page requests are blocked by its content security policy. The popup offers Capture and collapsed saved rounds. The review reuses ordinary marks, notes, element matching, save, and export. Windows receives a Ctrl+S hint. Manual clipboard failure preserves the saved round and offers export.
+
+The common capture body matches its prior verified implementation exactly. Both profiles build. TypeScript, thirteen mocked runtime checks, twelve editor fixture checks, the profile boundary check, portable ZIP checks, and the existing 57 Jev assertions pass. An independent read-only review reports no actionable finding. Regular Chrome renders the popup preview. These fixtures and source checks do not establish actual installed pilot or Windows acceptance.
+
+The candidate ZIP contains thirteen files, plain-text setup, and a test card. No app, Python, account, provider call, telemetry, or public upload is required. The final clean package and Drew smoke remain next. No broader issue closes from this narrower candidate.

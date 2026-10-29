@@ -4,6 +4,10 @@ Current direction, 2026-10-29: use native editing when Nextshot is available. Ke
 
 Execution remains authorized through the [implementation plan](../plans/2026-10-28-chrome-extension-implementation.md). Keep #124, #157, optional #148, and all follow-up issues in Later. Exclude v0.5.0. No public release is authorized. v1.0 or later is tentative.
 
+## Private pilot order, October 29
+
+Drew selects Chrome-only friend tests on Windows and Mac. The separate [friend pilot](../plans/2026-10-29-chrome-friend-pilot.md), #182, delivers ordinary standalone capture first. Its popup excludes native, recording, and model setup. Windows remains pilot validation rather than a general release claim. The full product retains the native-first direction below.
+
 ## Priority and scope
 
 Drew's top priority is a lightweight, unobtrusive extension with low overhead and few inputs. Chrome use must feel consistent with Nextshot on the Mac. The extension must also complete its core workflow without the app. Use the native app by default when available. Basic capture, editing, save, and export also work without it.

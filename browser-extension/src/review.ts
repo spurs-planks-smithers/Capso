@@ -55,7 +55,7 @@ function draw():void {
     }
     context.beginPath();context.arc(mark.x,mark.y,radius,0,Math.PI*2);context.fill();context.fillStyle='#fff';context.font=`600 ${radius*1.1}px -apple-system,sans-serif`;context.textAlign='center';context.textBaseline='middle';context.fillText(String(mark.id),mark.x,mark.y);context.fillStyle='#df3037';
   }
-  $('#hint').textContent=capture.marks.length?'Add more marks, then save your notes. Command+S saves.':'Click to add your first numbered mark.';
+  $('#hint').textContent=capture.marks.length?`Add more marks, then save your notes. ${/Mac/i.test(navigator.platform)?'Command':'Ctrl'}+S saves.`:'Click to add your first numbered mark.';
 }
 function point(event:PointerEvent):{x:number;y:number}{const rect=canvas.getBoundingClientRect();return{x:Math.max(0,Math.min(canvas.width,(event.clientX-rect.left)*canvas.width/rect.width)),y:Math.max(0,Math.min(canvas.height,(event.clientY-rect.top)*canvas.height/rect.height))};}
 canvas.onpointerdown=e=>{if(saved||saving)return;down=point(e);canvas.setPointerCapture(e.pointerId);};
@@ -82,10 +82,10 @@ save.onclick=async()=>{
   }catch(error){status.textContent=error instanceof Error?error.message:'Save failed. Your draft remains available.';save.disabled=false;note.readOnly=false;}
   finally{saving=false;}
 };
-$('#copy').onclick=async()=>{if(saved){await navigator.clipboard.writeText(renderPrompt(saved));status.textContent='Prompt copied.';}};
+$('#copy').onclick=async()=>{if(saved){try{await navigator.clipboard.writeText(renderPrompt(saved));status.textContent='Prompt copied.';}catch{status.textContent='Your feedback is saved. Clipboard access is unavailable. Export the round to share it.';}}};
 $('#export').onclick=async()=>{
   if(!saved)return;
-  try{const bytes=exportBundle(saved,await assetsForRound(saved));const url=URL.createObjectURL(new Blob([new Uint8Array(bytes).buffer],{type:'application/zip'}));const a=document.createElement('a');a.href=url;a.download=`nextshot-round-${saved.createdAt.slice(0,16).replace(/[:T]/g,'-')}.zip`;a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);status.textContent='Round exported.';}
+  try{const bytes=exportBundle(saved,await assetsForRound(saved));const url=URL.createObjectURL(new Blob([new Uint8Array(bytes).buffer],{type:'application/zip'}));const a=document.createElement('a');a.href=url;a.download=`nextshot-round-${saved.createdAt.slice(0,16).replace(/[:T]/g,'-')}.zip`;a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);status.textContent='Export download started.';}
   catch(error){status.textContent=error instanceof Error?error.message:'Export failed.';}
 };
 $('#cancel').onclick=async()=>{if(saving)return;cancelElementAssistance();if(capture&&!saved)await discardDraft(capture.id);window.close();};

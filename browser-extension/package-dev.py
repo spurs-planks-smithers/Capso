@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Build a deterministic local Dev extension ZIP. Never install or publish it."""
+import argparse
 import base64
 import hashlib
 import json
@@ -11,9 +12,14 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 EXTENSION = ROOT / 'browser-extension'
-BUILD = ROOT / 'build/chrome-extension'
-OUTPUT = ROOT / 'build/browser-extension-package'
-EXTENSION_ID = 'ghmidcmcjigfckaiopacgpfaffofgjel'
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--pilot', action='store_true', help='Build the isolated browser-only friend pilot.')
+args = parser.parse_args()
+PILOT = args.pilot
+BUILD = ROOT / ('build/chrome-pilot' if PILOT else 'build/chrome-extension')
+OUTPUT = ROOT / ('build/friend-pilot' if PILOT else 'build/browser-extension-package')
+EXTENSION_ID = 'ffnikmhbnlgmfeniemlmfniihooipmcd' if PILOT else 'ghmidcmcjigfckaiopacgpfaffofgjel'
+PREFIX = 'Nextshot-Pilot' if PILOT else 'Nextshot-Dev-extension'
 
 
 def run(*args):
@@ -31,15 +37,15 @@ if BUILD.exists():
     shutil.rmtree(BUILD)
 run('npm', 'ci', '--include=dev')
 run('npm', 'run', 'check')
-run('npm', 'run', 'build')
+run('npm', 'run', 'build', *(['--', '--pilot'] if PILOT else []))
 manifest = json.loads((BUILD / 'manifest.json').read_text())
 key_digest = hashlib.sha256(base64.b64decode(manifest['key'], validate=True)).digest()[:16]
 actual_id = ''.join(chr(ord('a') + nibble) for byte in key_digest for nibble in (byte >> 4, byte & 15))
-if actual_id != EXTENSION_ID or manifest.get('name') != 'Nextshot Dev' or manifest.get('manifest_version') != 3:
-    raise SystemExit('Refuse a changed Dev extension identity.')
+if actual_id != EXTENSION_ID or manifest.get('name') != ('Nextshot Pilot' if PILOT else 'Nextshot Dev') or manifest.get('manifest_version') != 3:
+    raise SystemExit('Refuse a changed extension identity.')
 if set(manifest.get('permissions', [])) != {'activeTab', 'scripting', 'storage'}:
     raise SystemExit('Review changed required permissions before packaging.')
-if set(manifest.get('optional_permissions', [])) - {'nativeMessaging', 'tabCapture', 'webRequest', 'downloads', 'clipboardWrite', 'offscreen', 'identity'}:
+if set(manifest.get('optional_permissions', [])) - (set() if PILOT else {'nativeMessaging', 'tabCapture', 'webRequest', 'downloads', 'clipboardWrite', 'offscreen', 'identity'}):
     raise SystemExit('Review changed optional permissions before packaging.')
 if manifest.get('host_permissions') or set(manifest.get('optional_host_permissions', [])) != {'http://*/*', 'https://*/*'}:
     raise SystemExit('Review changed host access before packaging.')
@@ -62,13 +68,28 @@ for source in sorted(BUILD.rglob('*')):
     data = source.read_bytes()
     if secret_pattern.search(data):
         raise SystemExit(f'Potential secret in build asset: {relative}')
-    files['Nextshot-Dev-extension/extension/' + relative.as_posix()] = data
+    files[PREFIX + '/extension/' + relative.as_posix()] = data
     if source.suffix in {'.js', '.html', '.css', '.json'}:
         network_literals.update(re.findall(r'https?://[^\s\x00-\x20"\'<>`\\)]+', data.decode('utf-8')))
-if not files or not (BUILD / 'background.js').is_file() or not (BUILD / 'popup.html').is_file():
+if not files or not (BUILD / ('pilot-background.js' if PILOT else 'background.js')).is_file() or not (BUILD / 'popup.html').is_file():
     raise SystemExit('Build output is incomplete.')
-files['Nextshot-Dev-extension/INSTALL.md'] = (EXTENSION / 'INSTALL.md').read_bytes()
-files['Nextshot-Dev-extension/tools/register-browser-host.py'] = (ROOT / 'scripts/register-browser-host.py').read_bytes()
+if PILOT:
+    if "connect-src 'self' data: blob:" not in manifest.get('content_security_policy', {}).get('extension_pages', ''):
+        raise SystemExit('Pilot must block remote extension-page requests.')
+    if set(manifest.get('commands', {})) != {'capture'}:
+        raise SystemExit('Pilot must expose ordinary capture only.')
+    for name, data in files.items():
+        if name.endswith('.js') and re.search(rb'sendNativeMessage|connectNative|launchWebAuthFlow|api\.typesafe\.ai|jev\.nextshot\.dev', data):
+            raise SystemExit(f'Unexpected transport in pilot: {name}')
+    for name in ['offscreen.html', 'rolling.html', 'recording.html']:
+        if (BUILD / name).exists():
+            raise SystemExit('Unexpected feature page in pilot.')
+    files[PREFIX + '/START-HERE.txt'] = (EXTENSION / 'PILOT.txt').read_bytes()
+    files[PREFIX + '/TRY-THIS.txt'] = (EXTENSION / 'TRY-THIS.txt').read_bytes()
+else:
+    files[PREFIX + '/INSTALL.md'] = (EXTENSION / 'INSTALL.md').read_bytes()
+    files[PREFIX + '/tools/register-browser-host.py'] = (ROOT / 'scripts/register-browser-host.py').read_bytes()
+files[PREFIX + '/LICENSE.txt'] = (ROOT / 'LICENSE').read_bytes()
 for name, data in files.items():
     if secret_pattern.search(data):
         raise SystemExit(f'Potential secret in package file: {name}')
@@ -76,13 +97,13 @@ revision = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=
 dirty = bool(subprocess.check_output(['git', 'status', '--porcelain', '--untracked-files=no',
     '--', 'browser-extension', 'scripts/register-browser-host.py'], cwd=ROOT, text=True).strip())
 audit = {
-    'channel': 'dev', 'extensionID': EXTENSION_ID, 'sourceCommit': revision, 'sourceDirty': dirty,
+    'channel': 'browser-pilot' if PILOT else 'dev', 'extensionID': EXTENSION_ID, 'sourceCommit': revision, 'sourceDirty': dirty,
     'manifest': manifest, 'networkLiterals': sorted(network_literals),
     'files': {name: {'bytes': len(data), 'sha256': digest(data)} for name, data in sorted(files.items())},
 }
-files['Nextshot-Dev-extension/package-audit.json'] = (json.dumps(audit, indent=2, sort_keys=True) + '\n').encode()
+files[PREFIX + '/package-audit.json'] = (json.dumps(audit, indent=2, sort_keys=True) + '\n').encode()
 OUTPUT.mkdir(parents=True, exist_ok=True)
-archive = OUTPUT / f"Nextshot-Dev-extension-{manifest['version']}.zip"
+archive = OUTPUT / (f"Nextshot-Pilot-{manifest['version']}-{revision[:7]}{'-dirty' if dirty else ''}.zip" if PILOT else f"Nextshot-Dev-extension-{manifest['version']}.zip")
 with zipfile.ZipFile(archive, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as package:
     for name, data in sorted(files.items()):
         info = zipfile.ZipInfo(name, date_time=(2020, 1, 1, 0, 0, 0))
@@ -94,7 +115,7 @@ with zipfile.ZipFile(archive) as package:
         raise SystemExit('Archive verification failed.')
 checksum = digest(archive.read_bytes())
 archive.with_suffix('.zip.sha256').write_text(f'{checksum}  {archive.name}\n')
-print(f'Dev package: {archive}')
+print(f"{'Pilot' if PILOT else 'Dev'} package: {archive}")
 print(f'SHA-256: {checksum}')
 print(f'Extension ID: {EXTENSION_ID}')
 print(f'{len(files)} files. No browser installation or publication occurred.')

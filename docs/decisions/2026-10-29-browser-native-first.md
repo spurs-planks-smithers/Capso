@@ -10,6 +10,10 @@ This corrects the October 28 browser-first architecture. Review no longer stays 
 
 All Chrome work stays in Later and outside v0.5.0. This review changes no runtime code, flags, deployment, or installed package. The existing implementation authorization remains separate from the required rendered design review in #177.
 
+## Chrome-only pilot exception, October 29
+
+Drew explicitly requests Chrome-only friend tests on Windows and Mac. The [friend pilot plan](../superpowers/plans/2026-10-29-chrome-friend-pilot.md) and #182 deliver that standalone test before the native engineering sequence. This supersedes the immediately preceding paired-app pilot selection. It does not establish Windows release support or change the native-first product direction.
+
 ## Experience
 
 | Situation | Proposed behavior |

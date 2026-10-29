@@ -2,6 +2,10 @@
 
 Date: 2026-10-28. Owner: Drew. Execution authorized in chat on October 28. This supersedes earlier planning-only statements. Keep the tracked issues in Later. Exclude v0.5.0. No public release is implied.
 
+## Immediate delivery order, October 29
+
+Drew requests a Chrome-only friend pilot on Windows and Mac. Execute [the friend pilot plan](2026-10-29-chrome-friend-pilot.md), tracked in #182, first. It covers ordinary browser capture and handoff with a separate extension identity. Native-first engineering #178 through #181 follows separately. Keep all work in Later. A private pilot does not establish Windows release support or close broader usability and acceptance issues.
+
 ## Goal and authority
 
 Build the Mac-first Chrome extension with native editing when available and standalone browser editing otherwise. Preserve explicit recording, Rolling Round, invited standalone Jev, and optional Apple Intelligence. Close an issue only after its acceptance evidence exists. Preserve unfinished issues as open. Finish with automated browser/native checks and a guided user smoke test.

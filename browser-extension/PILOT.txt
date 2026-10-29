@@ -1,0 +1,55 @@
+NEXTSHOT PILOT
+
+Private Chrome-only test for Windows and Mac.
+No Nextshot app, account, Python, or other software is required.
+The software license is included in LICENSE.txt.
+Use a current version of Google Chrome.
+
+INSTALL ONCE
+
+1. Extract the entire ZIP. On Windows, right-click it and choose Extract All.
+2. Keep the extracted Nextshot-Pilot folder in a stable location.
+3. In Chrome's address bar, type chrome://extensions and press Enter.
+4. Turn on Developer mode. Click Load unpacked.
+5. Select the extension folder inside Nextshot-Pilot.
+6. Verify the name is Nextshot Pilot. Pin it from Chrome's puzzle menu.
+
+This is an unpacked private pilot. Chrome may show developer notices.
+If your organization blocks Developer mode, do not bypass that restriction.
+Report it to the person who invited you.
+
+MAKE FEEDBACK
+
+1. Open a safe website. Click Nextshot Pilot, then Capture an area.
+2. Approve access to that site if Chrome asks. Drag around the area to capture.
+3. Click the image to add a numbered dot. Add a note beside it.
+4. Click Save and copy prompt. Paste into a text editor or coding agent.
+5. Click Export round to create a ZIP you can share.
+
+Option+Shift+B starts capture on Mac. Alt+Shift+B starts it on Windows.
+If the shortcut conflicts, use the toolbar button.
+Command+S saves on Mac. Ctrl+S saves on Windows.
+Saved rounds are available from the extension's popup.
+End current round starts a fresh group on your next capture.
+
+DATA AND LIMITS
+
+Captures and notes stay in this Chrome profile. Nothing uploads automatically.
+No AI, native integration, recording, or Rolling Round is included in this pilot.
+Form fields and unreadable embedded previews receive covers.
+Images and notes can still contain private data. Review them before sharing.
+Only capture content you are comfortable sharing with your coding agent.
+An embedded preview may need its own site grant. Allow preview details appears
+in the popup after a capture discovers a preview that needs permission.
+Changing pages during capture can require another capture.
+Chrome internal pages, the Web Store, PDFs, and local files are outside this test.
+Source file locations are unavailable unless the page provides reliable details.
+
+UPDATE OR REMOVE
+
+Keep the same extension folder. Replace its files with the next pilot build.
+Open chrome://extensions and click Reload on Nextshot Pilot.
+Reloading preserves saved rounds. Removing the extension clears its browser data.
+Export rounds before removal. Exported ZIP files remain on disk.
+
+See TRY-THIS.txt for the first test.
