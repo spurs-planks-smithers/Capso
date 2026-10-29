@@ -29,6 +29,8 @@ def credential(name):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('mode', choices=['setup', 'deploy', 'status', 'secret', 'pause'])
+    parser.add_argument('--existing-account-login', action='store_true',
+        help='Prepare only the invited account-owner pilot with the existing Cloudflare login.')
     args = parser.parse_args()
     site = credential('CLOUDFLARE_API_TOKEN_NEXTSHOT')
     setup = credential('CLOUDFLARE_API_TOKEN_NEXTSHOT_FEEDBACK')
@@ -52,8 +54,8 @@ def main():
     config = json.loads(CONFIG.read_text())
     if args.mode == 'setup':
         providers = api(account + '/access/identity_providers', access=True)
-        pin = next((p for p in providers if p['type'] == 'onetimepin'), None)
-        if not pin:
+        pin = None if args.existing_account_login else next((p for p in providers if p['type'] == 'onetimepin'), None)
+        if not pin and not args.existing_account_login:
             pin = api(account + '/access/identity_providers', 'POST',
                 {'name': 'Nextshot invited email PIN', 'type': 'onetimepin', 'config': {}}, True)
         apps = api(account + '/access/apps?per_page=100', access=True)
@@ -61,13 +63,14 @@ def main():
         if not app:
             app = api(account + '/access/apps', 'POST', {'type': 'self_hosted',
                 'name': 'Nextshot Jev invited pilot', 'domain': HOST + '/auth/authorize',
-                'allowed_idps': [pin['id']], 'auto_redirect_to_identity': True,
+                'allowed_idps': [pin['id']] if pin else [], 'auto_redirect_to_identity': bool(pin),
                 'app_launcher_visible': False, 'session_duration': '1h'}, True)
         policies = api(account + '/access/apps/' + app['id'] + '/policies', access=True)
         if not policies:
             api(account + '/access/apps/' + app['id'] + '/policies', 'POST',
                 {'name': 'Invited owner only', 'decision': 'allow',
-                    'include': [{'email': {'email': OWNER}}]}, True)
+                    'include': [{'email': {'email': OWNER}}],
+                    'require': [] if pin else [{'cloudflare_account_member': {'account_id': ACCOUNT}}]}, True)
         databases = api(account + '/d1/database?per_page=100')
         database = next((d for d in databases if d['name'] == NAME), None)
         if not database:
@@ -85,7 +88,7 @@ def main():
             ACCESS_TEAM_DOMAIN='shrill-math-8862.cloudflareaccess.com', ACCESS_AUDIENCE=app['aud'],
             PROCESSING_ENABLED='false', BILLING_BOUND_VERIFIED='false')
         CONFIG.write_text(json.dumps(config, indent=2) + '\n')
-        print('Separate database, PIN application, and owner invitation configured. Processing remains disabled.')
+        print('Separate database, Access application, and owner invitation configured. Processing remains disabled.')
 
     if not config['d1_databases'][0]['database_id'] or not config['vars']['ACCESS_AUDIENCE']:
         raise RuntimeError('Run setup first')
@@ -94,9 +97,11 @@ def main():
     policies = api(account + '/access/apps/' + app['id'] + '/policies', access=True)
     providers = api(account + '/access/identity_providers', access=True)
     pins = {p['id'] for p in providers if p['type'] == 'onetimepin'}
-    if app.get('domain') != HOST + '/auth/authorize' or set(app.get('allowed_idps', [])) - pins or not app.get('allowed_idps'):
+    pin_login = bool(app.get('allowed_idps')) and not set(app['allowed_idps']) - pins
+    owner_login = not app.get('allowed_idps') and len(policies) == 1 and policies[0].get('require') == [{'cloudflare_account_member': {'account_id': ACCOUNT}}]
+    if app.get('domain') != HOST + '/auth/authorize' or not (pin_login or owner_login):
         raise RuntimeError('Exact verified-email Access scope is required')
-    if len(policies) != 1 or policies[0].get('decision') != 'allow' or policies[0].get('include') != [{'email': {'email': OWNER}}] or policies[0].get('exclude') or policies[0].get('require'):
+    if len(policies) != 1 or policies[0].get('decision') != 'allow' or policies[0].get('include') != [{'email': {'email': OWNER}}] or policies[0].get('exclude') or (pin_login and policies[0].get('require')):
         raise RuntimeError('Exact invitation policy is required')
     environment = {k: os.environ[k] for k in ['PATH', 'HOME', 'USER', 'LOGNAME', 'LANG', 'TMPDIR'] if k in os.environ}
     environment.update(CLOUDFLARE_API_TOKEN=site, CI='true', WRANGLER_SEND_METRICS='false')
@@ -128,7 +133,7 @@ def main():
             if b['name'] in {'PROCESSING_ENABLED', 'BILLING_BOUND_VERIFIED'}}
         if set(controls) != {'PROCESSING_ENABLED', 'BILLING_BOUND_VERIFIED'}:
             raise RuntimeError('Missing processing controls')
-        print(json.dumps({'worker': NAME, 'authPath': app['domain'], 'verifiedEmailPIN': True,
+        print(json.dumps({'worker': NAME, 'authPath': app['domain'], 'loginMethod': 'email-pin' if pin_login else 'existing-cloudflare-account',
             'ownerOnly': True, 'controls': controls}, indent=2))
 
 

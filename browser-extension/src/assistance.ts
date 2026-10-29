@@ -9,8 +9,14 @@ let client:ReturnType<typeof createJevClient>|undefined;
 const jev=()=>client??=createJevClient();
 const active=new Map<string,{requestID:string;controller:AbortController}>();
 const settingsKeys=['assistanceMode','jevEnabled','jevConsentPageData','jevConsentReviewerText','browserAppleIntelligence'];
+chrome.storage.onChanged.addListener((changes,area)=>{if(area==='local'&&settingsKeys.some(key=>Object.hasOwn(changes,key)))cancelAllAssistance();});
 export function assistanceText(value:unknown,max=512):string{
   return redactSensitive(value,max).replace(/[\u0000-\u001f\u007f]/g,' ').replace(/https?:\/\/[^\s]+|www\.[^\s]+/gi,'[link]').replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi,'[contact]').replace(/Bearer\s+\[redacted\]/gi,'[credential]').trim().slice(0,max)||'Unlabeled';
+}
+function actionText(value:unknown):string{
+  // Older in-memory timelines can contain local CSS locators.
+  if(typeof value==='string'&&(/:nth-of-type\(|\s>{1,3}\s|^[a-z][a-z0-9-]*[#.[]/i.test(value)))return 'Click captured control';
+  return assistanceText(value);
 }
 export async function assistanceSettings(){
   const value=await chrome.storage.local.get(settingsKeys);
@@ -26,7 +32,7 @@ function selection(input:AssistInput,policy:JevPolicy):JevSelection{
   const id=(value:unknown)=>{if(typeof value!=='string'||!/^[A-Za-z0-9_-]{1,64}$/.test(value))throw Error('invalid');return value;};
   const rowKeys=(row:object,keys:string[])=>{if(!row||Object.keys(row).some(k=>!keys.includes(k))||keys.some(k=>!Object.hasOwn(row,k)))throw Error('invalid');};
   const value:JevSelection={purpose:input.purpose,requestID:input.requestID,selectionVersion:`r${input.selectionVersion}`,...(input.issueAtMs!==undefined?{issueTimeMs:input.issueAtMs}:{}),
-    timeline:input.timeline.map(row=>{rowKeys(row,['id','kind','label','timeMs']);if(!Number.isInteger(row.timeMs)||row.timeMs<0||row.timeMs>60000)throw Error('invalid');return {id:id(row.id),kind:assistanceText(row.kind,64),label:assistanceText(row.label),timeMs:row.timeMs};}),
+    timeline:input.timeline.map(row=>{rowKeys(row,['id','kind','label','timeMs']);if(!Number.isInteger(row.timeMs)||row.timeMs<0||row.timeMs>60000)throw Error('invalid');return {id:id(row.id),kind:assistanceText(row.kind,64),label:actionText(row.label),timeMs:row.timeMs};}),
     diagnostics:input.diagnostics.map(row=>{rowKeys(row,['id','kind','summary']);return {id:id(row.id),kind:assistanceText(row.kind,64),summary:assistanceText(row.summary)};}),
     candidates:input.candidates.map(row=>{rowKeys(row,['id','role','label']);return {id:id(row.id),role:assistanceText(row.role,64),label:assistanceText(row.label)};})};
   for(const rows of [value.timeline,value.diagnostics,value.candidates])if(new Set(rows.map(row=>row.id)).size!==rows.length)throw Error('invalid');
@@ -37,6 +43,7 @@ function selection(input:AssistInput,policy:JevPolicy):JevSelection{
 }
 export function cancelAssistance(owner:string,requestID?:string):void{const prior=active.get(owner);if(prior&&(!requestID||prior.requestID===requestID)){prior.controller.abort();active.delete(owner);}}
 export function cancelAllAssistance():void{for(const owner of active.keys())cancelAssistance(owner);}
+export function cancelTabAssistance(tabId:number):void{for(const owner of active.keys())if(owner.startsWith(String(tabId)+'/'))cancelAssistance(owner);}
 export async function runAssistance(owner:string,input:AssistInput,isReviewCurrent:()=>Promise<boolean>=async()=>true):Promise<AssistResult>{
   cancelAssistance(owner);const controller=new AbortController(),entry={requestID:input?.requestID,controller};active.set(owner,entry);
   const current=()=>active.get(owner)===entry&&!controller.signal.aborted;
@@ -47,7 +54,8 @@ export async function runAssistance(owner:string,input:AssistInput,isReviewCurre
     // Cloud fallback needs separate enablement, authentication, and content consent.
     if(!settings.jevEnabled||!settings.jevConsentPageData)return local('unavailable');
     if(!await chrome.permissions.contains({permissions:['identity'],origins:['https://jev.nextshot.dev/*']}))return local('reconnect_required');
-    const result=await jev().refine(selected,settings,{signal:controller.signal,stillCurrent:current});
+    const beforeSend=async()=>{const latest=await assistanceSettings();return current()&&latest.assistanceMode===settings.assistanceMode&&latest.jevEnabled&&latest.jevConsentPageData&&latest.jevConsentReviewerText===settings.jevConsentReviewerText&&await chrome.permissions.contains({permissions:['identity'],origins:['https://jev.nextshot.dev/*']});};
+    const result=await jev().refine(selected,settings,{signal:controller.signal,stillCurrent:current,beforeSend});
     if(!current()||!await isReviewCurrent())return local('stale');
     const latest=await assistanceSettings();if(latest.assistanceMode!==settings.assistanceMode||!latest.jevEnabled||!latest.jevConsentPageData||latest.jevConsentReviewerText!==settings.jevConsentReviewerText)return local('settings_changed');
     return result.available?{available:true,source:'jev',ids:result.candidates.filter(row=>row.confidence>=.9).map(row=>row.id)}:local(result.reason);

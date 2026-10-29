@@ -162,7 +162,7 @@ export function createJevClient(dependencies?: JevDependencies) {
       return {signedIn: !!existing, needsReconnect: !existing, accessExpired: !!existing && existing.expiresAt <= d.now()};
     },
     /** Deliberate review only. Display local suggestions first. Never await this during save. */
-    async refine(selection: JevSelection, policy: JevPolicy, options: {signal?: AbortSignal; stillCurrent: () => boolean; deadlineMs?: number}): Promise<JevResult> {
+    async refine(selection: JevSelection, policy: JevPolicy, options: {signal?: AbortSignal; stillCurrent: () => boolean; beforeSend?: () => Promise<boolean>; deadlineMs?: number}): Promise<JevResult> {
       if (signingIn || signingOut) return fallback('authentication_busy');
       if (policy.jevEnabled !== true) return fallback('disabled');
       if (policy.jevConsentPageData !== true) return fallback('consent_required');
@@ -179,6 +179,8 @@ export function createJevClient(dependencies?: JevDependencies) {
         const operation = (async (): Promise<JevResult> => {
           const auth = await session(); if (!current()) return fallback('stale_or_canceled');
           if (!auth) return fallback('reconnect_required');
+          if (options.beforeSend && !await options.beforeSend()) return fallback('consent_changed');
+          if (!current()) return fallback('stale_or_canceled');
           const response = await json('/v1/refine', {method: 'POST', headers: {'Content-Type': 'application/json', Authorization: `Bearer ${auth.access}`}, body}, controller.signal, deadline);
           if (!current()) return fallback('stale_or_canceled');
           if (response.status === 401) {await d.storage.remove(SESSION_KEY); return fallback('reconnect_required');}

@@ -10,7 +10,7 @@ function initialize():void {
     if(message?.type==='nextshot-record-observe'){
       recordingCleanup?.();
       const send=(kind:string,label:string)=>{void chrome.runtime.sendMessage({type:'nextshot-record-event',kind,label:redactSensitive(label,200)}).catch(()=>{});};
-      const click=(e:MouseEvent)=>{const target=e.composedPath().find(v=>v instanceof Element) as Element|undefined;if(target)send('click',selector(target));};
+      const click=(e:MouseEvent)=>{const target=e.composedPath().find(v=>v instanceof Element) as Element|undefined;if(target)send('click',actionLabel(target));};
       const error=()=>send('error','A page error occurred. Error details are unavailable.');
       document.addEventListener('click',click,true);window.addEventListener('error',error);window.addEventListener('unhandledrejection',error);
       const resources=new PerformanceObserver(list=>{for(const entry of list.getEntries())if(entry instanceof PerformanceResourceTiming)send('request',entry.name);});
@@ -23,13 +23,15 @@ function initialize():void {
       void(async()=>{
         frameCleanup?.();const region={x:0,y:0,width:innerWidth,height:innerHeight};
         const privateNodes=allElements().filter(e=>['INPUT','TEXTAREA','SELECT','IFRAME'].includes(e.tagName)||editable(e));
-        const movesPrivate=document.getAnimations().some(a=>{const target=a.effect instanceof KeyframeEffect?a.effect.target:null;return a.playState==='running'&&target instanceof Element&&privateNodes.some(e=>target.contains(e)||e.contains(target));});
+        const roots=[document,...new Set(allElements().map(e=>e.getRootNode()).filter((r):r is ShadowRoot=>r instanceof ShadowRoot))];
+        const movesPrivate=roots.some(root=>root.getAnimations().some(a=>{const target=a.effect instanceof KeyframeEffect?a.effect.target:null;return a.playState==='running'&&target instanceof Element&&privateNodes.some(e=>target.contains(e)||e.contains(target));}));
         if(movesPrivate){respond({error:'A private region is animated. This frame is skipped.'});return;}
-        let observer:MutationObserver|undefined;
-        frameCleanup=()=>{observer?.disconnect();captureProof=undefined;frameCleanup=undefined;};
+        let observer:MutationObserver|undefined,stopMovement:(()=>void)|undefined;
+        frameCleanup=()=>{observer?.disconnect();stopMovement?.();captureProof=undefined;frameCleanup=undefined;};
         try{
           await new Promise<void>(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r())));
           const proofId=crypto.randomUUID();captureProof={id:proofId,region,fingerprint:fingerprint(region),url:location.href,dirty:false};
+          stopMovement=watchMovement(()=>{if(captureProof?.id===proofId)captureProof.dirty=true;});
           observer=new MutationObserver(records=>{if(captureProof&&records.some(r=>!(r.target instanceof Element?r.target:r.target.parentElement)?.closest('[data-nextshot-overlay]')))captureProof.dirty=true;});
           const options={subtree:true,attributes:true,childList:true,characterData:true};observer.observe(document.documentElement,options);
           for(const root of new Set(allElements().map(e=>e.getRootNode())))if(root instanceof ShadowRoot)observer.observe(root,options);
@@ -61,6 +63,29 @@ function allElements():Element[] {
   return result;
 }
 function editable(e:Element):boolean {return e instanceof HTMLElement&&e.isContentEditable;}
+function watchMovement(dirty:()=>void):()=>void {
+  const roots:EventTarget[]=[window,...new Set(allElements().map(e=>e.getRootNode()).filter((r):r is ShadowRoot=>r instanceof ShadowRoot))];
+  if(visualViewport)roots.push(visualViewport);
+  const events=['scroll','resize','animationstart','transitionrun'];
+  for(const root of roots)for(const event of events)root.addEventListener(event,dirty,true);
+  return()=>{for(const root of roots)for(const event of events)root.removeEventListener(event,dirty,true);};
+}
+function actionLabel(element:Element):string {
+  const control=element.closest('button,a,[role=button],[role=link],[role=tab],[role=menuitem],[role=checkbox],[role=radio]')??element;
+  if(['INPUT','TEXTAREA','SELECT'].includes(element.tagName)||editable(element)||element.closest('[contenteditable]'))return 'Click field';
+  const role=control.getAttribute('role')??control.tagName.toLowerCase();
+  if(!['button','a','link','tab','menuitem','checkbox','radio'].includes(role))return 'Click page element';
+  let label=control.getAttribute('aria-label')??'';
+  if(!label){
+    const walker=document.createTreeWalker(control,NodeFilter.SHOW_TEXT);let node:Node|null,count=0;
+    while((node=walker.nextNode())&&count++<100&&label.length<160){
+      const parent=node.parentElement;if(!parent||parent.closest('input,textarea,select,[contenteditable]'))continue;
+      const style=getComputedStyle(parent);if(style.display==='none'||style.visibility==='hidden')continue;
+      label+=' '+(node.textContent??'');
+    }
+  }
+  return 'Click '+(redactSensitive(label.replace(/\s+/g,' ').trim(),160)||role);
+}
 function selector(element:Element):string {
   const parts:string[]=[];let current:Element|null=element;
   for(let depth=0;current&&depth<5;depth++,current=current.parentElement){
@@ -117,12 +142,13 @@ function select(done:()=>void):void {
     if(!start)return;
     const region={x:Math.max(0,Math.min(start.x,e.clientX)),y:Math.max(0,Math.min(start.y,e.clientY)),width:Math.min(innerWidth,Math.abs(e.clientX-start.x)),height:Math.min(innerHeight,Math.abs(e.clientY-start.y))};
     if(region.width<8||region.height<8){label.textContent='Select an area at least 8 pixels wide and high.';start=undefined;return;}
-    let cover:HTMLElement[]=[];let observer:MutationObserver|undefined;
+    let cover:HTMLElement[]=[];let observer:MutationObserver|undefined,stopMovement:(()=>void)|undefined;
     const animations=document.getAnimations().filter(a=>a.playState==='running');animations.forEach(a=>a.pause());
     try{
       cover=masks();root.style.visibility='hidden';
       await new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve())));
       const elements=snapshot(region),proofId=crypto.randomUUID();captureProof={id:proofId,region,fingerprint:fingerprint(region),url:location.href,dirty:false};
+      stopMovement=watchMovement(()=>{if(captureProof?.id===proofId)captureProof.dirty=true;});
       observer=new MutationObserver(records=>{
         if(!captureProof)return;
         for(const record of records){
@@ -138,6 +164,6 @@ function select(done:()=>void):void {
       if(result?.error)throw new Error(result.error);
       cleanup();
     }catch(error){root.style.visibility='visible';label.textContent=error instanceof Error?error.message:'Capture failed. Try again.';start=undefined;}
-    finally{observer?.disconnect();captureProof=undefined;cover.forEach(e=>e.remove());animations.forEach(a=>a.play());}
+    finally{observer?.disconnect();stopMovement?.();captureProof=undefined;cover.forEach(e=>e.remove());animations.forEach(a=>a.play());}
   };
 }

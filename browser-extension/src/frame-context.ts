@@ -112,10 +112,14 @@ export function frameProbe(action:'begin'|'confirm'|'release',token:string):Proo
     if(action==='confirm'){const saved=host.__nextshotFrameProof;if(!saved||saved.token!==token||saved.dirty||JSON.stringify(read())!==saved.fingerprint)return;return saved.proof;}
     host.__nextshotFrameProof?.stop();const proof=read();
     const observer=new MutationObserver(records=>{if(records.some(r=>!(r.target instanceof Element?r.target:r.target.parentElement)?.closest('[data-nextshot-overlay]')))saved.dirty=true;});
-    const saved:Saved={token,proof,fingerprint:JSON.stringify(proof),dirty:false,stop:()=>{observer.disconnect();if(host.__nextshotFrameProof===saved)delete host.__nextshotFrameProof;}};
+    const roots:EventTarget[]=[window,...new Set(nodes().map(e=>e.getRootNode()).filter((r):r is ShadowRoot=>r instanceof ShadowRoot))];
+    if(visualViewport)roots.push(visualViewport);
+    const events=['scroll','resize','animationstart','transitionrun'],dirty=()=>{saved.dirty=true;};
+    const saved:Saved={token,proof,fingerprint:JSON.stringify(proof),dirty:false,stop:()=>{observer.disconnect();for(const root of roots)for(const event of events)root.removeEventListener(event,dirty,true);if(host.__nextshotFrameProof===saved)delete host.__nextshotFrameProof;}};
     host.__nextshotFrameProof=saved;
+    for(const root of roots)for(const event of events)root.addEventListener(event,dirty,true);
     const options={subtree:true,attributes:true,childList:true,characterData:true};observer.observe(document.documentElement,options);
     for(const root of new Set(nodes().map(e=>e.getRootNode())))if(root instanceof ShadowRoot)observer.observe(root,options);
     setTimeout(()=>saved.stop(),1500);return proof;
-  }catch{return;}
+  }catch{if(host.__nextshotFrameProof?.token===token)host.__nextshotFrameProof.stop();return;}
 }

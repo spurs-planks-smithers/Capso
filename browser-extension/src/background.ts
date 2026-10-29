@@ -1,5 +1,5 @@
 import {beginFrameContext,type FrameContext} from './frame-context.ts';
-import {assistanceMessage,trustedAssistancePage,cancelAllAssistance} from './assistance.ts';
+import {assistanceMessage,trustedAssistancePage,cancelAllAssistance,cancelTabAssistance} from './assistance.ts';
 import {armRolling,stopRolling,openRolling,rollingStatus,rollingPause,pauseForSelection,rollingEvent,rollingPreview,rollingSelection,finishRollingReview} from './rolling.ts';
 import {startRecording,pauseRecording,resumeRecording,stopRecording,discardRecording,recordingStatus,selectRecording,recordObservedEvent} from './recording.ts';
 import {newCapture,saveDraft,discardDraft,pruneDrafts,sanitizeURL,sanitizeText,redactSensitive} from './core/index.ts';
@@ -26,14 +26,20 @@ registerIntents(async intent=>{
   else if(intent.kind==='rolling')await armRolling(intent.tabId!);
   else if(intent.kind==='recording')await startRecording(intent.tabId!);
   else if(intent.kind==='native')await chrome.storage.local.set({nativeSave:true});
-  else if(intent.kind==='jev')await assistanceMessage({action:'signin'},{id:chrome.runtime.id,url:chrome.runtime.getURL('popup.html')});
+  else if(intent.kind==='apple')await chrome.storage.local.set({browserAppleIntelligence:true});
+  else if(intent.kind==='jev'){
+    // Interactive sign-in must not hold the capture permission queue.
+    void assistanceMessage({action:'signin'},{id:chrome.runtime.id,url:chrome.runtime.getURL('popup.html')})
+      .then(async result=>{if(!(result as {signedIn?:boolean})?.signedIn)await chrome.storage.session.set({intentError:'Sign-in did not complete. Local suggestions stay available.'});})
+      .catch(()=>chrome.storage.session.set({intentError:'Sign-in is unavailable. Local suggestions stay available.'}));
+  }
 });
 chrome.commands.onCommand.addListener(async command=>{
   if(command==='rolling-round'){await openRolling().catch(()=>{});return;}if(command!=='capture')return;
   const [tab]=await chrome.tabs.query({active:true,currentWindow:true});if(tab?.id)await startCapture(tab.id).catch(()=>{});
 });
-chrome.tabs.onRemoved.addListener(tabId=>{void(async()=>{const associations=await draftAssociations(),id=associations[tabId];if(id){await discardDraft(id);delete associations[tabId];await chrome.storage.session.set({draftTabs:associations});}})();});
-chrome.permissions.onRemoved.addListener(()=>{void cleanDrafts();});
+chrome.tabs.onRemoved.addListener(tabId=>{cancelTabAssistance(tabId);void(async()=>{const associations=await draftAssociations(),id=associations[tabId];if(id){await discardDraft(id);delete associations[tabId];await chrome.storage.session.set({draftTabs:associations});}})();});
+chrome.permissions.onRemoved.addListener(()=>{cancelAllAssistance();void cleanDrafts();});
 chrome.runtime.onMessage.addListener((message,sender,respond)=>{
   if(!message||typeof message!=='object'||typeof message.type!=='string')return;
   if(message.type==='nextshot-assistance'&&trustedAssistancePage(sender)){const current=async()=>{if(message.selection?.purpose!=='steps')return true;const s=await rollingStatus();return s.id===message.selection.rollingID&&s.reasons.includes('review');};assistanceMessage(message,sender,current).then(respond,e=>respond({error:e.message}));return true;}

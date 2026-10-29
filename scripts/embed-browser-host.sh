@@ -9,8 +9,16 @@ esac
 configuration=release
 [[ "${CONFIGURATION:-Release}" == Debug ]] && configuration=debug
 scratch="$SRCROOT/build/browser-host-$configuration"
-swift build --package-path "$SRCROOT/Packages/BrowserBridgeKit" --scratch-path "$scratch" -c "$configuration" --product NextshotBrowserHost
-binary_dir="$(swift build --package-path "$SRCROOT/Packages/BrowserBridgeKit" --scratch-path "$scratch" -c "$configuration" --show-bin-path)"
+# Honor the caller's cache setting in SwiftPM's nested build as well.
+build_host() {
+  if [[ "${SDK_STAT_CACHE_ENABLE:-YES}" == NO ]]; then
+    swift build --build-system native "$@"
+  else
+    swift build "$@"
+  fi
+}
+build_host --package-path "$SRCROOT/Packages/BrowserBridgeKit" --scratch-path "$scratch" -c "$configuration" --product NextshotBrowserHost
+binary_dir="$(build_host --package-path "$SRCROOT/Packages/BrowserBridgeKit" --scratch-path "$scratch" -c "$configuration" --show-bin-path)"
 destination="$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Helpers"
 mkdir -p "$destination"
 cp "$binary_dir/NextshotBrowserHost" "$destination/NextshotBrowserHost"

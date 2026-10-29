@@ -39,7 +39,7 @@ if actual_id != EXTENSION_ID or manifest.get('name') != 'Nextshot Dev' or manife
     raise SystemExit('Refuse a changed Dev extension identity.')
 if set(manifest.get('permissions', [])) != {'activeTab', 'scripting', 'storage'}:
     raise SystemExit('Review changed required permissions before packaging.')
-if set(manifest.get('optional_permissions', [])) - {'nativeMessaging', 'tabCapture', 'webRequest', 'downloads', 'clipboardWrite', 'offscreen'}:
+if set(manifest.get('optional_permissions', [])) - {'nativeMessaging', 'tabCapture', 'webRequest', 'downloads', 'clipboardWrite', 'offscreen', 'identity'}:
     raise SystemExit('Review changed optional permissions before packaging.')
 if manifest.get('host_permissions') or set(manifest.get('optional_host_permissions', [])) != {'http://*/*', 'https://*/*'}:
     raise SystemExit('Review changed host access before packaging.')
@@ -73,8 +73,10 @@ for name, data in files.items():
     if secret_pattern.search(data):
         raise SystemExit(f'Potential secret in package file: {name}')
 revision = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
+dirty = bool(subprocess.check_output(['git', 'status', '--porcelain', '--untracked-files=no',
+    '--', 'browser-extension', 'scripts/register-browser-host.py'], cwd=ROOT, text=True).strip())
 audit = {
-    'channel': 'dev', 'extensionID': EXTENSION_ID, 'sourceCommit': revision,
+    'channel': 'dev', 'extensionID': EXTENSION_ID, 'sourceCommit': revision, 'sourceDirty': dirty,
     'manifest': manifest, 'networkLiterals': sorted(network_literals),
     'files': {name: {'bytes': len(data), 'sha256': digest(data)} for name, data in sorted(files.items())},
 }

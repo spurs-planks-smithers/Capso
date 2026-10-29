@@ -17,16 +17,17 @@ let assistRequest:string|undefined;
 function invalidateAssistance():void{
   selectedRevision++;
   if(assistRequest){void chrome.runtime.sendMessage({type:'nextshot-assistance',action:'cancel',requestID:assistRequest});assistRequest=undefined;}
+  assistButton.disabled=false;
   document.getElementById('assistance-suggestions')?.replaceChildren();
 }
-const assistButton=document.createElement('button');assistButton.id='assist-steps';assistButton.textContent='Suggest relevant steps';
+const assistButton=document.createElement('button');assistButton.id='assist-steps';assistButton.hidden=true;assistButton.textContent='Suggest relevant steps';
 const assistSuggestions=document.createElement('div');assistSuggestions.id='assistance-suggestions';assistSuggestions.setAttribute('role','status');
 $('add').after(assistButton,assistSuggestions);
 void chrome.storage.local.get('assistanceMode').then(v=>{assistButton.hidden=!['apple','jev'].includes(String(v.assistanceMode));});
 assistButton.onclick=async()=>{
   invalidateAssistance();const revision=selectedRevision,requestID=crypto.randomUUID();assistRequest=requestID;
   const candidates=steps.filter(step=>step.at>=start&&step.at<=end&&step.kind!=='excluded'&&originalSteps.has(step)).slice(0,32);
-  if(!candidates.length){assistSuggestions.textContent='Add an observed step first.';return;}
+  if(!candidates.length){assistRequest=undefined;assistSuggestions.textContent='Add an observed step first.';return;}
   const selection:AssistInput={purpose:'steps',requestID,selectionVersion:revision,rollingID:state.id,issueAtMs:Math.round(issue-start),
     timeline:candidates.map((step,index)=>({id:`s${index}`,kind:originalSteps.get(step)!.kind,label:originalSteps.get(step)!.label,timeMs:Math.round(step.at-start)})),
     diagnostics:(state.diagnostics??[]).filter((d:any)=>d.at>=start&&d.at<=end).slice(0,8).map((d:any,index:number)=>({id:`d${index}`,kind:d.kind,summary:d.text})),candidates:[]};
@@ -37,8 +38,11 @@ assistButton.onclick=async()=>{
     if(!result.available||!result.ids.length){assistSuggestions.textContent='Local steps remain available.';return;}
     const label=document.createElement('p');label.textContent=`Suggested captured steps (${result.source==='apple'?'Apple':'Jev'}). Your list stays unchanged.`;assistSuggestions.append(label);
     const list=document.createElement('ul');for(const id of result.ids){const step=candidates[Number(id.slice(1))];if(!step||!/^s[0-9]+$/.test(id))continue;const row=document.createElement('li');row.textContent=step.label;list.append(row);}assistSuggestions.append(list);
+    const apply=document.createElement('button');apply.textContent='Use suggested steps';
+    apply.onclick=()=>{if(revision!==selectedRevision)return;const accepted=new Set(result.ids.map(id=>candidates[Number(id.slice(1))]));for(const step of candidates)step.kind=accepted.has(step)?originalSteps.get(step)!.kind:'excluded';invalidateAssistance();renderSteps();assistSuggestions.textContent='Suggested steps selected. You can still edit them.';};
+    assistSuggestions.append(apply);
   }catch{if(revision===selectedRevision)assistSuggestions.textContent='Local steps remain available.';}
-  finally{assistButton.disabled=false;if(assistRequest===requestID)assistRequest=undefined;}
+  finally{if(assistRequest===requestID){assistButton.disabled=false;assistRequest=undefined;}}
 };
 const timeline = $<HTMLInputElement>("timeline");
 function fail(e: unknown): void {
@@ -117,6 +121,7 @@ function mark(): void {
     "Selection ready. Continue, or adjust the steps and range.";
   invalidateAssistance();
   renderSteps();
+  if(!assistButton.hidden)assistButton.click();
 }
 timeline.oninput = () => {
   void preview().catch(fail);

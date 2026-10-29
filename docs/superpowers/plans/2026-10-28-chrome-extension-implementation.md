@@ -34,28 +34,32 @@ External browser evidence uses schema namespace `nextshot.browser`, version 1. N
 |---|---|---|
 | C1 | [Chrome C1: browser evidence, local rounds, and portable export](https://github.com/spurs-planks-smithers/Capso/issues/166) | None |
 | C2 | [Chrome C2: area capture, annotation, and element context](https://github.com/spurs-planks-smithers/Capso/issues/167) | #166 |
+| C2a | [Chrome: permitted embedded preview element context](https://github.com/spurs-planks-smithers/Capso/issues/174) | #167; required before #172 |
 | C3 | [Chrome C3: signed Swift bridge and quiet native import](https://github.com/spurs-planks-smithers/Capso/issues/168) | #167 |
 | C4 | [Chrome C4: explicit recording and lightweight diagnostics](https://github.com/spurs-planks-smithers/Capso/issues/169) | #168 |
 | C5 | [Rolling Round: capture and annotate recent browser history (discovery)](https://github.com/spurs-planks-smithers/Capso/issues/157) | #169 |
 | C6 | [Chrome C6: invited standalone Jev service with hard spending cap](https://github.com/spurs-planks-smithers/Capso/issues/170) | #157 |
 | C7 | [Chrome C7: browser Jev consent, authentication, and refinement](https://github.com/spurs-planks-smithers/Capso/issues/171) | #170 |
 | C8 | [Apple Intelligence: improve local Rolling Round suggestions (Later research)](https://github.com/spurs-planks-smithers/Capso/issues/148) | #171 |
-| C9 | [Chrome C9: install package and browser/native smoke test](https://github.com/spurs-planks-smithers/Capso/issues/172) | #171 (Apple optional) |
+| C9 | [Chrome C9: install package and browser/native smoke test](https://github.com/spurs-planks-smithers/Capso/issues/172) | #171, #174 (Apple optional) |
 
 
 | Order | Deliverable | Prerequisite | Acceptance evidence |
 |---|---|---|---|
 | C1 | Browser evidence contract, local rounds, prompt, and ZIP export | None | Saved browser record, valid portable bundle, sanitization and duplicate-save checks |
 | C2 | Area capture, annotation, notes, element context, and review UI | C1 | Real Chromium capture/review screenshot, element match, saved notes, usable export |
+| C2a | Permitted nested preview context, existing #174 | C2 | Child element matches, safe coordinate mapping, private-field masks, denied/opaque-frame fallback, actual requested surface review |
 | C3 | Swift host, quiet native import, registration, and channel pairing | C2 | Signed Dev host, actual Chrome handshake, app closed/running imports, durable receipt, unchanged ordinary round |
 | C4 | Explicit silent recording and lightweight diagnostics | C3 | Start/stop video and event timeline, no audio/header/body data, coverage markers, cleanup |
 | C5 | Rolling Round, existing #157 | C4 | Selected excerpt/frames, issue-first review, local steps, pause/re-arm behavior, independent ended native round |
 | C6 | Invited Jev service, quota and cost enforcement | C5 | Authenticated access, revocation, atomic quota reservation, no paid overage, bounded upstream adapter, local failure fallback |
 | C7 | Extension Jev sign-in/consent and refinement | C6 | Browser-only invited assistance, selected payload, stale-result rejection, offline/capped fallback |
 | C8 | Optional Apple Intelligence, existing #148 | C7 | Availability-gated on-device adapter, native eligibility checks, structured evidence-linked output, fallback |
-| C9 | Distribution package, install instructions, and final smoke | C7; C8 optional | Reloadable extension, helper setup, full local/browser/native smoke, resource cleanup evidence, reviewer handoff |
+| C9 | Distribution package, install instructions, and final smoke | C7, C2a; C8 optional | Reloadable extension, helper setup, full local/browser/native smoke, resource cleanup evidence, reviewer handoff |
 
 #124 remains the umbrella. #157 remains its formal Rolling Round sub-issue. #148 remains a linked optional follow-up. Other delivery issues become formal children of #124. Every issue records its predecessor. Apple support never blocks the core fallback.
+
+October 28 scope correction: Drew's later standalone requirement supersedes the earlier Mac-required pilot. Browser capture and tracking continue without the Mac app. A native-save failure preserves the browser report and offers a later retry. The earlier disconnect-only 15-minute draft policy does not govern browser-only operation. Unsaved rolling media remains in memory and clears on Stop or browser restart. Native assistance probes an already-running app. Only Save can launch the app quietly.
 
 ### Task 1: Browser evidence and local handoff
 
