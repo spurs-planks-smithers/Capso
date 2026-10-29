@@ -18,7 +18,7 @@ Computer: Windows or Mac
 Operating system version:
 Chrome version:
 Installed Nextshot Pilot:
-Captured and matched the intended element:
+Captured the intended area and added notes:
 Saved and pasted the prompt:
 Exported and opened the ZIP:
 Round remained after restarting Chrome:

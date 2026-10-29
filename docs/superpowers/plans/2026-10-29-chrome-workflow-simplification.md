@@ -85,7 +85,9 @@ Files: pilot instructions, changelog, execution record, and existing packaging s
 - [x] Render empty, single-mark, two-mark, ambiguous, and saved states. Check the resulting images.
 - [x] Obtain one focused standard-model source review. Reuse the approved Astra plan without another Astra call.
 
-Commit and push explicit paths. Build a clean, hash-verified pilot package and update the existing visible folder. Record the resulting commit, package checksum, and CI status in #177 and #182.
+- [x] Commit and push explicit paths. Build a clean, hash-verified pilot package and update the existing visible folder.
+
+Runtime implementation is committed in 5b0720c. The final test card asks about capture and notes instead of requiring users to inspect automatic element matching. Record the latest package checksum and CI status in #177 and #182.
 
 - [ ] Complete the remaining installed acceptance at the manual browser boundary. Preserve the current capture until saved or explicitly discarded by the user.
 - [ ] Verify corrected exports before closing #183 and #184. Keep #182 open for actual Windows and Mac friend acceptance.
