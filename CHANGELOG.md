@@ -23,6 +23,8 @@ Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This for
 
 ### Changed
 
+- The private Chrome pilot can infer nearby annotation targets and locate covered fields through structural details. Field contents stay excluded. This remains outside v0.5.0.
+
 - A copied prompt lists your items and notes near the top and asks the agent to name its session, so sessions no longer share one name. Recent Rounds labels each round with your first instruction, and the date moves to the line below.
 
 ## [0.5.0] - 2026-10-28

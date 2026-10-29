@@ -82,7 +82,7 @@ export function frameProbe(action:'begin'|'confirm'|'release',token:string):Proo
   const path=():number[]=>{const result:number[]=[];let child:Window=window;while(child!==child.parent){const parent=child.parent;let found=-1;for(let i=0;i<parent.length;i++)if(parent.frames[i]===child){found=i;break;}if(found<0||result.length>=12)throw Error('Unknown frame path');result.unshift(found);child=parent;}return result;};
   const rect=(e:Element):Bounds=>{const r=e.getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height};};
   const nodes=():Element[]=>{const result:Element[]=[],pending:ParentNode[]=[document];while(pending.length){for(const e of pending.pop()!.querySelectorAll('*')){if(e.closest('[data-nextshot-overlay]'))continue;if(result.length>=20000)throw Error('Frame too large');result.push(e);const shadow=(e instanceof HTMLElement?chrome.dom?.openOrClosedShadowRoot(e):null)??e.shadowRoot;if(shadow)pending.push(shadow);}}return result;};
-  const selector=(e:Element):string=>{const parts:string[]=[];let current:Element|null=e;for(let i=0;current&&i<5;i++,current=current.parentElement){if(current.id&&!/(?:token|secret|password)/i.test(current.id)){parts.unshift(current.tagName.toLowerCase()+'#'+CSS.escape(current.id));break;}const parent=current.parentElement;const siblings=parent?[...parent.children].filter(n=>n.tagName===current!.tagName):[];parts.unshift(current.tagName.toLowerCase()+(siblings.length>1?`:nth-of-type(${siblings.indexOf(current)+1})`:''));}const root=e.getRootNode();return(root instanceof ShadowRoot?selector(root.host)+' >>> ':'')+parts.join(' > ');};
+  const selector=(e:Element,includeIds=true):string=>{const parts:string[]=[];let current:Element|null=e;for(let i=0;current&&i<5;i++,current=current.parentElement){if(includeIds&&current.id&&!/(?:token|secret|password)/i.test(current.id)){parts.unshift(current.tagName.toLowerCase()+'#'+CSS.escape(current.id));break;}const parent=current.parentElement;const siblings=parent?[...parent.children].filter(n=>n.tagName===current!.tagName):[];parts.unshift(current.tagName.toLowerCase()+(siblings.length>1?`:nth-of-type(${siblings.indexOf(current)+1})`:''));}const root=e.getRootNode();return(root instanceof ShadowRoot?selector(root.host,includeIds)+' >>> ':'')+parts.join(' > ');};
   const read=():Proof=>{
     // The effective origin also detects opaque CSP and inherited sandbox restrictions.
     if(window.origin==='null'||!/^https?:$/.test(location.protocol)||visualViewport&&(visualViewport.scale!==1||visualViewport.offsetLeft!==0||visualViewport.offsetTop!==0))throw Error('Unsupported viewport');
@@ -92,6 +92,7 @@ export function frameProbe(action:'begin'|'confirm'|'release',token:string):Proo
     const children:Child[]=[],privateRects:Bounds[]=[],elements:ElementEvidence[]=[];
     for(const e of all){
       const box=rect(e);if(box.width<=0||box.height<=0)continue;
+      if(e.parentElement?.closest('select,textarea,[contenteditable]')){privateRects.push(box);continue;}
       if(e instanceof HTMLIFrameElement||e instanceof HTMLFrameElement){
         let index=-1;for(let i=0;i<window.length;i++)if(window.frames[i]===e.contentWindow){index=i;break;}
         let safe=index>=0&&e instanceof HTMLIFrameElement&&(!e.hasAttribute('sandbox')||e.sandbox.contains('allow-same-origin'))&&e.getRootNode()===document&&Math.abs(box.width-e.offsetWidth)<.5&&Math.abs(box.height-e.offsetHeight)<.5;
@@ -101,7 +102,15 @@ export function frameProbe(action:'begin'|'confirm'|'release',token:string):Proo
         let origin:string|undefined;try{const u=new URL(e.getAttribute('src')??'',location.href);if(/^https?:$/.test(u.protocol))origin=`${u.origin}/*`;}catch{}
         children.push({index,box,viewport,safe,origin});continue;
       }
-      if(['INPUT','TEXTAREA','SELECT'].includes(e.tagName)||e instanceof HTMLElement&&e.isContentEditable){privateRects.push(box);continue;}
+      if(['INPUT','TEXTAREA','SELECT'].includes(e.tagName)||e instanceof HTMLElement&&e.isContentEditable){
+        privateRects.push(box);
+        const nestedEditable=e instanceof HTMLElement&&e.isContentEditable&&e.parentElement?.isContentEditable;
+        if(!nestedEditable&&elements.length<2000&&getComputedStyle(e).visibility!=='hidden'){
+          const role=(e.getAttribute('role')??'').split(/\s+/).find(r=>['textbox','searchbox','combobox','listbox','checkbox','radio','slider','spinbutton','switch'].includes(r))||(e instanceof HTMLElement&&e.isContentEditable?'textbox':'');
+          elements.push({id:`element-${elements.length+1}`,selector:selector(e,false),tag:e.tagName.toLowerCase(),role,text:'',bounds:box});
+        }
+        continue;
+      }
       if(['SCRIPT','STYLE','NOSCRIPT'].includes(e.tagName)||getComputedStyle(e).visibility==='hidden'||elements.length>=2000)continue;
       // No parent textContent, private descendants must never enter evidence.
       const own=[...e.childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).map(n=>n.textContent??'').join(' ');

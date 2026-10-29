@@ -41,6 +41,8 @@ DATA AND LIMITS
 Captures and notes stay in this Chrome profile. Nothing uploads automatically.
 No AI, native integration, recording, or Rolling Round is included in this pilot.
 Form fields and unreadable embedded previews receive covers.
+Field details contain structure and position, without field contents or labels.
+A mark beside an element can suggest a nearby target. Check that suggestion.
 Images and notes can still contain private data. Review them before sharing.
 Only capture content you are comfortable sharing with your coding agent.
 An embedded preview may need its own site grant. Allow preview details appears

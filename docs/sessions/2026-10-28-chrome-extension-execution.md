@@ -154,3 +154,13 @@ Export inspection, saved-round recovery, and Windows acceptance remain pending. 
 The actual export preserves the note and images. Its input field is covered. The dot is on the paragraph below the heading. The note is a shorter, differently capitalized smoke note, so the initial exact-text assertion is too strict. Inspection finds a separate real gap: the mark has no elementId. The paragraph and two empty overlay containers produce three candidates.
 
 Bug #183 is a child of pilot #182. The actual export reproduces the mismatch. The matcher now prefers meaningful text or roles after interactive targets. It preserves genuine ambiguity and empty-container fallback. The regression fails before the change and passes after it. Existing editor and profile checks pass. A fresh installed capture still gates operational acceptance. The original export remains unchanged.
+
+## October 29 adjacent annotation finding
+
+Drew's second export contains two marks beside the button and covered field. Capture, notes, copied prompt, images, and export work. Both marks lack elementId. A real Chrome measurement rules out the suspected scaling error at this viewport. The bitmap and canvas have matching proportions. An independently calculated click maps within 0.003 pixels. No CSS change follows this disproved hypothesis.
+
+Issue #184 is a Later child of #182. A bounded nearby lookup addresses adjacent marks. Direct interactive and own-text targets retain priority. A sole nearby target is labeled as inferred. Ambiguous targets remain a choice. Structural field evidence uses no IDs or field text. It includes only tags, recognized roles, bounds, and positional selectors. No permissions, dependencies, service calls, or schema fields are added.
+
+A wider real Chrome fixture finds existing select-option text leakage when options are visible. Descendant evidence is now excluded. Independent review catches a mask regression in the first descendant exclusion. The corrected path collects every private descendant rectangle before excluding its identity and text. Both collectors cover an overflowing editable child and an input inside contenteditable=false. The production collector fixture passes with five field identities, no sentinel values, positional selectors, and stable capture proof.
+
+The actual exported geometry, meaningful-match regression, nearby ambiguity, role-only container fallback, twelve editor fixture checks, thirteen runtime checks, profile guard, both builds, and TypeScript pass. The existing 57 Jev checks pass without live calls. These are local proofs. Updated package reload, fresh installed export, saved-round recovery, and actual Windows acceptance remain pending. Keep #183, #184, #182, and the umbrella open.

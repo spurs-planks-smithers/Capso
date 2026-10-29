@@ -24,19 +24,33 @@ async function suggestElements(candidates:ElementEvidence[],button:HTMLButtonEle
 function remember():void{history.push(structuredClone(capture.marks));redo.length=0;}
 function saveNote():void {if(!capture)return;if(selected)capture.marks[selected-1].note=note.value;else capture.note=note.value;}
 function select(id:number):void {if(saving)return;cancelElementAssistance();saveNote();selected=id;note.value=id?capture.marks[id-1]?.note??'':capture.note;$('#note-label').textContent=id?`Mark ${id}: what should change?`:'General note';showElements();}
+function markPoint(mark:Mark):{x:number;y:number}{
+  return {x:mark.kind==='arrow'?mark.endX??mark.x:mark.kind==='box'?(mark.x+(mark.endX??mark.x))/2:mark.x,
+    y:mark.kind==='arrow'?mark.endY??mark.y:mark.kind==='box'?(mark.y+(mark.endY??mark.y))/2:mark.y};
+}
 function matches(mark:Mark):ElementEvidence[] {
-  const x=mark.kind==='arrow'?mark.endX??mark.x:mark.kind==='box'?(mark.x+(mark.endX??mark.x))/2:mark.x;
-  const y=mark.kind==='arrow'?mark.endY??mark.y:mark.kind==='box'?(mark.y+(mark.endY??mark.y))/2:mark.y;
-  const candidates=capture.elements.filter(e=>x>=e.bounds.x&&x<=e.bounds.x+e.bounds.width&&y>=e.bounds.y&&y<=e.bounds.y+e.bounds.height)
-    .sort((a,b)=>a.bounds.width*a.bounds.height-b.bounds.width*b.bounds.height).filter(e=>e.tag!=='html'&&e.tag!=='body');
-  const interactive=candidates.filter(e=>['button','a'].includes(e.tag)||['button','link','tab','menuitem'].includes(e.role??''));
-  const meaningful=candidates.filter(e=>e.text?.trim()||e.role);
-  return (interactive.length?interactive:meaningful.length?meaningful:candidates).slice(0,4);
+  const {x,y}=markPoint(mark);
+  const elements=capture.elements.filter(e=>e.tag!=='html'&&e.tag!=='body');
+  const inside=(e:ElementEvidence)=>x>=e.bounds.x&&x<=e.bounds.x+e.bounds.width&&y>=e.bounds.y&&y<=e.bounds.y+e.bounds.height;
+  const meaningful=(e:ElementEvidence)=>!!(e.text?.trim()||e.role||['input','textarea','select'].includes(e.tag));
+  const area=(e:ElementEvidence)=>e.bounds.width*e.bounds.height;
+  const direct=elements.filter(inside).sort((a,b)=>area(a)-area(b));
+  const interactive=direct.filter(e=>['button','a'].includes(e.tag)||['button','link','tab','menuitem'].includes(e.role??''));
+  const named=direct.filter(e=>e.text?.trim()||['input','textarea','select'].includes(e.tag)||e.role==='textbox');
+  if(interactive.length||named.length)return(interactive.length?interactive:named).slice(0,4);
+  const distance=(e:ElementEvidence)=>Math.hypot(Math.max(e.bounds.x-x,0,x-e.bounds.x-e.bounds.width),Math.max(e.bounds.y-y,0,y-e.bounds.y-e.bounds.height));
+  const radius=24*(capture.viewport?.scale??1);
+  const nearby=elements.filter(e=>!inside(e)&&meaningful(e)&&distance(e)<=radius).sort((a,b)=>distance(a)-distance(b)||area(a)-area(b));
+  const roleOnly=direct.filter(meaningful);
+  return(nearby.length?nearby:roleOnly.length?roleOnly:direct).slice(0,4);
 }
 function showElements():void {
   const container=$('#elements');container.replaceChildren();
   if(!selected){$('#element-hint').textContent='Element details follow your mark.';return;}
-  const candidates=matches(capture.marks[selected-1]);$('#element-hint').textContent=candidates.length>1?'Choose the element you mean.':candidates.length?'Matched from your mark.':'No reliable element match. The image and note remain usable.';
+  const candidates=matches(capture.marks[selected-1]),anchor=markPoint(capture.marks[selected-1]);
+  const nearby=candidates.length>0&&candidates.every(e=>anchor.x<e.bounds.x||anchor.x>e.bounds.x+e.bounds.width||anchor.y<e.bounds.y||anchor.y>e.bounds.y+e.bounds.height);
+  const field=candidates.length===1&&(['input','textarea','select'].includes(candidates[0].tag)||candidates[0].role==='textbox');
+  $('#element-hint').textContent=candidates.length>1?(nearby?'Choose the nearby element you mean.':'Choose the element you mean.'):candidates.length?(nearby?(field?'Nearby field, inferred from your mark. Values stay covered.':'Nearby element, inferred from your mark. Check the suggested target.'):(field?'Matched from your mark. Field values stay covered.':'Matched from your mark.')):'No reliable element match. The image and note remain usable.';
   if(candidates.length===1&&!choices.has(selected)){choices.set(selected,candidates[0].id);capture.marks[selected-1].elementId=candidates[0].id;}
   for(const [index,element] of candidates.entries()){
     const button=document.createElement('button');button.dataset.assistElement=String(index);button.className='element-option'+(choices.get(selected)===element.id?' selected':'');button.textContent=element.selector+(element.text?`\n${element.text}`:'');

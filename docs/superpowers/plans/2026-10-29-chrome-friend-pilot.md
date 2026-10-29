@@ -56,3 +56,13 @@ The separate pilot identity is `ffnikmhbnlgmfeniemlmfniihooipmcd`. Its generated
 The popup preview is rendered in regular Chrome. An independent source review reports no actionable findings. CI passes at runtime source `465b23b`. Drew confirms loading Pilot, capturing the test page, adding a dot and note, saving, and pasting the expected prompt. Export inspection, saved-round recovery, and actual Windows acceptance remain pending. The friend instructions clarify that an agent needs the exported ZIP with the copied prompt.
 
 Chrome documents the [unpacked installation route](https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world#load-unpacked). Private and unlisted Store items still require review. A later [Store distribution](https://developer.chrome.com/docs/webstore/cws-dashboard-distribution) task can reduce installation effort. No Store upload occurs under this pilot.
+
+## Installed export corrections
+
+The two installed exports prove capture, saved notes, copied prompts, ZIP creation, relative paths, and covered fields. Neither establishes complete element matching. The first dot falls on a paragraph with empty overlay candidates. Issue #183 corrects that priority. The next export has two marks beside a button and covered field. Issue #184 covers nearby matching and field structure. Both bugs stay open until fresh installed acceptance. Keep #182 open for recovery and actual Windows and friend results.
+
+Real Chrome measurement rules out a canvas scaling error at Drew's window size. The image is 824 by 675 pixels. The displayed canvas is 449 by 367.8046875 pixels. An independent click maps within 0.003 pixels of its expected location. The apparent empty space surrounds the canvas. No CSS correction is justified by this evidence.
+
+The matcher keeps direct interactive and own-text targets first. Otherwise it considers targets within 24 CSS pixels of the mark. One nearby candidate is selected and labeled as inferred. Multiple candidates require a choice. Role-only containers do not suppress nearby targets. Source and exported geometry checks preserve real ambiguity and reject distant guesses.
+
+Field evidence contains structural selectors without IDs, recognized roles, tags, and bounds. Field text remains empty. Values, placeholders, labels, selected option text, and editable descendants are excluded. Both collectors retain mask rectangles for private descendants, including children outside a parent's bounds. A real Chrome fixture verifies inputs, checkbox, textarea, visible select options, nested editable content, and an input inside a noneditable container. This verifies production collector functions in a public synthetic fixture. It does not substitute for a fresh installed extension export.

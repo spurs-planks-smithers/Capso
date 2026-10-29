@@ -86,32 +86,39 @@ function actionLabel(element:Element):string {
   }
   return 'Click '+(redactSensitive(label.replace(/\s+/g,' ').trim(),160)||role);
 }
-function selector(element:Element):string {
+function selector(element:Element,includeIds=true):string {
   const parts:string[]=[];let current:Element|null=element;
   for(let depth=0;current&&depth<5;depth++,current=current.parentElement){
     const tag=current.tagName.toLowerCase();
-    if(current.id&&!/(?:token|secret|password)/i.test(current.id)){parts.unshift(`${tag}#${CSS.escape(current.id)}`);break;}
+    if(includeIds&&current.id&&!/(?:token|secret|password)/i.test(current.id)){parts.unshift(`${tag}#${CSS.escape(current.id)}`);break;}
     const parent=current.parentElement;
     const siblings=parent?[...parent.children].filter(e=>e.tagName===current!.tagName):[];
     parts.unshift(tag+(siblings.length>1?`:nth-of-type(${siblings.indexOf(current)+1})`:''));
   }
   const root=element.getRootNode();
-  return (root instanceof ShadowRoot?selector(root.host)+' >>> ':'')+parts.join(' > ');
+  return (root instanceof ShadowRoot?selector(root.host,includeIds)+' >>> ':'')+parts.join(' > ');
 }
 function snapshot(region:Bounds,nodes=allElements()):ElementEvidence[] {
   const result:ElementEvidence[]=[];
   for(const e of nodes){
     if(result.length>=2000)break;
-    if(['SCRIPT','STYLE','NOSCRIPT','INPUT','TEXTAREA','SELECT','IFRAME'].includes(e.tagName)||editable(e))continue;
+    if(['SCRIPT','STYLE','NOSCRIPT','IFRAME'].includes(e.tagName))continue;
+    if(e.parentElement?.closest('select,textarea,[contenteditable]'))continue;
     const bounds=rectOf(e);if(bounds.width<1||bounds.height<1||bounds.x>region.x+region.width||bounds.y>region.y+region.height||bounds.x+bounds.width<region.x||bounds.y+bounds.height<region.y)continue;
     if(getComputedStyle(e).visibility==='hidden')continue;
+    if(['INPUT','TEXTAREA','SELECT'].includes(e.tagName)||editable(e)){
+      if(editable(e)&&e.parentElement&&editable(e.parentElement))continue;
+      const role=(e.getAttribute('role')??'').split(/\s+/).find(r=>['textbox','searchbox','combobox','listbox','checkbox','radio','slider','spinbutton','switch'].includes(r))||(editable(e)?'textbox':'');
+      result.push({id:`element-${result.length+1}`,selector:selector(e,false),tag:e.tagName.toLowerCase(),role,text:'',bounds});
+      continue;
+    }
     const ownText=[...e.childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).map(n=>n.textContent??'').join(' ');
     const label=redactSensitive(e.getAttribute('aria-label')||ownText,300).trim();
     result.push({id:`element-${result.length+1}`,selector:selector(e),tag:e.tagName.toLowerCase(),role:sanitizeText(e.getAttribute('role')??'',60),text:label,bounds});
   }
   return result;
 }
-function privateRects(nodes=allElements()):Bounds[]{return nodes.filter(e=>['INPUT','TEXTAREA','SELECT','IFRAME'].includes(e.tagName)||editable(e)).map(rectOf).filter(r=>r.width>0&&r.height>0);}
+function privateRects(nodes=allElements()):Bounds[]{return nodes.filter(e=>['INPUT','TEXTAREA','SELECT','IFRAME'].includes(e.tagName)||editable(e)||e.parentElement?.closest('select,textarea,[contenteditable]')).map(rectOf).filter(r=>r.width>0&&r.height>0);}
 function fingerprint(region:Bounds):string {
   const nodes=allElements();
   return JSON.stringify({elements:snapshot(region,nodes),masks:privateRects(nodes),width:innerWidth,height:innerHeight,x:scrollX,y:scrollY});
