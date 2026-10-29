@@ -76,8 +76,9 @@ save.onclick=async()=>{
     assets=assets.filter(a=>a.name!==capture.imageFile);assets.push({name:capture.imageFile,mime:annotated.type,bytes:new Uint8Array(await annotated.arrayBuffer())});
     capture=validateCapture(capture);saved=await saveCapture(capture,assets);await chrome.runtime.sendMessage({type:'nextshot-forget-draft',id:capture.id});
     note.readOnly=true;save.textContent='Saved';$('#saved-actions').hidden=false;$('#cancel').textContent='Done';status.textContent='Feedback saved in this browser.';
-    try{await navigator.clipboard.writeText(renderPrompt(saved));status.textContent='Prompt copied. Paste it into your agent.';}catch{status.textContent+=' Use Copy prompt when ready.';}
-    void deliverNative(capture,assets).then(receipt=>{if(receipt?.state==='imported')status.textContent='Saved in Nextshot Dev. Prompt copied.';else if(receipt)status.textContent='Saved in this browser. Nextshot Dev is unavailable.';});
+    let promptCopied=false;
+    try{await navigator.clipboard.writeText(renderPrompt(saved));promptCopied=true;status.textContent='Prompt copied. Paste it into your agent.';}catch{status.textContent+=' Use Copy prompt when ready.';}
+    void deliverNative(capture,assets).then(receipt=>{if(receipt?.state==='imported')status.textContent=promptCopied?'Saved in Nextshot Dev. Prompt copied.':'Saved in Nextshot Dev. Use Copy prompt when ready.';else if(receipt)status.textContent='Saved in this browser. Nextshot Dev is unavailable.';});
   }catch(error){status.textContent=error instanceof Error?error.message:'Save failed. Your draft remains available.';save.disabled=false;note.readOnly=false;}
   finally{saving=false;}
 };
