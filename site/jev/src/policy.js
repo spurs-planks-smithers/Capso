@@ -1,7 +1,9 @@
 export const CLIENT = 'nextshot-chrome-dev';
 export const REDIRECT = 'https://ghmidcmcjigfckaiopacgpfaffofgjel.chromiumapp.org/jev';
 export const MODEL = 'jev-1.14.0';
-export const RESERVE = 2688;
+// Round 64k upward as 64 * 1024. Round the full-context charge upward to microdollars.
+export const MAX_INPUT_TOKENS = 65536;
+export const RESERVE = 2753;
 export const ENDPOINT = 'https://api.typesafe.ai/v1/systemone';
 export function keys(value, allowed) {
   if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).some(k => !allowed.includes(k))) throw Error('invalid');
@@ -13,9 +15,10 @@ export function text(v, max=512) {
 }
 export function id(v) { if(!/^[A-Za-z0-9_-]{1,64}$/.test(text(v,64))) throw Error('invalid'); return v; }
 export function validate(v) {
-  keys(v,['version','purpose','requestID','selectionVersion','reviewerNote','consent','timeline','diagnostics','candidates']);
+  keys(v,['version','purpose','requestID','selectionVersion','reviewerNote','issueTimeMs','consent','timeline','diagnostics','candidates']);
   if(v.version!==1 || !['steps','elements'].includes(v.purpose)) throw Error('invalid');
   id(v.requestID); id(v.selectionVersion);
+  if(v.issueTimeMs!==undefined&&(!Number.isInteger(v.issueTimeMs)||v.issueTimeMs<0||v.issueTimeMs>60000))throw Error('invalid');
   keys(v.consent,['reviewerText','pageData']);
   if(v.consent.reviewerText!==undefined && typeof v.consent.reviewerText!=='boolean')throw Error('invalid');
   if(v.reviewerNote!==undefined){text(v.reviewerNote,1024);if(v.consent.reviewerText!==true)throw Error('consent');}
@@ -32,7 +35,7 @@ export function validate(v) {
   return v;
 }
 export function priceReady(e) {
- return e.BILLING_BOUND_VERIFIED==='true' && e.PRICING_MODEL===MODEL && e.INPUT_MICRODOLLARS_PER_MILLION==='42000' && e.MAX_BILLABLE_INPUT_TOKENS==='64000' && e.OUTPUT_MICRODOLLARS_PER_MILLION==='0';
+ return e.BILLING_BOUND_VERIFIED==='true' && e.PRICING_MODEL===MODEL && e.INPUT_MICRODOLLARS_PER_MILLION==='42000' && e.MAX_BILLABLE_INPUT_TOKENS===String(MAX_INPUT_TOKENS) && e.OUTPUT_MICRODOLLARS_PER_MILLION==='0';
 }
 export async function boundedJSON(request,max) {
  const reader=request.body?.getReader(); if(!reader) throw Error('invalid');

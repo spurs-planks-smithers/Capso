@@ -10,8 +10,12 @@ async function access(req,e){
  const token=req.headers.get('Cf-Access-Jwt-Assertion');if(!token)throw Error('denied');
  const issuer=`https://${e.ACCESS_TEAM_DOMAIN}`;
  if(!jwks.has(issuer))jwks.set(issuer,createRemoteJWKSet(new URL(issuer+'/cdn-cgi/access/certs'),{timeoutDuration:3000}));
- const {payload}=await jwtVerify(token,jwks.get(issuer),{issuer,audience:e.ACCESS_AUDIENCE,algorithms:['RS256'],requiredClaims:['sub','exp','iat']});
+ const {payload}=await jwtVerify(token,jwks.get(issuer),{issuer,audience:e.ACCESS_AUDIENCE,algorithms:['RS256'],requiredClaims:['sub','exp','iat','email']});
+ if(typeof payload.sub!=='string'||!payload.sub.length||payload.sub.length>512)throw Error('denied');
  const hash=await digest(issuer+'\n'+payload.sub);
+ if(typeof payload.email!=='string'||payload.email.length>254)throw Error('denied');
+ const emailHash=await digest(payload.email.trim().toLowerCase());
+ await e.DB.prepare('INSERT OR IGNORE INTO users(id,identity_hash,enabled,monthly_limit) SELECT user_id,?,1,monthly_limit FROM invitations WHERE email_hash=? AND enabled=1').bind(hash,emailHash).run();
  return e.DB.prepare('SELECT id FROM users WHERE identity_hash=? AND enabled=1').bind(hash).first();
 }
 async function session(req,e){
@@ -57,10 +61,10 @@ export async function handle(req,e){
  }
  const user=await session(req,e);if(!user)return fallback('unauthorized',401);
  if(url.pathname==='/auth/revoke'&&req.method==='POST'){await revokeFamily(e,user.family);return reply({revoked:true});}
- const month=new Date().toISOString().slice(0,7);
  if(url.pathname==='/v1/availability'&&req.method==='GET'){
-  const usage=await e.DB.prepare('SELECT COALESCE(SUM(reserved),0) AS used FROM requests WHERE user_id=? AND month=?').bind(user.id,month).first();
-  const global=await e.DB.prepare('SELECT COALESCE(SUM(reserved),0) AS used FROM requests WHERE month=?').bind(month).first();
+  const month=new Date().toISOString().slice(0,7);
+  const usage=await e.DB.prepare("SELECT COALESCE(SUM(reserved),0) AS used FROM requests WHERE user_id=? AND (month=? OR (month<? AND (status IN('pending','uncertain') OR finished_month>=?)))").bind(user.id,month,month,month).first();
+  const global=await e.DB.prepare("SELECT COALESCE(SUM(reserved),0) AS used FROM requests WHERE month=? OR (month<? AND (status IN('pending','uncertain') OR finished_month>=?))").bind(month,month,month).first();
   const remainingRequests=Math.floor(Math.max(0,Math.min(user.monthly_limit-usage.used,25000000-global.used))/RESERVE);
   return reply({version:1,available:remainingRequests>0&&e.PROCESSING_ENABLED==='true'&&priceReady(e)&&!!e.TYPESAFE_API_KEY,remainingRequests});
  }
@@ -69,11 +73,12 @@ export async function handle(req,e){
  const old=await e.DB.prepare('SELECT user_id,digest FROM requests WHERE request_id=?').bind(input.requestID).first();
  if(old)return fallback(old.user_id===user.id&&old.digest===contentDigest?'already_attempted':'request_conflict',old.user_id===user.id&&old.digest===contentDigest?200:409);
  if(e.PROCESSING_ENABLED!=='true'||!priceReady(e)||!e.TYPESAFE_API_KEY)return fallback('disabled');
+ const month=new Date().toISOString().slice(0,7);
  try{await e.DB.prepare('INSERT INTO requests(request_id,user_id,digest,month,reserved,created) VALUES(?,?,?,?,?,?)').bind(input.requestID,user.id,contentDigest,month,RESERVE,now()).run();}catch{return fallback('admission_denied');}
  try{
   const result=await refine(input,e.TYPESAFE_API_KEY);
-  await e.DB.prepare("UPDATE requests SET status='complete' WHERE request_id=?").bind(input.requestID).run();
-  return reply({version:1,available:true,requestID:input.requestID,selectionVersion:input.selectionVersion,purpose:input.purpose,candidates:result});
+  await e.DB.prepare("UPDATE requests SET status='complete',finished_month=?,input_tokens=?,output_tokens=?,latency_ms=? WHERE request_id=?").bind(new Date().toISOString().slice(0,7),result.usage.input_tokens,result.usage.output_tokens,result.latencyMs,input.requestID).run();
+  return reply({version:1,available:true,requestID:input.requestID,selectionVersion:input.selectionVersion,purpose:input.purpose,candidates:result.candidates});
  }catch{await e.DB.prepare("UPDATE requests SET status='uncertain' WHERE request_id=?").bind(input.requestID).run();return fallback('upstream_unavailable');}
 }
 export default {async fetch(req,e){try{return await handle(req,e);}catch{return fallback('invalid_or_unavailable',400);}}};
