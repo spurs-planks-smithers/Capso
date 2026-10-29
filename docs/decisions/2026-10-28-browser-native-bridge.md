@@ -4,7 +4,7 @@ Date: 2026-10-28. Execution is authorized in chat. Tracking stays in Later. No p
 
 ## Decision
 
-Use Chrome native messaging for one save operation. Embed a signed Swift helper inside Nextshot. The helper exits after its receipt. No permanent helper, local web server, general automation URL, or network listener is required.
+Use Chrome native messaging for a save operation and optional on-device assistance. Embed a signed Swift helper inside Nextshot. The helper exits after its receipt. No permanent helper, local web server, general automation URL, or network listener is required.
 
 The helper quietly opens its exact parent app only for an import. A handshake never launches the app. Browser capture, save, and export remain independent. The browser stores its result before native delivery.
 
@@ -14,7 +14,7 @@ Runtime correction on October 28: an anonymous XPC endpoint cannot be archived w
 
 A user-only inbox holds one bounded request during delivery. The URL carries no media or page path. Files use exclusive creation and no-follow opens. Swift validates the request digest before import. The helper deletes the temporary file after the operation.
 
-Chrome enforces the registered extension allowlist. The command-line origin is a sanity check. It does not authenticate a local caller. Any local user can already write their own round files. The helper offers only validated local import, with no command execution, upload, arbitrary path, or privileged action. The bridge does not claim to protect against software that already runs as the same user.
+Chrome enforces the registered extension allowlist. The command-line origin is a sanity check. It does not authenticate a local caller. Any local user can already write their own round files. The helper offers only validated local import and bounded on-device evidence ranking, with no command execution, upload, arbitrary path, or privileged action. The bridge does not claim to protect against software that already runs as the same user.
 
 ## Contract and publication
 
@@ -35,3 +35,7 @@ The development host permits only extension `ghmidcmcjigfckaiopacgpfaffofgjel`. 
 Use `runtime.sendNativeMessage` instead of a permanent port. [Chrome documents](https://developer.chrome.com/docs/extensions/develop/concepts/native-messaging) that it starts one helper for each message. The pilot caps payload bytes below Chrome's message limit. A transfer failure keeps the browser save usable.
 
 The `browserBridge` native flag starts off in both channels. Native messaging is an optional browser permission. The first development trial enables only the Dev flag and the fixed Dev helper.
+
+## Optional assistance extension, October 28, 2026
+
+The authenticated transport also accepts `assist` through reserved host `browser-assist`. An assist request never launches the app. It requires both native flags. Its selected text and ID-only answer use separate bounds and validation. See [[2026-10-28-browser-apple-assistance]]. This extends the save-only decision above without enabling general URL automation.

@@ -8,7 +8,7 @@ import FeedbackKit
     static let shared = BrowserImportCoordinator()
     func handle(_ event: NSAppleEventDescriptor, reply: NSAppleEventDescriptor) -> Bool {
         guard let text = event.paramDescriptor(forKeyword: AEKeyword(keyDirectObject))?.stringValue,
-              let url = URL(string: text), ["browser-import", "browser-handshake"].contains(url.host ?? "") else { return false }
+              let url = URL(string: text), ["browser-import", "browser-handshake", "browser-assist"].contains(url.host ?? "") else { return false }
         func fail() { reply.setParam(NSAppleEventDescriptor(string: String(decoding: BrowserBridgeReceipt(state: "failed", error: "unavailable").data, as: UTF8.self)), forKeyword: AEKeyword(keyDirectObject)) }
         guard Flags.isOn(.browserBridge) else { fail(); return true }
         let channel = BuildChannelDetector.current.rawValue
@@ -37,7 +37,7 @@ import FeedbackKit
             let manager = NSAppleEventManager.shared()
             guard let suspension = manager.suspendCurrentAppleEvent() else { throw BrowserBridgeError.invalid }
             Task { @MainActor in
-                let result = await self.receive(bytes, channel: channel)
+                let result = await self.receive(bytes, channel: channel, assist: url.host == "browser-assist")
                 manager.replyAppleEvent(forSuspensionID: suspension).setParam(NSAppleEventDescriptor(string: String(decoding: result, as: UTF8.self)), forKeyword: AEKeyword(keyDirectObject))
                 manager.resume(withSuspensionID: suspension)
             }
@@ -45,10 +45,16 @@ import FeedbackKit
         return true
     }
 
-    private func receive(_ bytes: Data, channel: String) async -> Data {
+    private func receive(_ bytes: Data, channel: String, assist: Bool) async -> Data {
         guard Flags.isOn(.browserBridge) else { return BrowserBridgeReceipt(state: "failed", error: "disabled").data }
         do {
             let request = try JSONDecoder().decode(BrowserBridgeRequest.self, from: bytes)
+            if assist {
+                guard bytes.count <= 48 * 1024 else { throw BrowserBridgeError.oversized }
+                let selected = try request.validatedAssist(channel: channel)
+                return await BrowserAppleAssistance.respond(to: selected,
+                    enabled: Flags.isOn(.browserAppleIntelligence) && Flags.isOn(.browserBridge)).data
+            }
             let payload = try request.validated(channel: channel)
             guard let digest = request.digest, let data = request.payload else { throw BrowserBridgeError.invalid }
             let evidenceName = "\(payload.capture.id)-browser.json"

@@ -34,6 +34,10 @@ import Foundation
                     configuration.arguments = ["--nextshot-browser-bridge"]
                     running = try await NSWorkspace.shared.openApplication(at: appURL, configuration: configuration)
                 }
+            } else if request.operation == "assist" {
+                guard requestData.count <= 48 * 1024 else { throw BrowserBridgeError.oversized }
+                let selected = try request.validatedAssist(channel: channel)
+                receipt = BrowserAssistReply(state: "unavailable", request: selected).data
             } else if request.operation != "handshake" { throw BrowserBridgeError.invalid }
             guard let running else { throw BrowserBridgeError.unavailable }
             let nonce = UUID().uuidString.lowercased(), deadline = Date().addingTimeInterval(8)
@@ -42,7 +46,7 @@ import Foundation
                     targetDescriptor: NSAppleEventDescriptor(processIdentifier: running.processIdentifier),
                     returnID: AEReturnID(kAutoGenerateReturnID), transactionID: AETransactionID(kAnyTransactionID))
                 event.setParam(NSAppleEventDescriptor(string: url), forKeyword: AEKeyword(keyDirectObject))
-                let reply = try event.sendEvent(options: [.waitForReply, .neverInteract, .init(rawValue: UInt(kAEDoNotPromptForUserConsent))], timeout: 8)
+                let reply = try event.sendEvent(options: [.waitForReply, .neverInteract, .init(rawValue: UInt(kAEDoNotPromptForUserConsent))], timeout: request.operation == "assist" ? 30 : 8)
                 guard let audit = reply.attributeDescriptor(forKeyword: AEKeyword(keySenderAuditTokenAttr))?.data,
                       BrowserBridgeIdentity.validates(audit: audit, identifier: identifier, team: team, executable: executable),
                       let text = reply.paramDescriptor(forKeyword: AEKeyword(keyDirectObject))?.stringValue else { throw BrowserBridgeError.identity }
@@ -54,7 +58,7 @@ import Foundation
                 if ready == nil { try await Task.sleep(for: .milliseconds(50)) }
             } while ready == nil && Date() < deadline
             guard let ready, (try? JSONDecoder().decode(BrowserBridgeReceipt.self, from: ready))?.state == "ready" else { throw BrowserBridgeError.unavailable }
-            if request.operation == "import" {
+            if ["import", "assist"].contains(request.operation) {
                 let folder = try BrowserBridgeIdentity.prepareInbox(channel: channel)
                 let file = folder.appendingPathComponent("\(nonce).json")
                 let descriptor = open(file.path, O_CREAT | O_EXCL | O_WRONLY | O_NOFOLLOW, 0o600)
@@ -62,9 +66,10 @@ import Foundation
                 let handle = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
                 defer { try? handle.close(); try? FileManager.default.removeItem(at: file) }
                 try handle.write(contentsOf: requestData); try handle.synchronize()
-                receipt = try send("\(scheme)://browser-import/\(nonce)?digest=\(BrowserPayload.digest(requestData))")
+                let host = request.operation == "assist" ? "browser-assist" : "browser-import"
+                receipt = try send("\(scheme)://\(host)/\(nonce)?digest=\(BrowserPayload.digest(requestData))")
             } else { receipt = ready }
-        } catch { receipt = BrowserBridgeReceipt(state: "failed", error: "unavailable").data }
+        } catch { /* Keep a correlated assist fallback after its request passes validation. */ }
         let count = UInt32(receipt.count), header = Data((0..<4).map { UInt8((count >> (8 * $0)) & 0xff) })
         FileHandle.standardOutput.write(header); FileHandle.standardOutput.write(receipt)
     }

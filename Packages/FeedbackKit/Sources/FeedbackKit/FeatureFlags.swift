@@ -127,6 +127,7 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
     case sessionTitle
     /// Signed local browser import. It starts off in both channels.
     case browserBridge
+    case browserAppleIntelligence
 
     /// New flags start with both defaults `off`. A release default turns on
     /// only with a released-in build number.
@@ -170,6 +171,8 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
             FlagSpec(issue: 123, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
         case .diagnostics:
             FlagSpec(issue: 118, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
+        case .browserAppleIntelligence:
+            FlagSpec(issue: 148, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
         case .browserBridge:
             FlagSpec(issue: 168, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
         case .sessionTitle:

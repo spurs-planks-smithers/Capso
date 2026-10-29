@@ -9,6 +9,14 @@ public struct BrowserBridgeRequest: Codable, Sendable {
     public let digest: String?
     public let payload: Data?
 
+    public func validatedAssist(channel expected: String) throws -> BrowserAssistRequest {
+        guard version == 1, channel == expected, operation == "assist", let id, let digest, let payload,
+              BrowserPayload.digest(payload) == digest else { throw BrowserBridgeError.invalid }
+        let request = try BrowserAssistRequest.decode(payload)
+        guard request.requestID == id else { throw BrowserBridgeError.invalid }
+        return request
+    }
+
     public func validated(channel expected: String) throws -> BrowserPayload {
         guard version == 1, channel == expected, operation == "import", let id, let digest, let payload else { throw BrowserBridgeError.invalid }
         return try BrowserPayload.decode(payload, id: id, digest: digest)
