@@ -51,7 +51,8 @@ export async function runAssistance(owner:string,input:AssistInput,isReviewCurre
     const settings=await assistanceSettings();if(settings.assistanceMode==='local')return local();
     const selected=selection(input,settings);if(input.purpose==='elements'&&!selected.reviewerNote)return local('insufficient_context');if(!current()||!await isReviewCurrent())return local('stale');
     if(settings.assistanceMode==='apple'&&settings.browserAppleIntelligence&&input.purpose==='steps'){const result=await nativeAssistance(selected,input.selectionVersion,input.issueAtMs,controller.signal);if(!current()||!await isReviewCurrent())return local('stale');if(result.available){const latest=await assistanceSettings();return latest.assistanceMode==='apple'&&latest.browserAppleIntelligence?{available:true,source:'apple',ids:result.ids}:local('settings_changed');}}
-    // Cloud fallback needs separate enablement, authentication, and content consent.
+    if(settings.assistanceMode!=='jev')return local('unavailable');
+    // Jev requires explicit selection, enablement, authentication, and content consent.
     if(!settings.jevEnabled||!settings.jevConsentPageData)return local('unavailable');
     if(!await chrome.permissions.contains({permissions:['identity'],origins:['https://jev.nextshot.dev/*']}))return local('reconnect_required');
     const beforeSend=async()=>{const latest=await assistanceSettings();return current()&&latest.assistanceMode===settings.assistanceMode&&latest.jevEnabled&&latest.jevConsentPageData&&latest.jevConsentReviewerText===settings.jevConsentReviewerText&&await chrome.permissions.contains({permissions:['identity'],origins:['https://jev.nextshot.dev/*']});};
