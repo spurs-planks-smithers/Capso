@@ -128,3 +128,7 @@ The live browser draft remains unsaved. The source tab retains its handoff mark.
 GitHub readback verifies sixteen formal children under #124: ten closed and six open. New issues #178 through #181 are sequential, open, and in Later. #172 and #177 stay open. Every open enhancement has one severity label. Both PR descriptions now identify the native-first correction.
 
 This update changes documents and tracking only. It requires no extension reload. Jev processing stays paused. No provider call, app installation, release, or runtime change occurs.
+
+## October 29 shortcut decision
+
+Drew selects automatic browser context through the normal Nextshot capture shortcut. Add permitted element details when Chrome is frontmost on an approved site. Keep ordinary native capture usable when context is unavailable. Do not require routine extension interaction. The product choice is settled. Trigger feasibility, permission limits, and idle resource behavior remain in #178. This update changes planning and issue text only.

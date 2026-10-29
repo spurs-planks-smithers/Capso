@@ -105,6 +105,7 @@ Asked live through structured questions on 2026-10-28. These are material workfl
 
 | Topic | Decision | Status |
 |---|---|---|
+| Native capture shortcut | Keep the normal Nextshot shortcut. Add permitted browser details automatically when Chrome is frontmost on approved sites. Preserve native capture when details are unavailable. | Confirmed by Drew on 2026-10-29; trigger feasibility remains #178 |
 | Diagnostic breadth | Use lightweight observable errors and permitted request summaries. Label gaps. Exclude debugger permission from the first extension. | Confirmed by Drew on 2026-10-28 |
 | Installed app is closed | Start the paired app for deliberate native editing before Save. | October 29 native-first direction supersedes the October 28 Save-only launch decision |
 | Standalone Jev | Include a separate authenticated service. Preserve local suggestions when it is unavailable or capped. | Confirmed by Drew on 2026-10-28 |

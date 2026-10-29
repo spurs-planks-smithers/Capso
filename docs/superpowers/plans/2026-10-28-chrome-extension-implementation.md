@@ -34,7 +34,7 @@ The approved Astra review identifies four serial engineering items. A rendered d
 | Usability acceptance | [Workflow refinement #177](https://github.com/spurs-planks-smithers/Capso/issues/177) | #181. Reduce routine browser controls and decisions. Verify the real native and standalone flows. |
 | Final acceptance | [Packaging and smoke #172](https://github.com/spurs-planks-smithers/Capso/issues/172) | #181 and #177, plus the existing pilot corrections. Package and verify the revised experience. |
 
-The current product question concerns automatic browser context through the normal native shortcut. The recommended target remains subject to Chrome trigger feasibility. Native editing itself does not require that choice to be resolved first.
+Drew confirms automatic browser context on October 29. Use the normal Nextshot shortcut when Chrome is frontmost. Add permitted element details on approved sites when available. Preserve ordinary native capture when details are unavailable. Do not add routine popup steps. #178 still proves the trigger mechanism and its permission limits.
 
 Keep Chrome as the capture/privacy owner and Nextshot as the native editing/store owner. Keep the full rolling buffer in browser memory. Native review requests bounded metadata and masked frames. No permanent native connection, idle polling, or full-history disk copy is planned.
 

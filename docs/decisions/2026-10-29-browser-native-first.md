@@ -23,7 +23,7 @@ All Chrome work stays in Later and outside v0.5.0. This review changes no runtim
 
 Choose the editing destination once per deliberate operation. Do not ask on every capture. Put integration setup, trial flags, assistance, and diagnostics in Settings. Keep browser permission prompts only where Chrome requires them. Show a compact armed or paused indicator and an accessible Stop action.
 
-The native shortcut behavior remains a live product question. The recommended target adds browser details automatically when Chrome is frontmost on an approved site. This is a desired experience, not a proven trigger mechanism. A separate native browser action is the alternative.
+Drew confirms automatic browser context on October 29. Keep the normal Nextshot capture shortcut. When Chrome is frontmost on an approved site, add permitted browser element details when available. Do not require a separate extension action. The trigger mechanism remains unproven and belongs to #178. If context is unavailable, preserve ordinary native capture without adding popup steps.
 
 Rolling tracking resumes after Save or Cancel when the source tab is active and still eligible. Preserve the existing explicit arming decision. Do not ask this settled question again. A cross-site navigation still requires re-arming.
 
