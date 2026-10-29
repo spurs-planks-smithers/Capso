@@ -1,0 +1,20 @@
+{
+  "name": "nextshot-jev-pilot",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-10-28",
+  "workers_dev": false,
+  "preview_urls": false,
+  "observability": {"enabled": false},
+  "vars": {
+    "PROCESSING_ENABLED": "false",
+    "BILLING_BOUND_VERIFIED": "false",
+    "SERVICE_ISSUER": "",
+    "ACCESS_TEAM_DOMAIN": "",
+    "ACCESS_AUDIENCE": "",
+    "PRICING_MODEL": "jev-1.14.0",
+    "INPUT_MICRODOLLARS_PER_MILLION": "42000",
+    "MAX_BILLABLE_INPUT_TOKENS": "64000",
+    "OUTPUT_MICRODOLLARS_PER_MILLION": "0"
+  },
+  "d1_databases": [{"binding":"DB","database_name":"nextshot-jev-pilot","database_id":""}]
+}

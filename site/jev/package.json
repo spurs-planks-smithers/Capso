@@ -1,0 +1,1 @@
+{"name":"nextshot-jev-pilot","private":true,"type":"module","scripts":{"check":"wrangler deploy --dry-run --outdir build/worker"},"dependencies":{"jose":"6.2.13"},"devDependencies":{"wrangler":"4.153.0"}}
