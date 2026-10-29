@@ -79,6 +79,11 @@ export async function handle(req,e){
   const result=await refine(input,e.TYPESAFE_API_KEY);
   await e.DB.prepare("UPDATE requests SET status='complete',finished_month=?,input_tokens=?,output_tokens=?,latency_ms=? WHERE request_id=?").bind(new Date().toISOString().slice(0,7),result.usage.input_tokens,result.usage.output_tokens,result.latencyMs,input.requestID).run();
   return reply({version:1,available:true,requestID:input.requestID,selectionVersion:input.selectionVersion,purpose:input.purpose,candidates:result.candidates});
- }catch{await e.DB.prepare("UPDATE requests SET status='uncertain' WHERE request_id=?").bind(input.requestID).run();return fallback('upstream_unavailable');}
+ }catch(error){
+  await e.DB.prepare("UPDATE requests SET status='uncertain' WHERE request_id=?").bind(input.requestID).run();
+  // Expose only fixed error categories. Provider bodies and messages can contain private input.
+  const reason=/^provider_(http_[1-5][0-9]{2}|content_type|model|usage|answers|timeout|transport|json)$/.test(error?.message)?error.message:'upstream_unavailable';
+  return fallback(reason);
+ }
 }
 export default {async fetch(req,e){try{return await handle(req,e);}catch{return fallback('invalid_or_unavailable',400);}}};

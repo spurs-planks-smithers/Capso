@@ -16,6 +16,7 @@ HOST = 'jev.nextshot.dev'
 NAME = 'nextshot-jev-pilot'
 OWNER = 'drewschulz1@gmail.com'
 CONFIG = ROOT / 'wrangler.jsonc'
+ACCESS_POLICY = ROOT / 'access-policy.json'
 
 
 def credential(name):
@@ -33,7 +34,7 @@ def main():
         help='Prepare only the invited account-owner pilot with the existing Cloudflare login.')
     args = parser.parse_args()
     site = credential('CLOUDFLARE_API_TOKEN_NEXTSHOT')
-    setup = credential('CLOUDFLARE_API_TOKEN_NEXTSHOT_FEEDBACK')
+    setup = None if args.mode == 'pause' else credential('CLOUDFLARE_API_TOKEN_NEXTSHOT_FEEDBACK')
 
     def api(path, method='GET', body=None, access=False):
         request = urllib.request.Request('https://api.cloudflare.com/client/v4/' + path,
@@ -52,12 +53,27 @@ def main():
 
     account = 'accounts/' + ACCOUNT
     config = json.loads(CONFIG.read_text())
+    environment = {k: os.environ[k] for k in ['PATH', 'HOME', 'USER', 'LOGNAME', 'LANG', 'TMPDIR'] if k in os.environ}
+    environment.update(CLOUDFLARE_API_TOKEN=site, CI='true', WRANGLER_SEND_METRICS='false')
+    command = ['node', str(ROOT / 'node_modules/wrangler/bin/wrangler.js')]
+    if args.mode == 'pause':
+        # A shutdown must still work after an Access credential expires or admission changes.
+        config['vars']['PROCESSING_ENABLED'] = 'false'
+        CONFIG.write_text(json.dumps(config, indent=2) + '\n')
+        subprocess.run(command + ['deploy', '--env-file', '/dev/null'], cwd=ROOT,
+            env=environment, stdin=subprocess.DEVNULL, check=True)
+        settings = api(account + '/workers/scripts/' + NAME + '/settings')
+        controls = {b['name']: b.get('text') for b in settings['bindings']
+            if b['name'] in {'PROCESSING_ENABLED', 'BILLING_BOUND_VERIFIED'}}
+        if controls.get('PROCESSING_ENABLED') != 'false':
+            raise RuntimeError('Processing shutdown is not verified')
+        print(json.dumps({'worker': NAME, 'paused': True, 'controls': controls}, indent=2))
+        return
+    expected = json.loads(ACCESS_POLICY.read_text())
     if args.mode == 'setup':
-        providers = api(account + '/access/identity_providers', access=True)
-        pin = None if args.existing_account_login else next((p for p in providers if p['type'] == 'onetimepin'), None)
-        if not pin and not args.existing_account_login:
-            pin = api(account + '/access/identity_providers', 'POST',
-                {'name': 'Nextshot invited email PIN', 'type': 'onetimepin', 'config': {}}, True)
+        pin = None if args.existing_account_login else {'id': expected['pinProviderID']}
+        if pin and not pin['id']:
+            raise RuntimeError('Verify the email PIN provider in the dashboard first')
         apps = api(account + '/access/apps?per_page=100', access=True)
         app = next((a for a in apps if a.get('domain') == HOST + '/auth/authorize'), None)
         if not app:
@@ -95,21 +111,20 @@ def main():
     apps = api(account + '/access/apps?per_page=100', access=True)
     app = next(a for a in apps if a.get('aud') == config['vars']['ACCESS_AUDIENCE'])
     policies = api(account + '/access/apps/' + app['id'] + '/policies', access=True)
-    providers = api(account + '/access/identity_providers', access=True)
-    pins = {p['id'] for p in providers if p['type'] == 'onetimepin'}
-    pin_login = bool(app.get('allowed_idps')) and not set(app['allowed_idps']) - pins
+    # The setup token cannot read providers. Pin the IDs verified in the dashboard.
+    pin_id = expected['pinProviderID']
+    if not pin_id or not expected['reviewProviderID'] or pin_id == expected['reviewProviderID']:
+        raise RuntimeError('Distinct verified login provider IDs are required')
+    review = next(a for a in apps if a.get('id') == expected['reviewApplicationID'])
+    if review.get('domain') != 'feedback.nextshot.dev/review' or review.get('allowed_idps') != [expected['reviewProviderID']]:
+        raise RuntimeError('Existing feedback login must stay Cloudflare-only')
+    pin_login = app.get('allowed_idps') == [pin_id]
     owner_login = not app.get('allowed_idps') and len(policies) == 1 and policies[0].get('require') == [{'cloudflare_account_member': {'account_id': ACCOUNT}}]
     if app.get('domain') != HOST + '/auth/authorize' or not (pin_login or owner_login):
         raise RuntimeError('Exact verified-email Access scope is required')
     if len(policies) != 1 or policies[0].get('decision') != 'allow' or policies[0].get('include') != [{'email': {'email': OWNER}}] or policies[0].get('exclude') or (pin_login and policies[0].get('require')):
         raise RuntimeError('Exact invitation policy is required')
-    environment = {k: os.environ[k] for k in ['PATH', 'HOME', 'USER', 'LOGNAME', 'LANG', 'TMPDIR'] if k in os.environ}
-    environment.update(CLOUDFLARE_API_TOKEN=site, CI='true', WRANGLER_SEND_METRICS='false')
-    command = ['node', str(ROOT / 'node_modules/wrangler/bin/wrangler.js')]
-    if args.mode in {'deploy', 'pause'}:
-        if args.mode == 'pause':
-            config['vars']['PROCESSING_ENABLED'] = 'false'
-            CONFIG.write_text(json.dumps(config, indent=2) + '\n')
+    if args.mode == 'deploy':
         subprocess.run(command + ['deploy', '--env-file', '/dev/null'], cwd=ROOT,
             env=environment, stdin=subprocess.DEVNULL, check=True)
         domains = api(account + '/workers/domains')

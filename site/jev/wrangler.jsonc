@@ -9,7 +9,7 @@
   },
   "vars": {
     "PROCESSING_ENABLED": "false",
-    "BILLING_BOUND_VERIFIED": "false",
+    "BILLING_BOUND_VERIFIED": "true",
     "SERVICE_ISSUER": "https://jev.nextshot.dev",
     "ACCESS_TEAM_DOMAIN": "shrill-math-8862.cloudflareaccess.com",
     "ACCESS_AUDIENCE": "d64473f9e218760f2ef934e4c70c5148941eb881bf2cb70e6664037b55a18d78",

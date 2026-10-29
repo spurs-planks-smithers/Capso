@@ -12,10 +12,10 @@ Implementation lives on `codex/chrome-extension` in [draft PR #173](https://gith
 | C2 #167 | Closed | Actual Chrome capture, annotation, private pixels, element match verified |
 | C3 #168 | Closed | Installed signed Dev bridge, quiet launch, durable import and duplicate receipt verified |
 | C4 #169 | Closed | Actual toolbar permission, sampled recording, selected media, restart and cleanup verified |
-| C5 #157 | Implemented, open | Actual rolling permission flow and independent native ended-round acceptance |
-| C6 #170 | Implemented, open | External identity setup, live invited sign-in, bounded paid canary |
+| C5 #157 | Closed | Actual toolbar flow, native ended save, ordinary-round preservation, and permission revocation verified |
+| C6 #170 | Acceptance verified | PIN sign-in, refresh/revoke, live quota, bounded provider call, and paused readback verified |
 | C7 #171 | Implemented, open | Actual Chrome sign-in and native assistance acceptance |
-| C8 #148 | Implemented, open | Native browser-to-app assist acceptance |
+| C8 #148 | Closed | Installed on-device adapter, actual Chrome suggestions, disabled result, and local-only fallback verified |
 | Embedded previews #174 | Implemented, open | Requested Claude/Artifacts surface acceptance |
 | C9 #172 | Package built, open | Final integrated user smoke |
 
@@ -66,3 +66,21 @@ Subsequent continuation: the existing Access page renders Cloudflare account sig
 Build and package with `python3 -I browser-extension/package-dev.py`. Follow [the install guide](../../browser-extension/INSTALL.md). The execution order and acceptance criteria remain in [the implementation plan](../superpowers/plans/2026-10-28-chrome-extension-implementation.md).
 
 Task-only evidence and scratch scripts remain under ignored `build/chrome-execution/`. Do not infer completion from a package, mock, or plan checkbox. Close each remaining issue only after its real acceptance check. Finish with Drew's smoke result before closing #124.
+
+## October 29 acceptance update
+
+The unlocked full app suite passes 247 tests with zero failures. Signed Nextshot Dev build 909 is installed. Actual toolbar Rolling Round capture saves an independent ended native round and preserves the active ordinary round. Duplicate native delivery returns the same receipt. Removing the granted site permission stops tracking and closes the offscreen document. Issue #157 is closed.
+
+Actual on-device assistance selects only captured IDs in 1,222 milliseconds. Chrome displays the suggestions for explicit acceptance. Disabling the native flag returns unavailable in 61 milliseconds. The temporary Apple flag is reset off. Apple mode now always keeps the local fallback when native help is unavailable. Saved Jev consent cannot cause cloud escalation. Independent fallback and clipboard-status checks pass at 5bfabdd. Issue #148 is closed. These measurements do not claim one-second Apple completion or macOS15 hardware coverage.
+
+Source5bfabdd is pushed to draft PR #173. Cloudflare email PIN is enabled with Drew's approval. The existing feedback app stays pinned to its Cloudflare provider. Only the dedicated Jev application uses PIN. Its sole policy admits the owner's exact email. The deployment guard verifies both application provider IDs through API readback. Provider IDs come from the dashboard because the scoped token cannot read provider details. Processing and billing approval remain false. No provider key or paid call is active. Actual Chrome invited sign-in is in progress.
+
+## October 29 service acceptance
+
+Chrome completes the real invited PIN flow. Sign-in enables neither Jev nor content consent. The session survives a browser restart. Refresh rotates both credentials. Sign-out revokes the family. The former access token returns 401. A live zero allowance returns local fallback with no admitted request.
+
+One synthetic provider request completes in 422 milliseconds end to end. It returns only supplied IDs and scores. No score meets the browser display threshold, so the local result stays intact. The Worker reports 112 milliseconds of provider time and 518 input tokens. Three earlier runtime failures retain their reservations. Total permanent reservation is 11,012 microdollars. The $25 global ceiling and $5 owner allowance remain enforced. No private preview data enters these tests.
+
+The live failure finds a platform mismatch that Node mocks miss. Cloudflare Workers rejects `redirect: error` before outbound traffic. The adapter now uses manual mode and refuses redirects through status checks. An independent actual-workerd probe confirms the cause and correction with a synthetic outbound handler. The pause command now works without the Access credential or Access policy checks. Processing is paused after acceptance. Billing approval remains verified. Browser feature defaults remain off.
+
+The supplied Claude Artifact is private. Its signed-in Chrome page exposes an embedded frame on a distinct claudeusercontent.com origin. Compatibility acceptance still needs the existing test browser to sign into Claude. The browser policy blocks opening the normal Chrome extension manager. No alternate installation workaround is attempted. The user modal offers the isolated test browser or deferral. #174 and final user smoke stay open.

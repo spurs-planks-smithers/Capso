@@ -45,3 +45,7 @@ Scratch assertions reject extra top-level fields, nested headers, oversized payl
 Actual Chrome-to-installed-Dev assistance remains for the parent integration check. Unsupported hardware, a disabled system model, and macOS 15 runtime execution are not tested on this eligible m5pro. Compare suggestion quality and cold/warm latency through the final browser review before acceptance. No deployment, push, issue closure, flag change, or app installation occurs here.
 
 The configured backlink scanner is absent at its documented path and in searched project/configuration files. Edited links receive a manual check. The API note names no bare Markdown file reference.
+
+## October 29 runtime acceptance
+
+The installed signed Dev build 909 completes an actual on-device request in 1,222 milliseconds. It returns only captured IDs. Chrome's native wrapper receives the result and displays suggested steps for explicit acceptance. With the native flag disabled, the helper returns unavailable in 61 milliseconds. The trial override is reset off afterward. Browser Apple mode always retains local suggestions when native help is unavailable. It never uses Jev as an automatic fallback, even when earlier Jev consent remains saved. Explicit Jev mode is the only remote assistance route.
