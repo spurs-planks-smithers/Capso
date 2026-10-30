@@ -131,3 +131,20 @@ The existing packager rejects missing capture defaults and overlap between Pilot
 Drew confirms that Chrome assigns Option+Shift+P automatically and that the shortcut opens an actual capture. He then requires left-hand hotkeys and explicitly chooses Option+Shift+D. This supersedes the preceding P default. Pilot 0.1.2 requests Option+Shift+D on Mac and Alt+Shift+D on Windows. Dev retains its separate B/G defaults. No capture behavior changes.
 
 Chromium source supports moving an untouched assigned default during update. A custom or intentionally cleared shortcut remains protected. Verify the installed D key after one reload. Keep broader usability, native-first work, Windows acceptance, and friend tests open. Keep all work in Later and outside v0.5.0.
+
+
+## October 29 Visual Targets And Keyboard Flow
+
+Drew rejects repeated Page item choices and code paths. The selected target remains one linked part. Show it once with an outlined preview from the existing masked clean image. Keep real alternatives optional and use plain names. Do not ask a reviewer to interpret selectors. Preserve raw evidence for the receiving agent. A generic container alone creates no new choice.
+
+Drew requires keyboard operation after placing dots. He approves the Mac note flow: Return saves a note and advances; Shift+Return adds a new line. General note is optional, and Return there saves and copies. Show action hints in the editor, popups, and Dev review pages. Keep secondary controls reachable by native Tab, Enter, Space, and arrow behavior.
+
+- Restore the selected dot in the same tab. Otherwise start at the last mark. Keep its tab, image highlight, and note aligned.
+- Escape leaves note entry and focuses the selected dot tab. Number keys select dots outside typing. Arrow keys and Home navigate the tab list. Follow the WAI tabs pattern.
+- Keep Command/Ctrl+S for Save. Keep normal text undo inside notes. Use Command/Ctrl+Z for marks outside typing.
+- After saving, C copies instructions, X downloads the ZIP, and Escape closes. Before saving, Shift+X explicitly discards outside typing. Plain Escape never discards notes.
+- Preserve Chrome close-tab keys and native Nextshot global keys. Add no extension command, permission, service, or polling.
+- Optional settings and saved-round actions use focus-scoped keys or native control activation. A collapsed Keyboard controls guide explains the scope.
+- Repeated Return cannot advance or save. Composition and typing retain native behavior. Ignore hidden and disabled actions.
+
+Validate production editor code in regular Chrome with real IndexedDB and an actual downloaded ZIP. Distinguish this isolated HTTP fixture from installed-extension acceptance. Verify the current package after one reload. Keep #177 open for broader usability, native-first work, and Rolling acceptance.

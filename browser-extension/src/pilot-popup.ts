@@ -1,3 +1,4 @@
+import {mountActionKeys} from './ui/keyboard.ts';
 import {rounds,renderPrompt,endRound,assetsForRound,exportBundle} from './core/index.ts';
 import {mountCaptureShortcut} from './shortcut.ts';
 const status=document.querySelector<HTMLElement>('#status')!,capture=document.querySelector<HTMLButtonElement>('#capture')!;
@@ -21,14 +22,16 @@ async function load():Promise<void>{
   const saved=await rounds();document.querySelector<HTMLElement>('#saved')!.hidden=!saved.length;
   for(const round of saved.slice(0,8)){
     const row=document.createElement('div');row.className='round';
-    const title=document.createElement('button');title.className='round-title';title.textContent=`${round.endedAt?'':'Active: '}${round.name} (${round.captures.length})`;
+    const title=document.createElement('button');title.className='round-title';title.dataset.focusKey='Enter';title.textContent=`${round.endedAt?'':'Active: '}${round.name} (${round.captures.length})`;
     title.onclick=()=>{void chrome.tabs.create({url:chrome.runtime.getURL(`review.html?round=${round.id}`)});};
-    const copy=document.createElement('button');copy.textContent='Copy instructions';copy.onclick=()=>{void navigator.clipboard.writeText(renderPrompt(round)).then(()=>{status.textContent='Instructions copied. Paste them into your coding agent and attach the ZIP.';},()=>{status.textContent='Open the round and use Copy instructions.';});};
-    const zip=document.createElement('button');zip.textContent='Download ZIP';zip.onclick=()=>{void(async()=>{const bytes=exportBundle(round,await assetsForRound(round));const url=URL.createObjectURL(new Blob([new Uint8Array(bytes).buffer],{type:'application/zip'}));const a=document.createElement('a');a.href=url;a.download=`nextshot-round-${round.createdAt.slice(0,16).replace(/[:T]/g,'-')}.zip`;a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);status.textContent='ZIP download started. Find it in Chrome Downloads.';})().catch(error=>{status.textContent=error.message;});};
+    const copy=document.createElement('button');copy.textContent='Copy instructions';copy.dataset.action='copy';copy.dataset.keyHint='C';copy.onclick=()=>{void navigator.clipboard.writeText(renderPrompt(round)).then(()=>{status.textContent='Instructions copied. Paste them into your coding agent and attach the ZIP.';},()=>{status.textContent='Open the round and use Copy instructions.';});};
+    const zip=document.createElement('button');zip.textContent='Download ZIP';zip.dataset.action='zip';zip.dataset.keyHint='X';zip.onclick=()=>{void(async()=>{const bytes=exportBundle(round,await assetsForRound(round));const url=URL.createObjectURL(new Blob([new Uint8Array(bytes).buffer],{type:'application/zip'}));const a=document.createElement('a');a.href=url;a.download=`nextshot-round-${round.createdAt.slice(0,16).replace(/[:T]/g,'-')}.zip`;a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);status.textContent='ZIP download started. Find it in Chrome Downloads.';})().catch(error=>{status.textContent=error.message;});};
     row.append(title,copy,zip);document.querySelector('#rounds')!.append(row);
   }
   const end=document.querySelector<HTMLButtonElement>('#end')!;end.hidden=!saved.some(r=>!r.endedAt);
   end.onclick=()=>{void endRound().then(()=>{status.textContent='Round ended. Your next capture starts a new one.';end.hidden=true;});};
 }
 void load().catch(error=>{status.textContent=error.message;});
-mountCaptureShortcut(document.querySelector<HTMLElement>('#shortcut')!,document.querySelector<HTMLButtonElement>('#shortcut-setup')!);
+mountCaptureShortcut(document.querySelector<HTMLElement>('#shortcut')!,document.querySelector<HTMLButtonElement>('#shortcut-setup')!,capture);
+
+mountActionKeys([{selector:'#keyboard-help summary',key:'q'},{selector:'#end',key:'e'},{selector:'#shortcut-setup',key:'f'},{selector:'.round:focus-within [data-action=copy]',key:'c'},{selector:'.round:focus-within [data-action=zip]',key:'x'},{selector:'#preview',key:'a'},{selector:'#saved summary',key:'s'}]);

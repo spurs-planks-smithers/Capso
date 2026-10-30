@@ -1,3 +1,4 @@
+import {mountActionKeys} from './ui/keyboard.ts';
 import {mountFramePermissions} from './frame-permissions.ts';
 import {mountCaptureShortcut} from './shortcut.ts';
 import {rounds,renderPrompt,endRound,assetsForRound,exportBundle} from './core/index.ts';
@@ -27,17 +28,17 @@ capture.onclick=async()=>{
 document.querySelector<HTMLButtonElement>('#end')!.onclick=async()=>{await endRound();status.textContent='Browser round ended.';};
 function addRound(round:Round):void {
   const row=document.createElement('div');row.className='round';
-  const title=document.createElement('button');title.className='round-title';title.textContent=`${round.endedAt?'':'Active: '}${round.name} (${round.captures.length})`;
+  const title=document.createElement('button');title.className='round-title';title.dataset.focusKey='Enter';title.textContent=`${round.endedAt?'':'Active: '}${round.name} (${round.captures.length})`;
   title.onclick=()=>{void chrome.tabs.create({url:chrome.runtime.getURL(`review.html?round=${round.id}`)});};
-  const copy=document.createElement('button');copy.textContent='Copy instructions';copy.onclick=async()=>{await navigator.clipboard.writeText(renderPrompt(round));status.textContent='Instructions copied. Paste them into your coding agent and attach the ZIP.';};
-  const zip=document.createElement('button');zip.textContent='Download ZIP';zip.onclick=async()=>{
+  const copy=document.createElement('button');copy.textContent='Copy instructions';copy.dataset.action='copy';copy.dataset.keyHint='C';copy.onclick=async()=>{await navigator.clipboard.writeText(renderPrompt(round));status.textContent='Instructions copied. Paste them into your coding agent and attach the ZIP.';};
+  const zip=document.createElement('button');zip.textContent='Download ZIP';zip.dataset.action='zip';zip.dataset.keyHint='X';zip.onclick=async()=>{
     try{const bytes=exportBundle(round,await assetsForRound(round));const url=URL.createObjectURL(new Blob([new Uint8Array(bytes).buffer],{type:'application/zip'}));const a=document.createElement('a');a.href=url;a.download=`nextshot-round-${round.createdAt.slice(0,16).replace(/[:T]/g,'-')}.zip`;a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);status.textContent='ZIP download started. Find it in Chrome Downloads.';}
     catch(error){status.textContent=error instanceof Error?error.message:'Export failed.';}
   };
   row.append(title,copy,zip);document.querySelector('#rounds')!.append(row);
 }
 void load().catch(error=>{status.textContent=error.message;});
-mountCaptureShortcut(document.querySelector<HTMLElement>('#shortcut')!,document.querySelector<HTMLButtonElement>('#shortcut-setup')!);
+mountCaptureShortcut(document.querySelector<HTMLElement>('#shortcut')!,document.querySelector<HTMLButtonElement>('#shortcut-setup')!,capture);
 
 const trial=document.querySelector<HTMLInputElement>('#recording-trial')!,recordStart=document.querySelector<HTMLButtonElement>('#record-start')!,recordReview=document.querySelector<HTMLButtonElement>('#record-review')!;
 void chrome.storage.local.get('recordingEnabled').then(v=>{trial.checked=!!v.recordingEnabled;recordStart.hidden=!trial.checked;});
@@ -81,3 +82,5 @@ document.querySelector<HTMLButtonElement>('#jev-signin')!.onclick=async()=>{try{
 document.querySelector<HTMLButtonElement>('#jev-signout')!.onclick=async()=>{await chrome.runtime.sendMessage({type:'nextshot-assistance',action:'signout'});await refreshAssistance();};
 document.querySelector<HTMLButtonElement>('#apple-grant')!.onclick=async()=>{try{await requestAction('apple');await refreshAssistance();}catch(e){assistanceStatus.textContent=e instanceof Error?e.message:'Apple assistance unavailable.';}};
 void refreshAssistance().catch(()=>{assistanceStatus.textContent='Local suggestions stay available.';});
+
+mountActionKeys([{selector:'#keyboard-help summary',key:'q'},{selector:'#end',key:'e'},{selector:'#shortcut-setup',key:'f'},{selector:'.round:focus-within [data-action=copy]',key:'c'},{selector:'.round:focus-within [data-action=zip]',key:'x'},{selector:'#record-start',key:'r'},{selector:'#record-review',key:'v'},{selector:'#rolling-arm',key:'a'},{selector:'#rolling-open',key:'g'},{selector:'#rolling-stop',key:'shift+x'},{selector:'#apple-grant',key:'b'},{selector:'#jev-signin',key:'s'},{selector:'#jev-signout',key:'shift+s'},{selector:'#assistance-settings summary',key:'t'}]);

@@ -3,6 +3,7 @@ import {getDraft,saveDraft,discardDraft,saveCapture,roundById,assetsForRound,ren
 import type {Capture,Asset,Mark,MarkKind,ElementEvidence,Round} from './core/model.ts';
 import {deliverNative} from './native.ts';
 import {mountCaptureShortcut} from './shortcut.ts';
+import {isTyping,mountActionKeys} from './ui/keyboard.ts';
 const $=<T extends HTMLElement=HTMLElement>(selector:string)=>document.querySelector<T>(selector)!;
 const canvas=$<HTMLCanvasElement>('#canvas'),context=canvas.getContext('2d')!;
 const note=$<HTMLTextAreaElement>('#note'),status=$('#status'),save=$<HTMLButtonElement>('#save');
@@ -11,15 +12,15 @@ const history:Mark[][]=[],redo:Mark[][]=[];let down:{x:number;y:number}|undefine
 let loaded=false,closing=false,draftRevision=0,queuedRevision=0,writtenRevision=0,draftTimer:ReturnType<typeof setTimeout>|undefined;
 let draftQueue=Promise.resolve();
 let assistanceRevision=0,assistanceRequest:string|undefined;
-function cancelElementAssistance():void{assistanceRevision++;document.querySelectorAll('.assist-badge').forEach(el=>el.remove());const button=document.getElementById('suggest-match') as HTMLButtonElement|null;if(button){button.disabled=false;button.textContent='Suggest a match';}if(assistanceRequest){void chrome.runtime.sendMessage({type:'nextshot-assistance',action:'cancel',requestID:assistanceRequest}).catch(()=>{});assistanceRequest=undefined;}}
+function cancelElementAssistance():void{assistanceRevision++;document.querySelectorAll('.assist-badge').forEach(el=>el.remove());const button=document.getElementById('suggest-match') as HTMLButtonElement|null;if(button){button.disabled=false;button.textContent='Help me choose';}if(assistanceRequest){void chrome.runtime.sendMessage({type:'nextshot-assistance',action:'cancel',requestID:assistanceRequest}).catch(()=>{});assistanceRequest=undefined;}}
 addEventListener('pagehide',()=>{cancelElementAssistance();void persistDraft().catch(()=>{});});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')void persistDraft().catch(()=>{});});
 async function suggestElements(candidates:ElementEvidence[],button:HTMLButtonElement):Promise<void>{
-  if(saving||saved)return;cancelElementAssistance();const revision=assistanceRevision,mark=selected,requestID=crypto.randomUUID();assistanceRequest=requestID;button.disabled=true;button.textContent='Checking selected text...';
+  if(saving||saved)return;cancelElementAssistance();const revision=assistanceRevision,mark=selected,requestID=crypto.randomUUID();assistanceRequest=requestID;button.disabled=true;button.textContent='Checking the outlined parts...';
   const rows=candidates.map((element,index)=>({id:`e${index}`,role:element.role||element.tag||'element',label:element.text||element.tag||'Unlabeled'}));
   const selection:AssistInput={purpose:'elements',requestID,selectionVersion:revision,timeline:[],diagnostics:[],candidates:rows,reviewerNote:note.value};
   try{const result:AssistResult=await chrome.runtime.sendMessage({type:'nextshot-assistance',action:'refine',selection});if(revision!==assistanceRevision||selected!==mark||saving||saved)return;
-    button.textContent=result.reason==='insufficient_context'?'Add a note and allow reviewer notes in settings.':result.available&&result.ids.length?'Suggestions shown. Choose a match.':'Local matches remain available.';
+    button.textContent=result.reason==='insufficient_context'?'Add a note and allow reviewer notes in settings.':result.available&&result.ids.length?'Suggestions shown. Choose an outlined part.':'Local matches remain available.';
     if(result.available)for(const [index,element] of candidates.entries()){const option=document.querySelector<HTMLButtonElement>(`[data-assist-element="${index}"]`);if(option&&result.ids.includes(`e${index}`)){const badge=document.createElement('small');badge.className='assist-badge';badge.textContent=` Suggested by ${result.source==='apple'?'Apple':'Jev'}`;option.append(badge);}}
   }catch{if(revision===assistanceRevision)button.textContent='Local matches remain available.';}finally{if(assistanceRequest===requestID)assistanceRequest=undefined;if(revision===assistanceRevision&&button.isConnected)button.disabled=false;}
 }
@@ -27,6 +28,7 @@ async function suggestElements(candidates:ElementEvidence[],button:HTMLButtonEle
 function remember():void{history.push(structuredClone(capture.marks));redo.length=0;}
 const journalKey=(id:string)=>`nextshot-editor:${id}`;
 function clearJournal(id:string):void{try{sessionStorage.removeItem(journalKey(id));}catch{}}
+function initialSelection():number{try{const value=sessionStorage.getItem(`nextshot-selected:${capture.id}`);if(value!==null){const id=Number(value);if(id===0||capture.marks.some(m=>m.id===id))return id;}}catch{}return capture.marks.at(-1)?.id??0;}
 function writeJournal():void{
   try{sessionStorage.setItem(journalKey(capture.id),JSON.stringify({imageFile:capture.imageFile,marks:capture.marks.map(m=>({...m,note:m.note.slice(0,10000)})),note:capture.note.slice(0,20000)}));}catch{}
 }
@@ -57,21 +59,24 @@ function markName(mark:Mark):string{return `${mark.kind==='dot'?'Dot':'Mark'} ${
 function select(id:number,saveCurrent=true):void {
   if(saving||closing)return;cancelElementAssistance();if(saveCurrent)saveNote();
   selected=capture.marks.some(m=>m.id===id)?id:0;
+  try{sessionStorage.setItem(`nextshot-selected:${capture.id}`,String(selected));}catch{}
   const mark=capture.marks.find(m=>m.id===selected);note.value=mark?.note??capture.note;
   note.maxLength=mark?10000:20000;
   $('#note-label').textContent=mark?`Note for ${markName(mark).toLowerCase()}`:'General note (optional)';
-  $('#note-help').textContent=mark?'Click a dot or its tab to read or edit its note.':'Add a dot to comment on a specific spot, or write a general note.';
+  $('#note-help').textContent=mark?'This note belongs to the highlighted dot.':'Add a dot to comment on a specific spot, or write a general note.';
+
   renderControls();showElements();draw();
 }
 function renderControls():void{
+  $('#note-keys').textContent=saved?'Esc closes. C copies instructions. X downloads the ZIP.':selected===0?'Return saves and copies. Shift+Return adds a new line. Esc selects the dot tabs.':`Return saves this note and opens ${selected===capture.marks.at(-1)?.id?'General note':'the next note'}. Shift+Return adds a new line. Esc selects the dot tabs.`;
   const tabs=$('#mark-tabs');tabs.replaceChildren();tabs.hidden=!capture.marks.length;
-  for(const mark of capture.marks){const button=document.createElement('button');button.textContent=markName(mark);button.setAttribute('aria-pressed',String(selected===mark.id));button.disabled=saving||closing;button.onclick=()=>{select(mark.id);if(!saved)note.focus();};tabs.append(button);}
-  const general=document.createElement('button');general.textContent='General note';general.setAttribute('aria-pressed',String(selected===0));general.disabled=saving||closing;general.onclick=()=>{select(0);if(!saved)note.focus();};tabs.append(general);
+  for(const mark of capture.marks){const button=document.createElement('button');button.textContent=markName(mark);button.setAttribute('aria-pressed',String(selected===mark.id));button.setAttribute('role','tab');button.setAttribute('aria-selected',String(selected===mark.id));button.setAttribute('aria-controls','note-panel');button.id=`note-tab-${mark.id}`;button.tabIndex=selected===mark.id?0:-1;if(mark.id<=9){button.dataset.keyHint=String(mark.id);button.setAttribute('aria-keyshortcuts',String(mark.id));}button.disabled=saving||closing;button.onclick=()=>{select(mark.id);if(!saved)note.focus();};tabs.append(button);}
+  const general=document.createElement('button');general.textContent='General note';general.setAttribute('aria-pressed',String(selected===0));general.setAttribute('role','tab');general.setAttribute('aria-selected',String(selected===0));general.setAttribute('aria-controls','note-panel');general.id='note-tab-0';general.tabIndex=selected===0?0:-1;general.dataset.keyHint='G';$('#note-panel').setAttribute('aria-labelledby',`note-tab-${selected}`);general.disabled=saving||closing;general.onclick=()=>{select(0);if(!saved)note.focus();};tabs.append(general);
   for(const button of document.querySelectorAll<HTMLButtonElement>('[data-tool]'))button.disabled=!!saved||saving||closing;
   $('#undo').toggleAttribute('disabled',!!saved||saving||closing||!history.length);
   $('#redo').toggleAttribute('disabled',!!saved||saving||closing||!redo.length);
   note.readOnly=!!saved||saving||closing;save.disabled=!!saved||saving||closing;save.hidden=!!saved;
-  $('#cancel').toggleAttribute('disabled',saving||closing);$('#cancel').textContent=saved?'Close':'Cancel';
+  $('#cancel').toggleAttribute('disabled',saving||closing);$('#cancel').textContent=saved?'Close':'Discard capture';
   $('#saved-actions').hidden=!saved;
 }
 function markPoint(mark:Mark):{x:number;y:number}{
@@ -104,25 +109,53 @@ function reconcileMatches():void{
   if(changed)scheduleDraft();
 }
 function elementName(element:ElementEvidence):string{
-  const text=element.text?.trim().replace(/\s+/g,' ').slice(0,100);
-  const kind=['input','textarea','select'].includes(element.tag)||element.role==='textbox'?'Form field':element.tag==='button'||element.role==='button'?'Button':element.tag==='a'||element.role==='link'?'Link':element.tag==='img'?'Image':'Page item';
-  return text&&kind!=='Form field'?`${kind}: ${text}`:kind;
+  const text=element.text?.trim().replace(/\s+/g,' ').slice(0,80),tag=element.tag,role=element.role;
+  if(['input','textarea','select'].includes(tag)||role==='textbox')return 'Text field (contents hidden)';
+  const kind=tag==='button'||role==='button'?'Button':tag==='a'||role==='link'?'Link':tag==='img'||role==='img'?'Image':/^h[1-6]$/.test(tag)||role==='heading'?'Heading':role==='tab'?'Tab':role==='menuitem'?'Menu option':text?'Text':'Page section';
+  return text?`${kind}: ${text}`:kind;
+}
+function hasVisibleIdentity(element:ElementEvidence):boolean{
+  return !!element.text?.trim()||['button','a','img','input','textarea','select'].includes(element.tag)||/^h[1-6]$/.test(element.tag)||['button','link','img','textbox','heading','tab','menuitem'].includes(element.role??'');
+}
+function targetPreview(element:ElementEvidence|undefined,mark:Mark):HTMLCanvasElement|undefined{
+  if(!image||image.width!==capture.width||image.height!==capture.height)return;
+  const point=markPoint(mark),b=element?.bounds??{x:point.x-90,y:point.y-50,width:180,height:100};
+  const x=Math.max(0,b.x),y=Math.max(0,b.y),right=Math.min(capture.width,b.x+b.width),bottom=Math.min(capture.height,b.y+b.height);
+  if(right<=x||bottom<=y)return;
+  const pad=Math.min(40,Math.max(12,Math.max(right-x,bottom-y)*.08));
+  const left=Math.max(0,x-pad),top=Math.max(0,y-pad),width=Math.min(capture.width,right+pad)-left,height=Math.min(capture.height,bottom+pad)-top;
+  const preview=document.createElement('canvas');preview.width=528;preview.height=180;preview.className='target-preview';preview.setAttribute('role','img');preview.setAttribute('aria-label',element?`Outlined ${elementName(element)}`:`Area around ${markName(mark).toLowerCase()}`);
+  const brush=preview.getContext('2d');if(!brush)return;
+  const scale=Math.min((preview.width-8)/width,(preview.height-8)/height),dx=(preview.width-width*scale)/2,dy=(preview.height-height*scale)/2;
+  brush.fillStyle='#f5f6f8';brush.fillRect(0,0,preview.width,preview.height);brush.drawImage(image,left,top,width,height,dx,dy,width*scale,height*scale);
+  brush.strokeStyle='#108778';brush.lineWidth=3;brush.strokeRect(dx+(x-left)*scale,dy+(y-top)*scale,(right-x)*scale,(bottom-y)*scale);
+  return preview;
 }
 function showElements():void {
   const container=$('#elements'),choices=$('#target-choices');container.replaceChildren();choices.replaceChildren();$('#target-question').hidden=true;
   const mark=capture.marks.find(m=>m.id===selected);
-  if(!mark){$('#element-hint').textContent='Page information is included automatically when available.';return;}
-  const candidates=matches(mark),chosen=capture.elements.find(e=>e.id===mark.elementId);
-  const optional=candidates.length>1&&!chosen&&!saved;$('#target-question').hidden=!optional;
-  if(chosen){const {x,y}=markPoint(mark),b=chosen.bounds;$('#element-hint').textContent=x<b.x||x>b.x+b.width||y<b.y||y>b.y+b.height?'Suggested from a nearby page element.':'Matched from your mark.';}
-  else $('#element-hint').textContent='Your image and note are included, even without a page match.';
-  if(chosen&&!candidates.some(e=>e.id===chosen.id))candidates.unshift(chosen);
-  for(const [index,element] of candidates.entries()){
-    const button=document.createElement('button');button.dataset.assistElement=String(index);button.className='element-option';button.setAttribute('aria-pressed',String(mark.elementId===element.id));button.textContent=elementName(element);button.disabled=!!saved||saving||closing;
-    button.onclick=()=>{if(saving||saved||closing)return;cancelElementAssistance();mark.elementId=element.id;scheduleDraft();showElements();};(optional?choices:container).append(button);
-    const detail=document.createElement('p'),label=document.createElement('span'),selector=document.createElement('code');label.textContent=elementName(element);selector.textContent=element.selector;detail.append(label,selector);container.append(detail);
+  $('#page-details').hidden=!mark;
+  if(!mark){$('#element-hint').textContent='Your coding agent receives page details automatically. There is nothing to choose here.';return;}
+  const candidates=matches(mark),chosen=capture.elements.find(e=>e.id===mark.elementId),visible=candidates.filter(hasVisibleIdentity);
+  const appendCard=(parent:HTMLElement,element:ElementEvidence|undefined,interactive=false,index=0)=>{
+    const card=document.createElement(interactive?'button':'div');card.className=interactive?'element-option target-card':'target-card';
+    const preview=targetPreview(element,mark);if(preview)card.append(preview);
+    const label=document.createElement('span');label.textContent=element?elementName(element):`Area around ${markName(mark).toLowerCase()}`;card.append(label);
+    if(interactive&&element){const button=card as HTMLButtonElement;button.dataset.assistElement=String(index);button.disabled=!!saved||saving||closing;button.onclick=()=>{if(saved||saving||closing)return;cancelElementAssistance();mark.elementId=element.id;scheduleDraft();showElements();note.focus();};}
+    parent.append(card);
+  };
+  if(chosen){
+    $('#element-hint').textContent=`This is the part linked to ${markName(mark).toLowerCase()}. `;appendCard(container,chosen);
+    if(!saved&&visible.some(e=>e.id!==chosen.id)){const change=document.createElement('button');change.className='text-button';change.textContent='Choose a different part';change.disabled=saving||closing;change.onclick=()=>showChoices();container.append(change);}
+  }else{
+    $('#element-hint').textContent='Your dot and note show the location. You can save without choosing a page part.';
+    if(visible.length>0&&!saved)showChoices();else appendCard(container,undefined);
   }
-  if(candidates.length>1&&!saved){const button=document.createElement('button');button.id='suggest-match';button.hidden=true;button.textContent='Suggest a match';button.disabled=saving||closing;button.onclick=()=>{void suggestElements(candidates,button);};(optional?choices:container).append(button);void chrome.storage.local.get('assistanceMode').then(v=>{if(button.isConnected)button.hidden=!['apple','jev'].includes(String(v.assistanceMode));}).catch(()=>{});}
+  function showChoices():void{
+    $('#target-question').hidden=false;choices.replaceChildren();
+    for(const [index,element] of visible.entries())appendCard(choices,element,true,index);
+    if(visible.length>1&&!saved){const button=document.createElement('button');button.id='suggest-match';button.hidden=true;button.textContent='Help me choose';button.disabled=saving||closing;button.onclick=()=>{void suggestElements(visible,button);};choices.append(button);void chrome.storage.local.get('assistanceMode').then(v=>{if(button.isConnected)button.hidden=!['apple','jev'].includes(String(v.assistanceMode));}).catch(()=>{});}
+  }
 }
 function draw(highlight=true):void {
   if(!image)return;context.clearRect(0,0,canvas.width,canvas.height);context.drawImage(image,0,0);
@@ -179,7 +212,23 @@ $('#cancel').onclick=async()=>{
   try{await draftQueue.catch(()=>{});if(capture&&!saved)await discardDraft(capture.id);clearJournal(capture.id);window.close();}
   catch{closing=false;renderControls();scheduleDraft();status.textContent='The capture is still open. Try Cancel again when ready.';}
 };
-document.onkeydown=e=>{if((e.metaKey||e.ctrlKey)&&e.key==='s'){e.preventDefault();save.click();}if(e.target instanceof HTMLTextAreaElement||e.target instanceof HTMLInputElement)return;if(e.key==='ArrowLeft'){$('#undo').click();e.preventDefault();}if(e.key==='ArrowRight'){$('#redo').click();e.preventDefault();}if(e.key==='Escape')$('#cancel').click();};
+document.onkeydown=e=>{
+  if(e.defaultPrevented||e.isComposing)return;
+  if(e.repeat&&e.key==='Enter'&&e.target===note&&!e.shiftKey){e.preventDefault();return;}
+  if(e.target===note&&!saved&&e.key==='Enter'&&!e.shiftKey&&!e.metaKey&&!e.ctrlKey&&!e.altKey){e.preventDefault();const order=[...capture.marks.map(m=>m.id),0],next=order.indexOf(selected)+1;if(next<order.length){select(order[next]);note.focus();}else save.click();return;}
+  if(e.key==='Escape'&&!e.shiftKey&&!saved){e.preventDefault();saveNote();document.getElementById(`note-tab-${selected}`)?.focus();return;}
+  if(isTyping(e.target)||e.metaKey||e.ctrlKey||e.altKey)return;
+  if(e.target instanceof HTMLElement&&e.target.closest('#mark-tabs')&&['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();const order=[...capture.marks.map(m=>m.id),0],index=order.indexOf(selected);select(order[e.key==='Home'?0:e.key==='End'?order.length-1:(index+(e.key==='ArrowRight'?1:-1)+order.length)%order.length]);document.getElementById(`note-tab-${selected}`)?.focus();return;}
+  if(!e.shiftKey&&/^[1-9]$/.test(e.key)&&capture.marks.some(m=>m.id===Number(e.key))){e.preventDefault();select(Number(e.key));note.focus();}
+};
+mountActionKeys([
+  {selector:'#save',key:'mod+s'},{selector:'#cancel',key:'escape',when:()=>!!saved},{selector:'#cancel',key:'shift+x',when:()=>!saved},
+  {selector:'#copy',key:'c',when:()=>!!saved},{selector:'#export',key:'x',when:()=>!!saved},
+  {selector:'[data-tool="dot"]',key:'n',when:()=>!saved},{selector:'[data-tool="arrow"]',key:'a',when:()=>!saved},{selector:'[data-tool="box"]',key:'r',when:()=>!saved},
+  {selector:'#undo',key:'mod+z',when:()=>!isTyping(document.activeElement)},{selector:'#redo',key:'mod+shift+z',when:()=>!isTyping(document.activeElement)},
+  {selector:'#note-tab-0',key:'g',run:()=>{select(0);note.focus();}},
+  {selector:'#page-details summary',key:'f'},{selector:'#keyboard-help summary',key:'q'},{selector:'#shortcut-setup',key:'v'}
+]);
 async function load():Promise<void> {
   const query=new URLSearchParams(location.search),draftId=query.get('draft'),roundId=query.get('round');
   if(roundId){saved=await roundById(roundId);if(!saved?.captures.length)throw new Error('Round unavailable');capture=saved.captures.at(-1)!;assets=await assetsForRound(saved);}
@@ -193,7 +242,7 @@ async function load():Promise<void> {
     if(media){const video=media.mime==='image/gif'?document.createElement('img'):document.createElement('video');if(video instanceof HTMLVideoElement){video.controls=true;video.muted=true;}video.style.maxWidth='100%';const url=URL.createObjectURL(new Blob([new Uint8Array(media.bytes).buffer],{type:media.mime}));video.src=url;details.append(video);addEventListener('pagehide',()=>URL.revokeObjectURL(url),{once:true});}
     const events=document.createElement('ul');for(const e of [...capture.actions,...capture.diagnostics].sort((a,b)=>a.at-b.at)){const item=document.createElement('li');item.textContent=`${(e.at/1000).toFixed(1)}s: ${'label' in e?e.label:e.text}`;events.append(item);}details.append(events);status.after(details);
   }
-  const recovered=!saved&&restoreJournal();loaded=true;if(recovered)scheduleDraft();reconcileMatches();select(capture.marks[0]?.id??0,false);
+  const recovered=!saved&&restoreJournal();loaded=true;if(recovered)scheduleDraft();reconcileMatches();select(initialSelection(),false);if(!saved&&capture.marks.length)note.focus();
 }
 void load().catch(error=>{status.textContent=error.message;save.disabled=true;});
 mountCaptureShortcut($('#shortcut'),$<HTMLButtonElement>('#shortcut-setup'));

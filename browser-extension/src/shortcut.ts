@@ -3,12 +3,13 @@ export function captureKey(shortcut:string):string {
 }
 
 /** Query only while this interface is open. Respect keys assigned by Chrome or its user. */
-export function mountCaptureShortcut(label:HTMLElement,setup:HTMLButtonElement):void {
+export function mountCaptureShortcut(label:HTMLElement,setup:HTMLButtonElement,captureButton?:HTMLButtonElement):void {
   const refresh=async()=>{
     try{
       const command=(await chrome.commands.getAll()).find(c=>c.name==='capture');
       label.textContent=command?.shortcut?`Capture in Chrome: ${captureKey(command.shortcut)}`:'Choose a shortcut to capture without opening the extension.';
       setup.textContent=command?.shortcut?'Change shortcut':'Set capture shortcut';
+      if(captureButton){if(command?.shortcut)captureButton.dataset.keyHint=captureKey(command.shortcut);else delete captureButton.dataset.keyHint;}
     }catch{label.textContent='Capture shortcuts are managed in Chrome.';setup.textContent='Shortcut settings';}
     setup.hidden=false;
   };

@@ -5,11 +5,14 @@ Use harmless content. The goal is one useful capture, not a full bug report.
 1. Open https://example.com in Google Chrome.
 2. Capture the heading and nearby text.
 3. Put one dot on the heading. Write: Change this heading to Pilot test.
-4. Click Save & copy instructions and paste into a text editor.
-5. Click Download ZIP. Extract it and open README.md and the marked image.
+4. Press Command+S on Mac or Ctrl+S on Windows. Paste into a text editor.
+5. Return to the feedback page and press X. Extract the downloaded ZIP.
+   Open README.md and the marked image.
 6. Close and reopen Chrome. Confirm the round is still in Saved rounds.
 
-Then try one capture on a website you normally review.
+Then add two dots on one capture. Each dot opens its own note.
+Use Return to advance, Shift+Return for a new line, and Esc then 1 to return to dot 1.
+Try one capture on a website you normally review.
 For an agent test, attach the exported ZIP with the copied prompt.
 
 REPORT THESE RESULTS

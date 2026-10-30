@@ -1,3 +1,4 @@
+import {mountActionKeys} from './ui/keyboard.ts';
 const $=(id:string)=>document.getElementById(id)!;
 const call=(action:string,extra:Record<string,unknown>={})=>chrome.runtime.sendMessage({type:'nextshot-record',action,...extra});
 async function refresh():Promise<void>{
@@ -11,3 +12,5 @@ for(const action of ['pause','resume','stop','discard'])$(action).onclick=()=>{v
 for(const id of ['start','end','issue'])$(id).oninput=()=>{$(id).dataset.edited='true';};
 $('select').onclick=async()=>{const button=$('select') as HTMLButtonElement;button.disabled=true;try{const tab=await chrome.tabs.getCurrent();const r=await call('select',{reviewTab:tab?.id,...Object.fromEntries(['start','end','issue'].map(id=>[id,Number(($(id) as HTMLInputElement).value)*1000]))});if(r.error)throw Error(r.error);location.href=chrome.runtime.getURL(`review.html?draft=${r.id}`);}catch(e){$('status').textContent=e instanceof Error?e.message:'Selection failed';button.disabled=false;}};
 void refresh();const timer=setInterval(()=>{void refresh();},1500);addEventListener('pagehide',()=>{clearInterval(timer);void call('discard');});
+
+mountActionKeys([{selector:'#keyboard-help summary',key:'q'},{selector:'#pause',key:'a'},{selector:'#resume',key:'r'},{selector:'#stop',key:'s'},{selector:'#discard',key:'shift+x'},{selector:'#select',key:'mod+s'}]);

@@ -1,3 +1,4 @@
+import {mountActionKeys} from './ui/keyboard.ts';
 import type {AssistInput,AssistResult} from './assistance.ts';
 import type { ActionEvent } from "./core/model.ts";
 const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
@@ -70,6 +71,7 @@ function renderSteps(): void {
       input = document.createElement("input");
     check.type = "checkbox";
     check.checked = step.kind !== "excluded";
+    check.setAttribute("aria-label", `Include step at ${(step.at / 1000).toFixed(1)} seconds`);
     input.type = "text";
     input.value = step.label;
     input.setAttribute(
@@ -227,3 +229,5 @@ addEventListener("pagehide", () => {
   invalidateAssistance();
   if (url) URL.revokeObjectURL(url);
 });
+
+mountActionKeys([{selector:'#keyboard-help summary',key:'q'},{selector:'#mark',key:'f'},{selector:'#suggestion',key:'s'},{selector:'#add',key:'a'},{selector:'#primary',key:'mod+s'},{selector:'#cancel',key:'shift+x'},{selector:'#assist-steps',key:'c'}]);
