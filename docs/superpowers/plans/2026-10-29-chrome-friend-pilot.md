@@ -2,6 +2,12 @@
 
 Date: 2026-10-29. Owner: Drew. Execution authorized in chat. Keep Later and outside v0.5.0.
 
+## October 29 Handoff Status
+
+The current private runtime is Pilot 0.1.4 from `382944f`. Its verified package has 18 files and 128,528 bytes. Drew confirms D-key capture, dot/note alignment, Return note flow, saving, and Esc-then-1 navigation before and after saving. Runtime CI passes. Earlier installed exports verify corrected matching and close #183 and #184. The initial thirteen-file count and open-bug statements below describe earlier iterations.
+
+Fresh 0.1.4 export/clipboard-content inspection, full browser restart recovery, actual Windows/Mac friend results, and overall UX acceptance remain open. #182, #177, #172, and #124 stay open in Later. Native-first #178 through #181 remain separate. The [handoff](../../sessions/2026-10-29-chrome-extension-handoff.md) gives the package hash, current evidence, and next steps. No further feature work runs during this handoff.
+
 ## Current direction
 
 Drew requests the fastest useful external test and a test he can run himself. His latest instruction makes the friend pilot Chrome-only on Windows and Mac. This supersedes his immediately preceding extension-plus-app selection for this pilot. The native-first product direction remains in the roadmap. It does not block this explicitly standalone pilot.
@@ -49,7 +55,7 @@ The local machine is a Mac. Windows-specific installation, clipboard, and downlo
 
 Keep Jev processing paused. Spend no provider allowance. Install no production Nextshot on m5pro. This Chrome-only pilot requires no app installation or native permission changes.
 
-## Execution evidence
+## Initial Execution Evidence (Historical)
 
 The separate pilot identity is `ffnikmhbnlgmfeniemlmfniihooipmcd`. Its generated package has thirteen files. Profile verification excludes native, AI, identity, and recording permissions and transport code. TypeScript and both build profiles pass. Thirteen mocked runtime checks cover permissions, continuation, sender trust, and disabled capabilities. Twelve editor fixture checks cover platform hints, element matching, notes, copy failure, and export. Existing 57 Jev client assertions pass without live calls. The common capture body matches the prior verified implementation exactly.
 
@@ -57,7 +63,7 @@ The popup preview is rendered in regular Chrome. An independent source review re
 
 Chrome documents the [unpacked installation route](https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world#load-unpacked). Private and unlisted Store items still require review. A later [Store distribution](https://developer.chrome.com/docs/webstore/cws-dashboard-distribution) task can reduce installation effort. No Store upload occurs under this pilot.
 
-## Installed export corrections
+## Installed Export Corrections (Historical)
 
 The two installed exports prove capture, saved notes, copied prompts, ZIP creation, relative paths, and covered fields. Neither establishes complete element matching. The first dot falls on a paragraph with empty overlay candidates. Issue #183 corrects that priority. The next export has two marks beside a button and covered field. Issue #184 covers nearby matching and field structure. Both bugs stay open until fresh installed acceptance. Keep #182 open for recovery and actual Windows and friend results.
 

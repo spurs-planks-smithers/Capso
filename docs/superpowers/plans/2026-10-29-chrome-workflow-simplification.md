@@ -153,3 +153,8 @@ Validate production editor code in regular Chrome with real IndexedDB and an act
 ## October 29 Escape Correction After Installed Feedback
 
 Drew reports that Escape closes the installed view during note navigation. Reproduction confirms that saving changes Escape from note navigation to Close. This supersedes the Escape-to-Close rule above. Plain Escape must focus the current dot tab before and after saving. Number selection must open the matching note without closing or changing saved evidence. Show Command+W on Mac or Ctrl+W on Windows for Close and preserve native browser handling. Cover both view states before another installed smoke request.
+
+
+## October 29 Handoff Status
+
+Drew confirms installed 0.1.4 saving and Esc-then-1 navigation before and after saving. The Escape finding is accepted; broader #177 usability remains open. Corrected installed exports already close #183 and #184. Keep #182 open for current export/restart and actual Windows/Mac friend results. Native-first issues #178 through #181 and final #172 remain open. See [the handoff](../../sessions/2026-10-29-chrome-extension-handoff.md) for the current runtime, package, checks, and continuation order. Drew requests no further implementation in this Codex run.

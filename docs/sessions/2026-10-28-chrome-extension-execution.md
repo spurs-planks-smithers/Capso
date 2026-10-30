@@ -1,5 +1,7 @@
 # Chrome extension execution, October 28, 2026
 
+Current status, October 29: installed Pilot 0.1.4 saving and note navigation pass. See the [handoff](2026-10-29-chrome-extension-handoff.md). Older acceptance snapshots below remain historical.
+
 Implementation lives on `codex/chrome-extension` in [draft PR #173](https://github.com/spurs-planks-smithers/Capso/pull/173). The original [docs-only PR #161](https://github.com/spurs-planks-smithers/Capso/pull/161) remains preserved. This work stays in Later, outside v0.5.0. Nothing is publicly released.
 
 ## Issue structure and current acceptance

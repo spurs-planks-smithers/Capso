@@ -56,3 +56,10 @@ Drew confirms that Dot 2 and its note stay aligned in installed Pilot 0.1.3. He 
 Pilot 0.1.4 removes the state-dependent meaning. Plain Escape focuses the current dot tab in both views. The number key then selects the matching dot and note. Close displays Command+W or Ctrl+W and leaves handling to Chrome. The explicit Close button remains available. Modified Escape keys and composing events retain their native behavior. The previous Escape-to-Close rule is superseded.
 
 A scratch regression reproduces the saved-view closure before the change. Twenty-four regression checks cover editable and saved views on Mac and Windows, preserve saved evidence, and leave Chrome's close key unhandled. Real Chrome tests of the production editor over HTTP verify Esc then 1 in both views. The browser tool cannot establish native Command+W acceptance through its tab key API. Chrome's official shortcut guide documents that key. Installed acceptance remains pending the updated package.
+
+
+## October 29 Installed Acceptance And Handoff
+
+After reloading Pilot 0.1.4, Drew confirms dot/note alignment and Esc then 1 in the editable view. He then completes notes with Return, saves with Command+S, and confirms Esc then 1 opens Dot 1 while the saved editor stays open. His answer is "Yes, saving and note navigation both work." The reported Escape correction now has installed acceptance. Runtime CI succeeds at `382944f`.
+
+This supersedes the pending installed-navigation status above. Fresh 0.1.4 ZIP/clipboard inspection, restart recovery, Windows/Mac friend results, broad UX acceptance, and native-first work remain open. Drew then requests a stop to implementation and a documented Claude Code handoff. See [the current handoff](2026-10-29-chrome-extension-handoff.md). Do not rebuild the installed runtime for documentation-only changes.

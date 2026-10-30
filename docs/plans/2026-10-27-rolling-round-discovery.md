@@ -1,5 +1,7 @@
 # Rolling Round: requirements and discovery plan
 
+Historical discovery record. Drew authorizes implementation on October 28 and later confirms native-first editing plus a Chrome-only friend pilot. The [October 29 handoff](../sessions/2026-10-29-chrome-extension-handoff.md) supersedes planning-only and pending-status statements here. Keep the original requirements as decision history.
+
 Date: 2026-10-27. Status: reviewed discovery, Later backlog. Issue: [Rolling Round #157](https://github.com/spurs-planks-smithers/Capso/issues/157). Parent: [Chrome extension backlog #124](https://github.com/spurs-planks-smithers/Capso/issues/124). Main plan: [[2026-10-27-chrome-extension-discovery]] ([repository link](2026-10-27-chrome-extension-discovery.md)).
 
 This document records product decisions. It does not authorize implementation, a prototype, dependencies, flag changes, or deployment. The entire Chrome extension stays outside v0.5.0. v1.0 or later remains tentative.

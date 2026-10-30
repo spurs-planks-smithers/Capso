@@ -1,5 +1,7 @@
 # Nextshot Chrome extension: research and discovery plan
 
+Historical discovery record. Drew authorizes implementation on October 28 and later confirms native-first editing plus a Chrome-only friend pilot. The [October 29 handoff](../sessions/2026-10-29-chrome-extension-handoff.md) supersedes planning-only and pending-status statements here. Keep the original requirements as decision history.
+
 Date: 2026-10-27. Owner: Drew. Status: backlog discovery. Implementation is not authorized.
 
 Scope correction, 2026-10-28: Drew requires seamless Chrome use both with and without the Mac app. This supersedes the October 27 Mac-required scope and mandatory reconnection rules. Keep all issues in Later. The [research record](../research/2026-10-28-chrome-swift-integration.md) and [draft architecture specification](../superpowers/specs/2026-10-28-chrome-extension-architecture.md) guide the revised direction.
