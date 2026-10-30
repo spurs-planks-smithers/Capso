@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "N1 throwaway (remove me)",
+  "version": "0.0.1",
+  "description": "Throwaway probe for issue 178. Click once, then remove it.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA7tYZunaw5d69+EyFPmHSC69P2xxx+OqfLAzEZhs87rTnmsZurdYNpdYnPl+xSqHuobXrnjLvyk17quAD7sIrefOBfvSnXnSAeKRtUdXGKMWju9qP1spFS6Woq8TOSo2vJaNrkZL+ZRMuYylBLit3OtaLq9Kx3gAuiW4Q+j5/afwBbGTDi0G/XYFYUeA9CxmVWa7G8qOFiYIk2yMhaMAZhy+HlqLaNYLOJUWrA/mCFgSFabnMph/0KoMenQ8UZDHJ63hhUAYzoGTGuMZvvoBkhEF/V9KIca4cAGon2zuqb5M1uW4tjzn7VEx2erZwk9zloFifiysCHd0XAOT3LYGAowIDAQAB",
+  "permissions": [
+    "nativeMessaging",
+    "activeTab",
+    "scripting",
+    "alarms"
+  ],
+  "background": {
+    "service_worker": "sw.js"
+  },
+  "action": {
+    "default_title": "N1 throwaway: click once"
+  }
+}

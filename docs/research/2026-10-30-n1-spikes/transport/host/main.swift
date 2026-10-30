@@ -51,7 +51,7 @@ func readFrame() -> [String: Any]? {
     let header = FileHandle.standardInput.readData(ofLength: 4)
     guard header.count == 4 else { return nil }
     let count = header.enumerated().reduce(0) { $0 | (Int($1.element) << (8 * $1.offset)) }
-    guard count > 0, count <= 1_048_576 else { return nil }
+    guard count > 0, count <= 8_388_608 else { return nil }
     var body = Data()
     while body.count < count {
         let chunk = FileHandle.standardInput.readData(ofLength: count - body.count)
@@ -95,6 +95,15 @@ while let frame = readFrame() {
     case "result":
         pendingResult = String(describing: frame["value"] ?? "")
         resultReady.signal()
+    case "burst":
+        // Message-size probe: send `bytes` of filler to Chrome in frames of `chunk` characters.
+        let total = frame["bytes"] as? Int ?? 0, size = max(1, frame["chunk"] as? Int ?? 1)
+        let filler = String(repeating: "A", count: size), mark = ProcessInfo.processInfo.systemUptime
+        var sent = 0, index = 0
+        while sent < total { emit(["type": "chunk", "index": index, "data": filler]); sent += size; index += 1 }
+        emit(["type": "burst-done", "chunks": index, "hostMs": Int((ProcessInfo.processInfo.systemUptime - mark) * 1000)])
+    case "echo":
+        emit(["type": "echo", "received": (frame["data"] as? String)?.count ?? 0])
     case "close":
         emit(["type": "closed", "reason": "chrome-close"]); finish("chrome-close")
     default:

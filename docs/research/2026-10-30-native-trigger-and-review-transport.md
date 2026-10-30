@@ -8,7 +8,7 @@ This record holds small spikes only. No production editor, no change to the ship
 
 | Tier | Meaning in this record |
 | --- | --- |
-| **installed** | The installed Nextshot Dev 0.5.0-dev (build 909) and its signed helper, or the installed Chrome 156 binary with a throwaway profile. Never Drew's Chrome profile. |
+| **installed** | The installed Nextshot Dev 0.5.0-dev (build 909) and its signed helper, the installed Chrome 156 binary with a throwaway profile, or (section 3, installed Chrome run) Drew's regular Chrome with one throwaway extension that he loaded and then removed. Pilot and Dev extension installs were not touched. |
 | **fixture** | A stand-in: a Python process that plays Chrome, spike binaries signed with the Dev team, or Chrome for Testing 153 with a throwaway extension. |
 | **not observed** | Taken from documentation or reasoning only. |
 
@@ -19,12 +19,16 @@ The test Mac runs macOS 27.0.1. No macOS 15 machine was available, so every macO
 | Item | Verdict | Tier |
 | --- | --- | --- |
 | 1a. Native shortcut starts ordinary capture with Chrome in front | **GO**. Needs Screen Recording only. No Chrome gesture, no site grant. | installed (code read, existing behavior), not re-run here |
-| 1b. Native shortcut also brings page element details, with no held helper | **NO-GO as specified.** Nothing native can wake an idle extension. Material choice returns to Drew. | fixture + docs |
+| 1b. Native shortcut also brings page element details, with no held helper | **NO-GO as specified.** Nothing native can wake an idle extension. Drew chose option A on 2026-10-30 (see below). | fixture + docs |
 | 2. Closed-app discovery through the Swift bridge | **GO** with one protocol addition. The current receipt cannot tell the states apart. | installed |
-| 3. Temporary active-review transport with idle teardown | **GO** at fixture tier, on a real Chromium engine (Chrome for Testing 153). Drew's installed Chrome not used. | fixture |
+| 3. Temporary active-review transport with idle teardown | **GO** at fixture tier on Chrome for Testing 153. Installed Chrome 156 confirmed the real toolbar gesture, the Apple Event with a Chrome parent, and the message sizes. The 45 s idle hold and the oversize frame were **not cleanly observed** there. | fixture + installed (partial) |
 | 4. macOS 15 media playback | **Partly proven.** MP4 with H.264 plays through the system stack. WebM does not. macOS 15 itself not observed. | installed on macOS 27, macOS 15 not observed |
 
-#178 stays open. Item 1b is the open material choice, and item 4 needs one run on macOS 15.
+#178 stays open until the macOS 15 media run exists.
+
+## Decision on item 1b, 2026-10-30
+
+Drew chose **option A**. The native shortcut makes an ordinary capture with no automatic page details. Page details come when the user starts from the Chrome key. Options B and C are not built. This supersedes the checkpoint's choice of "native shortcut with a drag" as the trigger for page-detail captures. The checkpoint's trigger remains the trigger for ordinary native capture (item 1a).
 
 ## 1. Native trigger and permissions
 
@@ -156,13 +160,32 @@ An earlier run attached Playwright to Chrome for Testing. There the worker never
 
 Consequence for the design: a held port keeps the worker alive, as documented, so the connection must exist only while a review is open. The suspension, port-close, and reload cases all end the helper and the app session.
 
+### Results, installed Chrome 156 (Drew's regular Chrome, throwaway extension, 2026-10-30)
+
+Drew loaded one throwaway extension (name "N1 throwaway (remove me)", ID `npgbeehfhbkbjcmbnjnljmhecnjppbci`, fixed throwaway key) and clicked its toolbar icon. Two host manifests named `com.nextshot.n1spike*` sat in Chrome's `NativeMessagingHosts` folder. The host was the spike stand-in, signed with the Dev team, talking to a stand-in app. It was not the shipped helper. Raw lines: [installed-chrome-run1-events.jsonl](2026-10-30-n1-spikes/results/installed-chrome-run1-events.jsonl).
+
+| Case | Tier | Observed |
+| --- | --- | --- |
+| Real toolbar click grants `activeTab` | installed | `captureVisibleTab` returned 166,855 bytes right after the click. In the fixture, a plain message to the worker got no grant |
+| Script on the page after the click | not observed | The tab was a `chrome://` page, which Chrome blocks. Not a result |
+| Apple Event from a helper with a Chrome parent | installed | The stand-in app answered "ready" in 12 ms with no consent prompt. The helper sends with `kAEDoNotPromptForUserConsent`, so a missing grant would show as error -1744, not as a prompt. The Dev bundle was not a clean first-run install, so a clean install is **not observed** |
+| Host to extension, 5 MB in 10 frames of 512 KB | installed | All 10 arrived, 131 ms |
+| Extension to host, 2 MB single message | installed | Echoed back whole (2,097,152 bytes) |
+| 45 s idle hold with an open port | **not observed** | Drew clicked the icon several times. Each click opened a second connection and ended the first ("Native host has exited"), so the hold did not run clean |
+| Host to extension, 1.2 MB single frame | **not observed** | Same cause. The port had closed before the frame was sent |
+
+A second pass with exactly one click was set up and waited 90 minutes. No click came, so it produced no events ([installed-chrome-run2.jsonl](2026-10-30-n1-spikes/results/installed-chrome-run2.jsonl)). The two **not observed** rows stay at fixture tier (section above) and documentation (1 MB host to extension limit, [Chrome native messaging](https://developer.chrome.com/docs/extensions/develop/concepts/native-messaging)).
+
+The probe has no re-entrancy guard. A production extension must ignore a click while a review is open. The spike showed the cost of a repeat: the second connection replaced the first and the app denied the next opens as busy.
+
+Cleanup: both host manifests were deleted and the stand-in processes stopped on 2026-10-30. Drew removes the throwaway extension at `chrome://extensions` with **Remove**.
+
 ### Limits and gaps
 
-- Drew's installed Chrome was not used. Everything above is fixture tier.
-- Apple Event consent: the helper sends with `kAEDoNotPromptForUserConsent`. Both the installed helper and the spike binaries reached their target with no prompt when started from a Python parent. A Chrome parent was **not observed**, so the consent prompt on a clean install is unproven.
-- Chrome limits host-to-extension messages to 1 MB. Bulk frames need bounded chunks. Not spiked.
+- The installed Chrome run covers the gesture, the Apple Event with a Chrome parent, and message sizes. The idle hold and the oversize frame stay at fixture tier.
+- Apple Event consent on a clean install is **not observed**. The helper sends with `kAEDoNotPromptForUserConsent`, and the stand-in reached its target with no prompt from both a Python parent and a Chrome parent.
+- Chrome limits host-to-extension messages to 1 MB. The installed run sent 512 KB frames successfully. The error text for an oversize frame is only from documentation here.
 - The spike's wait timeout is 130 s and the app's session limit is configurable. A production limit and a reviewer-visible expiry are open for #179.
-- Real macOS user gestures were not driven. The extension's connect call in the spike came from a message, not from a toolbar click.
 
 ## 4. macOS 15 media playback
 
@@ -196,9 +219,9 @@ Recommendation, no code changed:
 
 ## Not done
 
-- No run in Drew's installed Chrome, no use of his profile, no extension reload there. That needs one manual Chrome step (loading a throwaway extension and a host manifest), so it waits for Drew's yes.
+- A clean single-click installed Chrome run of the 45 s idle hold and the oversize frame. The probe is ready: `node docs/research/2026-10-30-n1-spikes/installed-chrome/run.mjs setup <bin> <work>`, one load, one click. It needs Drew for about 3 minutes.
 - Source-tab closure and bounded reconnect are extension logic, not spiked. The cases that were measured (port close, reload, app death, helper death, browser death) all end both sides within about 2 s.
-- A real toolbar click or Chrome shortcut as the starting gesture. The spike started its connection from an alarm.
+- A Chrome keyboard shortcut (commands API) as the starting gesture. The toolbar click was observed in installed Chrome.
 - No macOS 15 run.
 - No Accessibility spike (option C).
 - No Astra use and no paid call.

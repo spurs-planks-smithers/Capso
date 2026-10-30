@@ -1,0 +1,32 @@
+{"host_ms": 1793367950358, "event": "worker-start", "instance": "zlns2z"}
+{"host_ms": 1793369238082, "event": "click", "instance": "ukiu2a", "tabUrl": null, "note": "real toolbar gesture"}
+{"host_ms": 1793369238082, "event": "worker-start", "instance": "ukiu2a"}
+{"host_ms": 1793369238150, "event": "capture-after-click", "instance": "ukiu2a", "ok": true, "bytes": 166855}
+{"host_ms": 1793369238198, "event": "script-after-click", "instance": "ukiu2a", "ok": false, "error": "Error: Cannot access a chrome:// URL"}
+{"host_ms": 1793369238510, "event": "review-open", "instance": "ukiu2a", "reply": {"ms": 12, "type": "ready"}}
+{"host_ms": 1793369238690, "event": "burst-512k", "instance": "ukiu2a", "done": true, "chunks": 10, "chunkBytes": 5242880, "ms": 131}
+{"host_ms": 1793369238858, "event": "echo-2mb", "instance": "ukiu2a", "reply": {"received": 2097152, "type": "echo"}}
+{"host_ms": 1793369238907, "event": "hold-start", "instance": "ukiu2a"}
+{"host_ms": 1793369242414, "event": "click", "instance": "ukiu2a", "tabUrl": null, "note": "real toolbar gesture"}
+{"host_ms": 1793369242485, "event": "capture-after-click", "instance": "ukiu2a", "ok": true, "bytes": 166855}
+{"host_ms": 1793369242533, "event": "script-after-click", "instance": "ukiu2a", "ok": false, "error": "Error: Cannot access a chrome:// URL"}
+{"host_ms": 1793369242607, "event": "native-disconnect", "instance": "ukiu2a", "step": "open", "error": "Native host has exited."}
+{"host_ms": 1793369244304, "event": "click", "instance": "ukiu2a", "tabUrl": null, "note": "real toolbar gesture"}
+{"host_ms": 1793369244370, "event": "capture-after-click", "instance": "ukiu2a", "ok": true, "bytes": 166855}
+{"host_ms": 1793369244417, "event": "script-after-click", "instance": "ukiu2a", "ok": false, "error": "Error: Cannot access a chrome:// URL"}
+{"host_ms": 1793369244493, "event": "native-disconnect", "instance": "ukiu2a", "step": "open", "error": "Native host has exited."}
+{"host_ms": 1793369250733, "event": "review-open", "instance": "ukiu2a", "reply": {"reason": "denied", "type": "closed"}}
+{"host_ms": 1793369252661, "event": "review-open", "instance": "ukiu2a", "reply": {"reason": "denied", "type": "closed"}}
+{"host_ms": 1793369263178, "event": "click", "instance": "ukiu2a", "tabUrl": null, "note": "real toolbar gesture"}
+{"host_ms": 1793369263260, "event": "capture-after-click", "instance": "ukiu2a", "ok": true, "bytes": 166855}
+{"host_ms": 1793369263314, "event": "script-after-click", "instance": "ukiu2a", "ok": false, "error": "Error: Cannot access a chrome:// URL"}
+{"host_ms": 1793369263400, "event": "native-disconnect", "instance": "ukiu2a", "step": "open", "error": "Native host has exited."}
+{"host_ms": 1793369264091, "event": "click", "instance": "ukiu2a", "tabUrl": null, "note": "real toolbar gesture"}
+{"host_ms": 1793369264162, "event": "capture-after-click", "instance": "ukiu2a", "ok": true, "bytes": 166855}
+{"host_ms": 1793369264214, "event": "script-after-click", "instance": "ukiu2a", "ok": false, "error": "Error: Cannot access a chrome:// URL"}
+{"host_ms": 1793369264298, "event": "native-disconnect", "instance": "ukiu2a", "step": "open", "error": "Native host has exited."}
+{"host_ms": 1793369271503, "event": "review-open", "instance": "ukiu2a", "reply": {"reason": "denied", "type": "closed"}}
+{"host_ms": 1793369272484, "event": "review-open", "instance": "ukiu2a", "reply": {"reason": "denied", "type": "closed"}}
+{"host_ms": 1793369283978, "event": "hold-check", "instance": "ukiu2a", "portStillOpen": false, "note": "same instance as click means the worker stayed alive"}
+{"host_ms": 1793369287137, "event": "oversize-result", "instance": "ukiu2a", "portStillOpen": false}
+{"host_ms": 1793369293873, "event": "native-disconnect", "instance": "ukiu2a", "step": "oversize-1.2mb", "error": "Native host has exited."}
