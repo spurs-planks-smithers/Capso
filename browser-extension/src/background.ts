@@ -2,14 +2,15 @@ import {selectBrowserArea,captureRegion} from './capture.ts';
 import {assistanceMessage,trustedAssistancePage,cancelAllAssistance,cancelTabAssistance} from './assistance.ts';
 import {armRolling,stopRolling,openRolling,rollingStatus,rollingPause,pauseForSelection,rollingEvent,rollingPreview,rollingSelection,finishRollingReview} from './rolling.ts';
 import {startRecording,pauseRecording,resumeRecording,stopRecording,discardRecording,recordingStatus,selectRecording,recordObservedEvent} from './recording.ts';
-import {discardDraft,pruneDrafts} from './core/index.ts';
+import {discardDraft,pruneTabBoundDrafts,pruneStaleDrafts} from './core/index.ts';
 import {registerIntents,prepareIntent,finishIntent} from './intents.ts';
 
 async function draftAssociations():Promise<Record<string,string>> {return ((await chrome.storage.session.get('draftTabs')).draftTabs??{}) as Record<string,string>;}
+// Screenshot drafts follow the retention rule (docs/decisions/2026-10-30-chrome-incognito-and-dev-drafts.md). Rolling and recording drafts stay bound to their review tab.
 async function cleanDrafts():Promise<void> {
   const tabs=await chrome.tabs.query({}),live=new Set(tabs.map(t=>String(t.id))),associations=await draftAssociations();
   for(const tab of Object.keys(associations))if(!live.has(tab))delete associations[tab];
-  await chrome.storage.session.set({draftTabs:associations});await pruneDrafts(Object.values(associations));
+  await chrome.storage.session.set({draftTabs:associations});await pruneTabBoundDrafts(Object.values(associations));await pruneStaleDrafts();
 }
 chrome.runtime.onStartup.addListener(()=>{void cleanDrafts();});
 chrome.runtime.onInstalled.addListener(()=>{void chrome.storage.local.setAccessLevel({accessLevel:'TRUSTED_CONTEXTS'});});
@@ -55,7 +56,7 @@ chrome.runtime.onMessage.addListener((message,sender,respond)=>{
     startCapture(Number(message.tabId)).then(()=>respond({ok:true}),error=>respond({error:String(error.message)}));return true;
   }
   if(message.type==='nextshot-region'&&sender.tab?.id&&sender.frameId===0&&/^https?:/.test(sender.url??'')){
-    captureRegion(sender.tab.id,sender.tab.windowId,message).then(result=>respond(result),error=>respond({error:String(error.message)}));return true;
+    captureRegion(sender.tab.id,sender.tab.windowId,message).then(result=>{void pruneStaleDrafts().catch(()=>{});respond(result);},error=>respond({error:String(error.message)}));return true;
   }
   if(message.type==='nextshot-forget-draft'&&trustedPage){cancelAllAssistance();draftAssociations().then(async associations=>{const rolling=await rollingStatus();if(rolling.draftId===message.id)await finishRollingReview();for(const [tab,id] of Object.entries(associations))if(id===message.id)delete associations[tab];await chrome.storage.session.set({draftTabs:associations});respond({ok:true});});return true;}
 });

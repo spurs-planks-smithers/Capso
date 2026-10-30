@@ -2,7 +2,6 @@ import {beginFrameContext,type FrameContext} from './frame-context.ts';
 import {newCapture,saveDraft,sanitizeURL,sanitizeText,redactSensitive} from './core/index.ts';
 import type {Capture,ElementEvidence} from './core/model.ts';
 
-async function draftAssociations():Promise<Record<string,string>> {return ((await chrome.storage.session.get('draftTabs')).draftTabs??{}) as Record<string,string>;}
 export async function selectBrowserArea(tabId:number):Promise<void>{
   const tab=await chrome.tabs.get(tabId);
   if(!tab.url||!/^https?:/.test(tab.url))throw new Error('Choose a website tab to capture.');
@@ -46,6 +45,7 @@ export async function captureRegion(tabId:number,windowId:number,message:any):Pr
   capture.diagnostics=[{at:0,kind:'coverage',text:'Element context is a capture-time snapshot. Source locations are unavailable unless the site supplies reliable integration. Form fields and inaccessible embedded frames are covered.'}];
   const bytes=new Uint8Array(await blob.arrayBuffer());
   await saveDraft({capture,assets:[{name:capture.imageFile,mime:blob.type,bytes},{name:capture.cleanImageFile,mime:blob.type,bytes}]});
-  const review=await chrome.tabs.create({url:chrome.runtime.getURL(`review.html?draft=${capture.id}`)});if(review.id){const associations=await draftAssociations();associations[review.id]=capture.id;await chrome.storage.session.set({draftTabs:associations});}
+  // A screenshot draft is keyed by capture ID and kept by the retention rule, so it needs no tab association.
+  await chrome.tabs.create({url:chrome.runtime.getURL(`review.html?draft=${capture.id}`)});
   return {ok:true};
 }

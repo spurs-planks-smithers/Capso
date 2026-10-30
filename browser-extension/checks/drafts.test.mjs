@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {draftsToDiscard,draftLimits} from '../src/core/drafts.ts';
+import {draftsToDiscard,draftLimits,isTabBoundDraft} from '../src/core/drafts.ts';
 
 const now=Date.parse('2026-10-30T12:00:00Z'),hour=3600*1000,MB=1024*1024;
 const draft=(id,ageMs,bytes=MB)=>({id,updatedAt:now-ageMs,bytes});
@@ -51,6 +51,28 @@ test('the editor keeps edit and selection state across a restart',()=>{
 test('Discard capture deletes the draft and its editor state',()=>{
   const review=source('review.ts');
   assert.match(review,/if\(capture&&!saved\)await discardDraft\(capture\.id\);forgetEditorState\(capture\.id\)/);
+});
+// Dev follows the same rule for screenshot drafts (issue #188). Rolling and recording drafts stay tab-bound.
+test('rolling and recording drafts are tab-bound, screenshot drafts are not',()=>{
+  assert.equal(isTabBoundDraft({kind:'rolling'}),true);
+  assert.equal(isTabBoundDraft({kind:'capture',clip:{start:0,end:1000}}),true);
+  assert.equal(isTabBoundDraft({kind:'capture'}),false);
+  assert.equal(isTabBoundDraft(undefined),false);
+});
+test('the dev profile prunes screenshot drafts by the retention rule, not by tab',()=>{
+  const background=source('background.ts'),capture=source('capture.ts'),store=source('core/store.ts');
+  assert.match(background,/pruneTabBoundDrafts\(Object\.values\(associations\)\);await pruneStaleDrafts\(\)/);
+  assert.doesNotMatch(background,/\bpruneDrafts\b/);
+  assert.doesNotMatch(capture,/draftTabs/);
+  assert.match(store,/filter\(\(\{record\}\)=>!isTabBoundDraft\(record\.capture\)\)/);
+  assert.match(store,/isTabBoundDraft\(records\[index\]\?\.capture\)&&!keep\.has/);
+});
+test('both popups share one resume line that queries only extension pages',()=>{
+  const resume=source('resume.ts');
+  assert.match(source('pilot-popup.ts'),/mountResume\(/);
+  assert.match(source('popup.ts'),/mountResume\(/);
+  assert.match(resume,/chrome\.tabs\.query\(\{url:page\+'\*'\}\)/);
+  assert.equal((resume.match(/tabs\.create/g)??[]).length,1);
 });
 test('persisting a draft does not clear the selected dot',()=>{
   const review=source('review.ts');

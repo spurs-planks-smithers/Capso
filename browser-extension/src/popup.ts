@@ -1,6 +1,7 @@
 import {mountActionKeys} from './ui/keyboard.ts';
 import {mountFramePermissions} from './frame-permissions.ts';
 import {mountCaptureShortcut} from './shortcut.ts';
+import {mountResume} from './resume.ts';
 import {rounds,renderPrompt,endRound,assetsForRound,exportBundle} from './core/index.ts';
 import type {Round} from './core/model.ts';
 const status=document.querySelector<HTMLElement>('#status')!;
@@ -16,6 +17,7 @@ async function load():Promise<void> {
   native.checked=!!(await chrome.storage.local.get('nativeSave')).nativeSave&&await chrome.permissions.contains({permissions:['nativeMessaging']});
   const tab=tabId?await chrome.tabs.get(tabId):(await chrome.tabs.query({active:true,currentWindow:true}))[0];tabId=tab?.id;tabURL=tab?.url;await mountFramePermissions(tabId,status);
   if(!tabId||!tabURL?.startsWith('http')){capture.disabled=true;status.textContent='Choose a website tab to capture.';}
+  await mountResume(document.querySelector<HTMLButtonElement>('#resume')!,status);
   for(const round of (await rounds()).slice(0,8))addRound(round);
   const error=(await chrome.storage.session.get('intentError')).intentError;if(typeof error==='string'){status.textContent=error;await chrome.storage.session.remove('intentError');}
 }
