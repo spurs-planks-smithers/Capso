@@ -8,7 +8,7 @@ import Testing
 @Suite("Network source scan")
 struct NetworkSourceScanTests {
     /// The fork's own code. Paths are relative to the repository root.
-    static let scannedFolders = ["App/Feedback", "Packages/FeedbackKit/Sources", "Packages/JevKit/Sources", "Packages/SupportKit/Sources", "Packages/StartupKit/Sources"]
+    static let scannedFolders = ["App/Feedback", "Packages/FeedbackKit/Sources", "Packages/JevKit/Sources", "Packages/SupportKit/Sources", "Packages/StartupKit/Sources", "Packages/BrowserBridgeKit/Sources"]
     static let transportFile = "Packages/JevKit/Sources/JevKit/Client/URLSessionTransport.swift"
     static let supportTransport = "Packages/SupportKit/Sources/SupportKit/SupportTransport.swift"
     static let supportEndpoint = "Packages/SupportKit/Sources/SupportKit/SupportEndpoint.swift"

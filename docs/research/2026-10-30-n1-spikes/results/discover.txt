@@ -1,0 +1,14 @@
+# discover.swift runs, 2026-10-30T13:07:36Z
+## running app, flag on
+{"build":"909","state":"running"}
+ "/Users/drewschulz/Applications/Nextshot Dev.app"  0.01s user 0.01s system 19% cpu 0.113 total
+## closed copy, flag on
+{"build":"909","state":"closed"}
+   0.01s user 0.01s system 108% cpu 0.020 total
+## absent path
+{"state":"absent"}
+## protocol 2 required
+{"declared":1,"required":2,"state":"incompatible","why":"protocol"}
+## running app, flag off (flag restored to on right after)
+{"flag":"off","state":"disabled"}
+{"flag":"off","state":"disabled"}

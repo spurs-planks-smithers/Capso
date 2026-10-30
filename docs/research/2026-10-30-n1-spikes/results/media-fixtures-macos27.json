@@ -1,0 +1,34 @@
+{
+  "files" : [
+    {
+      "error" : "Cannot Open",
+      "file" : "vp8.webm"
+    },
+    {
+      "error" : "Cannot Open",
+      "file" : "vp9.webm"
+    },
+    {
+      "file" : "h264.mp4",
+      "frameAt1s" : "640x360 @1.0",
+      "isPlayable" : true,
+      "isReadable" : true,
+      "playerItemStatus" : "readyToPlay",
+      "trackCodecs" : [
+        "avc1"
+      ],
+      "videoDuration" : 3
+    },
+    {
+      "error" : "Cannot Open",
+      "file" : "anim.gif"
+    }
+  ],
+  "hardwareDecode" : {
+    "av1" : true,
+    "h264" : true,
+    "hevc" : true,
+    "vp9" : false
+  },
+  "os" : "Version 27.0.1 (Build 26A434)"
+}

@@ -8,7 +8,32 @@ Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This for
 
 ## [Unreleased]
 
+### Added
+
+- A separate private Chrome-only pilot offers ordinary capture, marks, notes, and export for Mac and Windows testing, without native or AI setup. It stays outside v0.5.0.
+
+- An off-by-default Chrome trial adds element context from permitted embedded previews, with private fields covered before storage.
+
+- The disabled Chrome Rolling Round trial keeps bounded recent history and saves a selected excerpt as a separate ended round.
+
+- The Chrome development trial adds explicit silent sampled recording, bounded local diagnostics, and selected-evidence review. Recording starts disabled.
+- An optional, disabled Apple Intelligence adapter can rank selected Chrome evidence on-device through the running app. It remains outside v0.5.0.
+
+- A development-only Chrome extension supports local area capture, numbered annotations, notes, element context, portable export, and optional signed saves into Nextshot Dev. It remains outside the release package.
+
 ### Changed
+
+- Escape consistently returns to dot navigation in editable and saved Chrome feedback. Close uses the native browser key. This remains outside v0.5.0.
+
+- The private Chrome editor replaces code-path choices with outlined screenshot previews. Keyboard hints, Mac-style note advancement, and remembered dot selection support feedback without further mouse use. This remains outside v0.5.0.
+
+- The private Chrome pilot defaults to Option+Shift+D on Mac and Alt+Shift+D on Windows for left-hand capture, avoiding Nextshot Dev's capture key. This remains outside v0.5.0.
+
+- The private Chrome trial uses Nextshot's approved logo, displays the assigned capture shortcut, connects dots to their notes, and labels sharing as Copy instructions and Download ZIP. This remains outside v0.5.0.
+
+- The private Chrome editor uses Done, selectable numbered marks, automatic page matching, and collapsed page details. Draft edits recover after reload, and saved feedback stays read-only. This remains outside v0.5.0.
+
+- The private Chrome pilot can infer nearby annotation targets and locate covered fields through structural details. Field contents stay excluded. This remains outside v0.5.0.
 
 - A copied prompt lists your items and notes near the top and asks the agent to name its session, so sessions no longer share one name. Recent Rounds labels each round with your first instruction, and the date moves to the line below.
 

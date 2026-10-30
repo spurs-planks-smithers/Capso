@@ -1,0 +1,45 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>States without Chrome context</title><link rel="stylesheet" href="common.css"><script src="common.js"></script>
+<style>
+body{background:#f1f2f5}
+.board{position:absolute;left:0;top:0;width:1440px;height:856px;padding:28px 40px;background:#f1f2f5}
+h1{font-size:22px;font-weight:700;margin-bottom:4px}
+.sub{color:#555b66;font-size:14px;margin-bottom:20px}
+.cols{display:grid;grid-template-columns:repeat(4,322px);gap:24px}
+.card{background:#fff;border:1px solid #d9dce2;border-radius:12px;padding:18px;height:560px;display:flex;flex-direction:column;gap:14px}
+.card h2{font-size:17px;font-weight:700}
+.card .why{font-size:13px;color:#555b66;margin-top:2px;min-height:36px}
+.lab{font-size:11px;font-weight:700;color:#7a808c;letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px}
+.form{min-height:128px;background:#f6f6f6;border:1px solid #dcdce0;border-radius:9px;padding:12px}
+.toggle{display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:600}
+.sw{width:38px;height:22px;border-radius:11px;background:#d1d1d6;position:relative}
+.sw::after{content:"";position:absolute;left:2px;top:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.3)}
+.sw.on{background:#30d158}.sw.on::after{left:18px}
+.st{display:flex;align-items:flex-start;gap:8px;margin-top:10px;font-size:13px;line-height:1.35}
+.st i{width:9px;height:9px;border-radius:50%;margin-top:4px;flex:none;display:block}
+.dg{background:#30d158}.do{background:#ff9f0a}.dx{background:#9a9aa0}
+.form .btn{margin-top:10px;height:26px;font-size:12px}
+.thumb{position:relative;height:84px;margin-bottom:6px}
+.thumb .hud{transform:scale(.5);transform-origin:0 0;left:0;top:0}
+.mini{display:inline-block;background:rgba(30,30,32,.9);color:#fff;border-radius:8px;padding:6px 11px;font-size:11px}
+.txt{font-size:13px;line-height:1.45}
+.band{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin-top:20px;background:#fff;border:1px solid #d9dce2;border-radius:12px;padding:18px 22px}.band div{display:flex;flex-direction:column;gap:4px}.band b{font-size:14px}.band span{font-size:13px;color:#555b66}.same{font-size:12px;color:#0b6b5f;font-weight:700}
+</style></head><body>
+<div class="board" id="board"></div>
+<script>
+const states = [
+  {n:'Connected', why:'Reference. Chrome is in front on an approved site.', on:true, dot:'dg', st:'Connected. Page details are added on approved sites.', btn:'', saved:'Page details: added for 3 of 3 dots.', fix:'Nothing to do.'},
+  {n:'Turned off', why:'The browser connection is off in Settings.', on:false, dot:'dx', st:'Off. Capture never contacts Chrome.', btn:'', saved:'Page details: not included. Turned off.', fix:'Turn the switch on in Settings > Browser. Nextshot does not turn it back on.'},
+  {n:'Extension not found', why:'Chrome has no Nextshot extension, or Chrome is closed.', on:true, dot:'do', st:'Chrome extension not found.', btn:'Show setup steps', saved:'Page details: not included. Extension not found.', fix:'Install the extension once. Nextshot never asks during a capture.'},
+  {n:'Site not allowed', why:'The extension has no access to the page you capture.', on:true, dot:'do', st:'Chrome has no access to lemonaid.example.', btn:'Show how to allow', saved:'Page details: not included. Site not allowed.', fix:'Allow the site once from the extension menu in Chrome. Capture never prompts for it.'},
+];
+document.getElementById('board').innerHTML = `<h1>Capture is the same when Chrome details are missing</h1><p class="sub">Settings holds the status. The capture itself shows no extra step, no popup, no delay, and no extra key.</p><div class="cols">` +
+states.map(s => `<div class="card"><div><h2>${s.n}</h2><div class="why">${s.why}</div></div>
+<div><div class="lab">Settings &gt; Browser</div><div class="form"><div class="toggle"><span>Browser context</span><span class="sw${s.on ? ' on' : ''}"></span></div><div class="st"><i class="${s.dot}"></i><span>${s.st}</span></div>${s.btn ? `<span class="btn">${s.btn}</span>` : ''}</div></div>
+<div><div class="lab">While you capture</div><div class="thumb">${hud('Nextshot Dev: Select an area', [['Drag', 'Select an area'], ['Esc', 'Cancel']], {dot:false})}</div><span class="mini"><b>Prompt copied.</b> Paste it into your agent.</span><div class="same" style="margin-top:6px">Identical help box and toast</div></div>
+<div><div class="lab">In the saved capture</div><div class="txt">${s.saved}</div></div>
+<div><div class="lab">To fix</div><div class="txt">${s.fix}</div></div></div>`).join('') + `</div><div class="band"><div><b>Same hotkey</b><span>Option+Shift+F in every state</span></div><div><b>Same steps</b><span>Select, mark, notes, save</span></div><div><b>Same files</b><span>Bundle, manifest, and prompt keep their format</span></div><div><b>One status place</b><span>Settings > Browser, read when you choose to look</span></div></div>`;
+document.body.insertAdjacentHTML('beforeend', noteBar([
+  '<b>No state adds a capture step.</b>',
+  'Ordinary native capture, notes, and saving stay unchanged. The Settings section appears with the browser feature, like the other optional sections.',
+]));
+</script></body></html>

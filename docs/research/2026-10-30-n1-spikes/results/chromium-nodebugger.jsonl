@@ -1,0 +1,4 @@
+{"name":"setup","extensionId":"kbdpbldpdjnokhjbolkbhhmkhjhjbdio","chromePid":83868,"note":"no remote debugging port, no pipe, no automation flag"}
+{"name":"held-port","baselineNoPort":{"checkedAtMs":45896,"workerStartsBeforeAndAtCheck":2,"note":"a second worker-start at the check means the worker stopped while idle with no port"},"heldPort":{"hostProcesses":1,"sameInstanceAtHoldCheck":true,"holdIdleMs":90032,"openerInstance":"9hak0q","checkInstance":"9hak0q","commandReachedExtensionAfterIdle":true,"commandInstance":"9hak0q"},"workers":[{"instance":"okvlur","atMs":999},{"instance":"9hak0q","atMs":45896}]}
+{"name":"teardown:extension-disconnect","calledAtMs":150876,"hostGone":true,"hostGoneWithinMs":71,"appSessionEnded":["host-close"]}
+{"name":"teardown:extension-reload","hostsBefore":1,"hostGone":true,"hostGoneWithinMs":1621,"appSessionEnded":["host-close","host-close"],"workerStartsAfterReload":0}

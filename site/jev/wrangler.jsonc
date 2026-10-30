@@ -1,0 +1,29 @@
+{
+  "name": "nextshot-jev-pilot",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-10-28",
+  "workers_dev": false,
+  "preview_urls": false,
+  "observability": {
+    "enabled": false
+  },
+  "vars": {
+    "PROCESSING_ENABLED": "false",
+    "BILLING_BOUND_VERIFIED": "true",
+    "SERVICE_ISSUER": "https://jev.nextshot.dev",
+    "ACCESS_TEAM_DOMAIN": "shrill-math-8862.cloudflareaccess.com",
+    "ACCESS_AUDIENCE": "d64473f9e218760f2ef934e4c70c5148941eb881bf2cb70e6664037b55a18d78",
+    "PRICING_MODEL": "jev-1.14.0",
+    "INPUT_MICRODOLLARS_PER_MILLION": "42000",
+    "MAX_BILLABLE_INPUT_TOKENS": "65536",
+    "OUTPUT_MICRODOLLARS_PER_MILLION": "0"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "nextshot-jev-pilot",
+      "database_id": "2898d2f1-d401-45e2-aa11-a531e8bbdcc6"
+    }
+  ],
+  "account_id": "2afca1b8aab7ec4024bdb7cb2fec47c0"
+}

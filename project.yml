@@ -55,6 +55,8 @@ packages:
     path: Packages/SupportKit
   StartupKit:
     path: Packages/StartupKit
+  BrowserBridgeKit:
+    path: Packages/BrowserBridgeKit
   KeyboardShortcuts:
     url: https://github.com/sindresorhus/KeyboardShortcuts
     exactVersion: "2.2.1"
@@ -102,6 +104,7 @@ targets:
       - package: HistoryKit
       - package: ShareKit
       - package: FeedbackKit
+      - package: BrowserBridgeKit
       - package: JevKit
       - package: SupportKit
       - package: StartupKit

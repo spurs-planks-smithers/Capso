@@ -12,6 +12,8 @@ Compile risk: `PostCaptureAction.feedback` is a new enum case. An upstream chang
 
 | File | Reason | Lines | Upstream PRs at risk |
 |---|---|---|---|
+| `App/Sources/AppDelegate.swift` | Treat a signed helper launch as quiet startup and start the separately flagged local browser bridge (#168, 2026-10-28). | 40, 98-100, 281-286 | [#349](https://github.com/lzhgus/Capso/pull/349), [#291](https://github.com/lzhgus/Capso/pull/291) |
+| `project.yml` | Add BrowserBridgeKit and its app dependency. The fork build overlays embed the signed helper. | 58-59, 107 | [#349](https://github.com/lzhgus/Capso/pull/349), [#348](https://github.com/lzhgus/Capso/pull/348) |
 | `App/Sources/AppDelegate.swift` | Configure diagnostic logging with the launch capability and saved preference before installing its exception handler (2026-10-28). Keep quiet login behavior from #156. | 50-52 | [#349](https://github.com/lzhgus/Capso/pull/349), [#291](https://github.com/lzhgus/Capso/pull/291) |
 | `App/Sources/Preferences/PreferencesViewModel.swift` | Apply both diagnostics gates when its saved preference changes. | 69-72 | [#348](https://github.com/lzhgus/Capso/pull/348) |
 | `App/Sources/Preferences/Tabs/GeneralSettingsView.swift` | Gate the diagnostics section and file-opening actions with the explicit capability. Preserve the system-status startup control. | 130, 188, 194 | [#348](https://github.com/lzhgus/Capso/pull/348) |

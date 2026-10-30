@@ -1,0 +1,18 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Native capture with Chrome in front</title><link rel="stylesheet" href="common.css"><script src="common.js"></script>
+<style>
+.sel{position:absolute;left:170px;top:236px;width:710px;height:410px;border:1.5px solid #fff;box-shadow:0 0 0 2000px rgba(0,0,0,.38);z-index:10}
+.sel i{position:absolute;width:9px;height:9px;background:#fff;border-radius:50%;box-shadow:0 0 2px rgba(0,0,0,.5)}
+.size{position:absolute;left:170px;top:206px;background:rgba(30,30,32,.85);color:#fff;border-radius:6px;padding:3px 9px;font-size:13px;z-index:11}
+</style></head><body>
+<div class="desk" id="desk"></div>
+<script>
+document.getElementById('desk').innerHTML =
+  menubar() + chromeWindow() +
+  `<div class="sel"><i style="left:-5px;top:-5px"></i><i style="right:-5px;top:-5px"></i><i style="left:-5px;bottom:-5px"></i><i style="right:-5px;bottom:-5px"></i><i style="left:350px;top:-5px"></i><i style="left:350px;bottom:-5px"></i><i style="left:-5px;top:200px"></i><i style="right:-5px;top:200px"></i></div>` +
+  `<div class="size">710 &#215; 410</div>` +
+  hud('Nextshot Dev: Select an area', [['Drag', 'Select an area'], ['Esc', 'Cancel']], { right: 12, bottom: 12 });
+document.body.insertAdjacentHTML('beforeend', noteBar([
+  '<b>Press the normal shortcut, Option+Shift+F, while Chrome is in front on an approved site.</b>',
+  'Page details arrive with the capture. No click, no popup, no new window, no extra key.',
+]));
+</script></body></html>

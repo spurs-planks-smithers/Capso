@@ -1,0 +1,74 @@
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1440px;height:900px;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif;font-size:13px;color:#1d1d1f;background:#fff;font-style:normal}
+.desk{position:absolute;left:0;top:0;width:1440px;height:856px;background:linear-gradient(135deg,#7b97c2 0%,#a3b6d3 48%,#c5bcd9 100%);overflow:hidden}
+.abs{position:absolute}
+/* design note bar, outside the product screen */
+.note{position:absolute;left:0;top:856px;width:1440px;height:44px;background:#f4f5f7;border-top:1px solid #d9dce2;display:flex;align-items:center;gap:14px;padding:0 24px;font-size:13px;color:#2b2f36}
+.note{white-space:nowrap}
+.note b{font-weight:700;color:#111}
+.note .tag{font-weight:700;color:#0b6b5f}
+/* menu bar */
+.menubar{position:absolute;left:0;top:0;width:1440px;height:28px;background:rgba(246,246,248,.82);backdrop-filter:blur(20px);display:flex;align-items:center;padding:0 14px;gap:18px;font-size:13px;color:#111;z-index:50}
+.menubar .sp{flex:1}
+.menubar b{font-weight:700}
+.nsh{display:flex;align-items:center;gap:5px;font-weight:500;position:relative}
+.nsh .dot{position:absolute;right:-3px;top:-4px;width:5px;height:5px;border-radius:50%;background:#30d158}
+/* chrome window */
+.chrome{position:absolute;background:#fff;border-radius:11px;box-shadow:0 22px 60px rgba(0,0,0,.35),0 0 0 .5px rgba(0,0,0,.35);overflow:hidden}
+.c-top{height:40px;background:#dfe1e6;display:flex;align-items:flex-end;padding:0 14px;gap:8px}
+.lights{display:flex;gap:8px;align-self:center;margin-right:18px}
+.lights i{width:12px;height:12px;border-radius:50%;display:block}
+.lights i:nth-child(1){background:#ff5f57}.lights i:nth-child(2){background:#febc2e}.lights i:nth-child(3){background:#28c840}
+.c-tab{height:32px;width:240px;background:#fff;border-radius:9px 9px 0 0;display:flex;align-items:center;gap:8px;padding:0 12px;font-size:12px;color:#222}
+.c-tab .fav{width:14px;height:14px;border-radius:50%;background:#f2c718}
+.c-bar{height:40px;background:#fff;border-bottom:1px solid #e1e3e8;display:flex;align-items:center;gap:10px;padding:0 14px;color:#5f6368;font-size:16px}
+.omni{flex:1;height:28px;border-radius:14px;background:#eef0f4;display:flex;align-items:center;padding:0 14px;font-size:13px;color:#202124}
+.c-view{position:relative;width:100%;height:650px;overflow:hidden;background:#fffdf6}
+/* lemonaid page, 1240 x 650 */
+.lm{position:absolute;left:0;top:0;width:1240px;height:650px;background:#fffdf6;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif;color:#20332b}
+.lm .nav{position:absolute;right:60px;top:30px;display:flex;gap:34px;font-size:16px;color:#4b5650}
+.lm h1{position:absolute;left:108px;top:140px;font-size:104px;font-weight:800;letter-spacing:-4px;line-height:1}
+.lm .tag{position:absolute;left:112px;top:276px;font-size:20px;color:#5d6862}
+.lm .price{position:absolute;left:110px;top:338px;font-size:60px;font-weight:800;letter-spacing:-2px;line-height:1.1}
+.lm .buy{position:absolute;left:112px;top:440px;background:#f1d63a;color:#3a3200;font-size:14px;font-weight:600;padding:8px 22px;border-radius:5px}
+.lm .foot{position:absolute;left:112px;top:580px;font-size:14px;color:#5d6862}
+.lm svg{position:absolute;left:820px;top:150px}
+/* native help box (FeedbackHelpOverlay look: 22 pt text, hudWindow glass, 75% opacity) */
+.hud{position:absolute;width:503px;border-radius:15px;background:rgba(44,44,46,.78);border:.5px solid rgba(255,255,255,.2);color:#fff;padding:22px;backdrop-filter:blur(16px);z-index:40;opacity:.95}
+.hud .t{font-size:22px;font-weight:700;margin-bottom:12px}
+.hud .g{display:grid;grid-template-columns:auto 1fr;column-gap:22px;row-gap:8px;font-size:22px}
+.hud .k{font-weight:600}
+.hud .a{color:rgba(235,235,245,.6)}
+.hud .rd{position:absolute;right:10px;top:10px;width:8px;height:8px;border-radius:50%;background:#30d158}
+/* toast */
+.toast{position:absolute;background:rgba(30,30,32,.9);color:#fff;border-radius:12px;padding:13px 22px;font-size:17px;box-shadow:0 8px 24px rgba(0,0,0,.3);z-index:45}
+.toast b{font-weight:700}
+/* capture in place */
+.cap{position:absolute;overflow:hidden;box-shadow:0 18px 48px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.5);z-index:20;background:#fffdf6}
+.cap .lm{left:-70px;top:-110px}
+.badge{position:absolute;width:30px;height:30px;border-radius:50%;background:#ff5a45;color:#fff;font-weight:700;font-size:16px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.35);z-index:3}
+.badge.sel{box-shadow:0 0 0 3px #fff,0 0 0 5px #0a84ff}
+/* native floating panel (FeedbackNotePanel look) */
+.panel{position:absolute;background:#f6f6f6;border-radius:12px;box-shadow:0 20px 56px rgba(0,0,0,.4),0 0 0 .5px rgba(0,0,0,.4);overflow:hidden;z-index:30}
+.p-title{height:38px;display:flex;align-items:center;gap:10px;padding:0 12px;background:#ececec;border-bottom:1px solid #d6d6d6;font-size:13px;font-weight:600;color:#555}
+.p-title .lights{margin-right:6px}
+.p-title .lights i:nth-child(n+2){background:#cfcfd2}
+.p-title .ico{width:22px;height:22px;border-radius:5px}
+.p-body{padding:14px 16px 16px}
+.tabs{display:flex;gap:6px;margin-bottom:12px}
+.tab{height:28px;min-width:30px;padding:0 11px;border-radius:7px;border:1px solid #cfcfd4;background:#fff;color:#333;font-size:13px;display:flex;align-items:center;gap:6px}
+.tab small{font-size:10px;color:#8a8a90}
+.tab.on{background:#e6f1ff;border-color:#0a84ff;color:#0a4fb4;font-weight:600}
+.q{font-size:16px;font-weight:700;margin-bottom:8px}
+.field{background:#fff;border-radius:8px;border:2px solid #7aa7f0;box-shadow:0 0 0 3px rgba(122,167,240,.3);padding:10px 12px;font-size:16px;min-height:44px}
+.hint{font-size:13px;color:#6b6b70;margin:8px 0 10px;line-height:1.4}
+.prev{position:relative;width:100%;height:215px;border-radius:8px;overflow:hidden;background:#fffdf6;border:1px solid #d6d6d6}
+.chips{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px}
+.chip{background:#e6f1ff;color:#0a4fb4;border-radius:6px;padding:4px 9px;font-weight:600}
+.link{color:#0a62d6}
+.mark{position:absolute;border:2px solid #0a84ff;background:rgba(10,132,255,.12);border-radius:4px;z-index:2}
+.btn{height:30px;padding:0 14px;border-radius:7px;border:1px solid #c9c9ce;background:#fff;font-size:13px;display:inline-flex;align-items:center;gap:8px}
+.btn small{font-size:11px;color:#8a8a90}
+.btn.pri{background:#3478f6;border-color:#3478f6;color:#fff;font-weight:600}
+.btn.pri small{color:#dbe7ff}
+kbd{font-family:inherit;font-weight:600;background:#fff;border:1px solid #cfcfd4;border-radius:4px;padding:0 5px;font-size:12px}

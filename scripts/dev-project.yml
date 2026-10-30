@@ -28,6 +28,9 @@ targets:
         # The script below edits the built Info.plist.
         ENABLE_USER_SCRIPT_SANDBOXING: NO
     postBuildScripts:
+      - name: Embed signed Nextshot browser host
+        basedOnDependencyAnalysis: false
+        script: bash "${SRCROOT}/scripts/embed-browser-host.sh"
       # Info.plist is upstream's file, so the Dev change happens on the built
       # copy, before Xcode signs the app. Dev answers to nextshot-dev:// only.
       - name: Nextshot Dev URL scheme

@@ -460,6 +460,8 @@ final class FeedbackController {
         updateHelp()
     }
 
+    func refreshAfterBrowserImport() async { await refresh() }
+
     // MARK: - Round keys
 
     /// The four round keys, each on the same path as its menu row. They start

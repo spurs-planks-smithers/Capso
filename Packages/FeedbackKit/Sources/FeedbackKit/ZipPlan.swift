@@ -102,6 +102,12 @@ public struct ZipPlan: Equatable, Sendable {
     public var sourceRoundLines: [String]
     /// True when a smaller pixel scale would shrink no image.
     public var atFloor: Bool
+    public var attachments: [ZipAttachment] = []
+}
+
+public struct ZipAttachment: Equatable, Sendable {
+    public var source: URL
+    public var name: String
 }
 
 public enum ZipPlanner {
@@ -123,6 +129,7 @@ public enum ZipPlanner {
 
         var captures: [FeedbackCapture] = []
         var images: [ZipImage] = []
+        var attachments: [ZipAttachment] = []
         var atFloor = true
         for (offset, entry) in ordered.enumerated() {
             let source = entry.capture
@@ -137,6 +144,9 @@ public enum ZipPlanner {
             let folder = URL(fileURLWithPath: entry.folderPath, isDirectory: true)
             images.append(ZipImage(sourceURL: folder.appendingPathComponent(source.imageFile), fileName: capture.imageFile, size: capture.size, isClean: false))
             images.append(ZipImage(sourceURL: folder.appendingPathComponent(source.cleanImageFile), fileName: capture.cleanImageFile, size: capture.size, isClean: true))
+            for name in [source.browserEvidenceFile].compactMap({ $0 }) + (source.browserAssetFiles ?? []) {
+                attachments.append(ZipAttachment(source: folder.appendingPathComponent(name), name: name))
+            }
         }
 
         let round: FeedbackRound
@@ -166,7 +176,8 @@ public enum ZipPlanner {
             round: round,
             images: images,
             sourceRoundLines: kind == .selection ? sourceLines(ordered) : [],
-            atFloor: atFloor
+            atFloor: atFloor,
+            attachments: Array(Set(attachments.map(\.name))).sorted().compactMap { name in attachments.first { $0.name == name } }
         )
     }
 

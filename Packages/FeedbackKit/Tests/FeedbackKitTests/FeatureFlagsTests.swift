@@ -37,11 +37,11 @@ struct FeatureFlagsTests {
             "oneBreath", "promptLanes", "lanesOrder", "lanesSplit", "dataGuard",
             "dataGuardInjection", "dataGuardContact", "dataGuardNumbers", "dataGuardSecrets", "dataGuardFaces",
             "jevSendImages", "jevSendScreenText", "zipHandoff", "supportSubmission",
-            "standaloneCapture", "recordingTools", "translationTools", "cloudShare", "automationURLs", "automaticUpdates", "screenshotCopy", "diagnostics", "sessionTitle",
+            "standaloneCapture", "recordingTools", "translationTools", "cloudShare", "automationURLs", "automaticUpdates", "screenshotCopy", "diagnostics", "sessionTitle", "browserBridge", "browserAppleIntelligence",
         ])
         // A sub-flag carries its parent's issue. The two consent flags belong
         // to the Jev base, #36.
-        #expect(FeatureFlag.allCases.map(\.spec.issue) == [36, 37, 37, 37, 37, 38, 38, 38, 39, 39, 39, 40, 69, 69, 69, 70, 70, 70, 70, 70, 70, 36, 36, 85, 0] + Array(repeating: 119, count: 6) + [123, 118, 164])
+        #expect(FeatureFlag.allCases.map(\.spec.issue) == [36, 37, 37, 37, 37, 38, 38, 38, 39, 39, 39, 40, 69, 69, 69, 70, 70, 70, 70, 70, 70, 36, 36, 85, 0] + Array(repeating: 119, count: 6) + [123, 118, 164, 168, 148])
         let appFlags: [FeatureFlag] = [.standaloneCapture, .recordingTools, .translationTools, .cloudShare, .automationURLs, .automaticUpdates, .screenshotCopy, .diagnostics]
         for mask in 0..<(1 << appFlags.count) {
             let enabled = Set(appFlags.enumerated().compactMap { mask & (1 << $0.offset) != 0 ? $0.element : nil })
@@ -177,7 +177,7 @@ struct FeatureFlagsTests {
     }
 
     /// Flags that are not Jev features. They may turn on in a release build.
-    private static let nonJevFlags: Set<FeatureFlag> = [.zipHandoff, .supportSubmission, .standaloneCapture, .recordingTools, .translationTools, .cloudShare, .automationURLs, .automaticUpdates, .screenshotCopy, .diagnostics, .sessionTitle]
+    private static let nonJevFlags: Set<FeatureFlag> = [.browserAppleIntelligence, .browserBridge,.zipHandoff, .supportSubmission, .standaloneCapture, .recordingTools, .translationTools, .cloudShare, .automationURLs, .automaticUpdates, .screenshotCopy, .diagnostics, .sessionTitle]
 
     @Test("The zip handoff flag is not dev-only and starts off")
     func zipHandoffFlag() {

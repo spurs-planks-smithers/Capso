@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "N1 spike",
+  "version": "0.0.1",
+  "description": "Throwaway lifecycle probe for issue 178. Not a Nextshot extension.",
+  "permissions": ["nativeMessaging", "storage", "activeTab", "scripting", "tabs"],
+  "host_permissions": ["http://127.0.0.1/*"],
+  "background": { "service_worker": "sw.js" },
+  "options_page": "page.html"
+}

@@ -37,7 +37,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
             return
         }
-        let loginLaunch = LaunchAtLogin.wasLaunchedAtLogin // Fork: read during the launch Apple Event
+        let loginLaunch = LaunchAtLogin.wasLaunchedAtLogin || ProcessInfo.processInfo.arguments.contains("--nextshot-browser-bridge") // Fork: native browser save stays quiet
         SingleInstanceGuard.quitIfAnotherCopyRuns(loginLaunch: loginLaunch) // Fork: App/Feedback
         let showStartupChoice = LoginStartupController.shared.prepareLaunch(loginLaunch: loginLaunch) // Fork: App/Feedback
         ForkDefaults.register() // Fork: App/Feedback
@@ -95,6 +95,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         registerGlobalShortcuts()
         FeedbackController.shared.start(captureCoordinator: captureCoordinator!, settings: settings, loginLaunch: loginLaunch) // Fork: App/Feedback
+        // Fork: authenticate the narrow browser route, then preserve ordinary URL handling.
+        NSAppleEventManager.shared().setEventHandler(self, andSelector: #selector(handleNextshotURL(_:withReplyEvent:)),
+            forEventClass: AEEventClass(kInternetEventClass), andEventID: AEEventID(kAEGetURL))
         if !loginLaunch { // Fork: login must not open a capture or file window
             performPendingAutomationURLAction()
             performPendingImageFileOpen()
@@ -273,6 +276,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         automationURLRequestBuffer.enqueue(action)
         performPendingAutomationURLAction()
+    }
+
+    @objc private func handleNextshotURL(_ event: NSAppleEventDescriptor, withReplyEvent reply: NSAppleEventDescriptor) {
+        if BrowserImportCoordinator.shared.handle(event, reply: reply) { return } // Fork: authenticated browser save only
+        if let text = event.paramDescriptor(forKeyword: AEKeyword(keyDirectObject))?.stringValue, let url = URL(string: text) {
+            application(NSApp, open: [url])
+        }
     }
 
     /// Asks once whether other apps may control Capso. Returns whether to run the command.

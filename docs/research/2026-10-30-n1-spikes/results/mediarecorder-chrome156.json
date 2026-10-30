@@ -1,0 +1,71 @@
+{
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+  "supported": {
+    "video/webm": true,
+    "video/webm;codecs=vp8": true,
+    "video/webm;codecs=vp9": true,
+    "video/webm;codecs=h264": true,
+    "video/webm;codecs=av1": true,
+    "video/mp4": true,
+    "video/mp4;codecs=avc1": true,
+    "video/mp4;codecs=avc1.42E01E": true,
+    "video/mp4;codecs=hvc1": false,
+    "video/x-matroska;codecs=avc1": true
+  },
+  "written": [
+    {
+      "type": "video/webm",
+      "recorderMime": "video/webm;codecs=vp8",
+      "size": 80763,
+      "file": "rec-video_webm.webm"
+    },
+    {
+      "type": "video/webm;codecs=vp8",
+      "recorderMime": "video/webm;codecs=vp8",
+      "size": 76304,
+      "file": "rec-video_webm_codecs_vp8.webm"
+    },
+    {
+      "type": "video/webm;codecs=vp9",
+      "recorderMime": "video/webm;codecs=vp9",
+      "size": 65360,
+      "file": "rec-video_webm_codecs_vp9.webm"
+    },
+    {
+      "type": "video/webm;codecs=h264",
+      "recorderMime": "video/x-matroska;codecs=avc1",
+      "size": 64211,
+      "file": "rec-video_webm_codecs_h264.mkv"
+    },
+    {
+      "type": "video/webm;codecs=av1",
+      "recorderMime": "video/webm;codecs=av01",
+      "size": 50824,
+      "file": "rec-video_webm_codecs_av1.webm"
+    },
+    {
+      "type": "video/mp4",
+      "recorderMime": "video/mp4;codecs=avc1",
+      "size": 65039,
+      "file": "rec-video_mp4.mp4"
+    },
+    {
+      "type": "video/mp4;codecs=avc1",
+      "recorderMime": "video/mp4;codecs=avc1",
+      "size": 67216,
+      "file": "rec-video_mp4_codecs_avc1.mp4"
+    },
+    {
+      "type": "video/mp4;codecs=avc1.42E01E",
+      "recorderMime": "video/mp4;codecs=avc1.42001f",
+      "size": 65618,
+      "file": "rec-video_mp4_codecs_avc1_42E01E.mp4"
+    },
+    {
+      "type": "video/x-matroska;codecs=avc1",
+      "recorderMime": "video/x-matroska;codecs=avc1",
+      "size": 64375,
+      "file": "rec-video_x_matroska_codecs_avc1.mkv"
+    }
+  ]
+}

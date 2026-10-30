@@ -1,0 +1,14 @@
+{"name":"setup","extensionId":"felbpbmlcnnbfgocbongploilfgemlgo","browser":"153.0.8010.12","fixturePort":50349}
+{"name":"native-host-state:com.nextshot.nope","events":[{"kind":"connect-called"},{"kind":"native-disconnect","error":"Specified native messaging host not found."}]}
+{"name":"native-host-state:com.nextshot.spike.forbidden","events":[{"kind":"connect-called"},{"kind":"native-disconnect","error":"Access to the specified native messaging host is forbidden."}]}
+{"name":"native-host-state:com.nextshot.spike.stale","events":[{"kind":"connect-called"},{"kind":"native-disconnect","error":"Specified native messaging host not found."}]}
+{"name":"executeScript-without-gesture:127.0.0.1","events":[{"kind":"script-ok","result":"fixture"}]}
+{"name":"executeScript-without-gesture:localhost","events":[{"kind":"script-failed","error":"Error: Cannot access contents of url \"http://localhost:50349/\". Extension manifest must request permission to access this host."}]}
+{"name":"captureVisibleTab-from-message-not-gesture","events":[{"kind":"capture-failed","error":"Error: Either the '<all_urls>' or 'activeTab' permission is required."}]}
+{"phase":"baseline-idle-start","at":1793366857451}
+{"phase":"baseline-idle-done","at":1793366902454}
+{"name":"worker-idle-baseline-no-port","idleMs":46105,"workerStartsBefore":1,"workerStartsAfter":1,"note":"after > before means the worker was stopped while idle and restarted by the message"}
+{"name":"held-native-port","hostProcessesWhileOpen":2,"holdMs":75000,"workerStartsAtOpen":1,"workerStartsAfterHold":1,"readyReceived":true,"commandReachedExtensionAfterIdle":true,"hostStillRunningAfterHold":true,"appEvents":[{"ev":"ready","ms":69},{"ev":"session-open","ms":1412},{"ev":"wait-held","ms":1418},{"ev":"cmd-sent","ms":78534}]}
+{"name":"teardown:extension-disconnect","hostGoneMs":null,"appSessionEnded":["host-close"]}
+{"name":"teardown:extension-reload","hostsBefore":2,"hostGoneMs":null,"appSessionEnded":["host-close","host-close"]}
+{"name":"fatal","error":"Error: page.goto: net::ERR_BLOCKED_BY_CLIENT at chrome-extension://felbpbmlcnnbfgocbongploilfgemlgo/page.html\nCall log:\n  - navigating to \"chrome-extension://felbpbmlcnnbfgocbongploilfgemlgo/page.html\", waiting until \"load\"\n"}

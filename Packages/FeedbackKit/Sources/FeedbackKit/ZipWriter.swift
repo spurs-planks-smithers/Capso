@@ -130,6 +130,16 @@ public enum ZipWriter {
             let data = try ExportImageEncoder.jpeg(contentsOf: image.sourceURL, size: image.size, quality: quality)
             try data.write(to: folder.appendingPathComponent(image.fileName), options: .atomic)
         }
+        for attachment in plan.attachments {
+            if let capture = plan.round.captures.first(where: { $0.browserEvidenceFile == attachment.name }),
+               var object = try JSONSerialization.jsonObject(with: Data(contentsOf: attachment.source)) as? [String: Any] {
+                object["exportedImages"] = ["annotated": capture.imageFile, "clean": capture.cleanImageFile, "width": capture.size.width, "height": capture.size.height]
+                try JSONSerialization.data(withJSONObject: object, options: [.prettyPrinted, .sortedKeys])
+                    .write(to: folder.appendingPathComponent(attachment.name), options: .atomic)
+            } else {
+                try FileManager.default.copyItem(at: attachment.source, to: folder.appendingPathComponent(attachment.name))
+            }
+        }
     }
 
     /// Zips `folder` into `target`. The zip's entries start with the folder's name.
