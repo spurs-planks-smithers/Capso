@@ -6,3 +6,4 @@ export * from './bundle.ts';
 export * from './store.ts';
 export * from './history.ts';
 export * from './drafts.ts';
+export * from './evidence.ts';

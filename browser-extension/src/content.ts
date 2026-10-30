@@ -1,5 +1,7 @@
 import {redactSensitive,sanitizeText} from './core/sanitize.ts';
+import {evidenceCaption,fieldRoles} from './core/evidence.ts';
 import type {Bounds,ElementEvidence} from './core/model.ts';
+const fieldRoleSelector=fieldRoles.map(role=>`[role~="${role}"]`).join(',');
 const state=globalThis as typeof globalThis&{__nextshotPageAdapter?:boolean};
 let captureProof:{id:string;region:Bounds;fingerprint:string;url:string;dirty:boolean}|undefined;
 if(!state.__nextshotPageAdapter){state.__nextshotPageAdapter=true;initialize();}
@@ -113,7 +115,8 @@ function snapshot(region:Bounds,nodes=allElements()):ElementEvidence[] {
       continue;
     }
     const ownText=[...e.childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).map(n=>n.textContent??'').join(' ');
-    const label=redactSensitive(e.getAttribute('aria-label')||ownText,300).trim();
+    const role=e.getAttribute('role')??'';
+    const label=redactSensitive(evidenceCaption({tag:e.tagName,role,ariaLabel:e.getAttribute('aria-label'),ownText,insideLabel:!!e.closest('label'),insideFieldRole:!!e.parentElement?.closest(fieldRoleSelector)}),300).trim();
     result.push({id:`element-${result.length+1}`,selector:selector(e),tag:e.tagName.toLowerCase(),role:sanitizeText(e.getAttribute('role')??'',60),text:label,bounds});
   }
   return result;
