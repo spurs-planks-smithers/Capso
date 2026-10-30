@@ -13,7 +13,7 @@ Date: 2026-10-25. Decided by Drew in an interview session. This record replaces 
 | Stage names | None. No Alpha or Beta word in the app, the DMG, or the site. The number carries the stage. |
 | Build number | The commit count on `main` at the release commit. It only rises, because releases come only from `main`. |
 | Trunk | `main`. It is fast-forwarded to `feature/feedback-sessions`. New PRs target `main`. |
-| Tags | `nextshot-vX.Y.Z`, annotated, on the release commit. Capso's 65 tags (v0.9.3 to v1.2.5) stay untouched. |
+| Tags | `nextshot-vX.Y.Z`, annotated, on the release commit. Capso's 65 tags (v0.1.0 to v1.2.5 at the fork) stay untouched. |
 | Cadence | Drew decides. One release command. No schedule. |
 | Who releases | Only Drew, from his Mac. The signing certificate and the notary profile stay in his Keychain. |
 | Your Mac | A separate app, Nextshot Dev, with its own bundle ID. It is the daily driver. It shares the rounds folder with the production app. |
@@ -31,7 +31,7 @@ Date: 2026-10-25. Decided by Drew in an interview session. This record replaces 
 | `main` was a frozen copy of upstream. | `origin/main` was at Capso's 1.2.5 release (2026-10-20), 216 commits behind `feature/feedback-sessions`. Every merged PR targeted `feature/feedback-sessions`. |
 | The commit count broke across branches. | A trial build was 665 while a later release was 618 ([DMG decision](2026-10-25-dmg-install-and-update.md)). |
 | One bundle ID for two kinds of build caused the grant re-asks and the overwrites. | Memory notes: signature switch, parallel local builds, installed build branch. |
-| Capso's tags would collide with Nextshot tags. | 65 tags exist from v0.9.3 to v1.2.5. Nextshot reaches 0.9.x and 1.0.0. |
+| Capso's tags would collide with Nextshot tags. | 65 tags existed from v0.1.0 to v1.2.5 at the fork. Upstream already has a bare `v0.3.0`, so Nextshot's 0.3.0 would have collided at once. Nextshot also reaches 0.9.x and 1.0.0. |
 | The site picks a DMG by file time and a date-shaped name. | `site/deploy.sh` globs `Nextshot-20*.dmg`. |
 | The license limits a paid 1.0. | Capso's Additional Use Grant bars a "Screen Capture Service". Change Date 2029-04-08. This reading is not legal advice. Get counsel before 1.0. |
 
@@ -79,7 +79,7 @@ The release command reads the conventional commit prefixes since the last tag. A
 - The commit hash is out of the file name. It lives in `latest.json` and in the release notes.
 - A pre-release, if one ever ships, follows SemVer: `Nextshot-0.5.0-rc.1.dmg`.
 - Nobody renames a published file. A bad build gets a new PATCH.
-- The two shipped date builds stay under their original names in `releases/legacy/`. Their plists say 2026.10.22 and 2026.10.24.
+- A shipped date build keeps its original name. Only the 2026.10.24 build was imported (`--import-legacy`, 2026-10-25). It sits at the flat key `releases/Nextshot-2026.10.24-9d3afc7.dmg`, with no `legacy/` folder, and its plist says 2026.10.24. The 2026.10.22 build was not imported.
 
 ## Channels and identity
 
@@ -102,5 +102,5 @@ The release command reads the conventional commit prefixes since the last tag. A
 ## Not decided yet
 
 - The Sparkle update file: the zip or the DMG. The decision comes in M3.
-- Whether Nextshot Dev gets a badge on its icon and a separate URL scheme. The plan assumes yes.
+- Whether Nextshot Dev gets a badge on its icon. The plan assumes yes. The separate URL scheme shipped: Nextshot Dev answers to `nextshot-dev://` only (`scripts/dev-project.yml`).
 - When GitHub Actions turns on for tests only (M4).

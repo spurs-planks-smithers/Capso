@@ -5,7 +5,7 @@
 #
 # Usage:
 #   scripts/release.sh                  show the suggested bump and the plan, change nothing
-#   scripts/release.sh --dry-run <bump> run every check, show the plan, change nothing
+#   scripts/release.sh --dry-run <bump> preflight checks and the plan only (no tests, build, or DMG check)
 #   scripts/release.sh <bump>           cut the release
 #   scripts/release.sh --promote X.Y.Z  point /download at an archived version (also the rollback)
 #   scripts/release.sh --import-legacy FILE --version V --build N [--commit C] [--and-promote]

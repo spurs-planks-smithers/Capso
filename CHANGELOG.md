@@ -4,6 +4,8 @@ All notable changes to Nextshot are listed here. The format follows [Keep a Chan
 
 A pull request that changes what a person sees or can do adds one line under Unreleased. The release step moves those lines into the new version.
 
+The date of a version is the UTC date of the release run (`scripts/release.sh` uses `date -u`). The 0.3.0 run started at 21:01 on 2026-10-25 in Pacific time, so 0.3.0 reads 2026-10-26.
+
 Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This fork started from Capso 1.2.5.
 
 ## [Unreleased]
