@@ -23,7 +23,7 @@ Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This for
 
 ### Changed
 
-- The private Chrome pilot defaults to Option+Shift+P on Mac and Alt+Shift+P on Windows, avoiding Nextshot Dev's capture key. This remains outside v0.5.0.
+- The private Chrome pilot defaults to Option+Shift+D on Mac and Alt+Shift+D on Windows for left-hand capture, avoiding Nextshot Dev's capture key. This remains outside v0.5.0.
 
 - The private Chrome trial uses Nextshot's approved logo, displays the assigned capture shortcut, connects dots to their notes, and labels sharing as Copy instructions and Download ZIP. This remains outside v0.5.0.
 

@@ -125,3 +125,9 @@ Drew confirms that Pilot's capture shortcut is unassigned. He requires a default
 Chromium's [command service](https://github.com/chromium/chromium/blob/main/chrome/browser/extensions/commands/command_service.cc) attempts a new default on update when the former suggestion was never assigned. It preserves custom assignments and keys the user cleared after assignment. It does not overwrite an occupied key. This source behavior supports an update repair, but installed Chrome acceptance requires a reload and actual shortcut readback.
 
 The existing packager rejects missing capture defaults and overlap between Pilot capture and any Dev command on Mac or Windows. Verify that rejection before changing the conflicting manifests. Run both builds and the existing browser checks before packaging. Update the same visible Pilot folder only from a clean, verified package. Ask for one manual reload, then verify automatic assignment before testing keyboard capture.
+
+## October 29 Left-Hand Shortcut Correction
+
+Drew confirms that Chrome assigns Option+Shift+P automatically and that the shortcut opens an actual capture. He then requires left-hand hotkeys and explicitly chooses Option+Shift+D. This supersedes the preceding P default. Pilot 0.1.2 requests Option+Shift+D on Mac and Alt+Shift+D on Windows. Dev retains its separate B/G defaults. No capture behavior changes.
+
+Chromium source supports moving an untouched assigned default during update. A custom or intentionally cleared shortcut remains protected. Verify the installed D key after one reload. Keep broader usability, native-first work, Windows acceptance, and friend tests open. Keep all work in Later and outside v0.5.0.

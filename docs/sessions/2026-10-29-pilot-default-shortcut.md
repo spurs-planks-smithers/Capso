@@ -23,3 +23,9 @@ Chrome's [Commands API](https://developer.chrome.com/docs/extensions/reference/a
 Package from committed source. Verify the archive and copy it to the existing visible Pilot folder. Keep the same identity and saved browser data. Ask for one manual Reload, then verify the actual key. Do not ask Drew to assign a key before checking the automatic update.
 
 Keep #177 and #182 open for installed usability and friend acceptance. Keep all Chrome work in Later and outside v0.5.0. Publish no public release.
+
+## October 29 Left-Hand Correction
+
+Drew confirms automatic P assignment after reload. He then confirms that the key opens a captured image without using the popup. He rejects P for reach and explicitly requests Option+Shift+D. Pilot 0.1.2 therefore uses Option+Shift+D on Mac and Alt+Shift+D on Windows. This supersedes the P default above. He wants Nextshot hotkeys reachable with his left hand.
+
+The existing disjoint-default guard still checks D against Dev's B/G defaults. Chromium source supports moving an untouched P binding to D during update. Installed D assignment remains pending a reload and user check. No custom key is overwritten. No new permission, dependency, or runtime behavior is added.
