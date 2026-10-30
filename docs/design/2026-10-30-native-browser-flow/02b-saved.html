@@ -1,0 +1,33 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Native saved state</title><link rel="stylesheet" href="common.css"><script src="common.js"></script>
+<style>.blur{position:absolute;left:0;top:28px;width:1440px;height:828px;backdrop-filter:blur(9px);background:rgba(0,0,0,.2);z-index:15}
+.row{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid #e0e0e4}
+.row:first-of-type{border-top:0}
+.row .n{width:22px;height:22px;border-radius:50%;background:#ff5a45;color:#fff;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;flex:none}
+.row .tx{flex:1;font-size:15px}
+.row .chip{font-size:12px;flex:none}
+.ok{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:700;margin-bottom:10px}
+.ok i{width:10px;height:10px;border-radius:50%;background:#30d158;display:block}
+.acts{display:flex;gap:10px;margin-top:14px;align-items:center}
+.acts .sp{flex:1}
+.gray{color:#6b6b70;font-size:13px}</style></head><body>
+<div class="desk" id="desk"></div>
+<script>
+const capture = `<div class="cap" style="left:170px;top:236px;width:710px;height:410px">${LEMON}${badge(1, 486, 40)}${badge(2, 330, 226)}${badge(3, 126, 320)}</div>`;
+const panel = `<div class="panel" style="left:900px;top:38px;width:520px">
+  <div class="p-title"><div class="lights"><i></i><i></i><i></i></div><img class="ico" src="nextshot-24.png" alt=""><span>Capture: Lemonaid menu, 2026-10-30 09:41 PDT</span></div>
+  <div class="p-body">
+    <div class="ok"><i></i>Saved to round &#8220;feedback&#8221; as capture 4</div>
+    <div class="tabs"><div class="tab"><span>1</span></div><div class="tab"><span>2</span></div><div class="tab"><span>3</span></div><div class="tab">General <small>G</small></div></div>
+    <div class="row"><span class="n">1</span><span class="tx">Make the title larger.</span><span class="chip">Heading</span></div>
+    <div class="row"><span class="n">2</span><span class="tx">Make the price $12 a cup.</span><span class="chip">Text</span></div>
+    <div class="row"><span class="n">3</span><span class="tx">Rename the button to Order now.</span><span class="chip">Button</span></div>
+    <div class="acts"><span class="btn pri">Copy prompt <small>C</small></span><span class="btn">Export ZIP <small>X</small></span><span class="sp"></span><span class="gray">Close <kbd>⌘W</kbd></span></div>
+  </div></div>`;
+document.getElementById('desk').innerHTML = menubar() + chromeWindow() + '<div class="blur"></div>' + capture + panel +
+  '<div class="toast" style="left:468px;top:52px"><b>Prompt copied.</b> Paste it into your agent.</div>' +
+  hud('Nextshot Dev: Round active', [['⌥⇧F', 'Capture another area'], ['⌥⇧C', 'Copy last capture prompt'], ['⌥⇧R', 'Copy prompt and end round'], ['⌥⇧O', 'Open round folder'], ['⌥⇧E', 'End round']], { right: 12, bottom: 12 });
+document.body.insertAdjacentHTML('beforeend', noteBar([
+  '<b>After saving, the panel stays open so C copies and X exports. Esc never closes it. Close with the red button or ⌘W.</b>',
+  'The prompt is already copied. The toast, help box, and round keys are the existing ones.',
+]));
+</script></body></html>

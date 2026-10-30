@@ -1,0 +1,82 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Native Rolling Round review</title><link rel="stylesheet" href="common.css"><script src="common.js"></script>
+<style>
+.win{position:absolute;left:100px;top:46px;width:1240px;height:752px;background:#f6f6f6;border-radius:12px;box-shadow:0 24px 64px rgba(0,0,0,.4),0 0 0 .5px rgba(0,0,0,.4);overflow:hidden}
+.wt{height:38px;background:#ececec;border-bottom:1px solid #d6d6d6;display:flex;align-items:center;padding:0 14px;font-weight:600;color:#555}
+.wt .lights{margin-right:0}.wt .ttl{flex:1;text-align:center;margin-right:56px}
+.tb{height:50px;display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid #dcdcdc;background:#fafafa}
+.tool{width:34px;height:32px;border-radius:7px;border:1px solid #d4d4d8;background:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;color:#444}
+.tool.on{background:#e6f1ff;border-color:#0a84ff;color:#0a4fb4}
+.steps{margin-left:auto;display:flex;gap:6px;align-items:center;font-size:13px;color:#777}
+.steps b{color:#111;background:#e6f1ff;border-radius:6px;padding:4px 10px;border:1px solid #0a84ff}
+.steps span{padding:4px 8px}
+.main{position:absolute;left:0;top:88px;width:900px;height:604px}
+.canvas{position:absolute;left:0;top:0;width:900px;height:410px;background:#1e1e20}
+.fr{position:absolute;left:90px;top:16px;width:719px;height:377px;overflow:hidden;background:#fffdf6}
+.fr .sc{position:absolute;left:0;top:0;width:1240px;height:650px;transform:scale(.58);transform-origin:0 0}
+.err{position:absolute;left:112px;top:496px;width:440px;height:60px;border-radius:8px;background:#fde8e6;border:2px solid #d93025;color:#a1261d;font-size:22px;font-weight:600;display:flex;align-items:center;padding:0 18px}
+.sug{position:absolute;left:16px;top:14px;z-index:5;background:#e1f7f3;color:#0b6b5f;border-radius:8px;padding:6px 11px;font-weight:600;font-size:13px;display:flex;gap:8px;align-items:center}
+.sug b{background:#0b6b5f;color:#fff;border-radius:4px;padding:0 6px;font-size:12px}
+.tl{position:absolute;left:0;top:410px;width:900px;height:194px;padding:12px 24px;border-top:1px solid #d6d6d6;background:#f6f6f6}
+.tl .lab{display:flex;justify-content:space-between;font-size:13px;color:#555;margin-bottom:26px}
+.strip{position:absolute;left:24px;top:68px;width:852px;height:50px;border-radius:5px;overflow:hidden;background:repeating-linear-gradient(90deg,#fffdf6 0,#fffdf6 33px,#d7d3c2 33px,#d7d3c2 35.5px);border:1px solid #cfcfd4}
+.strip i{position:absolute;top:0;bottom:0;width:36px;display:block}
+.gap{position:absolute;top:68px;height:50px;background:repeating-linear-gradient(135deg,#d9d9dd 0,#d9d9dd 5px,#ececef 5px,#ececef 10px);border:1px solid #cfcfd4;display:flex;align-items:center;justify-content:center;font-size:11px;color:#666}
+.range{position:absolute;top:62px;height:62px;border:2px solid #0a84ff;background:rgba(10,132,255,.14);border-radius:6px}
+.range::before,.range::after{content:"";position:absolute;top:18px;width:6px;height:22px;background:#0a84ff;border-radius:3px}
+.range::before{left:-5px}.range::after{right:-5px}
+.ph{position:absolute;top:50px;width:2px;height:80px;background:#d93025}
+.flag{position:absolute;top:30px;background:#d93025;color:#fff;border-radius:5px;padding:2px 7px;font-size:12px;font-weight:600;white-space:nowrap;transform:translateX(-50%)}
+.ruler{position:absolute;left:24px;top:124px;width:852px;height:16px;font-size:11px;color:#777}
+.ruler span{position:absolute;transform:translateX(-50%)}
+.rng{position:absolute;left:24px;top:150px;font-size:13px;color:#333}
+.side{position:absolute;left:900px;top:88px;width:340px;height:604px;border-left:1px solid #d6d6d6;padding:16px 18px;background:#f6f6f6}
+.side .q{font-size:15px}.side .field{font-size:15px;min-height:62px;border-color:#c8c8cc;box-shadow:none}
+.side h3{font-size:14px;font-weight:700;margin:18px 0 4px}
+.side .g2{font-size:12px;color:#6b6b70;margin-bottom:8px}
+.st{display:flex;gap:9px;padding:7px 0;border-top:1px solid #e3e3e6;font-size:13px;align-items:flex-start}
+.st:first-of-type{border-top:0}
+.cb{width:15px;height:15px;border-radius:4px;background:#0a84ff;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;flex:none;margin-top:1px}
+.st small{color:#8a8a90;margin-left:auto;font-size:12px}
+.wfoot{position:absolute;left:0;top:692px;width:1240px;height:60px;border-top:1px solid #d6d6d6;background:#ececec;display:flex;align-items:center;padding:0 20px;gap:16px}
+.wfoot .l{flex:1;font-size:12px;color:#555;line-height:1.5}
+</style></head><body>
+<div class="desk" id="desk"></div>
+<script>
+const x = s => 24 + s * 14.2;
+const ticks = [0,10,20,30,40,50,60].map(s => `<span style="left:${s*14.2}px">${s === 60 ? '1:00' : '0:' + String(s).padStart(2,'0')}</span>`).join('');
+const win = `<div class="win">
+ <div class="wt"><div class="lights"><i></i><i></i><i></i></div><div class="ttl">Nextshot Dev: Rolling Round review</div></div>
+ <div class="tb"><span class="tool">&#8689;</span><span class="tool on">#</span><span class="tool">&#8599;</span><span class="tool">&#9633;</span><span class="tool">Aa</span>
+   <div class="steps"><b>1 Moment</b><span>2 Marks and notes</span><span>3 Save</span></div></div>
+ <div class="main">
+  <div class="canvas"><div class="sug"><b>&#10003;</b>Suggested failure moment 0:47. Return uses it.</div>
+   <div class="fr"><div class="sc">${LEMON}<div class="err">Payment failed. Try again.</div></div>
+     </div></div>
+  <div class="tl"><div class="lab"><span>Last 60 seconds recorded in Chrome</span><span>Selected 15 s</span></div>
+   <div class="strip"></div>
+   <div class="gap" style="left:${x(12)}px;width:${14.2*7}px">Paused</div>
+   <div class="range" style="left:${x(35)}px;width:${14.2*15}px"></div>
+   <div class="flag" style="left:${x(47)}px">0:47 Failure</div><div class="ph" style="left:${x(47)}px"></div>
+   <div class="ruler">${ticks}</div>
+   <div class="rng">Steps run from 0:35 to 0:50. <span class="link">Adjust range</span></div></div>
+ </div>
+ <div class="side">
+  <div class="tabs"><div class="tab">General <small>G</small></div></div>
+  <div class="q">Next: click the issue in the frame</div>
+  <div class="field" style="color:#8a8a90">A dot, its linked part, and your note appear here.</div>
+  <h3>Steps before the issue</h3><div class="g2">Seen in the last 15 seconds. Edit or remove any step.</div>
+  <div class="st"><span class="cb">&#10003;</span>Opened Menu<small>0:36</small></div>
+  <div class="st"><span class="cb">&#10003;</span>Clicked Buy<small>0:41</small></div>
+  <div class="st"><span class="cb">&#10003;</span>Typed in a text field. Value not recorded.<small>0:44</small></div>
+  <div class="st"><span class="cb">&#10003;</span>Clicked Pay<small>0:46</small></div>
+  <div class="g2" style="margin-top:22px">Saves as its own ended round. Your round &#8220;feedback&#8221; stays active and unchanged.</div>
+ </div>
+ <div class="wfoot"><div class="l">Tracking is paused while you review. No audio. No typed values.<br><kbd>Return</kbd> use moment and mark &nbsp; <kbd>←</kbd> <kbd>→</kbd> step frames &nbsp; <kbd>Esc</kbd> dot tabs &nbsp; <kbd>⌘S</kbd> save</div>
+   <span class="btn">Cancel <small>⌘W</small></span><span class="btn pri">Save as new round <small>⌘S</small></span></div>
+</div>`;
+document.getElementById('desk').innerHTML = menubar({label: 'Nshot Dev (3)'}) + win;
+document.body.insertAdjacentHTML('beforeend', noteBar([
+  '<b>Issue first: the suggested moment opens selected. Return accepts it and starts marking.</b>',
+  'Marks and notes then use the normal panel. No browser tab opens. Unselected frames never enter the round.',
+]));
+</script></body></html>
