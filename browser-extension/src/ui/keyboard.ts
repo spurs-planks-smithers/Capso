@@ -1,3 +1,4 @@
+import {chordOf} from './chord.ts';
 export interface KeyAction {selector:string;key:string;when?:()=>boolean;run?:()=>void;}
 const mac=/Mac/i.test(navigator.platform);
 export function keyLabel(key:string):string{
@@ -17,7 +18,7 @@ export function mountActionKeys(actions:KeyAction[]):()=>void{
   };
   const keydown=(event:KeyboardEvent)=>{
     if(event.defaultPrevented||event.isComposing||event.repeat)return;
-    const key=[...(event.metaKey||event.ctrlKey?['mod']:[]),...(event.altKey?['alt']:[]),...(event.shiftKey?['shift']:[]),event.key.toLowerCase()===' '?'space':event.key.toLowerCase()].join('+');
+    const key=chordOf(event,mac);if(!key)return;
     const action=actions.find(action=>action.key===key&&(!action.when||action.when()));if(!action)return;
     if(isTyping(event.target)&&!event.metaKey&&!event.ctrlKey)return;
     const element=document.querySelector<HTMLElement>(action.selector);
