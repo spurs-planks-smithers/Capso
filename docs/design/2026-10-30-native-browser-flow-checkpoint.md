@@ -43,7 +43,15 @@ Counts exclude typed words and the final paste. Pilot and Rolling counts come fr
 
 The proposed native shortcut costs one more input than Pilot (the drag) and removes the browser tab. It is one input cheaper than native capture today, because the last Return saves. Starting Rolling review counts as one key. The real start gesture is unverified.
 
-## Open product choices for Drew
+## Decisions
+
+On 2026-10-30, Drew chose the recommended option for all three choices below. This settles only these three choices. Drew has not accepted the design as a whole, and #177 stays open.
+
+1. **Trigger:** the native shortcut with a drag (7 inputs, no extra browser tab). #178 proves feasibility. If it cannot meet the permission and idle limits, #178 reports that limit before any fallback is chosen.
+2. **Keys in a browser draft:** the settled browser keys. Esc focuses the dot tabs, a number selects a dot, and the last Return saves and copies. Command+S also saves.
+3. **After save:** the panel stays open so C copies and X exports. Esc never closes it. Close with Command+W or the red button.
+
+## Choices as asked
 
 1. **Trigger.** Native shortcut with a drag (7 inputs) or the Chrome key opening the native editor (6 inputs, no drag, no Mac shortcut). Feasibility is #178. If only one works, #178 reports the limit before a fallback is chosen. Recommend the native shortcut, because it keeps one capture key.
 2. **Keys in a browser draft.** Use the settled browser keys (Esc picks dots, last Return saves and copies, Command+S also saves), or keep native order (Command+S first, then notes, Esc skips a step). The images show the browser keys. Native ordinary capture would stay unchanged either way. Recommend the browser keys for browser drafts, so one muscle memory works in both places.
