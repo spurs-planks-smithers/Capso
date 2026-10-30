@@ -9,6 +9,8 @@ Use harmless content. The goal is one useful capture, not a full bug report.
 5. Return to the feedback page and press X. Extract the downloaded ZIP.
    Open README.md and the marked image.
 6. Close and reopen Chrome. Confirm the round is still in Saved rounds.
+7. Make another capture with two dots and notes. Do not save it. Quit Chrome fully and reopen it.
+   Click Nextshot Pilot, then Resume unsaved capture. Confirm the dots and notes are back.
 
 Then add two dots on one capture. Each dot opens its own note.
 Use Return to advance, Shift+Return for a new line, and Esc then 1 to return to dot 1.
@@ -25,6 +27,7 @@ Captured the intended area and added notes:
 Saved and pasted the instructions:
 Exported and opened the ZIP:
 Round remained after restarting Chrome:
+Unsaved capture came back after restarting Chrome:
 Confusing or unnecessary step:
 One change that would make this easier:
 

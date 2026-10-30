@@ -1,17 +1,12 @@
 import {selectBrowserArea,captureRegion} from './capture.ts';
-import {discardDraft,pruneDrafts} from './core/index.ts';
+import {pruneStaleDrafts} from './core/index.ts';
 
 interface Intent {id:string;kind:'capture'|'frames';tabId:number;permissions:chrome.permissions.Permissions;expires:number;}
-async function associations():Promise<Record<string,string>> {return ((await chrome.storage.session.get('draftTabs')).draftTabs??{}) as Record<string,string>;}
-async function cleanDrafts():Promise<void>{
-  const live=new Set((await chrome.tabs.query({})).map(t=>String(t.id))),drafts=await associations();
-  for(const tab of Object.keys(drafts))if(!live.has(tab))delete drafts[tab];
-  await chrome.storage.session.set({draftTabs:drafts});await pruneDrafts(Object.values(drafts));
-}
+// Unsaved drafts outlive their tab and the browser. They leave only by Discard, Save, or the age/count/size limits.
+const pruneDrafts=()=>{void pruneStaleDrafts().catch(()=>{});};
 chrome.runtime.onInstalled.addListener(()=>{void chrome.storage.local.setAccessLevel({accessLevel:'TRUSTED_CONTEXTS'});void chrome.storage.local.set({embeddedPreviewsEnabled:true});});
-chrome.runtime.onStartup.addListener(()=>{void cleanDrafts();});
-chrome.tabs.onRemoved.addListener(tabId=>{void(async()=>{const drafts=await associations(),id=drafts[tabId];if(id){await discardDraft(id);delete drafts[tabId];await chrome.storage.session.set({draftTabs:drafts});}})();});
-chrome.permissions.onRemoved.addListener(()=>{void cleanDrafts();});
+chrome.runtime.onStartup.addListener(pruneDrafts);
+chrome.permissions.onRemoved.addListener(pruneDrafts);
 let queue=Promise.resolve();
 function finishIntent(id?:string):Promise<void>{
   const operation=queue.then(async()=>{
@@ -48,8 +43,8 @@ chrome.runtime.onMessage.addListener((message,sender,respond)=>{
   if(message.type==='nextshot-intent'&&trusted){prepareIntent(message.kind,message.tabId).then(respond,error=>respond({error:error.message}));return true;}
   if(message.type==='nextshot-intent-finish'&&trusted){finishIntent(message.id).then(()=>respond({ok:true}),error=>respond({error:error.message}));return true;}
   if(message.type==='nextshot-region'&&sender.id===chrome.runtime.id&&sender.tab?.id&&sender.frameId===0&&/^https?:/.test(sender.url??'')){
-    captureRegion(sender.tab.id,sender.tab.windowId,message).then(respond,error=>respond({error:String(error.message)}));return true;
+    captureRegion(sender.tab.id,sender.tab.windowId,message).then(result=>{pruneDrafts();respond(result);},error=>respond({error:String(error.message)}));return true;
   }
-  if(message.type==='nextshot-forget-draft'&&trusted){void(async()=>{const drafts=await associations();for(const [tab,id] of Object.entries(drafts))if(id===message.id)delete drafts[tab];await chrome.storage.session.set({draftTabs:drafts});respond({ok:true});})();return true;}
+  if(message.type==='nextshot-forget-draft'&&trusted){respond({ok:true});return;}
   if(message.type==='nextshot-assistance'&&trusted){respond({available:false,source:'local',ids:[],reason:'disabled'});}
 });

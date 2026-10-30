@@ -54,6 +54,8 @@ End current round starts a fresh group on your next capture.
 DATA AND LIMITS
 
 Captures and notes stay in this Chrome profile. Nothing uploads automatically.
+An unsaved capture stays for 7 days, also after Chrome restarts. Click Nextshot Pilot, then
+Resume unsaved capture. Discard capture deletes it at once.
 No AI, native integration, recording, or Rolling Round is included in this pilot.
 The toolbar, popup, and editor use Nextshot's approved logo.
 Form fields and unreadable embedded previews receive covers.

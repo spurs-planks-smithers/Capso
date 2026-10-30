@@ -1,5 +1,5 @@
 import type {AssistInput,AssistResult} from './assistance.ts';
-import {getDraft,saveDraft,discardDraft,saveCapture,roundById,assetsForRound,renderPrompt,exportBundle,validateCapture} from './core/index.ts';
+import {getDraft,draftIds,saveDraft,discardDraft,saveCapture,roundById,assetsForRound,renderPrompt,exportBundle,validateCapture} from './core/index.ts';
 import type {Capture,Asset,Mark,MarkKind,ElementEvidence,Round} from './core/model.ts';
 import {deliverNative} from './native.ts';
 import {mountCaptureShortcut} from './shortcut.ts';
@@ -27,13 +27,19 @@ async function suggestElements(candidates:ElementEvidence[],button:HTMLButtonEle
 
 function remember():void{history.push(structuredClone(capture.marks));redo.length=0;}
 const journalKey=(id:string)=>`nextshot-editor:${id}`;
-function clearJournal(id:string):void{try{sessionStorage.removeItem(journalKey(id));}catch{}}
-function initialSelection():number{try{const value=sessionStorage.getItem(`nextshot-selected:${capture.id}`);if(value!==null){const id=Number(value);if(id===0||capture.marks.some(m=>m.id===id))return id;}}catch{}return capture.marks.at(-1)?.id??0;}
+const selectedKey=(id:string)=>`nextshot-selected:${id}`;
+// Edit and selection state sit in localStorage so a browser restart keeps them. A draft's state goes with the draft.
+function clearJournal(id:string):void{try{localStorage.removeItem(journalKey(id));}catch{}}
+function forgetEditorState(id:string):void{clearJournal(id);try{localStorage.removeItem(selectedKey(id));}catch{}}
+async function sweepEditorState():Promise<void>{
+  try{const live=new Set(await draftIds());for(let i=localStorage.length-1;i>=0;i--){const key=localStorage.key(i)??'',match=/^nextshot-(?:editor|selected):(.+)$/.exec(key);if(match&&!live.has(match[1]))localStorage.removeItem(key);}}catch{}
+}
+function initialSelection():number{try{const value=localStorage.getItem(selectedKey(capture.id));if(value!==null){const id=Number(value);if(id===0||capture.marks.some(m=>m.id===id))return id;}}catch{}return capture.marks.at(-1)?.id??0;}
 function writeJournal():void{
-  try{sessionStorage.setItem(journalKey(capture.id),JSON.stringify({imageFile:capture.imageFile,marks:capture.marks.map(m=>({...m,note:m.note.slice(0,10000)})),note:capture.note.slice(0,20000)}));}catch{}
+  try{localStorage.setItem(journalKey(capture.id),JSON.stringify({imageFile:capture.imageFile,marks:capture.marks.map(m=>({...m,note:m.note.slice(0,10000)})),note:capture.note.slice(0,20000)}));}catch{}
 }
 function restoreJournal():boolean{
-  try{const raw=sessionStorage.getItem(journalKey(capture.id));if(!raw)return false;const edits=JSON.parse(raw);if(edits.imageFile!==capture.imageFile)throw Error();capture=validateCapture({...capture,marks:edits.marks,note:edits.note});return true;}
+  try{const raw=localStorage.getItem(journalKey(capture.id));if(!raw)return false;const edits=JSON.parse(raw);if(edits.imageFile!==capture.imageFile)throw Error();capture=validateCapture({...capture,marks:edits.marks,note:edits.note});return true;}
   catch{clearJournal(capture.id);return false;}
 }
 function scheduleDraft():void{
@@ -59,7 +65,7 @@ function markName(mark:Mark):string{return `${mark.kind==='dot'?'Dot':'Mark'} ${
 function select(id:number,saveCurrent=true):void {
   if(saving||closing)return;cancelElementAssistance();if(saveCurrent)saveNote();
   selected=capture.marks.some(m=>m.id===id)?id:0;
-  try{sessionStorage.setItem(`nextshot-selected:${capture.id}`,String(selected));}catch{}
+  if(!saved)try{localStorage.setItem(selectedKey(capture.id),String(selected));}catch{}
   const mark=capture.marks.find(m=>m.id===selected);note.value=mark?.note??capture.note;
   note.maxLength=mark?10000:20000;
   $('#note-label').textContent=mark?`Note for ${markName(mark).toLowerCase()}`:'General note (optional)';
@@ -193,7 +199,7 @@ save.onclick=async()=>{
     await persistDraft();draw(false);
     const annotated=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('Cannot save annotated image')),'image/jpeg',.88));
     assets=assets.filter(a=>a.name!==capture.imageFile);assets.push({name:capture.imageFile,mime:annotated.type,bytes:new Uint8Array(await annotated.arrayBuffer())});
-    capture=validateCapture(capture);saved=await saveCapture(capture,assets);clearJournal(capture.id);status.textContent='Feedback saved in this browser.';
+    capture=validateCapture(capture);saved=await saveCapture(capture,assets);forgetEditorState(capture.id);status.textContent='Feedback saved in this browser.';
     void chrome.runtime.sendMessage({type:'nextshot-forget-draft',id:capture.id}).catch(()=>{});
     try{await navigator.clipboard.writeText(renderPrompt(saved));status.textContent='Saved. Instructions copied. Paste them into your coding agent and attach the ZIP.';}catch{status.textContent='Feedback saved. Use Copy instructions or Download ZIP to share it.';}
     void deliverNative(capture,assets).then(receipt=>{if(receipt)$('#delivery-status').textContent=receipt.state==='imported'?'Also saved in Nextshot Dev.':'Saved here. Nextshot Dev is unavailable.';}).catch(()=>{$('#delivery-status').textContent='Saved here. Nextshot Dev could not receive it.';});
@@ -209,7 +215,7 @@ $('#export').onclick=async()=>{
 $('#cancel').onclick=async()=>{
   if(saving||closing)return;cancelElementAssistance();closing=true;renderControls();
   if(draftTimer!==undefined){clearTimeout(draftTimer);draftTimer=undefined;}
-  try{await draftQueue.catch(()=>{});if(capture&&!saved)await discardDraft(capture.id);clearJournal(capture.id);window.close();}
+  try{await draftQueue.catch(()=>{});if(capture&&!saved)await discardDraft(capture.id);forgetEditorState(capture.id);window.close();}
   catch{closing=false;renderControls();scheduleDraft();status.textContent='The capture is still open. Try Cancel again when ready.';}
 };
 document.onkeydown=e=>{
@@ -232,7 +238,7 @@ mountActionKeys([
 async function load():Promise<void> {
   const query=new URLSearchParams(location.search),draftId=query.get('draft'),roundId=query.get('round');
   if(roundId){saved=await roundById(roundId);if(!saved?.captures.length)throw new Error('Round unavailable');capture=saved.captures.at(-1)!;assets=await assetsForRound(saved);}
-  else{const draft=draftId?await getDraft(draftId):undefined;if(!draft){if(draftId)clearJournal(draftId);throw new Error('This unsaved capture is no longer available.');}capture=draft.capture;assets=draft.assets;}
+  else{const draft=draftId?await getDraft(draftId):undefined;if(!draft){if(draftId)forgetEditorState(draftId);throw new Error('This unsaved capture is no longer available.');}capture=draft.capture;assets=draft.assets;}
   const clean=assets.find(a=>a.name===capture.cleanImageFile);if(!clean)throw new Error('Image unavailable');
   image=await createImageBitmap(new Blob([new Uint8Array(clean.bytes).buffer],{type:clean.mime}));canvas.width=capture.width;canvas.height=capture.height;
   $('#page-title').textContent=capture.title||'Browser feedback';
@@ -242,12 +248,12 @@ async function load():Promise<void> {
     if(media){const video=media.mime==='image/gif'?document.createElement('img'):document.createElement('video');if(video instanceof HTMLVideoElement){video.controls=true;video.muted=true;}video.style.maxWidth='100%';const url=URL.createObjectURL(new Blob([new Uint8Array(media.bytes).buffer],{type:media.mime}));video.src=url;details.append(video);addEventListener('pagehide',()=>URL.revokeObjectURL(url),{once:true});}
     const events=document.createElement('ul');for(const e of [...capture.actions,...capture.diagnostics].sort((a,b)=>a.at-b.at)){const item=document.createElement('li');item.textContent=`${(e.at/1000).toFixed(1)}s: ${'label' in e?e.label:e.text}`;events.append(item);}details.append(events);status.after(details);
   }
-  const recovered=!saved&&restoreJournal();loaded=true;if(recovered)scheduleDraft();reconcileMatches();select(initialSelection(),false);if(!saved&&capture.marks.length)note.focus();
+  const recovered=!saved&&restoreJournal();loaded=true;void sweepEditorState();if(recovered)scheduleDraft();reconcileMatches();select(initialSelection(),false);if(!saved&&capture.marks.length)note.focus();
 }
 void load().catch(error=>{status.textContent=error.message;save.disabled=true;});
 mountCaptureShortcut($('#shortcut'),$<HTMLButtonElement>('#shortcut-setup'));
 
 chrome.runtime.onMessage.addListener(m=>{if(m.type==='nextshot-rolling-invalidated'&&capture?.kind==='rolling'&&!saved){
-  closing=true;if(draftTimer!==undefined){clearTimeout(draftTimer);draftTimer=undefined;}clearJournal(capture.id);assets=[];image?.close();
+  closing=true;if(draftTimer!==undefined){clearTimeout(draftTimer);draftTimer=undefined;}forgetEditorState(capture.id);assets=[];image?.close();
   void draftQueue.catch(()=>{}).then(()=>discardDraft(capture.id)).finally(()=>location.replace(chrome.runtime.getURL('rolling.html'))).catch(()=>{});
 }});

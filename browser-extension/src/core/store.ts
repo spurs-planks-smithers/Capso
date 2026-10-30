@@ -3,6 +3,7 @@ import type {Round,Capture,Asset,Draft} from './model.ts';
 import {validateCapture,validateRound} from './validate.ts';
 import {captureRound} from './bundle.ts';
 import {safeFileName} from './sanitize.ts';
+import {draftsToDiscard} from './drafts.ts';
 
 const databaseName='nextshot-browser-v1';
 let database:Promise<IDBDatabase>|undefined;
@@ -28,10 +29,26 @@ export async function assetsForRound(round:Round):Promise<Asset[]> {
   if(rows.some(r=>!r))throw new Error('Some saved evidence is unavailable');return rows as Asset[];
 }
 export async function saveDraft(draft:Draft):Promise<void> {
-  const capture=validateCapture(draft.capture),assets=referencedAssets(capture,draft.assets);const db=await open(),tx=db.transaction('drafts','readwrite'),done=complete(tx);tx.objectStore('drafts').put({capture,assets},capture.id);await done;
+  const capture=validateCapture(draft.capture),assets=referencedAssets(capture,draft.assets);const db=await open(),tx=db.transaction('drafts','readwrite'),done=complete(tx);tx.objectStore('drafts').put({capture,assets,updatedAt:Date.now()},capture.id);await done;
 }
 export async function getDraft(id:string):Promise<Draft|undefined> {const db=await open(),draft=await value<Draft|undefined>(db.transaction('drafts').objectStore('drafts').get(id));if(!draft)return;const capture=validateCapture(draft.capture);return {capture,assets:referencedAssets(capture,draft.assets)};}
 export async function discardDraft(id:string):Promise<void> {const db=await open(),tx=db.transaction('drafts','readwrite'),done=complete(tx);tx.objectStore('drafts').delete(id);await done;}
+export interface DraftSummary {id:string;title:string;updatedAt:number;}
+interface DraftRecord {capture?:Capture;assets?:Asset[];updatedAt?:number;}
+const recordTime=(r:DraftRecord)=>typeof r.updatedAt==='number'?r.updatedAt:Date.parse(r.capture?.createdAt??'');
+export async function draftIds():Promise<string[]> {const db=await open();return (await value<IDBValidKey[]>(db.transaction('drafts').objectStore('drafts').getAllKeys())).map(String);}
+/** Unsaved drafts, newest first. Lets the popup offer to reopen a draft whose tab is gone. */
+export async function listDrafts():Promise<DraftSummary[]> {
+  const db=await open(),store=db.transaction('drafts').objectStore('drafts'),keys=await value<IDBValidKey[]>(store.getAllKeys()),records=await value<DraftRecord[]>(store.getAll());
+  return keys.map((key,index):DraftSummary=>({id:String(key),title:String(records[index]?.capture?.title??''),updatedAt:recordTime(records[index]??{})})).filter(d=>Number.isFinite(d.updatedAt)).sort((a,b)=>b.updatedAt-a.updatedAt);
+}
+/** Deletes unsaved drafts that are too old, too many, or too large. Saved rounds are never touched. */
+export async function pruneStaleDrafts(now=Date.now()):Promise<void> {
+  const db=await open(),tx=db.transaction('drafts','readwrite'),done=complete(tx),store=tx.objectStore('drafts');
+  const keys=await value<IDBValidKey[]>(store.getAllKeys()),records=await value<DraftRecord[]>(store.getAll());
+  const infos=keys.map((key,index)=>({id:String(key),updatedAt:recordTime(records[index]??{}),bytes:(records[index]?.assets??[]).reduce((n,a)=>n+(a.bytes?.length??0),0)}));
+  const ids=new Set(draftsToDiscard(infos,now));for(const key of keys)if(ids.has(String(key)))store.delete(key);await done;
+}
 export async function pruneDrafts(retained:string[]):Promise<void> {
   const db=await open(),tx=db.transaction('drafts','readwrite'),done=complete(tx),store=tx.objectStore('drafts');
   const keep=new Set(retained);for(const id of await value<IDBValidKey[]>(store.getAllKeys()))if(!keep.has(String(id)))store.delete(id);await done;

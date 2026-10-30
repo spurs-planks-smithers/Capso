@@ -5,3 +5,4 @@ export * from './zip.ts';
 export * from './bundle.ts';
 export * from './store.ts';
 export * from './history.ts';
+export * from './drafts.ts';

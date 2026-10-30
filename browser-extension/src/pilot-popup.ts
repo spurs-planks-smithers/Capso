@@ -1,5 +1,5 @@
 import {mountActionKeys} from './ui/keyboard.ts';
-import {rounds,renderPrompt,endRound,assetsForRound,exportBundle} from './core/index.ts';
+import {rounds,listDrafts,renderPrompt,endRound,assetsForRound,exportBundle} from './core/index.ts';
 import {mountCaptureShortcut} from './shortcut.ts';
 const status=document.querySelector<HTMLElement>('#status')!,capture=document.querySelector<HTMLButtonElement>('#capture')!;
 let tabId:number|undefined;
@@ -18,6 +18,12 @@ async function load():Promise<void>{
   if(frame?.url===tab?.url&&frame?.origins?.length){
     const button=document.querySelector<HTMLButtonElement>('#preview')!;button.hidden=false;
     button.onclick=()=>{void captureIntent('frames').catch(error=>{status.textContent=error.message;});};
+  }
+  const [draft]=await listDrafts(),resume=document.querySelector<HTMLButtonElement>('#resume')!;
+  if(draft){
+    resume.hidden=false;resume.dataset.focusKey='Enter';resume.textContent=`Resume unsaved capture${draft.title?`: ${draft.title.slice(0,40)}`:''}`;
+    resume.onclick=()=>{void(async()=>{const open=(await chrome.tabs.query({url:chrome.runtime.getURL('review.html')+'*'})).find(t=>t.url?.includes(`draft=${draft.id}`));
+      if(open?.id){await chrome.tabs.update(open.id,{active:true});await chrome.windows.update(open.windowId,{focused:true});}else await chrome.tabs.create({url:chrome.runtime.getURL(`review.html?draft=${draft.id}`)});window.close();})().catch(error=>{status.textContent=error.message;});};
   }
   const saved=await rounds();document.querySelector<HTMLElement>('#saved')!.hidden=!saved.length;
   for(const round of saved.slice(0,8)){
