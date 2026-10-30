@@ -149,6 +149,27 @@ r2_delete releases/Nextshot-0.0.1.json
 is_false "a deleted object is gone" r2_get releases/Nextshot-0.0.1.json "$tmp/gone.out"
 unset NEXTSHOT_R2_LOCAL
 
+# --- The Cloudflare token stays out of curl's arguments ---
+# A fake security returns a known token. A fake curl records its arguments and
+# its stdin. r2_login must pass the token on stdin only (curl -K -).
+fake="$tmp/fake-bin"
+mkdir -p "$fake"
+printf '#!/bin/bash\nprintf "tok-0123456789abcdef"\n' >"$fake/security"
+cat >"$fake/curl" <<'EOF'
+#!/bin/bash
+printf '%s\n' "$@" >"$FAKE_CURL_ARGS"
+cat >"$FAKE_CURL_STDIN"
+printf '{"result":{"id":"key-id-1"}}'
+EOF
+chmod +x "$fake/security" "$fake/curl"
+login_id="$(FAKE_CURL_ARGS="$tmp/curl.args" FAKE_CURL_STDIN="$tmp/curl.stdin" PATH="$fake:$PATH" TMPDIR="$tmp" \
+  bash -c 'source "$1/scripts/release-lib.sh" && r2_login && printf "%s" "$r2_key_id"' _ "$repo")"
+expect "r2_login reads the token id from the verify reply" key-id-1 "$login_id"
+is_false "the token is not in curl's arguments" grep -q 'tok-0123456789abcdef' "$tmp/curl.args"
+is_true "curl reads the token from stdin" grep -q 'Authorization: Bearer tok-0123456789abcdef' "$tmp/curl.stdin"
+is_false "no shell script puts a Bearer header on a curl line" \
+  grep -rnE 'curl[^|]*Bearer' --include='*.sh' --exclude=test-release.sh --exclude-dir=node_modules "$repo/scripts" "$repo/site"
+
 # Local app identity and m5pro policy. Fixtures never launch or install an app.
 if python3 -I - "$repo" "$tmp" <<'PY'
 import importlib.util
