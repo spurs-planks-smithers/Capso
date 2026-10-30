@@ -1,0 +1,8 @@
+{"scenario": "happy-then-chrome-disconnect", "open_ms": 150, "command_ms": 4, "result_ms": 7, "idle_seconds": 30.0, "host_cpu_s_and_rss_kb": [[0.01, 11264], [0.02, 11472]], "app_cpu_s_and_rss_kb": [[0.03, 36064], [0.03, 35968]], "host_exit_after_disconnect_ms": 23, "app_session_end_after_disconnect_ms": 8, "app_end_reason": "host-close", "host_stderr": "{\"host\":\"exit\",\"reason\":\"chrome-disconnect\",\"lifetimeMs\":31092}"}
+{"scenario": "chrome-close-op", "closed_frame_ms": 0, "host_exit_ms": 9, "app_session_end_ms": 6, "app_end_reason": "host-close"}
+{"scenario": "app-cancel", "closed_frame_ms": 1, "closed_reason": "app-cancel", "host_exit_ms": 6}
+{"scenario": "app-crash-sigkill", "closed_frame_ms": 506, "closed_reason": "app-gone", "ae_error_code": -609, "host_exit_ms": 511, "host_stderr": "{\"host\":\"exit\",\"reason\":\"app-gone\",\"lifetimeMs\":541}"}
+{"scenario": "host-crash-sigkill", "app_session_end_ms": 1, "app_end_reason": "host-exited"}
+{"scenario": "chrome-process-killed", "host_still_alive_after": false, "app_session_end_ms": 5, "app_end_reason": "host-close"}
+{"scenario": "adhoc-signed-impostor", "closed_reason": "no-app", "host_exit_ms": 50, "app_rejected": {"ev": "rejected", "ms": 109, "op": "open", "senderPID": 58146, "why": "identity", "at": 304831.831853208}, "host_stderr": "{\"host\":\"exit\",\"reason\":\"no-app\",\"lifetimeMs\":42}"}
+{"scenario": "app-not-running", "closed_reason": "no-app", "ae_error_code": -600, "closed_frame_ms": 10, "host_exit_ms": 15}

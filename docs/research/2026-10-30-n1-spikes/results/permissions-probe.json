@@ -1,0 +1,9 @@
+{
+  "accessibilityTrusted" : true,
+  "chromeOnScreenWindows" : 3,
+  "chromeRunning" : true,
+  "chromeWindowTitlesVisible" : true,
+  "frontmostApp" : "com.anthropic.claudefordesktop",
+  "inputMonitoringGranted" : true,
+  "screenRecordingGranted" : true
+}

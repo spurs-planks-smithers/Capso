@@ -1,0 +1,7 @@
+{"label": "running-flag-on", "operation": "handshake", "version": 1, "origin_ok": true, "reply": {"state": "ready"}, "reply_ms": 80, "lifetime_ms": 81, "exit_code": 0}
+{"label": "closed-copy", "operation": "handshake", "version": 1, "origin_ok": true, "reply": {"state": "failed", "error": "unavailable"}, "reply_ms": 484, "lifetime_ms": 486, "exit_code": 0}
+{"label": "wrong-origin", "operation": "handshake", "version": 1, "origin_ok": false, "reply": {"error": "unavailable", "state": "failed"}, "reply_ms": 7, "lifetime_ms": 8, "exit_code": 0}
+{"label": "incompatible-version", "operation": "handshake", "version": 2, "origin_ok": true, "reply": {"state": "failed", "error": "unavailable"}, "reply_ms": 7, "lifetime_ms": 8, "exit_code": 0}
+{"label": "running-flag-off", "operation": "handshake", "version": 1, "origin_ok": true, "reply": {"state": "failed", "error": "unavailable"}, "reply_ms": 55, "lifetime_ms": 56, "exit_code": 0}
+{"label": "running-flag-restored", "operation": "handshake", "version": 1, "origin_ok": true, "reply": {"state": "ready"}, "reply_ms": 57, "lifetime_ms": 58, "exit_code": 0}
+{"label": "closed-copy-warm", "operation": "handshake", "version": 1, "origin_ok": true, "reply": {"error": "unavailable", "state": "failed"}, "reply_ms": 14, "lifetime_ms": 15, "exit_code": 0}
