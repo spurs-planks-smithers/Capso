@@ -112,6 +112,8 @@ if not files or not (BUILD / ('pilot-background.js' if PILOT else 'background.js
 if PILOT:
     if "connect-src 'self' data: blob:" not in manifest.get('content_security_policy', {}).get('extension_pages', ''):
         raise SystemExit('Pilot must block remote extension-page requests.')
+    if manifest.get('incognito') != 'not_allowed':
+        raise SystemExit('Pilot must stay out of Incognito windows (kept drafts persist in the profile).')
     if set(manifest.get('commands', {})) != {'capture'}:
         raise SystemExit('Pilot must expose ordinary capture only.')
     for name, data in files.items():
