@@ -27,6 +27,8 @@ The handoff (`docs/sessions/2026-10-29-chrome-extension-handoff.md`) says: "Keep
 
 A `<label>` is dropped even when no field is bound to it, because its only job is to name a field and the binding is not always visible in the DOM. This rule is the smallest one that keeps #183 and #184 matching intact.
 
+Two details come from the automated security review of the first commit on 2026-10-30. Role names match without regard to case or surrounding space. The check for a surrounding `<label>` or field role walks ancestors across shadow boundaries, because `Element.closest` stops at a shadow root. The older skip for descendants of `select`, `textarea`, and `contenteditable` in `snapshot()` still uses `closest`. Its shadow-boundary gap is not changed here.
+
 ## Not decided here
 
 A paragraph or `div` that visually works as a field caption, with no `<label>` and no field role, cannot be told apart from page text. Its text stays. The screenshot shows it anyway.

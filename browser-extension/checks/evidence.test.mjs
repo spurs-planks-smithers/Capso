@@ -23,6 +23,8 @@ test('a non-editable field role carries no text',()=>{
   for(const role of ['textbox','searchbox','combobox','listbox','spinbutton','slider','switch','checkbox','radio'])
     assert.equal(caption({role,ownText:'typed value'}),'',role);
   assert.equal(caption({role:'presentation textbox',ownText:'typed value'}),'');
+  assert.equal(caption({role:'TextBox',ownText:'typed value'}),'');
+  assert.equal(caption({role:' ComboBox ',ariaLabel:'Country'}),'');
 });
 test('text inside a field role carries no text',()=>{
   assert.equal(caption({tag:'span',ownText:'typed value',insideFieldRole:true}),'');
@@ -38,6 +40,7 @@ test('buttons, links, and ordinary page text keep their text',()=>{
 test('snapshot records element text only through evidenceCaption',()=>{
   const content=readFileSync(new URL('../src/content.ts',import.meta.url),'utf8');
   assert.match(content,/evidenceCaption\(\{tag:e\.tagName,role,ariaLabel:e\.getAttribute\('aria-label'\)/);
-  assert.match(content,/insideLabel:!!e\.closest\('label'\)/);
+  assert.match(content,/\.\.\.captionContext\(e\)/);
+  assert.match(content,/root instanceof ShadowRoot\?root\.host/);
   assert.doesNotMatch(content,/redactSensitive\(e\.getAttribute\('aria-label'\)\|\|ownText/);
 });

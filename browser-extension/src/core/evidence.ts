@@ -15,7 +15,7 @@ export interface CaptionSource {
 }
 
 export function hasFieldRole(role:string):boolean {
-  return role.split(/\s+/).some(token=>fieldRoles.includes(token));
+  return role.toLowerCase().split(/\s+/).some(token=>fieldRoles.includes(token));
 }
 
 /** Returns the raw caption for an element, or an empty string when it names or holds a field. */

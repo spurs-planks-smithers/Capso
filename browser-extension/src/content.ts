@@ -1,7 +1,6 @@
 import {redactSensitive,sanitizeText} from './core/sanitize.ts';
-import {evidenceCaption,fieldRoles} from './core/evidence.ts';
+import {evidenceCaption,hasFieldRole} from './core/evidence.ts';
 import type {Bounds,ElementEvidence} from './core/model.ts';
-const fieldRoleSelector=fieldRoles.map(role=>`[role~="${role}"]`).join(',');
 const state=globalThis as typeof globalThis&{__nextshotPageAdapter?:boolean};
 let captureProof:{id:string;region:Bounds;fingerprint:string;url:string;dirty:boolean}|undefined;
 if(!state.__nextshotPageAdapter){state.__nextshotPageAdapter=true;initialize();}
@@ -100,6 +99,17 @@ function selector(element:Element,includeIds=true):string {
   const root=element.getRootNode();
   return (root instanceof ShadowRoot?selector(root.host,includeIds)+' >>> ':'')+parts.join(' > ');
 }
+/** Walks ancestors across shadow boundaries, because Element.closest stops at a shadow root. */
+function captionContext(element:Element):{insideLabel:boolean;insideFieldRole:boolean} {
+  let insideLabel=false,insideFieldRole=false;
+  for(let node:Element|null=element;node;){
+    if(node.tagName.toLowerCase()==='label')insideLabel=true;
+    if(node!==element&&hasFieldRole(node.getAttribute('role')??''))insideFieldRole=true;
+    const root=node.getRootNode();
+    node=node.parentElement??(root instanceof ShadowRoot?root.host:null);
+  }
+  return {insideLabel,insideFieldRole};
+}
 function snapshot(region:Bounds,nodes=allElements()):ElementEvidence[] {
   const result:ElementEvidence[]=[];
   for(const e of nodes){
@@ -116,7 +126,7 @@ function snapshot(region:Bounds,nodes=allElements()):ElementEvidence[] {
     }
     const ownText=[...e.childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).map(n=>n.textContent??'').join(' ');
     const role=e.getAttribute('role')??'';
-    const label=redactSensitive(evidenceCaption({tag:e.tagName,role,ariaLabel:e.getAttribute('aria-label'),ownText,insideLabel:!!e.closest('label'),insideFieldRole:!!e.parentElement?.closest(fieldRoleSelector)}),300).trim();
+    const label=redactSensitive(evidenceCaption({tag:e.tagName,role,ariaLabel:e.getAttribute('aria-label'),ownText,...captionContext(e)}),300).trim();
     result.push({id:`element-${result.length+1}`,selector:selector(e),tag:e.tagName.toLowerCase(),role:sanitizeText(e.getAttribute('role')??'',60),text:label,bounds});
   }
   return result;
