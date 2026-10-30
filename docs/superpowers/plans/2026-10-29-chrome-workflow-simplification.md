@@ -148,3 +148,8 @@ Drew requires keyboard operation after placing dots. He approves the Mac note fl
 - Repeated Return cannot advance or save. Composition and typing retain native behavior. Ignore hidden and disabled actions.
 
 Validate production editor code in regular Chrome with real IndexedDB and an actual downloaded ZIP. Distinguish this isolated HTTP fixture from installed-extension acceptance. Verify the current package after one reload. Keep #177 open for broader usability, native-first work, and Rolling acceptance.
+
+
+## October 29 Escape Correction After Installed Feedback
+
+Drew reports that Escape closes the installed view during note navigation. Reproduction confirms that saving changes Escape from note navigation to Close. This supersedes the Escape-to-Close rule above. Plain Escape must focus the current dot tab before and after saving. Number selection must open the matching note without closing or changing saved evidence. Show Command+W on Mac or Ctrl+W on Windows for Close and preserve native browser handling. Cover both view states before another installed smoke request.

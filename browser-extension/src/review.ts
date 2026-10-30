@@ -3,7 +3,7 @@ import {getDraft,saveDraft,discardDraft,saveCapture,roundById,assetsForRound,ren
 import type {Capture,Asset,Mark,MarkKind,ElementEvidence,Round} from './core/model.ts';
 import {deliverNative} from './native.ts';
 import {mountCaptureShortcut} from './shortcut.ts';
-import {isTyping,mountActionKeys} from './ui/keyboard.ts';
+import {isTyping,keyLabel,mountActionKeys} from './ui/keyboard.ts';
 const $=<T extends HTMLElement=HTMLElement>(selector:string)=>document.querySelector<T>(selector)!;
 const canvas=$<HTMLCanvasElement>('#canvas'),context=canvas.getContext('2d')!;
 const note=$<HTMLTextAreaElement>('#note'),status=$('#status'),save=$<HTMLButtonElement>('#save');
@@ -68,7 +68,7 @@ function select(id:number,saveCurrent=true):void {
   renderControls();showElements();draw();
 }
 function renderControls():void{
-  $('#note-keys').textContent=saved?'Esc closes. C copies instructions. X downloads the ZIP.':selected===0?'Return saves and copies. Shift+Return adds a new line. Esc selects the dot tabs.':`Return saves this note and opens ${selected===capture.marks.at(-1)?.id?'General note':'the next note'}. Shift+Return adds a new line. Esc selects the dot tabs.`;
+  $('#note-keys').textContent=saved?'Esc selects the dot tabs. C copies instructions. X downloads the ZIP.':selected===0?'Return saves and copies. Shift+Return adds a new line. Esc selects the dot tabs.':`Return saves this note and opens ${selected===capture.marks.at(-1)?.id?'General note':'the next note'}. Shift+Return adds a new line. Esc selects the dot tabs.`;
   const tabs=$('#mark-tabs');tabs.replaceChildren();tabs.hidden=!capture.marks.length;
   for(const mark of capture.marks){const button=document.createElement('button');button.textContent=markName(mark);button.setAttribute('aria-pressed',String(selected===mark.id));button.setAttribute('role','tab');button.setAttribute('aria-selected',String(selected===mark.id));button.setAttribute('aria-controls','note-panel');button.id=`note-tab-${mark.id}`;button.tabIndex=selected===mark.id?0:-1;if(mark.id<=9){button.dataset.keyHint=String(mark.id);button.setAttribute('aria-keyshortcuts',String(mark.id));}button.disabled=saving||closing;button.onclick=()=>{select(mark.id);if(!saved)note.focus();};tabs.append(button);}
   const general=document.createElement('button');general.textContent='General note';general.setAttribute('aria-pressed',String(selected===0));general.setAttribute('role','tab');general.setAttribute('aria-selected',String(selected===0));general.setAttribute('aria-controls','note-panel');general.id='note-tab-0';general.tabIndex=selected===0?0:-1;general.dataset.keyHint='G';$('#note-panel').setAttribute('aria-labelledby',`note-tab-${selected}`);general.disabled=saving||closing;general.onclick=()=>{select(0);if(!saved)note.focus();};tabs.append(general);
@@ -76,7 +76,7 @@ function renderControls():void{
   $('#undo').toggleAttribute('disabled',!!saved||saving||closing||!history.length);
   $('#redo').toggleAttribute('disabled',!!saved||saving||closing||!redo.length);
   note.readOnly=!!saved||saving||closing;save.disabled=!!saved||saving||closing;save.hidden=!!saved;
-  $('#cancel').toggleAttribute('disabled',saving||closing);$('#cancel').textContent=saved?'Close':'Discard capture';
+  $('#cancel').toggleAttribute('disabled',saving||closing);$('#cancel').textContent=saved?'Close':'Discard capture';$('#cancel').dataset.keyHint=keyLabel(saved?'mod+w':'shift+x');$('#cancel').setAttribute('aria-keyshortcuts',saved?(/Mac/i.test(navigator.platform)?'Meta+w':'Control+w'):'Shift+x');
   $('#saved-actions').hidden=!saved;
 }
 function markPoint(mark:Mark):{x:number;y:number}{
@@ -216,13 +216,13 @@ document.onkeydown=e=>{
   if(e.defaultPrevented||e.isComposing)return;
   if(e.repeat&&e.key==='Enter'&&e.target===note&&!e.shiftKey){e.preventDefault();return;}
   if(e.target===note&&!saved&&e.key==='Enter'&&!e.shiftKey&&!e.metaKey&&!e.ctrlKey&&!e.altKey){e.preventDefault();const order=[...capture.marks.map(m=>m.id),0],next=order.indexOf(selected)+1;if(next<order.length){select(order[next]);note.focus();}else save.click();return;}
-  if(e.key==='Escape'&&!e.shiftKey&&!saved){e.preventDefault();saveNote();document.getElementById(`note-tab-${selected}`)?.focus();return;}
+  if(e.key==='Escape'&&!e.shiftKey&&!e.metaKey&&!e.ctrlKey&&!e.altKey){e.preventDefault();saveNote();document.getElementById(`note-tab-${selected}`)?.focus();return;}
   if(isTyping(e.target)||e.metaKey||e.ctrlKey||e.altKey)return;
   if(e.target instanceof HTMLElement&&e.target.closest('#mark-tabs')&&['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();const order=[...capture.marks.map(m=>m.id),0],index=order.indexOf(selected);select(order[e.key==='Home'?0:e.key==='End'?order.length-1:(index+(e.key==='ArrowRight'?1:-1)+order.length)%order.length]);document.getElementById(`note-tab-${selected}`)?.focus();return;}
   if(!e.shiftKey&&/^[1-9]$/.test(e.key)&&capture.marks.some(m=>m.id===Number(e.key))){e.preventDefault();select(Number(e.key));note.focus();}
 };
 mountActionKeys([
-  {selector:'#save',key:'mod+s'},{selector:'#cancel',key:'escape',when:()=>!!saved},{selector:'#cancel',key:'shift+x',when:()=>!saved},
+  {selector:'#save',key:'mod+s'},{selector:'#cancel',key:'shift+x',when:()=>!saved},
   {selector:'#copy',key:'c',when:()=>!!saved},{selector:'#export',key:'x',when:()=>!!saved},
   {selector:'[data-tool="dot"]',key:'n',when:()=>!saved},{selector:'[data-tool="arrow"]',key:'a',when:()=>!saved},{selector:'[data-tool="box"]',key:'r',when:()=>!saved},
   {selector:'#undo',key:'mod+z',when:()=>!isTyping(document.activeElement)},{selector:'#redo',key:'mod+shift+z',when:()=>!isTyping(document.activeElement)},

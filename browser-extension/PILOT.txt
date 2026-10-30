@@ -44,8 +44,8 @@ Chrome opens its shortcut settings. Assign an available key to Nextshot Pilot.
 You can also click Nextshot Pilot in Chrome's puzzle menu, then Capture an area.
 Command+S saves on Mac. Ctrl+S saves on Windows.
 Return saves the current note and advances. Shift+Return adds a new line.
-Esc focuses the dot tabs without discarding. Press a dot number to edit its note.
-After saving, C copies instructions, X downloads the ZIP, and Esc closes.
+Esc focuses the dot tabs before or after saving. It never closes this view. Press a dot number to edit its note.
+After saving, C copies instructions, X downloads the ZIP, and Command+W or Ctrl+W closes.
 Letter shortcuts work outside typing. Keyboard controls lists the full guide.
 Tab and Shift+Tab move between controls. Enter activates a focused button.
 Saved rounds are available from the extension's popup.
@@ -72,7 +72,7 @@ UPDATE OR REMOVE
 
 Keep the same extension folder. Replace its files with the next pilot build.
 Open chrome://extensions and click Reload on Nextshot Pilot.
-Pilot 0.1.3 keeps its left-hand default when the previous key is unchanged
+Pilot 0.1.4 keeps its left-hand default when the previous key is unchanged
 or was never assigned.
 Chrome preserves a key you set or cleared yourself.
 Reloading preserves saved rounds. Removing the extension clears its browser data.

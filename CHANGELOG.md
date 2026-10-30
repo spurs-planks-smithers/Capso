@@ -23,6 +23,8 @@ Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This for
 
 ### Changed
 
+- Escape consistently returns to dot navigation in editable and saved Chrome feedback. Close uses the native browser key. This remains outside v0.5.0.
+
 - The private Chrome editor replaces code-path choices with outlined screenshot previews. Keyboard hints, Mac-style note advancement, and remembered dot selection support feedback without further mouse use. This remains outside v0.5.0.
 
 - The private Chrome pilot defaults to Option+Shift+D on Mac and Alt+Shift+D on Windows for left-hand capture, avoiding Nextshot Dev's capture key. This remains outside v0.5.0.
