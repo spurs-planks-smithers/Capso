@@ -14,6 +14,7 @@ Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This for
 
 ### Changed
 
+- A copied prompt starts with `Session Name:` and your round's title, so agent tools list each round under its own name. A round with no written instruction uses its date and time.
 - A copied prompt lists your items and notes near the top and asks the agent to name its session, so sessions no longer share one name. Recent Rounds labels each round with your first instruction, and the date moves to the line below.
 - Esc on a marked capture copies the marked image and saves the capture to the round with no notes, then closes the editor. The round stays open. Before, Esc with marks only stepped back.
 

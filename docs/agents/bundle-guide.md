@@ -40,14 +40,14 @@ The prompt names files by absolute path. They sit in a bundle folder: `~/Library
 - **Ask when there is no instruction.** An item marked "n/a (no instruction: ask)" has no instruction. Ask the person before you change it.
 - **Open the clean PNG only when a mark hides content.**
 - **Coordinates are pixels in the annotated PNG,** origin top-left. A box is x1 y1 x2 y2.
-- **Name your session when asked.** A prompt can ask you to rename your session to a short noun phrase about the subject. Do it if your tool lets you, then continue. If it does not, skip it.
+- **Name your session when asked.** A prompt can start with the line `Session Name: <name>`, before the tag. The name comes from the reviewer's words, or from a date when the reviewer wrote none. A later line can ask you to rename your session to that name. Do it if your tool lets you, then continue. If it does not, skip it.
 - **Check before you redo.** A prompt copied from Nextshot's Recent Rounds list adds the line "An earlier pass may have worked on this feedback. Check the code first." Read the current code before you change it again.
 
 ## Zip exports
 
 A person can also send a round, or a set of captures, as a zip file. It comes from another Mac, or by mail, Slack, or Teams.
 
-- **Unzip it, then open `README.md` first.** It holds the whole prompt.
+- **Unzip it, then open `README.md` first.** It holds the whole prompt. Its first line can be `Session Name: <name>`.
 - **Every path is relative to the folder that holds `README.md`.** No path in the zip comes from the Mac that made it.
 - **Images are JPEG:** `K-<stem>.jpg` (annotated) and `K-<stem>-clean.jpg`. K is the capture's item prefix.
 - **Coordinates are pixels in the zip's JPEG,** not in the original screenshot.

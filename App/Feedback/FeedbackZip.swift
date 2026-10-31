@@ -77,10 +77,11 @@ final class FeedbackZip {
             let list = resolved.entries
             let unresolved = resolved.unresolved
             let downloads = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask)[0]
+            let sessionTitle = Flags.isOn(.sessionTitle)
             do {
                 // An empty list throws noCaptures, so it gets the same toast.
                 let result = try await Task.detached(priority: .userInitiated) {
-                    try ZipWriter.write(kind: kind, entries: list, unresolved: unresolved, into: downloads, now: Date(), timeZone: .current)
+                    try ZipWriter.write(kind: kind, entries: list, unresolved: unresolved, into: downloads, now: Date(), timeZone: .current, sessionTitle: sessionTitle)
                 }.value
                 making.cancel()
                 NSPasteboard.general.clearContents()
