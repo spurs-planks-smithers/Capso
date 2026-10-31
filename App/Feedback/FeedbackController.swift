@@ -38,6 +38,8 @@ final class FeedbackController {
     /// In memory only: a relaunch starts with none, and the key then opens
     /// the selector.
     private var lastFeedbackArea: RepeatArea?
+    /// True from the repeat key until its capture arrives or fails.
+    private var repeatInFlight = false
     private var clipboardRevision: UInt64 = 0
     private var editorResult: CaptureResult?
     private var inlineEditor: InlineAnnotationEditorWindow?
@@ -146,12 +148,20 @@ final class FeedbackController {
             statusItem.onScreenshotHistory = { [weak self] in self?.screenshot?.showHistory() }
         }
         captureCoordinator.feedbackCaptureCancelled = { [weak self] in
+            // Esc cannot cancel a repeat, which has no selector, so a cancel
+            // while one runs means the capture failed.
+            if self?.repeatInFlight == true {
+                self?.repeatInFlight = false
+                FeedbackLog.logger.error("repeat capture failed")
+                NSSound.beep()
+            }
             self?.capturePurpose = nil
             self?.selectionPhase = .none
             self?.updateHelp()
         }
         captureCoordinator.feedbackSink = { [weak self] result in
             guard let self else { return }
+            self.repeatInFlight = false
             let purpose = self.capturePurpose
             self.capturePurpose = nil
             if purpose == .instantScreenshot, let screenshot = self.screenshot {
@@ -171,6 +181,9 @@ final class FeedbackController {
             self?.capture()
         }
         KeyboardShortcuts.onKeyDown(for: .feedbackRepeatCapture) { [weak self] in
+            // A key that an older version let the user give another action
+            // wins over this new default, so one press never runs two actions.
+            guard FeedbackShortcutGuard.isAvailable(.feedbackRepeatCapture) else { return }
             FeedbackLog.logger.notice("hotkey: Capture Same Area Again")
             self?.repeatCapture()
         }
@@ -395,8 +408,10 @@ final class FeedbackController {
         // No selection phase: no overlay posts an end notification. The
         // editor shows the help box when it opens. A failed capture reaches
         // `feedbackCaptureCancelled`, which shows it again.
+        repeatInFlight = true
         if captureCoordinator?.captureAreaForFeedback(rect: area.rect, screen: area.screen) != true {
             FeedbackLog.logger.notice("repeat capture not started: a selection is up or the coordinator is gone")
+            repeatInFlight = false
             capturePurpose = nil
             updateHelp()
         }
