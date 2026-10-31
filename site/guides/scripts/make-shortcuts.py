@@ -55,10 +55,10 @@ def build(output):
         for index, (action, keys) in enumerate(rows):
             if index % 2 == 0:
                 pdf.setFillColor(PALE)
-                pdf.rect(LEFT, y - 7, RIGHT - LEFT, 22, fill=1, stroke=0)
+                pdf.rect(LEFT, y - 6, RIGHT - LEFT, 20, fill=1, stroke=0)
             text(action, LEFT + 10, y, 305)
             text(keys, 382, y, 172, bold=True)
-            y -= 22
+            y -= 20
         return y
 
     text("NEXTSHOT", LEFT, 750, 220, size=10, bold=True, color=TEAL)
@@ -70,10 +70,11 @@ def build(output):
 
     y = section("Capture", 655, [
         ("Start or add a capture", "Option + Shift + F"),
+        ("Capture the same area again", "Option + Shift + G"),
     ])
-    text("Press the keys, then drag to select an area.", LEFT + 10, y + 1, 496, size=9.5, color=MUTED)
+    text("Press F, then drag to select an area. G repeats the last area with no drag.", LEFT + 10, y + 1, 496, size=9.5, color=MUTED)
 
-    y = section("Mark the capture", 582, [
+    y = section("Mark the capture", 560, [
         ("Add the next numbered dot (dot tool)", "Click"),
         ("Select the dot tool", "C or N"),
         ("Select the arrow tool", "A"),
@@ -85,7 +86,7 @@ def build(output):
     text("Escape with no marks copies the image and closes the editor.", LEFT + 10, y + 1, 496, size=9.5, color=MUTED)
     text("With marks, Escape steps back within the editor.", LEFT + 10, y - 13, 496, size=9.5, color=MUTED)
 
-    y = section("Answer the note questions", 357, [
+    y = section("Answer the note questions", 350, [
         ("Save the answer and continue", "Return"),
         ("Skip the current step", "Escape"),
         ("Earlier / later step", "Up / Down arrow"),
@@ -93,7 +94,7 @@ def build(output):
         ("Next step, from end of answer", "Right arrow"),
     ])
 
-    y = section("During a round", 202, [
+    y = section("During a round", 200, [
         ("Copy last capture prompt", "Option + Shift + C"),
         ("Copy prompt and end round", "Option + Shift + R"),
         ("Open round folder", "Option + Shift + O"),

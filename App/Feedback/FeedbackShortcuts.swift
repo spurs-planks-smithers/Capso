@@ -9,6 +9,11 @@ extension KeyboardShortcuts.Name {
     /// (`FeedbackShortcutSettingsSection`), and so does the Nshot menu.
     static let feedbackCapture = Self("feedbackCapture", default: .init(.f, modifiers: [.option, .shift]))
 
+    /// Fork: capture the last Option+Shift+F area again, with no selector
+    /// (Drew, 2026-10-31, #194). Always on, like `feedbackCapture`. With no
+    /// previous area it runs the `feedbackCapture` path.
+    static let feedbackRepeatCapture = Self("feedbackRepeatCapture", default: .init(.g, modifiers: [.option, .shift]))
+
     static let screenshotCapture = Self("screenshotCapture", default: .init(.four, modifiers: [.option, .shift]))
     static let screenshotAnnotate = Self("screenshotAnnotate", default: .init(.a, modifiers: [.option, .shift]))
 
@@ -27,9 +32,9 @@ extension KeyboardShortcuts.Name {
         .feedbackCopyLastCapture, .feedbackCopyPromptAndEndRound, .feedbackOpenRoundFolder, .feedbackEndRound,
     ]
 
-    /// The fork's five keys: the start key and the round keys.
+    /// The fork's keys: the start key, the repeat key, and the round keys.
     @MainActor static var nextshotKeys: [Self] {
-        [.feedbackCapture] + feedbackRoundKeys + (Capabilities.current.screenshotCopy ? [.screenshotCapture, .screenshotAnnotate] : [])
+        [.feedbackCapture, .feedbackRepeatCapture] + feedbackRoundKeys + (Capabilities.current.screenshotCopy ? [.screenshotCapture, .screenshotAnnotate] : [])
     }
 }
 
@@ -59,6 +64,16 @@ enum FeedbackShortcutGuard {
         return !others.contains { KeyboardShortcuts.getShortcut(for: $0) == shortcut }
     }
 
+    /// A refused key sets the old key back. The library then unregisters the
+    /// key it replaced, and that combination may be shared with an action
+    /// that stays on. For example, recording the repeat key into End Round
+    /// would otherwise leave Option+Shift+G dead until a relaunch (#194).
+    /// This registers the always-on keys again.
+    private static func reassertAlwaysOnKeys() {
+        let upstream = KeyboardShortcuts.Name.allCapso.filter { Capabilities.allowsShortcut($0) }
+        KeyboardShortcuts.enable([.feedbackCapture, .feedbackRepeatCapture] + upstream)
+    }
+
     /// Call from a recorder's `onChange`. A key that another action uses is
     /// set back to the last accepted key, with a beep. Returns the reason to
     /// show, or nil when the new key stays. `label` names the key in the
@@ -66,6 +81,7 @@ enum FeedbackShortcutGuard {
     static func check(_ shortcut: KeyboardShortcuts.Shortcut?, for name: KeyboardShortcuts.Name, label: String) -> String? {
         defer {
             accepted[name] = KeyboardShortcuts.getShortcut(for: name)
+            reassertAlwaysOnKeys()
             FeedbackController.shared.updateRoundShortcuts()
             FeedbackController.shared.updateScreenshotShortcuts()
         }
