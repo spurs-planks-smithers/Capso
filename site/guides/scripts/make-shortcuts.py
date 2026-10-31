@@ -83,7 +83,7 @@ def build(output):
         ("Undo / redo a mark (outside text)", "Left / Right arrow"),
     ])
     text("Escape with no marks copies the image and closes the editor.", LEFT + 10, y + 1, 496, size=9.5, color=MUTED)
-    text("With marks, Escape steps back within the editor.", LEFT + 10, y - 13, 496, size=9.5, color=MUTED)
+    text("With marks, Escape copies the marked image, saves it to the round, and closes.", LEFT + 10, y - 13, 496, size=9.5, color=MUTED)
 
     y = section("Answer the note questions", 357, [
         ("Save the answer and continue", "Return"),
