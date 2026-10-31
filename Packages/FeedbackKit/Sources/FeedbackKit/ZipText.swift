@@ -6,8 +6,22 @@ import Foundation
 public enum ZipReadme {
     /// `missing` are captures whose image file was not found. `unresolved`
     /// are checked captures whose round or capture was not found at all.
-    public static func render(_ plan: ZipPlan, kind: ZipKind, missing: [FeedbackBasketKey], unresolved: [FeedbackBasketKey] = []) -> String {
-        var lines = [
+    /// `sessionTitle` (#198) makes line 1 `Session Name: <title>`: the round
+    /// title for a round zip, the first capture's title for a selection zip,
+    /// as in the selection prompt. The rest of the README is as before.
+    public static func render(_ plan: ZipPlan, kind: ZipKind, missing: [FeedbackBasketKey], unresolved: [FeedbackBasketKey] = [], sessionTitle: Bool = false, timeZone: TimeZone = .current) -> String {
+        var lines: [String] = []
+        if sessionTitle {
+            switch kind {
+            case .round:
+                lines += [SessionName.line(for: plan.round, timeZone: timeZone), ""]
+            case .selection:
+                if let first = plan.round.captures.first {
+                    lines += [SessionName.line(for: first, timeZone: timeZone), ""]
+                }
+            }
+        }
+        lines += [
             "# Nextshot feedback export",
             "",
             "This folder is a Nextshot feedback export: screenshots that a reviewer marked with numbered badges, and what should change for each badge.",

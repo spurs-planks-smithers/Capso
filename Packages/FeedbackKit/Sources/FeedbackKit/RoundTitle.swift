@@ -17,8 +17,18 @@ public enum RoundTitle {
     /// answer of three words or more wins. When none has three words, the
     /// first usable answer wins.
     public static func title(for round: FeedbackRound) -> String? {
-        let instructions = round.captures.flatMap { FeedbackItems.split($0).items.compactMap { $0.badge.instruction } }
-        let notes = round.captures.compactMap(\.note)
+        title(forCaptures: round.captures)
+    }
+
+    /// The same label for one capture: its own words only. A capture prompt
+    /// has no round, so its session name comes from here (#198).
+    public static func title(for capture: FeedbackCapture) -> String? {
+        title(forCaptures: [capture])
+    }
+
+    private static func title(forCaptures captures: [FeedbackCapture]) -> String? {
+        let instructions = captures.flatMap { FeedbackItems.split($0).items.compactMap { $0.badge.instruction } }
+        let notes = captures.compactMap(\.note)
         let titles = (instructions + notes).compactMap(clean)
         return titles.first { wordCount($0) >= 3 } ?? titles.first
     }
@@ -87,7 +97,7 @@ public enum RoundTitle {
 
     /// At most `maxLength` characters, cut at a word end when one sits in the
     /// back half, with an ellipsis.
-    private static func shortened(_ text: String) -> String {
+    static func shortened(_ text: String) -> String {
         guard text.count > maxLength else { return text }
         var cut = String(text.prefix(maxLength - 1))
         if let space = cut.lastIndex(of: " "), cut.distance(from: cut.startIndex, to: space) >= maxLength / 2 {
