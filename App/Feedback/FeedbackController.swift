@@ -936,7 +936,7 @@ final class FeedbackController {
             let globalFrame = screenLocalRect.offsetBy(dx: screen.frame.minX, dy: screen.frame.minY)
             firstDotHint.schedule(for: editor.document, captureFrame: globalFrame, above: editor)
         }
-        installKeyMonitor(image: result.image, screen: screen)
+        installKeyMonitor(result: result, screen: screen)
         helpScreen = screen
         updateHelp()
         return true
@@ -948,8 +948,11 @@ final class FeedbackController {
     ///   Here, Esc on an editor with no marks yet copies the screenshot to the
     ///   clipboard and closes the editor, ready to paste into an email (Drew,
     ///   2026-10-21; it replaces the earlier "back to area selection" rule).
-    ///   With marks present, upstream's step-back behavior stays, so Esc never
-    ///   throws away work.
+    ///   With marks present, Esc copies the annotated image, saves the capture
+    ///   into the round with no notes, and closes the editor (Drew,
+    ///   2026-10-31, #195). Esc never ends the round, and the saved capture
+    ///   copies no prompt, so the image stays on the clipboard. Either way Esc
+    ///   throws no work away. The policy file stays as upstream has it.
     /// - Left and Right arrows undo and redo marks (Drew, 2026-10-21). They
     ///   step the document's history directly. They once became Command+Z and
     ///   Shift+Command+Z key events for the toolbar buttons, but a synthetic
@@ -958,7 +961,7 @@ final class FeedbackController {
     ///
     /// Text being typed keeps upstream's keys: Esc commits it, and arrows
     /// move the cursor.
-    private func installKeyMonitor(image: CGImage, screen: NSScreen) {
+    private func installKeyMonitor(result: CaptureResult, screen: NSScreen) {
         removeKeyMonitor()
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             // Caps Lock, keypad, and fn flags do not change what a key means.
@@ -980,8 +983,11 @@ final class FeedbackController {
                 case 124:
                     return Self.stepHistory(of: editor, redo: true) ? .handled : .pass
                 default:
-                    guard editor.document.objects.isEmpty else { return .pass }
-                    self.copyScreenshotAndClose(editor, image: image, screen: screen)
+                    if editor.document.objects.isEmpty {
+                        self.copyScreenshotAndClose(editor, image: result.image, screen: screen)
+                    } else {
+                        self.copyMarkedAndSave(editor, result: result, screen: screen)
+                    }
                     return .handled
                 }
             }
@@ -1036,6 +1042,41 @@ final class FeedbackController {
         }
         editor.close()
         showToast("Screenshot copied", screen: screen)
+    }
+
+    /// Esc on a marked capture (#195). The annotated image goes on the
+    /// clipboard in the user's format, the capture goes into the round with no
+    /// notes, and the editor closes. The round stays active. A failed copy
+    /// keeps the editor open and saves nothing. The editor is gone before the
+    /// call returns, so a second Esc finds no editor and starts no second save.
+    /// The `screenshotCopy` capability changes nothing here: the capture is
+    /// stored as a round capture, never through `ScreenshotWorkflow.copyFresh`.
+    private func copyMarkedAndSave(_ editor: InlineAnnotationEditorWindow, result: CaptureResult, screen: NSScreen) {
+        let objects = editor.document.objects
+        guard let rendered = AnnotationRenderer.render(sourceImage: result.image, objects: objects) else {
+            FeedbackLog.logger.error("Esc on a marked editor: render failed")
+            NSSound.beep()
+            return
+        }
+        let copied = ImageUtilities.copyToPasteboard(rendered, format: settings?.screenshotClipboardFormat ?? .png)
+        FeedbackLog.logger.notice("Esc on a marked editor: \(objects.count) marks, image copied \(copied)")
+        guard copied else {
+            NSSound.beep()
+            return
+        }
+        // An earlier capture's prompt copy that is still waiting must not
+        // replace the image.
+        clipboardRevision &+= 1
+        let stored = save(rendered: rendered, objects: objects, result: result, showNotes: false)
+        editor.close()
+        // The toast waits for the store, so it never claims a save that failed.
+        // The failure itself already beeped in `save`.
+        Task {
+            let index = await stored?.value
+            showToast(index == nil
+                ? "Marked screenshot copied. Saving it to the round failed."
+                : "Marked screenshot copied and saved to the round", screen: screen)
+        }
     }
 
     private func removeKeyMonitor() {
@@ -1100,9 +1141,13 @@ final class FeedbackController {
     /// before the capture is stored is held in `PendingAnswers` and saved
     /// right after. When the note panel finishes, the capture's prompt goes
     /// on the clipboard.
+    ///
+    /// With `showNotes` false (Esc on a marked capture, #195), no note panel
+    /// opens and no prompt is copied. Jev starts at once, because the notes
+    /// are final and empty.
     @discardableResult
     private func save(rendered: CGImage, objects: [any AnnotationObject], result: CaptureResult,
-                      promotion: FeedbackPromotionInput? = nil) -> Task<Int?, Never>? {
+                      promotion: FeedbackPromotionInput? = nil, showNotes: Bool = true) -> Task<Int?, Never>? {
         FeedbackLog.logger.notice("save started, \(objects.count) marks")
         let source = PixelSize(width: rendered.width, height: rendered.height)
         let target = ImageSizing.resizedSize(source, limits: .feedbackExport)
@@ -1210,31 +1255,37 @@ final class FeedbackController {
             }
         }
 
-        let screen = NSScreen.screens.first { $0.displayID == result.displayID }
-        notePanel.show(
-            title: name,
-            badges: Set(marks.filter { promotion == nil || ($0.instruction?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true) }.compactMap(\.badge)).sorted(),
-            previews: circlePreviews(rendered: rendered, objects: sameGeometry ? objects : [], result: result,
-                                     inheritedMarks: promotion?.metadata.marks),
-            overview: rendered,
-            onAnswer: { step, text in
-                let answer: String
-                if case .note = step, let inherited = pending.inheritedNote, !inherited.isEmpty {
-                    let newNote = text.trimmingCharacters(in: .whitespacesAndNewlines)
-                    answer = newNote.isEmpty ? inherited : "Earlier note:\n\(inherited)\n\nNew note:\n\(newNote)"
-                } else { answer = text }
-                pending.answers.append((step, answer))
-                if let index = pending.captureIndex {
-                    pending.writes.append(Task { await self.saveAnswer(step, answer, capture: index) })
+        if showNotes {
+            let screen = NSScreen.screens.first { $0.displayID == result.displayID }
+            notePanel.show(
+                title: name,
+                badges: Set(marks.filter { promotion == nil || ($0.instruction?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true) }.compactMap(\.badge)).sorted(),
+                previews: circlePreviews(rendered: rendered, objects: sameGeometry ? objects : [], result: result,
+                                         inheritedMarks: promotion?.metadata.marks),
+                overview: rendered,
+                onAnswer: { step, text in
+                    let answer: String
+                    if case .note = step, let inherited = pending.inheritedNote, !inherited.isEmpty {
+                        let newNote = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                        answer = newNote.isEmpty ? inherited : "Earlier note:\n\(inherited)\n\nNew note:\n\(newNote)"
+                    } else { answer = text }
+                    pending.answers.append((step, answer))
+                    if let index = pending.captureIndex {
+                        pending.writes.append(Task { await self.saveAnswer(step, answer, capture: index) })
+                    }
+                },
+                onFinish: {
+                    Task { await self.copyCapturePrompt(pending: pending, screen: screen) }
+                },
+                onEnd: {
+                    Task { await self.startJev(pending: pending) }
                 }
-            },
-            onFinish: {
-                Task { await self.copyCapturePrompt(pending: pending, screen: screen) }
-            },
-            onEnd: {
-                Task { await self.startJev(pending: pending) }
-            }
-        )
+            )
+        } else {
+            // Showing a new note panel closes an earlier capture's open panel,
+            // which ends that capture's notes. Do the same here.
+            notePanel.close()
+        }
         updateHelp()
 
         // End Round waits for this task, so it never ends a round before
@@ -1269,6 +1320,11 @@ final class FeedbackController {
             await refresh()
         }
         saveTasks[saveID] = pending.screenText
+        // No note step, so the notes are final now. This starts after the
+        // screen text task exists, because Jev waits for it.
+        if !showNotes {
+            Task { await self.startJev(pending: pending) }
+        }
         return pending.stored
     }
 

@@ -186,7 +186,7 @@ struct FeedbackHelpView: View {
                 // Reading `objects` here updates the line as marks come and go.
                 lines.append(document.objects.isEmpty
                     ? Line(key: "Esc", action: "Copy screenshot, close")
-                    : Line(key: "Esc", action: "Step back"))
+                    : Line(key: "Esc", action: "Copy marked, save, close"))
             }
             return lines
         case .notes:
