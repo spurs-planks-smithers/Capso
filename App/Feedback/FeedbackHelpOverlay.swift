@@ -199,6 +199,7 @@ struct FeedbackHelpView: View {
         case .between:
             return [
                 Line(key: key(.feedbackCapture), action: "Capture another area"),
+                Line(key: key(.feedbackRepeatCapture), action: "Capture the same area again"),
                 Line(key: key(.feedbackCopyLastCapture), action: "Copy last capture prompt"),
                 Line(key: key(.feedbackCopyPromptAndEndRound), action: "Copy prompt and end round"),
                 Line(key: key(.feedbackOpenRoundFolder), action: "Open round folder"),

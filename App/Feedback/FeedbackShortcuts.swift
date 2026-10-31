@@ -9,6 +9,11 @@ extension KeyboardShortcuts.Name {
     /// (`FeedbackShortcutSettingsSection`), and so does the Nshot menu.
     static let feedbackCapture = Self("feedbackCapture", default: .init(.f, modifiers: [.option, .shift]))
 
+    /// Fork: capture the last Option+Shift+F area again, with no selector
+    /// (Drew, 2026-10-31, #194). Always on, like `feedbackCapture`. With no
+    /// previous area it runs the `feedbackCapture` path.
+    static let feedbackRepeatCapture = Self("feedbackRepeatCapture", default: .init(.g, modifiers: [.option, .shift]))
+
     static let screenshotCapture = Self("screenshotCapture", default: .init(.four, modifiers: [.option, .shift]))
     static let screenshotAnnotate = Self("screenshotAnnotate", default: .init(.a, modifiers: [.option, .shift]))
 
@@ -27,9 +32,9 @@ extension KeyboardShortcuts.Name {
         .feedbackCopyLastCapture, .feedbackCopyPromptAndEndRound, .feedbackOpenRoundFolder, .feedbackEndRound,
     ]
 
-    /// The fork's five keys: the start key and the round keys.
+    /// The fork's keys: the start key, the repeat key, and the round keys.
     @MainActor static var nextshotKeys: [Self] {
-        [.feedbackCapture] + feedbackRoundKeys + (Capabilities.current.screenshotCopy ? [.screenshotCapture, .screenshotAnnotate] : [])
+        [.feedbackCapture, .feedbackRepeatCapture] + feedbackRoundKeys + (Capabilities.current.screenshotCopy ? [.screenshotCapture, .screenshotAnnotate] : [])
     }
 }
 
