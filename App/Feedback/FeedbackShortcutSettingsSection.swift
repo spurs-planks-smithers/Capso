@@ -22,6 +22,7 @@ struct FeedbackShortcutSettingsSection: View {
                     row("Annotate Latest Screenshot", visibility: .shortcutsCoreScreenshotAnnotate, name: .screenshotAnnotate)
                 }
                 row("Start Round or Capture Area", visibility: .shortcutsCoreFeedbackCapture, name: .feedbackCapture)
+                row("Capture Same Area Again", visibility: .shortcutsCoreFeedbackRepeatCapture, name: .feedbackRepeatCapture)
                 row("Copy Last Capture Prompt", visibility: .shortcutsCoreFeedbackCopyLastCapture, name: .feedbackCopyLastCapture, roundOnly: true)
                 row("Copy Prompt and End Round", visibility: .shortcutsCoreFeedbackCopyPromptAndEndRound, name: .feedbackCopyPromptAndEndRound, roundOnly: true)
                 row("Open Round Folder", visibility: .shortcutsCoreFeedbackOpenRoundFolder, name: .feedbackOpenRoundFolder, roundOnly: true)

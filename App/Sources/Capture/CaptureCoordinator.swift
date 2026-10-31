@@ -445,6 +445,20 @@ final class CaptureCoordinator {
         return true
     }
 
+    /// Fork: the same capture with a known area and no selector, for the
+    /// repeat key (#194). `rect` is in screen-local, bottom-left points, as
+    /// `performAreaCapture` takes it. Returns false when a selection is up or
+    /// a feedback capture is pending. A failed capture cancels the request.
+    @discardableResult
+    func captureAreaForFeedback(rect: CGRect, screen: NSScreen) -> Bool {
+        guard feedbackRequestID == nil, !isCaptureSelectionActive else { return false }
+        rememberSourceApplication()
+        feedbackRequestID = UUID()
+        pendingAction = .feedback
+        performAreaCapture(rect: rect, screen: screen)
+        return true
+    }
+
     private func cancelFeedbackCapture(requestID: UUID? = nil) {
         guard let current = feedbackRequestID, requestID == nil || requestID == current else { return }
         feedbackRequestID = nil

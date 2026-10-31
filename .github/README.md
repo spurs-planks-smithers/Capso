@@ -19,6 +19,8 @@ Nextshot is built on [Capso](https://github.com/lzhgus/Capso), an open-source sc
 
 The agent gets your marked-up screenshot, your numbered answers, and the text under each mark. The prompt asks it to write a short plan before it edits anything.
 
+Press **Option+Shift+G** to capture the same screen area again, with no dragging. It repeats the area of your last **Option+Shift+F** capture, for example to show a before and after. With no earlier area, it opens the selector like **Option+Shift+F**.
+
 Keep capturing to add more screens to the same round. The **Nshot** item in the menu bar shows how many captures the round holds, for example "Nshot (2)". While a round is active, a small green dot sits on the top right corner of the Nshot mark, and the help box that lists the keys shows a matching dot. Both dots show only while a round is active.
 
 When the round is done, press **Option+Shift+R**. Nextshot copies one prompt for every capture in the round and ends the round.
@@ -36,7 +38,7 @@ Click **Nshot** in the menu bar to:
 - **Change Start Round Shortcut...** to pick a key other than **Option+Shift+F**.
 - Open **Settings...**, or **Quit Nextshot**.
 
-The four round keys work only while a round is active. At other times each key types its character as usual. While you select, mark, or add notes to a capture, **Option+Shift+R** and **Option+Shift+E** only beep, so the round never ends under an open capture. **Settings**, **Shortcuts** lists all five Nextshot keys, and each row in the menu shows its key.
+The four round keys work only while a round is active. At other times each key types its character as usual. **Option+Shift+F** and **Option+Shift+G** are always on. While you select, mark, or add notes to a capture, **Option+Shift+R** and **Option+Shift+E** only beep, so the round never ends under an open capture. **Settings**, **Shortcuts** lists all six Nextshot keys, and each row in the menu shows its key.
 
 Nextshot shows one item in the menu bar. The menu for other captures (window, fullscreen, recording, history) is hidden. To show it, turn on **Show menu bar icon** in **Settings**, **General**. The capture shortcuts work either way.
 

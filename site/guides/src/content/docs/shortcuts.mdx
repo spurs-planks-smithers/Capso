@@ -19,8 +19,11 @@ The printable reference is a one-page Letter PDF. These are the default keys. Yo
 | Action | Default shortcut |
 | --- | --- |
 | Start or add a capture | <Shortcut keys={['Option', 'Shift', 'F']} /> |
+| Capture the same area again | <Shortcut keys={['Option', 'Shift', 'G']} /> |
 
 Press the capture key, then drag to select an area. The first saved capture starts a round.
+
+The repeat key captures the same screen area as your last capture, with no dragging. It works with or without a round. Nextshot forgets the area when you quit it. With no earlier area, the key opens the selector like the capture key. Nextshot 0.6.0 and later has this key.
 
 ## Mark the capture
 
@@ -36,7 +39,7 @@ Press the capture key, then drag to select an area. The first saved capture star
 
 Left and Right control mark history when you are not typing text. They beep when no history is available.
 
-Escape with no marks copies the screenshot image and closes the editor. With marks, Escape copies the marked image, saves the capture to the round with no notes, and closes the editor. The round stays open. While you type text, Escape finishes the text first.
+Escape with no marks copies the screenshot image and closes the editor. With marks, Escape copies the marked image, saves the capture to the round with no notes, and closes the editor. The round stays open. While you type text, Escape finishes the text first. Nextshot 0.6.0 and later does this with marks. Earlier versions step back instead.
 
 ## Answer the note questions
 
@@ -61,7 +64,7 @@ The four round keys work only while a round is active. Finish an open capture be
 
 ## Change a shortcut
 
-Open **Settings**, then **Shortcuts**. The **Round Controls** section comes first. It holds the five actions for starting and managing rounds.
+Open **Settings**, then **Shortcuts**. The **Round Controls** section comes first. It holds the actions for starting and managing rounds.
 
 <GuideImage src="/guides/media/settings-shortcuts.png" alt="The Shortcuts tab shows the five round actions in Round Controls." caption="Change each round key beside its action." />
 

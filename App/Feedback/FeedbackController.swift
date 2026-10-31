@@ -34,6 +34,12 @@ final class FeedbackController {
     private var screenshotShortcutHandlers: Set<KeyboardShortcuts.Name> = []
     private var screenshot: ScreenshotWorkflow?
     private var capturePurpose: ScreenshotCapturePurpose?
+    /// The area of the last Option+Shift+F capture, for Option+Shift+G (#194).
+    /// In memory only: a relaunch starts with none, and the key then opens
+    /// the selector.
+    private var lastFeedbackArea: RepeatArea?
+    /// True from the repeat key until its capture arrives or fails.
+    private var repeatInFlight = false
     private var clipboardRevision: UInt64 = 0
     private var editorResult: CaptureResult?
     private var inlineEditor: InlineAnnotationEditorWindow?
@@ -142,12 +148,20 @@ final class FeedbackController {
             statusItem.onScreenshotHistory = { [weak self] in self?.screenshot?.showHistory() }
         }
         captureCoordinator.feedbackCaptureCancelled = { [weak self] in
+            // Esc cannot cancel a repeat, which has no selector, so a cancel
+            // while one runs means the capture failed.
+            if self?.repeatInFlight == true {
+                self?.repeatInFlight = false
+                FeedbackLog.logger.error("repeat capture failed")
+                NSSound.beep()
+            }
             self?.capturePurpose = nil
             self?.selectionPhase = .none
             self?.updateHelp()
         }
         captureCoordinator.feedbackSink = { [weak self] result in
             guard let self else { return }
+            self.repeatInFlight = false
             let purpose = self.capturePurpose
             self.capturePurpose = nil
             if purpose == .instantScreenshot, let screenshot = self.screenshot {
@@ -157,11 +171,21 @@ final class FeedbackController {
                     appBundleIdentifier: underneath == nil ? result.appBundleIdentifier : nil,
                     timestamp: result.timestamp, displayID: result.displayID)
                 screenshot.copyFresh(identified.image, result: identified, objects: [], retainOnFailure: true)
-            } else { self.openEditor(for: result) }
+            } else {
+                self.rememberRepeatArea(of: result)
+                self.openEditor(for: result)
+            }
         }
         KeyboardShortcuts.onKeyDown(for: .feedbackCapture) { [weak self] in
             FeedbackLog.logger.notice("hotkey pressed")
             self?.capture()
+        }
+        KeyboardShortcuts.onKeyDown(for: .feedbackRepeatCapture) { [weak self] in
+            // A key that an older version let the user give another action
+            // wins over this new default, so one press never runs two actions.
+            guard FeedbackShortcutGuard.isAvailable(.feedbackRepeatCapture) else { return }
+            FeedbackLog.logger.notice("hotkey: Capture Same Area Again")
+            self?.repeatCapture()
         }
         connectRoundKeys()
         // Before any recorder can exist, so the guard holds each key's old value.
@@ -324,6 +348,72 @@ final class FeedbackController {
             updateHelp()
         } else {
             watchSelection()
+        }
+    }
+
+    /// A screen area as a feedback capture reports it: display-local,
+    /// top-left points. `screenSize` is the display's size then, so a changed
+    /// resolution does not repeat a rectangle that now covers other content.
+    private struct RepeatArea {
+        let rect: CGRect
+        let displayID: CGDirectDisplayID
+        let screenSize: CGSize
+    }
+
+    /// Keeps the area of an Option+Shift+F capture. An instant screenshot
+    /// (Option+Shift+4) shares the coordinator path but is not a feedback
+    /// capture, so it leaves the area alone.
+    private func rememberRepeatArea(of result: CaptureResult) {
+        guard result.mode == .area,
+              let screen = NSScreen.screens.first(where: { $0.displayID == result.displayID }),
+              result.captureRect.width > 0, result.captureRect.height > 0 else { return }
+        lastFeedbackArea = RepeatArea(rect: result.captureRect, displayID: result.displayID, screenSize: screen.frame.size)
+    }
+
+    /// The remembered area in the screen-local, bottom-left points that the
+    /// coordinator takes, or nil when the display is gone, its size changed,
+    /// or the area no longer fits.
+    private func repeatableArea() -> (rect: CGRect, screen: NSScreen)? {
+        guard let area = lastFeedbackArea,
+              let screen = NSScreen.screens.first(where: { $0.displayID == area.displayID }),
+              screen.frame.size == area.screenSize else { return nil }
+        let rect = CaptureDisplayGeometry.screenLocalRect(fromTopLeftCaptureRect: area.rect, screenHeight: screen.frame.height)
+        // Half a point of slack covers rounding in the two flips.
+        guard CGRect(origin: .zero, size: screen.frame.size).insetBy(dx: -0.5, dy: -0.5).contains(rect) else { return nil }
+        return (rect, screen)
+    }
+
+    /// Option+Shift+G (#194): captures the area of the last Option+Shift+F
+    /// capture again, with no selector. The result takes the normal path: the
+    /// inline editor on the counter tool, notes, and a round that starts at
+    /// the first save. With no usable area the key runs `capture()`, so it
+    /// never does nothing. An open capture makes it beep, because the editor
+    /// sits over the area and would be in the new image.
+    func repeatCapture() {
+        guard let area = repeatableArea() else {
+            FeedbackLog.logger.notice("repeat capture: no usable area, opening the selector")
+            capture()
+            return
+        }
+        guard !hasOpenCapture else {
+            FeedbackLog.logger.notice("repeat capture refused: a capture is open")
+            NSSound.beep()
+            return
+        }
+        quietLoginStartup = false
+        if Capabilities.current.screenshotCopy { capturePurpose = .feedback }
+        FeedbackLog.logger.notice("repeat capture requested")
+        help.hide()
+        helpScreen = area.screen
+        // No selection phase: no overlay posts an end notification. The
+        // editor shows the help box when it opens. A failed capture reaches
+        // `feedbackCaptureCancelled`, which shows it again.
+        repeatInFlight = true
+        if captureCoordinator?.captureAreaForFeedback(rect: area.rect, screen: area.screen) != true {
+            FeedbackLog.logger.notice("repeat capture not started: a selection is up or the coordinator is gone")
+            repeatInFlight = false
+            capturePurpose = nil
+            updateHelp()
         }
     }
 
@@ -531,7 +621,7 @@ final class FeedbackController {
             KeyboardShortcuts.enable(KeyboardShortcuts.Name.feedbackRoundKeys)
         } else {
             let alwaysOn = Set(
-                (KeyboardShortcuts.Name.allCapso + [.feedbackCapture]).compactMap { KeyboardShortcuts.getShortcut(for: $0) }
+                (KeyboardShortcuts.Name.allCapso + [.feedbackCapture, .feedbackRepeatCapture]).compactMap { KeyboardShortcuts.getShortcut(for: $0) }
             )
             KeyboardShortcuts.disable(KeyboardShortcuts.Name.feedbackRoundKeys.filter { name in
                 KeyboardShortcuts.getShortcut(for: name).map { !alwaysOn.contains($0) } ?? false

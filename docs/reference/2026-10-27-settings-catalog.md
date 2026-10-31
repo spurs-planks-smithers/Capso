@@ -157,6 +157,7 @@ K defines 21 standalone configurable actions. Defaults below use Option+Shift un
 | Configurable action | Default | Scope |
 | --- | --- | --- |
 | Start Round or Capture Area | F | Starts a round capture. |
+| Capture Same Area Again | G | Always on. Repeats the last F area with no selector, or opens the selector when none exists. |
 | Copy Last Capture Prompt | C | Active round only. |
 | Copy Prompt and End Round | R | Active round only. Blocked during an open capture. |
 | Open Round Folder | O | Active round only. |
