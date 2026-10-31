@@ -959,20 +959,13 @@ final class FeedbackController {
     /// notes, and the editor closes. The round stays active. A failed copy
     /// keeps the editor open and saves nothing. The editor is gone before the
     /// call returns, so a second Esc finds no editor and starts no second save.
+    /// The `screenshotCopy` capability changes nothing here: the capture is
+    /// stored as a round capture, never through `ScreenshotWorkflow.copyFresh`.
     private func copyMarkedAndSave(_ editor: InlineAnnotationEditorWindow, result: CaptureResult, screen: NSScreen) {
         let objects = editor.document.objects
         guard let rendered = AnnotationRenderer.render(sourceImage: result.image, objects: objects) else {
             FeedbackLog.logger.error("Esc on a marked editor: render failed")
             NSSound.beep()
-            return
-        }
-        if let screenshot {
-            // The standalone path copies and saves to History. The round save
-            // runs only after that copy succeeded, in its close step.
-            screenshot.copyFresh(rendered, result: result, objects: objects, close: { [weak self, weak editor] in
-                self?.save(rendered: rendered, objects: objects, result: result, showNotes: false)
-                editor?.close()
-            })
             return
         }
         let copied = ImageUtilities.copyToPasteboard(rendered, format: settings?.screenshotClipboardFormat ?? .png)
@@ -984,9 +977,16 @@ final class FeedbackController {
         // An earlier capture's prompt copy that is still waiting must not
         // replace the image.
         clipboardRevision &+= 1
-        save(rendered: rendered, objects: objects, result: result, showNotes: false)
+        let stored = save(rendered: rendered, objects: objects, result: result, showNotes: false)
         editor.close()
-        showToast("Marked screenshot copied and saved to the round", screen: screen)
+        // The toast waits for the store, so it never claims a save that failed.
+        // The failure itself already beeped in `save`.
+        Task {
+            let index = await stored?.value
+            showToast(index == nil
+                ? "Marked screenshot copied. Saving it to the round failed."
+                : "Marked screenshot copied and saved to the round", screen: screen)
+        }
     }
 
     private func removeKeyMonitor() {
@@ -1191,6 +1191,10 @@ final class FeedbackController {
                     Task { await self.startJev(pending: pending) }
                 }
             )
+        } else {
+            // Showing a new note panel closes an earlier capture's open panel,
+            // which ends that capture's notes. Do the same here.
+            notePanel.close()
         }
         updateHelp()
 

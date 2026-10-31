@@ -20,8 +20,8 @@ Unchanged: Esc while text is typed commits the text. Esc with no marks copies on
 | Item | File | Change |
 | --- | --- | --- |
 | 1. Route Esc with marks | `App/Feedback/FeedbackController.swift` (`installKeyMonitor`) | The monitor takes the capture result. An empty editor keeps `copyScreenshotAndClose`. A marked editor calls the new `copyMarkedAndSave`. |
-| 2. Copy and save | `App/Feedback/FeedbackController.swift` (`copyMarkedAndSave`) | Render with `AnnotationRenderer.render`, copy, bump `clipboardRevision`, save without notes, close, toast. |
-| 3. Save without the note panel | `App/Feedback/FeedbackController.swift` (`save`) | New `showNotes` parameter, default true. When false, skip the note panel and start Jev at once, as the panel's `onEnd` does. |
+| 2. Copy and save | `App/Feedback/FeedbackController.swift` (`copyMarkedAndSave`) | Render with `AnnotationRenderer.render`, copy, bump `clipboardRevision`, save without notes, close, toast after the store result. |
+| 3. Save without the note panel | `App/Feedback/FeedbackController.swift` (`save`) | New `showNotes` parameter, default true. When false, close any open note panel, skip a new one, and start Jev at once, as the panel's `onEnd` does. |
 | 4. Help box | `App/Feedback/FeedbackHelpOverlay.swift` | The Esc line with marks reads "Copy marked, save, close". |
 | 5. Docs | `AGENTS.md`, `CHANGELOG.md`, `site/guides/.../shortcuts.mdx`, `settings/capture.mdx` | Replace the "step back" wording. One line under Unreleased. |
 
@@ -31,7 +31,8 @@ Unchanged: Esc while text is typed commits the text. Esc with no marks copies on
 
 - The key monitor already runs before the editor's own Esc button, so the fork decides first.
 - `save(rendered:objects:result:)` stores the capture, runs OCR, writes `feedback.json`, and registers a save task so End Round waits for it. The change reuses all of it.
-- With the `screenshotCopy` capability on (off by default), the empty-editor Esc uses `ScreenshotWorkflow.copyFresh`, which saves to History. The marked case does the same and saves to the round in `copyFresh`'s close closure, so a failed copy saves nothing.
+- With the `screenshotCopy` capability on (off by default), the empty-editor Esc uses `ScreenshotWorkflow.copyFresh`, which saves to History. The marked case does not. It copies and saves as a round capture, which History lists through its round index. A first draft used `copyFresh` for both. A review showed it would list the capture twice and add an alert and a toast of its own, so the final code has one path.
+- Command+S closes an earlier capture's open note panel when it opens a new one. The no-note save closes it too, so it never stays open.
 
 ## Checks on a save with empty notes
 
@@ -45,7 +46,8 @@ Unchanged: Esc while text is typed commits the text. Esc with no marks copies on
 
 | Risk | Handling |
 | --- | --- |
-| A double Esc starts two saves | Default path: the editor closes in the same call, so the monitor is gone before the second key. `copyFresh` path: its `busy` guard beeps on the second call and the close closure runs once. |
+| A double Esc starts two saves | The editor closes in the same call, so the monitor is gone before the second key. |
+| The toast claims a save that failed | The toast waits for the store result. A failed save says so. |
 | A pending prompt copy replaces the image | Bump `clipboardRevision` right after the image copy, so an earlier capture's pending prompt copy is skipped. |
 | Both sibling PRs edit `FeedbackController.swift`, `AGENTS.md`, `CHANGELOG.md` | The second to merge rebases on `origin/main`, keeps both changes, and re-runs build and tests. |
 | Guides describe unreleased behavior | Edit the text. Leave `reviewedFor` at 0.5.0 until Drew checks a 0.6.0 build. |
@@ -53,5 +55,7 @@ Unchanged: Esc while text is typed commits the text. Esc with no marks copies on
 ## Verification
 
 - Existing tests: FeedbackKit and the app tests command. No new tests (personal repo rule).
-- Live, Nextshot Dev only: two dots, Esc. Check the pasteboard image, the new capture in the round folder, the active round, and the closed editor. Then Esc with no marks, and Esc while typing.
-- Logs: `/usr/bin/log show --last 10m --predicate 'subsystem BEGINSWITH "com.drewschulz.nextshot"'`.
+- Build: `scripts/build-local.sh Release --no-install`.
+- Live run in the installed Nextshot Dev: skipped (Drew, 2026-10-31). A Dev build 909 with a browser bridge (pid 52229) runs from the installed path, and a newer launch would yield to it or end it. Drew tests from his next build.
+- In-process check instead: a throwaway test (never committed) opened the inline editor, added two counters, and sent a real Esc key event through `NSApp.sendEvent`, so the fork key monitor handled it. It checked the clipboard image, one saved capture with no notes, the active round, the closed editor, a second Esc, and Esc with no marks.
+- Logs for Drew's run: `/usr/bin/log show --last 10m --predicate 'subsystem BEGINSWITH "com.drewschulz.nextshot"'`. Look for "Esc on a marked editor".
