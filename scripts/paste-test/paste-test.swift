@@ -8,7 +8,7 @@ import Foundation
 //
 //     swift scripts/paste-test/paste-test.swift t1
 //     swift scripts/paste-test/paste-test.swift t4-2000     (also 5000, 10000, 15000)
-//     swift scripts/paste-test/paste-test.swift t6 2026-10-27-0939-feedback
+//     swift scripts/paste-test/paste-test.swift t6 2026-10-22-1609-feedback
 //
 // Each mode clears the pasteboard, writes the items, and prints the item types.
 // This script overwrites your clipboard. It reads saved rounds and runs the
@@ -20,6 +20,9 @@ import Foundation
 let fixedRound = "2026-10-31-2125-feedback"
 /// The capture of that round whose prompt and image t1 and t4-N paste.
 let fixedCaptureIndex = 1
+/// The round that the runbook gives to t6: two captures of the Settings window.
+/// Capture 2 has badge 1, so item 2.1 exists. t6 takes any round with two or more captures.
+let t6Round = "2026-10-22-1609-feedback"
 /// The last line of every t4-N text. The T4 question asks the app to quote it.
 let lastLine = "LAST LINE: blue heron 47"
 let t4Lengths: Set<Int> = [2000, 5000, 10000, 15000]
@@ -31,6 +34,7 @@ usage:
   swift scripts/paste-test/paste-test.swift t6 <folder>
 The folder is a round folder name in ~/Library/Application Support/Nextshot.
 t1 and t4-N use \(fixedRound) when no folder is given.
+t6 takes a round with two or more captures. The runbook uses \(t6Round).
 """
 
 func fail(_ message: String, status: Int32) -> Never {
