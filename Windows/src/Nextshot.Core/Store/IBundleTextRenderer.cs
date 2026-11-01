@@ -13,4 +13,7 @@ public interface IBundleTextRenderer
 
     /// <summary>The text of prompt.md for the round.</summary>
     string RenderPrompt(FeedbackRound round, string folderPath);
+
+    /// <summary>The text of one capture's <c>&lt;stem&gt;-prompt.md</c>.</summary>
+    string RenderCapturePrompt(FeedbackCapture capture, string folderPath);
 }
