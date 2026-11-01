@@ -20,10 +20,8 @@
 <main class="page">
   <header class="top">
     <a class="brand" href="/"><img src="/nextshot-icon.png" alt="" width="34" height="34"><span>Nextshot</span></a>
-    <nav class="site-nav" aria-label="Main navigation"><a href="/guides/">Guides</a><a href="https://feedback.nextshot.dev/">Feedback</a></nav>
-    <div class="pair">
-      <a class="download small" href="/download"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v7m0 0L5 6.5m3 3 3-3M3 11.5v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1"/></svg>Download for Mac</a>
-      <button class="download small soon" type="button" disabled><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v7m0 0L5 6.5m3 3 3-3M3 11.5v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1"/></svg>Download for Windows<span class="pill">Coming soon</span></button>
+    <div class="download-option">
+      <a class="download small" href="/download" aria-label="Download Nextshot for Mac"><svg class="platform-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M4.5 3.5h15a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-15a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2zM4.5 5.5v9h15v-9zM11 16.5h2V19h-2zM8.5 19h7a.9.9 0 0 1 0 1.8h-7a.9.9 0 0 1 0-1.8z"/></svg>Download</a>
     </div>
   </header>
 
@@ -42,20 +40,13 @@
   </section>
 
   <section class="below">
-    <div class="get">
-      <div class="pair">
-        <a class="download" href="/download"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v7m0 0L5 6.5m3 3 3-3M3 11.5v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1"/></svg>Download for Mac</a>
-        <button class="download soon" type="button" disabled><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v7m0 0L5 6.5m3 3 3-3M3 11.5v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1"/></svg>Download for Windows<span class="pill">Coming soon</span></button>
-      </div>
-      <p class="meta">Version {{VERSION}}</p>
-    </div>
     <div class="round">
       <h2>One round, one prompt</h2>
       <ol class="flow">
         <li><b>Grab</b><span>Press <kbd>⌥ Option</kbd> <kbd>⇧ Shift</kbd> <kbd>F</kbd>. Drag over the screen.</span></li>
         <li><b>Mark</b><span>Click each issue, and say the fix.</span></li>
         <li><b>Repeat</b><span>Grab the next screen. One round holds them all.</span></li>
-        <li><b>Hand off</b><span>One-click pastes all your directions as an augmented prompt in any AI.</span></li>
+        <li><b>Hand off</b><span>One click hands any AI the full picture.</span></li>
       </ol>
     </div>
     <div class="setup">
@@ -63,11 +54,15 @@
       <ol class="steps">
         <li>Drag Nextshot from the DMG to Applications.</li>
         <li>Open Nextshot and allow Screen Recording.</li>
-        <li>Press Option Shift F to start a round.</li>
+        <li>Press <kbd>⌥ Option</kbd> <kbd>⇧ Shift</kbd> <kbd>F</kbd> to start a round.</li>
       </ol>
+      <a class="next" href="/guides/">Read the guides<span aria-hidden="true">&nbsp;&rarr;</span></a>
     </div>
   </section>
-  <footer class="footer">Free for personal use and internal use only.</footer>
+  <footer class="footer">
+    <p class="status"><span class="free">Free for personal and internal use.</span> <span>Version {{VERSION}} is an early release for Mac.</span></p>
+    <nav class="contact" aria-label="Get in touch"><a href="https://feedback.nextshot.dev/">Send feedback</a><a href="mailto:hi@nextshot.dev?subject=Nextshot">Contact us</a></nav>
+  </footer>
 </main>
 <script>
   // The poster stays clear until someone presses play. Without JavaScript the
@@ -84,5 +79,6 @@
 </script>
 <script src="/update-note.js" defer></script>
 <script src="/dots.js" defer></script>
+<script src="/download.js" defer></script>
 </body>
 </html>
