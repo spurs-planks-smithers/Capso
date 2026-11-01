@@ -63,7 +63,17 @@ final class FeedbackSessionSummary {
     /// when their name is missing. Returns at once.
     func names(priming captures: [FeedbackCapture]) -> SummaryNames {
         prime(captures)
-        return current
+        let names = current
+        if Self.isEnabled {
+            if names.name(for: captures) != nil {
+                SummaryUseCounter.count("copy.summary")
+            } else if FeedbackSummaryModel.isAvailable {
+                SummaryUseCounter.count("copy.cutName")
+            } else {
+                SummaryUseCounter.count("copy.unavailable." + FeedbackSummaryModel.stateName)
+            }
+        }
+        return names
     }
 
     /// Starts the summary for `captures` unless it is stored, running, or
@@ -103,11 +113,14 @@ final class FeedbackSessionSummary {
         switch outcome {
         case .name(let text):
             name = text
+            SummaryUseCounter.count("request.named")
         case .noName:
+            SummaryUseCounter.count("request.noName")
             declined.insert(basis)
             FeedbackLog.logger.notice("session summary: no name, \(seconds, format: .fixed(precision: 2), privacy: .public) s")
             return
         case .failed:
+            SummaryUseCounter.count("request.failed")
             retryAt[basis] = Date().addingTimeInterval(Self.retryDelay)
             return
         }

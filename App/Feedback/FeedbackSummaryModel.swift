@@ -28,6 +28,29 @@ enum FeedbackSummaryModel {
         return false
     }
 
+    /// Why the model can or cannot run now, as a short word for the local use
+    /// counter (`SummaryUseCounter`). It holds no text from the user.
+    static var stateName: String {
+        #if canImport(FoundationModels)
+        if #available(macOS 26, *) {
+            let model = SystemLanguageModel.default
+            switch model.availability {
+            case .available:
+                return model.supportsLocale() ? "available" : "unsupportedLocale"
+            case .unavailable(.deviceNotEligible):
+                return "deviceNotEligible"
+            case .unavailable(.appleIntelligenceNotEnabled):
+                return "appleIntelligenceNotEnabled"
+            case .unavailable(.modelNotReady):
+                return "modelNotReady"
+            case .unavailable:
+                return "otherReason"
+            }
+        }
+        #endif
+        return "osTooOld"
+    }
+
     /// The model's name for the input, cleaned (`SummaryNames.cleaned`). Nil
     /// when the model is unavailable or its reply cannot pass for a name (a
     /// refusal, an empty reply). It throws what the model throws, for the
