@@ -125,6 +125,10 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
     /// its first 2000 characters and asks the agent to name its session, and
     /// a Recent row shows the round's title. Not a Jev feature: code only.
     case sessionTitle
+    /// The `<name>` of the session name line is a summary of all captures from
+    /// Apple's on-device model (#200). Not a Jev feature: nothing leaves the
+    /// Mac. It runs only with `sessionTitle` on as well.
+    case sessionSummary
     /// The offline update reminder (#203): one toast and a menu row, about 7
     /// days after a build first runs. Not a Jev feature, and it makes no
     /// request. Code only.
@@ -178,6 +182,8 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
             // then the normal release commit. A commit in between makes it
             // stale, so check it when the release is cut.
             FlagSpec(issue: 164, allowedStates: [.off, .on], devDefault: .on, releaseDefault: .on, releasedInBuild: 889)
+        case .sessionSummary:
+            FlagSpec(issue: 200, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
         case .updateReminder:
             // On in both channels (Drew, 2026-10-31). A guess at the marker:
             // main stood at build 893 on 2026-10-31, so this squash merge is

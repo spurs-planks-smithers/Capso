@@ -6,8 +6,24 @@ import Foundation
 public enum ZipReadme {
     /// `missing` are captures whose image file was not found. `unresolved`
     /// are checked captures whose round or capture was not found at all.
-    public static func render(_ plan: ZipPlan, kind: ZipKind, missing: [FeedbackBasketKey], unresolved: [FeedbackBasketKey] = []) -> String {
-        var lines = [
+    /// `sessionTitle` (#198) makes line 1 `Session Name: <app> - <title>`: the
+    /// round's apps and title for a round zip, the selected captures' apps and
+    /// title for a selection zip, as in the selection prompt. The rest of the
+    /// README is as before. `summaries` (#200) are the on-device model's names,
+    /// which replace the title in that first line when one is stored.
+    public static func render(_ plan: ZipPlan, kind: ZipKind, missing: [FeedbackBasketKey], unresolved: [FeedbackBasketKey] = [], sessionTitle: Bool = false, summaries: SummaryNames = .none, timeZone: TimeZone = .current) -> String {
+        var lines: [String] = []
+        if sessionTitle {
+            switch kind {
+            case .round:
+                lines += [SessionName.line(for: plan.round, summaries: summaries, timeZone: timeZone), ""]
+            case .selection:
+                if let line = SessionName.line(forSelection: plan.round.captures, summaries: summaries, timeZone: timeZone) {
+                    lines += [line, ""]
+                }
+            }
+        }
+        lines += [
             "# Nextshot feedback export",
             "",
             "This folder is a Nextshot feedback export: screenshots that a reviewer marked with numbered badges, and what should change for each badge.",

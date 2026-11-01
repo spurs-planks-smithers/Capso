@@ -4,7 +4,10 @@ import Foundation
 /// A short label for a round, cut from the reviewer's own words with plain
 /// code: no model and no network (Drew, 2026-10-28, #164). The Recent menu
 /// shows it in place of the date. Screen text (window titles, OCR text) never
-/// feeds it, so the label holds only what the reviewer wrote.
+/// feeds it, so the label holds only what the reviewer wrote. The rule holds
+/// for every use here. Only the `<name>` of the session name line may be a
+/// summary from the on-device model instead (`SummaryNames`, #200, Drew,
+/// 2026-10-31), and this cut title is its fallback.
 public enum RoundTitle {
     /// Longest title in characters, the ellipsis included.
     public static let maxLength = 50
@@ -17,8 +20,20 @@ public enum RoundTitle {
     /// answer of three words or more wins. When none has three words, the
     /// first usable answer wins.
     public static func title(for round: FeedbackRound) -> String? {
-        let instructions = round.captures.flatMap { FeedbackItems.split($0).items.compactMap { $0.badge.instruction } }
-        let notes = round.captures.compactMap(\.note)
+        title(forCaptures: round.captures)
+    }
+
+    /// The same label for one capture: its own words only. A capture prompt
+    /// has no round, so its session name comes from here (#198).
+    public static func title(for capture: FeedbackCapture) -> String? {
+        title(forCaptures: [capture])
+    }
+
+    /// The same label across a list of captures, in the order given. A
+    /// selection prompt uses it for its checked captures (#198).
+    static func title(forCaptures captures: [FeedbackCapture]) -> String? {
+        let instructions = captures.flatMap { FeedbackItems.split($0).items.compactMap { $0.badge.instruction } }
+        let notes = captures.compactMap(\.note)
         let titles = (instructions + notes).compactMap(clean)
         return titles.first { wordCount($0) >= 3 } ?? titles.first
     }
@@ -87,10 +102,16 @@ public enum RoundTitle {
 
     /// At most `maxLength` characters, cut at a word end when one sits in the
     /// back half, with an ellipsis.
-    private static func shortened(_ text: String) -> String {
-        guard text.count > maxLength else { return text }
-        var cut = String(text.prefix(maxLength - 1))
-        if let space = cut.lastIndex(of: " "), cut.distance(from: cut.startIndex, to: space) >= maxLength / 2 {
+    static func shortened(_ text: String) -> String {
+        shortened(text, limit: maxLength)
+    }
+
+    /// `shortened` with another limit. The session name uses it for the app
+    /// part (#198).
+    static func shortened(_ text: String, limit: Int) -> String {
+        guard text.count > limit else { return text }
+        var cut = String(text.prefix(limit - 1))
+        if let space = cut.lastIndex(of: " "), cut.distance(from: cut.startIndex, to: space) >= limit / 2 {
             cut = String(cut[..<space])
         }
         cut = cut.trimmingCharacters(in: CharacterSet(charactersIn: " .,;:!?-"))

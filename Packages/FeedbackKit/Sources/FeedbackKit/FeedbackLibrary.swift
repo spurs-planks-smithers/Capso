@@ -119,6 +119,12 @@ public enum FeedbackLibrary {
         return "\(day), \(timeText(startedAt, timeZone: timeZone, locale: locale))"
     }
 
+    /// "Oct 20, 9:59 PM". The day is never "Today" or "Yesterday", so the label
+    /// means the same on any later day. A session name uses it (#198).
+    public static func dateLabel(_ date: Date, timeZone: TimeZone, locale: Locale = .current) -> String {
+        "\(formatted(date, template: "MMMd", timeZone: timeZone, locale: locale)), \(timeText(date, timeZone: timeZone, locale: locale))"
+    }
+
     /// At most two distinct apps in capture order, then any extra app count,
     /// the capture count, and the selection count when some are picked.
     public static func subtitle(for round: FeedbackRound, selectedCount: Int, appNameLimit: Int = .max) -> String {

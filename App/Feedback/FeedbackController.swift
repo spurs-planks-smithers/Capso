@@ -26,6 +26,10 @@ final class FeedbackController {
 
     let store: FeedbackRoundStore
     private let jev: FeedbackJev
+    /// The on-device summary names for the session name line (#200).
+    private let summary: FeedbackSessionSummary
+    /// The pending request for the checked captures (#200), cancelled by the next click.
+    private var selectionPrimeTask: Task<Void, Never>?
     private(set) var round: FeedbackRound?
     private(set) var folderURL: URL?
 
@@ -103,6 +107,7 @@ final class FeedbackController {
         }
         store = FeedbackRoundStore(rootURL: rootURL)
         jev = FeedbackJev(rootURL: rootURL)
+        summary = FeedbackSessionSummary(rootURL: rootURL)
     }
 
     /// Moves the bundles from the folder used before the rename, once. The
@@ -217,7 +222,8 @@ final class FeedbackController {
             waitForSaves: { [weak self] in await self?.waitForSaves() },
             showToast: { [weak self] message in self?.showToast(message, screen: nil) },
             showShare: { [weak self] url in self?.statusItem.showSharePicker(for: url) },
-            report: { [weak self] error, context in self?.report(error, context: context) }
+            report: { [weak self] error, context in self?.report(error, context: context) },
+            summaryNames: { [weak self] captures in self?.summary.names(priming: captures) ?? .none }
         )
         supportSubmission = FeedbackSupportSubmission(
             rootURL: store.rootURL,
@@ -485,7 +491,7 @@ final class FeedbackController {
         let round = try await endRound()
         let folder = store.rootURL.appendingPathComponent(round.folderName, isDirectory: true)
         await jev.settle(folderName: round.folderName)
-        let prompt = PromptBuilder.render(round, folderPath: folder.path, refined: jev.pointsToRefinedFiles, lanes: jev.lanes(for: round, folderURL: folder), sessionTitle: Flags.isOn(.sessionTitle))
+        let prompt = PromptBuilder.render(round, folderPath: folder.path, refined: jev.pointsToRefinedFiles, lanes: jev.lanes(for: round, folderURL: folder), sessionTitle: Flags.isOn(.sessionTitle), summaries: summary.names(priming: round.captures))
         copyToClipboard(prompt, toast: Self.promptCopiedRoundEndedToast, screen: nil)
         FeedbackLog.logger.notice("round prompt copied, round ended, \(prompt.count) characters")
         return prompt
@@ -706,6 +712,7 @@ final class FeedbackController {
             guard let self else { return }
             self.basket.toggle(key)
             self.statusItem.basketDidChange(self.basket)
+            self.primeSelectionSummary()
         }
         statusItem.onClearSelection = { [weak self] in
             self?.basket.removeAll()
@@ -794,10 +801,10 @@ final class FeedbackController {
                 NSSound.beep()
             case 1:
                 let entry = resolved.entries[0]
-                let prompt = PromptBuilder.renderCapture(entry.capture, folderPath: entry.folderPath, redo: true, sessionTitle: Flags.isOn(.sessionTitle))
+                let prompt = PromptBuilder.renderCapture(entry.capture, folderPath: entry.folderPath, redo: true, sessionTitle: Flags.isOn(.sessionTitle), summaries: self.summary.names(priming: [entry.capture]))
                 self.copyToClipboard(prompt, toast: Self.promptCopiedToast, screen: nil)
             case let count:
-                let prompt = PromptBuilder.renderSelection(resolved.entries, sessionTitle: Flags.isOn(.sessionTitle))
+                let prompt = PromptBuilder.renderSelection(resolved.entries, sessionTitle: Flags.isOn(.sessionTitle), summaries: self.summary.names(priming: resolved.entries.map(\.capture)))
                 self.copyToClipboard(prompt, toast: "\(count) captures copied\nPaste them into your agent.", screen: nil)
             }
             FeedbackLog.logger.notice("selection copied: \(resolved.entries.count) captures, \(resolved.missing.count) missing")
@@ -811,7 +818,7 @@ final class FeedbackController {
             let folder = self.store.rootURL.appendingPathComponent(round.folderName, isDirectory: true)
             let refined = self.jev.pointsToRefinedFiles
                 && FileManager.default.fileExists(atPath: folder.appendingPathComponent("refined.md").path)
-            let prompt = PromptBuilder.render(round, folderPath: folder.path, redo: true, refined: refined, lanes: self.jev.lanes(for: round, folderURL: folder), sessionTitle: Flags.isOn(.sessionTitle))
+            let prompt = PromptBuilder.render(round, folderPath: folder.path, redo: true, refined: refined, lanes: self.jev.lanes(for: round, folderURL: folder), sessionTitle: Flags.isOn(.sessionTitle), summaries: self.summary.names(priming: round.captures))
             self.copyToClipboard(prompt, toast: Self.promptCopiedToast, screen: nil)
             FeedbackLog.logger.notice("recent round prompt copied, \(prompt.count) characters")
         }
@@ -1368,8 +1375,43 @@ final class FeedbackController {
         for write in pending.writes {
             await write.value
         }
+        // The reviewer's words are final, so the session summary can start. It
+        // runs beside the copy and beside OCR, and never delays either (#200).
+        await primeSummaries(folderName: folderName, capture: index)
         await pending.screenText?.value
         jev.captureReady(folderName: folderName, capture: index, screenLines: pending.screenLines)
+    }
+
+    /// Starts the on-device summary of the capture and of its round, in the
+    /// background. A prompt copied before it finishes keeps the cut name (#200).
+    private func primeSummaries(folderName: String, capture index: Int) async {
+        guard FeedbackSessionSummary.canRun else { return }
+        let round: FeedbackRound?
+        if let active = await store.activeRound, active.folderName == folderName {
+            round = active
+        } else {
+            round = FeedbackLibrary.round(named: folderName, in: store.rootURL)
+        }
+        guard let round else { return }
+        if let capture = round.captures.first(where: { $0.index == index }) {
+            summary.prime([capture])
+        }
+        summary.prime(round.captures)
+    }
+
+    /// Starts the summary for the checked captures, so Copy N Selected and
+    /// Zip N Selected usually find their name ready (#200). It waits for a
+    /// pause in the clicks: five quick checks start one request for the
+    /// final selection, not five.
+    private func primeSelectionSummary() {
+        selectionPrimeTask?.cancel()
+        guard FeedbackSessionSummary.canRun, basket.count > 0 else { return }
+        selectionPrimeTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(800))
+            guard !Task.isCancelled, let self, self.basket.count > 0 else { return }
+            let captures = FeedbackLibrary.entries(for: self.basket, in: self.store.rootURL).entries.map(\.capture)
+            self.summary.prime(captures)
+        }
     }
 
     /// Waits until the capture and every answer are stored, then puts the
@@ -1403,7 +1445,7 @@ final class FeedbackController {
 
     private func putOnClipboard(_ capture: FeedbackCapture, in round: FeedbackRound, screen: NSScreen?) {
         let folder = store.rootURL.appendingPathComponent(round.folderName, isDirectory: true)
-        let prompt = PromptBuilder.renderCapture(capture, folderPath: folder.path, refined: jev.pointsToRefinedFiles, sessionTitle: Flags.isOn(.sessionTitle))
+        let prompt = PromptBuilder.renderCapture(capture, folderPath: folder.path, refined: jev.pointsToRefinedFiles, sessionTitle: Flags.isOn(.sessionTitle), summaries: summary.names(priming: [capture]))
         copyToClipboard(prompt, toast: Self.promptCopiedToast, screen: screen)
         FeedbackLog.logger.notice("capture \(capture.index) prompt copied, \(prompt.count) characters")
     }

@@ -2,9 +2,10 @@ import Foundation
 import Testing
 @testable import FeedbackKit
 
-/// Session names (#164): with `sessionTitle`, a pasted prompt carries the
-/// reviewer's words in its first 2000 characters and asks the agent to name
-/// its session. Without it, every prompt is as it was.
+/// Session names (#164, #198): with `sessionTitle`, a pasted prompt starts
+/// with `Session Name: <title>`, carries the reviewer's words in its first
+/// 2000 characters, and points the agent at that first line. Without it,
+/// every prompt is as it was.
 @Suite("Session title prompts")
 struct SessionTitlePromptTests {
     private let folder = "/Users/test/Feedback/2026-10-20-1912-pricing-page"
@@ -56,19 +57,21 @@ struct SessionTitlePromptTests {
     func capturePrompt() {
         let capture = FeedbackFixtures.pricingCapture()
         let lines = PromptBuilder.renderCapture(capture, folderPath: folder, sessionTitle: true).split(separator: "\n", omittingEmptySubsequences: false)
-        #expect(lines[1].hasPrefix("Goal:"))
-        #expect(lines[2] == Substring(PromptBuilder.sessionNameLine))
+        #expect(lines[0].hasPrefix(SessionName.label))
+        #expect(lines[2].hasPrefix("Goal:"))
+        #expect(lines[3] == Substring(PromptBuilder.sessionNameLine))
         let redo = PromptBuilder.renderCapture(capture, folderPath: folder, redo: true, sessionTitle: true).split(separator: "\n", omittingEmptySubsequences: false)
-        #expect(redo[2] == Substring(PromptBuilder.redoLine))
-        #expect(redo[3] == Substring(PromptBuilder.sessionNameLine))
+        #expect(redo[3] == Substring(PromptBuilder.redoLine))
+        #expect(redo[4] == Substring(PromptBuilder.sessionNameLine))
     }
 
     @Test("The selection prompt gets the name line after the redo line")
     func selectionPrompt() {
         let lines = PromptBuilder.renderSelection(ZipPlanTests.entries(round), sessionTitle: true).split(separator: "\n", omittingEmptySubsequences: false)
-        #expect(lines[1].hasPrefix("Goal:"))
-        #expect(lines[2] == Substring(PromptBuilder.redoLine))
-        #expect(lines[3] == Substring(PromptBuilder.sessionNameLine))
+        #expect(lines[0].hasPrefix(SessionName.label))
+        #expect(lines[2].hasPrefix("Goal:"))
+        #expect(lines[3] == Substring(PromptBuilder.redoLine))
+        #expect(lines[4] == Substring(PromptBuilder.sessionNameLine))
     }
 
     @Test("Without the flag no prompt has the name line or the inline items")
@@ -88,11 +91,11 @@ struct SessionTitlePromptTests {
         #expect(!texts[0].contains("Price is wrong"))
     }
 
-    @Test("The name line names a subject, asks for two to five words, and names no tool")
+    @Test("The name line points at the first line, asks for a rename only if the tool allows it, and names no tool")
     func nameLine() {
         let line = PromptBuilder.sessionNameLine
         #expect(!line.contains("\n"))
-        #expect(line.contains("noun phrase of two to five words"))
+        #expect(line.contains("The first line gives this session's name"))
         #expect(line.contains("If your tool lets you rename this session"))
     }
 }
