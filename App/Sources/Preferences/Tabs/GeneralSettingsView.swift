@@ -113,6 +113,9 @@ struct GeneralSettingsView: View {
                             .foregroundStyle(.tertiary)
                             .fontDesign(.monospaced)
                     }
+                    SettingRow(visibility: .generalAboutUpdateReminder, label: "Remind me about new versions", sublabel: "Nextshot stays offline, so it cannot check for you", showDivider: true) {
+                        UpdateReminderSettingsControl() // Fork: App/Feedback
+                    }
                     SettingRow(visibility: .generalAboutReportABug, label: "Report a Bug", sublabel: "Found something broken?", showDivider: true) {
                         ExternalLinkButton(title: "Report", icon: "ladybug") {
                             openURL("https://feedback.nextshot.dev")

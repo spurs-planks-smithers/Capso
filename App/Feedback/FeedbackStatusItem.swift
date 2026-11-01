@@ -21,6 +21,8 @@ struct FeedbackMenuState {
     var newerSchemaCount = 0
     /// Ended rounds beyond Recent's five, grouped under Show More.
     var older: [FeedbackRound] = []
+    /// Shows "Get the latest version…" under the version line (#203).
+    var updateReminderRow = false
 
     /// What the menu shows when no provider is set.
     static let empty = FeedbackMenuState(
@@ -67,6 +69,7 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     var onSubmitRecentRound: ((FeedbackRound) -> Void)?
     var onOpenRecentFolder: ((FeedbackRound) -> Void)?
     var onResumeRound: ((FeedbackRound) -> Void)?
+    var onGetLatestVersion: (() -> Void)?
 
     /// One round line in the open menu.
     private struct RoundRow {
@@ -223,6 +226,11 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
 
         // The running build comes first, so anyone can tell builds apart.
         menu.addItem(grayLine(ForkBranding.versionLine))
+        if state.updateReminderRow {
+            // Offline update reminder (#203): about a week after a build first
+            // runs. The click opens nextshot.dev in the browser.
+            menu.addItem(menuItem(UpdateReminder.rowTitle, action: #selector(getLatestVersion)))
+        }
         menu.addItem(.separator())
 
         if Capabilities.current.screenshotCopy {
@@ -529,6 +537,7 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     @objc private func showShortcut() { onShowShortcut?() }
     @objc private func showSettings() { onShowSettings?() }
     @objc private func quit() { NSApp.terminate(nil) }
+    @objc private func getLatestVersion() { onGetLatestVersion?() }
     @objc private func screenshotCapture() { onScreenshotCapture?() }
     @objc private func screenshotAnnotate() { onScreenshotAnnotate?() }
     @objc private func screenshotHistory() { onScreenshotHistory?() }

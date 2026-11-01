@@ -30,6 +30,8 @@ enum SettingsVisibility {
              .screenshotsCaptureCaptureWindowShadow, .shortcutsCustomizable,
              .shortcutsSystem, .shortcutsContextual: Capabilities.current.standaloneCapture
         case .generalUpdates: Capabilities.current.automaticUpdates
+        // Sparkle's own update controls replace the reminder (roadmap M3).
+        case .generalAboutUpdateReminder: Flags.isOn(.updateReminder) && !Capabilities.current.automaticUpdates
         case .generalDiagnostics: Capabilities.current.diagnostics
         case .permissionsPrivacySecurityAccessibility, .ocrTranslation, .shortcutsTranslation:
             Capabilities.current.translationTools
