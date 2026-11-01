@@ -32,7 +32,7 @@ public class FeedbackNamingTests
         Assert.Equal(expected, FeedbackNaming.Slug(input));
 
     [Fact]
-    public void SlugMatchesEveryRowOfCorpusFileWhenPresent()
+    public void SlugMatchesEveryRowOfCorpusFile()
     {
         var dir = AppContext.BaseDirectory;
         string? path = null;
@@ -43,8 +43,8 @@ public class FeedbackNamingTests
             if (File.Exists(candidate)) { path = candidate; break; }
             if (File.Exists(local)) { path = local; break; }
         }
-        if (path is null) return; // corpus lands with PR #249; the inline rows above cover it
-        var rows = File.ReadAllLines(path).Where(l => l.Contains('\t') || l.Length > 0).ToList();
+        Assert.True(path is not null, "slugs.tsv not found");
+        var rows = File.ReadAllLines(path!).Where(l => !string.IsNullOrWhiteSpace(l)).ToList();
         Assert.NotEmpty(rows);
         foreach (var row in rows)
         {
