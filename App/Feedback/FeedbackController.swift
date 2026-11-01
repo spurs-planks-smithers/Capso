@@ -70,6 +70,8 @@ final class FeedbackController {
     /// Zip Round and Zip N Selected (#85). Made in `start`.
     private var zip: FeedbackZip?
     private var supportSubmission: FeedbackSupportSubmission?
+    /// The offline update reminder (#203). Made in `start`.
+    private var updateReminder: FeedbackUpdateReminder?
     private let quickLook = FeedbackQuickLook()
     /// The Recent list as read from disk. The menu asks for it on every open
     /// and every submenu open. The cache decodes a `feedback.json` only when
@@ -224,6 +226,31 @@ final class FeedbackController {
             showToast: { [weak self] message in self?.showToast(message, screen: nil) }
         )
         connectHistoryMenu()
+        let info = Bundle.main.infoDictionary
+        let reminder = FeedbackUpdateReminder(
+            version: info?["CFBundleShortVersionString"] as? String ?? "",
+            build: info?["CFBundleVersion"] as? String ?? "",
+            gates: {
+                UpdateReminder.Gates(
+                    flagOn: Flags.isOn(.updateReminder),
+                    enabled: UpdateReminder.isEnabled(.standard),
+                    automaticUpdates: Capabilities.current.automaticUpdates
+                )
+            },
+            hasRounds: { [weak self] in
+                guard let self else { return false }
+                return self.round?.captures.isEmpty == false || !self.historyListing().rounds.isEmpty
+            },
+            isIdle: { [weak self] in
+                guard let self else { return false }
+                return self.round == nil && !self.hasOpenCapture && self.capturePurpose == nil
+                    && self.ending == nil && !self.copyingRoundPrompt
+            },
+            showToast: { [weak self] message in self?.showToast(message, screen: nil) },
+            openLink: { NSWorkspace.shared.open($0) }
+        )
+        updateReminder = reminder
+        reminder.start()
         notePanel.onClosed = { [weak self] in
             self?.updateHelp()
         }
@@ -645,8 +672,13 @@ final class FeedbackController {
                 zipEnabled: Flags.isOn(.zipHandoff),
                 supportSubmissionEnabled: Flags.isOn(.supportSubmission),
                 newerSchemaCount: listing.newerSchema.count,
-                older: Array(listing.rounds.dropFirst(5))
+                older: Array(listing.rounds.dropFirst(5)),
+                updateReminderRow: self.updateReminder?.menuRowVisible() ?? false
             )
+        }
+        statusItem.onGetLatestVersion = { [weak self] in
+            FeedbackLog.logger.notice("menu: Get the latest version")
+            self?.updateReminder?.openSite()
         }
         statusItem.onSubmitRecentRound = { [weak self] round in
             self?.supportSubmission?.show(round: round)

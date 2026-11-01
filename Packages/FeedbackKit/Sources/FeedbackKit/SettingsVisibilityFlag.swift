@@ -28,6 +28,7 @@ public enum SettingsVisibilityFlag: String, Sendable, CaseIterable {
     case generalAboutVersion = "general.about.version"
     case generalAboutReportABug = "general.about.reportABug"
     case generalAboutRequestAFeature = "general.about.requestAFeature"
+    case generalAboutUpdateReminder = "general.about.updateReminder"
     case generalDiagnosticsDiagnosticLogging = "general.diagnostics.diagnosticLogging"
     case generalDiagnosticsDiagnosticLogs = "general.diagnostics.diagnosticLogs"
     case generalDiagnosticsCrashReports = "general.diagnostics.crashReports"
