@@ -1,37 +1,74 @@
 // Packages/FeedbackKit/Sources/FeedbackKit/SessionName.swift
 import Foundation
 
-/// The first line of a pasted prompt: `Session Name: <name>` (#198, Drew,
-/// 2026-10-31). Agent tools name a session from the first message, and every
-/// prompt used to start with the same tag, so a user with several rounds saw
-/// one name many times.
+/// The first line of a pasted prompt: `Session Name: <app> - <name>` (#198,
+/// Drew, 2026-10-31). Agent tools name a session from the first message, and
+/// every prompt used to start with the same tag, so a user with several rounds
+/// saw one name many times.
 ///
 /// The name is the Recent Rounds title (`RoundTitle`): the reviewer's own
 /// words, 50 characters at most. When the reviewer wrote no words it is a date
-/// and time label, so two rounds never share a name. Window titles and OCR
-/// text never feed it. It makes no network call.
+/// and time label, so two rounds never share a name. The app comes first: the
+/// source app of the captures, the same name that the Recent Rounds subtitle
+/// shows ("Google Chrome"). Window titles and OCR text never feed the line,
+/// because a web page sets them. It makes no network call.
 public enum SessionName {
     public static let label = "Session Name: "
 
+    /// Between the app and the name.
+    static let appSeparator = " - "
+
+    /// Longest app part in characters, the ellipsis included.
+    static let maxAppLength = 40
+
     /// A round prompt, and a round zip README.
     public static func line(for round: FeedbackRound, timeZone: TimeZone = .current, locale: Locale = .current) -> String {
-        label + name(title: RoundTitle.title(for: round), date: round.startedAt, timeZone: timeZone, locale: locale)
+        line(captures: round.captures, date: round.startedAt, timeZone: timeZone, locale: locale)
     }
 
-    /// A capture prompt. A selection prompt and a selection zip README pass
-    /// their first capture, in capture-time order. A capture has no round, so
-    /// the date label is the capture's own time.
+    /// A capture prompt. A capture has no round, so the date label is the
+    /// capture's own time.
     public static func line(for capture: FeedbackCapture, timeZone: TimeZone = .current, locale: Locale = .current) -> String {
-        label + name(title: RoundTitle.title(for: capture), date: capture.capturedAt, timeZone: timeZone, locale: locale)
+        line(captures: [capture], date: capture.capturedAt, timeZone: timeZone, locale: locale)
     }
 
-    private static func name(title: String?, date: Date, timeZone: TimeZone, locale: Locale) -> String {
+    /// A selection prompt and a selection zip README. They pass their captures
+    /// in capture-time order, and the date label is the first capture's time.
+    /// Nil when no capture is selected.
+    public static func line(forSelection captures: [FeedbackCapture], timeZone: TimeZone = .current, locale: Locale = .current) -> String? {
+        guard let first = captures.first else { return nil }
+        return line(captures: captures, date: first.capturedAt, timeZone: timeZone, locale: locale)
+    }
+
+    private static func line(captures: [FeedbackCapture], date: Date, timeZone: TimeZone, locale: Locale) -> String {
+        let name = name(captures: captures, date: date, timeZone: timeZone, locale: locale)
+        guard let app = app(of: captures) else { return label + name }
+        return label + app + appSeparator + name
+    }
+
+    private static func name(captures: [FeedbackCapture], date: Date, timeZone: TimeZone, locale: Locale) -> String {
         // `safe` can lengthen a title (it splits emoji joined by a zero-width
         // joiner), so the 50 character limit applies again after it.
-        if let title = title.map(safe).map(RoundTitle.shortened), !title.isEmpty {
+        if let title = RoundTitle.title(forCaptures: captures).map(safe).map({ RoundTitle.shortened($0) }), !title.isEmpty {
             return title
         }
         return FeedbackLibrary.dateLabel(date, timeZone: timeZone, locale: locale)
+    }
+
+    /// The source apps, as the Recent Rounds subtitle picks them: distinct, in
+    /// capture order, two at most, then " +N" for the rest (no comma before
+    /// it). The whole part is 40 characters at most. Nil when no capture
+    /// has an app name. An app name comes from the app's bundle, not from page
+    /// content, but it gets the same cleaning as the name.
+    static func app(of captures: [FeedbackCapture]) -> String? {
+        var apps: [String] = []
+        for app in captures.compactMap(\.sourceApp).map(safe) where !app.isEmpty && !apps.contains(app) {
+            apps.append(app)
+        }
+        guard !apps.isEmpty else { return nil }
+        // The "+N" stays whole: only the names are cut to fit.
+        let more = apps.count > 2 ? " +\(apps.count - 2)" : ""
+        return RoundTitle.shortened(apps.prefix(2).joined(separator: ", "), limit: maxAppLength - more.count) + more
     }
 
     /// One line with no `<`, `>`, or backtick, so reviewer text cannot forge

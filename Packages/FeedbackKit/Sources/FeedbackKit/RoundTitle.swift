@@ -26,7 +26,9 @@ public enum RoundTitle {
         title(forCaptures: [capture])
     }
 
-    private static func title(forCaptures captures: [FeedbackCapture]) -> String? {
+    /// The same label across a list of captures, in the order given. A
+    /// selection prompt uses it for its checked captures (#198).
+    static func title(forCaptures captures: [FeedbackCapture]) -> String? {
         let instructions = captures.flatMap { FeedbackItems.split($0).items.compactMap { $0.badge.instruction } }
         let notes = captures.compactMap(\.note)
         let titles = (instructions + notes).compactMap(clean)
@@ -98,9 +100,15 @@ public enum RoundTitle {
     /// At most `maxLength` characters, cut at a word end when one sits in the
     /// back half, with an ellipsis.
     static func shortened(_ text: String) -> String {
-        guard text.count > maxLength else { return text }
-        var cut = String(text.prefix(maxLength - 1))
-        if let space = cut.lastIndex(of: " "), cut.distance(from: cut.startIndex, to: space) >= maxLength / 2 {
+        shortened(text, limit: maxLength)
+    }
+
+    /// `shortened` with another limit. The session name uses it for the app
+    /// part (#198).
+    static func shortened(_ text: String, limit: Int) -> String {
+        guard text.count > limit else { return text }
+        var cut = String(text.prefix(limit - 1))
+        if let space = cut.lastIndex(of: " "), cut.distance(from: cut.startIndex, to: space) >= limit / 2 {
             cut = String(cut[..<space])
         }
         cut = cut.trimmingCharacters(in: CharacterSet(charactersIn: " .,;:!?-"))

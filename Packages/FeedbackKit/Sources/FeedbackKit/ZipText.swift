@@ -6,9 +6,10 @@ import Foundation
 public enum ZipReadme {
     /// `missing` are captures whose image file was not found. `unresolved`
     /// are checked captures whose round or capture was not found at all.
-    /// `sessionTitle` (#198) makes line 1 `Session Name: <title>`: the round
-    /// title for a round zip, the first capture's title for a selection zip,
-    /// as in the selection prompt. The rest of the README is as before.
+    /// `sessionTitle` (#198) makes line 1 `Session Name: <app> - <title>`: the
+    /// round's apps and title for a round zip, the selected captures' apps and
+    /// title for a selection zip, as in the selection prompt. The rest of the
+    /// README is as before.
     public static func render(_ plan: ZipPlan, kind: ZipKind, missing: [FeedbackBasketKey], unresolved: [FeedbackBasketKey] = [], sessionTitle: Bool = false, timeZone: TimeZone = .current) -> String {
         var lines: [String] = []
         if sessionTitle {
@@ -16,8 +17,8 @@ public enum ZipReadme {
             case .round:
                 lines += [SessionName.line(for: plan.round, timeZone: timeZone), ""]
             case .selection:
-                if let first = plan.round.captures.first {
-                    lines += [SessionName.line(for: first, timeZone: timeZone), ""]
+                if let line = SessionName.line(forSelection: plan.round.captures, timeZone: timeZone) {
+                    lines += [line, ""]
                 }
             }
         }

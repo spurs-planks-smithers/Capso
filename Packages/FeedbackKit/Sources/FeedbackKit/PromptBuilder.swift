@@ -40,7 +40,7 @@ public enum PromptBuilder {
     /// the Goal line and adds the session name line, so the first 2000
     /// characters name the subject. The title step of an agent tool reads
     /// only that much of the first message. It also makes the first line
-    /// `Session Name: <round title>` (#198). Without it the output is unchanged.
+    /// `Session Name: <app> - <round title>` (#198). Without it the output is unchanged.
     public static func render(_ round: FeedbackRound, folderPath: String, redo: Bool = false, refined: Bool = false, lanes: PromptLanes? = nil, sessionTitle: Bool = false) -> String {
         render(round, paths: .absolute(folderPath: folderPath), redo: redo, refined: refined, lanes: lanes, sessionTitle: sessionTitle)
     }
@@ -114,8 +114,8 @@ public enum PromptBuilder {
     /// `redo` adds the redo line after the Goal line. `refined` adds the
     /// capture's `-refined.md` file to the files to open, and one Authority line.
     /// `sessionTitle` (#164) adds the session name line after the Goal line.
-    /// It also makes the first line `Session Name: <title>` (#198), cut from
-    /// this capture's own words.
+    /// It also makes the first line `Session Name: <app> - <title>` (#198): the
+    /// capture's source app, then a title cut from its own words.
     public static func renderCapture(_ capture: FeedbackCapture, folderPath: String, redo: Bool = false, refined: Bool = false, sessionTitle: Bool = false) -> String {
         renderCapture(capture, paths: .absolute(folderPath: folderPath), redo: redo, refined: refined, sessionTitle: sessionTitle)
     }
@@ -184,8 +184,8 @@ public enum PromptBuilder {
     /// OCR text and window titles stay in the manifests. A selection comes
     /// from the Recent menu, so the redo line is always present.
     /// `sessionTitle` (#164) adds the session name line after the redo line.
-    /// It also makes the first line `Session Name: <title>` (#198), cut from
-    /// the first selected capture's words.
+    /// It also makes the first line `Session Name: <app> - <title>` (#198): the
+    /// source apps of the selected captures, then a title cut from their words.
     public static func renderSelection(_ entries: [FeedbackSelectionEntry], sessionTitle: Bool = false) -> String {
         // Same order as `FeedbackLibrary.entries(for:in:)`: capture time, then
         // folder, then capture index.
@@ -203,8 +203,8 @@ public enum PromptBuilder {
         let roundCount = Set(ordered.map(\.folderPath)).count
 
         var lines: [String] = []
-        if sessionTitle, let first = ordered.first {
-            lines.append(SessionName.line(for: first.capture))
+        if sessionTitle, let line = SessionName.line(forSelection: ordered.map(\.capture)) {
+            lines.append(line)
         }
         lines += [
             #"<feedback_selection captures="\#(ordered.count)" rounds="\#(roundCount)" items="\#(itemCount)">"#,

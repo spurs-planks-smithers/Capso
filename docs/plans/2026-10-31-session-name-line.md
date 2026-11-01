@@ -8,23 +8,24 @@ Drew decided that this change must not ship in 0.6.0. `origin/main` `VERSION` re
 
 ## Behavior (Drew, 2026-10-31)
 
-- Line 1 of a pasted prompt reads `Session Name: <name>`. The tag line (`<feedback_bundle ...>`) follows it.
+- Line 1 of a pasted prompt reads `Session Name: <app> - <name>`. The tag line (`<feedback_bundle ...>`) follows it. The app part came later the same day (call 9).
 - Four places: round prompt, capture prompt, selection prompt, zip `README.md`.
 - `<name>` is the Recent Rounds title (`RoundTitle`): the reviewer's own words, 50 characters at most.
 - With no reviewer words, `<name>` is a date and time label, so two rounds never share a name.
-- The name is one line and holds no `<`, `>`, backtick, or newline. It uses reviewer words only, never window titles or OCR text.
+- The name is one line and holds no `<`, `>`, backtick, or newline. The name uses reviewer words only. The app is the one other part (call 9). Window titles and OCR text never feed the line.
 - No network call, and no delay of a copy.
 
 ## Calls I make
 
 1. **Round:** `RoundTitle.title(for: round)`.
 2. **Capture:** the same cleaning on that capture alone: its first instruction, else its note. A new `RoundTitle.title(for: capture)` shares the code with the round version.
-3. **Selection:** the title of the first selected entry's capture. The first entry is the oldest capture, the same order as the prompt body. One checked capture then gets the same name as its capture prompt.
-4. **Zip README:** a round zip uses the round title. A selection zip uses the first capture, as the selection prompt does.
+3. **Selection:** `RoundTitle.title(forCaptures:)` over the checked captures, oldest first, the same order as the prompt body. The first version used the first capture only (see call 9). One checked capture still gets the same name as its capture prompt.
+4. **Zip README:** a round zip uses the round title. A selection zip uses its captures, as the selection prompt does.
 5. **Date fallback is absolute:** "Oct 31, 6:27 AM", the form Recent Rounds shows for rounds older than yesterday. Recent Rounds itself shows "Today" or "Yesterday" for newer rounds. A session name outlives the day, and "Today, 6:27 AM" would name two rounds from different days the same. A round uses `startedAt`. A capture or selection uses the capture's `capturedAt`, because those prompts have no round.
 6. **Cleaning:** turn `<`, `>`, backtick, and white space into one space. Drop control, format, and other invisible characters (zero-width, tag, and filler characters). Cut to 50 characters again after cleaning. If nothing is left, use the date label.
 7. **Flag:** the existing `sessionTitle` flag, on in both channels. No new flag. The zip path gets a `sessionTitle` parameter, because zip code had no flag before.
 8. **Old `sessionNameLine`:** reword it to point at the first line. Text: "The first line is this session's name. If your tool lets you rename this session, set its name to that text now." #164 found that an agent which can rename its session does so when asked. The reworded line keeps that and makes the agent use Nextshot's name, not a second one. The paste test below decides nothing about this line, because no tool I can drive renames a session.
+9. **App prefix (Drew, 2026-10-31, items 3.1 and 4.1 of his review of the draft):** the line reads `Session Name: <app> - <name>`. `<app>` is `sourceApp`, the name that the Recent Rounds subtitle shows ("Google Chrome"): distinct apps in capture order, two at most, then ` +N`, cut to 40 characters. I chose the app, not the window title. The review mark sits on the app name in the menu, and a window title is page text that a web page sets. A capture with no app name adds no prefix. The date fallback keeps the app: `Google Chrome - Oct 31, 6:27 AM`. The separator is ` - `, so the line has no second colon. The Recent Rounds title in the menu is unchanged. Codex cuts its list name to 50 characters, so the label, the app, and the start of the name share them.
 
 ## Files
 
