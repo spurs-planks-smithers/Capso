@@ -38,6 +38,8 @@ struct AgentNeutralTextTests {
             ("round prompt (session title)", PromptBuilder.render(round, paths: absolute, redo: true, sessionTitle: true)),
             ("capture prompt (session title)", PromptBuilder.renderCapture(two, paths: absolute, redo: true, sessionTitle: true)),
             ("selection prompt (session title)", PromptBuilder.renderSelection(ZipPlanTests.entries(round), sessionTitle: true)),
+            ("round prompt (linked)", PromptBuilder.render(round, paths: absolute, linkedPlan: true)),
+            ("round prompt (linked, session title)", PromptBuilder.render(round, paths: absolute, redo: true, refined: true, sessionTitle: true, linkedPlan: true)),
             ("zip README", ZipReadme.render(zipPlan, kind: .round, missing: [])),
         ]
     }
@@ -45,7 +47,7 @@ struct AgentNeutralTextTests {
     @Test("No text written into a bundle names an agent product")
     func bundleTextNamesNoAgent() throws {
         let texts = Self.bundleTexts()
-        try #require(texts.count >= 13, "the guard renders too few texts")
+        try #require(texts.count >= 15, "the guard renders too few texts")
         for (name, text) in texts {
             try #require(!text.isEmpty, "\(name) is empty")
             let lowered = text.lowercased()
