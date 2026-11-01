@@ -2,32 +2,36 @@
 
 **Local testing correction, 2026-10-28:** Drew's 2026-10-27 rule permits only Nextshot Dev on m5pro. Older acceptance steps involving both installed apps require another approved Mac. Follow [[local-development]].
 
-Date: 2026-10-25. Owner: Drew. The decisions are in [docs/decisions/2026-10-25-versioning-and-releases.md](../decisions/2026-10-25-versioning-and-releases.md). This plan turns them into milestones. Nothing here is built yet.
+Date: 2026-10-25. Updated 2026-10-30. Owner: Drew. The decisions are in [docs/decisions/2026-10-25-versioning-and-releases.md](../decisions/2026-10-25-versioning-and-releases.md). This plan turns them into milestones. M1 and M2 are built and shipped with 0.3.0. M3 to M5 are plans.
 
 ## Where we are
 
-Nextshot 0.3.0 shipped on 2026-10-25. The history reads:
+Nextshot has shipped 0.3.0, 0.4.0, and 0.5.0 with the release command. The history reads:
 
 | Version | What people got | Date |
 |---|---|---|
 | 0.1.0 | The first shared DMG, labeled 2026.10.22 | 2026-10-22 |
 | 0.2.0 | Rounds, flags, and the round rename, labeled 2026.10.24 | 2026-10-24 |
-| 0.3.0 | The in-place DMG installer and update (build 751) | 2026-10-25 |
+| 0.3.0 | The in-place DMG installer and update (build 751) | 2026-10-26 |
+| 0.4.0 | Website Guides and guarded support submission | 2026-10-27 |
+| 0.5.0 | Show More in Recent Rounds and reviewed support submission | 2026-10-28 |
 
-The site shows "Version 2026.10.24" and has served 45 downloads to people (27 for 2026.10.22, 18 for 2026.10.24).
+The date of a release is the UTC date of the `scripts/release.sh` run (`date -u`). `CHANGELOG.md` and the release record carry that date. The 0.3.0 run started at 21:01 on 2026-10-25 in Pacific time, so 0.3.0 reads 2026-10-26, while its commit and tag carry the local date 2026-10-25.
+
+The site shows the version in `latest.json`. Download counts are at nextshot.dev/stats.
 
 ## What the user sees
 
 Seamless for the user is the first test of every step. This is the target journey.
 
-| Moment | Today | After M2 | After M3 |
+| Moment | Before M2 | Now (M2, since 0.3.0) | After M3 |
 |---|---|---|---|
 | First install | Open the DMG, double-click or drag, answer Open once, grant screen recording once | Same | Same |
 | Learning that a new version exists | Drew tells them | Drew tells them | The app says "Version 0.4.0 is available" |
 | Updating | Download the new DMG, double-click the app on the image, answer Install | Same, with a clean file name | One click on "Install and Relaunch" |
 | After an update | Screen recording grant stays | Same | Same |
 | Wrong build, need to go back | Ask Drew for the old file | Download from `/releases/` | Same |
-| Which version do I have? | Menu line, for example "Nextshot 2026.10.24 (524)" | "Nextshot 0.3.0 (625)" | Same |
+| Which version do I have? | Menu line, for example "Nextshot 2026.10.24 (524)" | "Nextshot 0.3.0 (751)" | Same |
 
 The version string reads the same in five places: the menu line, the DMG volume name, the DMG file name, the site, and the changelog.
 
@@ -60,28 +64,28 @@ Goal: `scripts/release.sh` takes a bump and ends with a live, archived, rollback
 The command runs these steps and stops at the first failure. Build and check come before the question, so nothing is public until Drew answers. The steps as built (the first draft put the archive before the question):
 
 1. **Preflight.** HEAD is `main` and equals `origin/main`. The tree is clean. Tests pass for FeedbackKit, JevKit, and CapsoTests. JevKit also passes in Release (`swift test -c release -Xswiftc -enable-testing --package-path Packages/JevKit`), because an optimizer bug lost a dupes result in Release only on 2026-10-25 and every Debug test passed. The Developer ID certificate, the notary profile, the GitHub route, and R2 are ready. `CHANGELOG.md` has an entry under Unreleased.
-2. **Bump.** Drew names the bump (`patch`, `minor`, `major`, or `X.Y.Z`). With no name, the command suggests one from the commit prefixes since the last tag and stops. It moves `Unreleased` to the new version with today's date, writes `VERSION`, commits `chore: release X.Y.Z`, and tags `nextshot-vX.Y.Z`. Both stay local.
+2. **Bump.** Drew names the bump (`patch`, `minor`, `major`, or `X.Y.Z`). With no name, the command suggests one from the commit prefixes since the last tag and stops. It moves `Unreleased` to the new version with the UTC date of the run, writes `VERSION`, commits `chore: release X.Y.Z`, and tags `nextshot-vX.Y.Z`. Both stay local.
 3. **Build.** `scripts/release-notarized.sh`: sign, notarize, staple, DMG, zip.
 4. **Check.** Stapled ticket, Gatekeeper, and a mount test: bundle ID, version, build, and signature of the app inside the image.
 5. **Ask once.** The version, build, hash, and notes. Anything but `y`, a closed stdin, or no terminal stops the run, and the local commit and tag are undone.
 6. **Archive, push, promote.** Upload the files to R2 and read the DMG back. Push `main` and the tag. Point `latest.json` at the new record. Run the smoke test. If it fails, `latest.json` goes back to the version it replaced.
 
-Status on 2026-10-25, branch `feature/one-command-releases`:
+Status after the 0.3.0 release. Every task is done:
 
 | Task | Size | State |
 |---|---|---|
-| Serve `/releases/<file>` from R2 with Range support. Make `/download`, the page, and `/stats` follow `latest.json`. | M | Done. Rehearsed against a simulated bucket, then deployed to nextshot.dev on 2026-10-25 from commit 93be021 (PR #108, not yet merged). The live smoke test passed all 16 checks. |
+| Serve `/releases/<file>` from R2 with Range support. Make `/download`, the page, and `/stats` follow `latest.json`. | M | Done. Rehearsed against a simulated bucket, then deployed to nextshot.dev on 2026-10-25 (PR #108, merged before 0.3.0). The live smoke test passed all 16 checks. The site review (#110) and later work changed the Worker and the page afterward, so the live Worker is the code of the last site deploy, not of #108. |
 | Group `/stats` by the new version strings. | S | Needs no change: `/stats` groups by the stored version, so 0.3.0 and 2026.10.24 are separate rows. |
-| Write `scripts/release.sh` with `--dry-run`. | L | Built. The dry run works on the real repo. The full run (build, notarize, push) is untested: it needs `main` and a real release. |
+| Write `scripts/release.sh` with `--dry-run`. | L | Done. The 0.3.0 release ran it end to end. A dry run checks the preflight and prints the plan. It skips the tests, the build, and the DMG check. |
 | `scripts/release.sh --promote <version>` for rollback. | S | Built and rehearsed: rollback, a declined question, no terminal, an unknown version, and a failed smoke test that restores the earlier pointer. |
 | `site/deploy.sh` deploys the page only. | S | Done. It ran against Cloudflare on 2026-10-25 (with the live video and poster, `--poster build/site-poster.jpg`: a plain run would replace the poster). The token can deploy a Worker with an R2 binding. |
 | `scripts/release.sh --import-legacy` archives a date build. | S | Done. Rehearsed, then used on 2026-10-25 for the real bucket. |
 | Create the bucket `nextshot-releases`, give the token R2 permission limited to it. | M | Done 2026-10-25. The bucket exists (created through the Cloudflare connector). The token reads, writes, and deletes there, a 13 MB round trip works, and the other two buckets answer 403. R2 goes through the S3 interface (see `docs/site.md`, "Cloudflare access"). |
 | Import the 2026.10.24 DMG into the real bucket and point `latest.json` at it, then deploy the Worker. | M | Done 2026-10-25, each step on Drew's yes. The bucket holds the DMG (SHA-256 and size match the local file), its checksum, its record, and `latest.json`. The import used `--no-smoke`, because the old Worker had no `latest.json` route. nextshot.dev now serves from the bucket. |
 | Run the bridge test: install the 2026.10.24 build, then run the 0.3.0 image copy. | M | Done 2026-10-25 on m5pro, in a scratch folder so the daily copy stayed untouched. The 2026.10.24 (524) app ran from a scratch folder. The 0.3.0 (751) image copy logged `Launch plan for build 0.3.0 (751): offerInstall` and asked "Nextshot 2026.10.24 (524) is open. Nextshot quits it, replaces it in test-app, and opens the new version." After Install, the 524 copy was gone, 0.3.0 (751) ran from the same path (`Launch plan ...: run`), and the image ejected itself. The installed app is Developer ID signed, and Gatekeeper accepts it as Notarized Developer ID. The rounds folder matched a backup file for file. Not repeated: the Safari quarantine "Open" prompt (tested for 524 to 619, 620, 621 on 2026-10-25) and the Screen Recording grant. |
-| Cut 0.3.0 with the command. | S | Done 2026-10-25 on Drew's yes. #107, #108, and the site review (#110) were in `main` first. The tests, the build, notarization, the DMG checks, the R2 archive, the push, the tag `nextshot-v0.3.0`, the promote, and the 16-check smoke test of the live site all passed. 0.3.0 is build 751, commit c23afe6, SHA-256 6f66e436cc941b82e74e8554ac01e59c9f292f138acc30cb4994620c3858a9ad. The command ran from a worktree on `main`. |
+| Cut 0.3.0 with the command. | S | Done on the evening of 2026-10-25 Pacific time (2026-10-26 UTC, the date `CHANGELOG.md` carries) on Drew's yes. #107, #108, and the site review (#110) were in `main` first. The tests, the build, notarization, the DMG checks, the R2 archive, the push, the tag `nextshot-v0.3.0`, the promote, and the 16-check smoke test of the live site all passed. 0.3.0 is build 751, commit c23afe6, SHA-256 6f66e436cc941b82e74e8554ac01e59c9f292f138acc30cb4994620c3858a9ad. The command ran from a worktree on `main`. |
 
-If #108 changes in review, deploy the Worker again with `site/deploy.sh`, because the live Worker is the code of commit 93be021. To undo the deploy: `wrangler rollback`.
+To undo a site deploy by hand: `wrangler rollback`.
 
 ### M3: Automatic Updates
 
