@@ -109,8 +109,9 @@ r2_login() {
     rel_fail "no Keychain item $release_keychain_item. Store it with keychain-store.sh $release_keychain_item"
   # wrangler deploy (site/deploy.sh) reads the token from this variable.
   export CLOUDFLARE_API_TOKEN="$token"
-  r2_key_id="$(curl -s -H "Authorization: Bearer $token" \
-    "https://api.cloudflare.com/client/v4/accounts/$release_account_id/tokens/verify" |
+  # The token goes to curl on stdin (-K -), so no local process list shows it.
+  r2_key_id="$(printf 'header = "Authorization: Bearer %s"\n' "$token" |
+    curl -s -K - "https://api.cloudflare.com/client/v4/accounts/$release_account_id/tokens/verify" |
     python3 -I -c 'import json,sys; print(json.load(sys.stdin)["result"]["id"])' 2>/dev/null)" ||
     rel_fail "Cloudflare did not accept the token in $release_keychain_item"
   r2_key_secret="$(printf '%s' "$token" | shasum -a 256 | cut -d' ' -f1)"

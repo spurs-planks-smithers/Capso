@@ -27,6 +27,11 @@
     </div>
   </header>
 
+  <aside class="update-note" id="update-note" data-version="{{VERSION}}" hidden>
+    <p class="update-compare" hidden></p>
+    <p class="update-offline">Nextshot stays offline, so it cannot update itself or send us anything. Download the newest DMG, open it, and double-click Nextshot on the image to update. Tell us what you think at <a href="https://feedback.nextshot.dev/">feedback.nextshot.dev</a>.</p>
+  </aside>
+
   <section class="hero">
     <h1>Show AI what you mean.</h1>
     <p class="lead"><span>Stop trying to describe issues to your agents.</span> <span>Start giving visual directions.</span> <span>One-click handoffs built for LLMs.</span></p>
@@ -77,6 +82,7 @@
     video.addEventListener("play", start);
   })();
 </script>
+<script src="/update-note.js" defer></script>
 <script src="/dots.js" defer></script>
 </body>
 </html>

@@ -129,6 +129,10 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
     /// Apple's on-device model (#200). Not a Jev feature: nothing leaves the
     /// Mac. It runs only with `sessionTitle` on as well.
     case sessionSummary
+    /// The offline update reminder (#203): one toast and a menu row, about 7
+    /// days after a build first runs. Not a Jev feature, and it makes no
+    /// request. Code only.
+    case updateReminder
 
     /// New flags start with both defaults `off`. A release default turns on
     /// only with a released-in build number.
@@ -180,6 +184,13 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
             FlagSpec(issue: 164, allowedStates: [.off, .on], devDefault: .on, releaseDefault: .on, releasedInBuild: 889)
         case .sessionSummary:
             FlagSpec(issue: 200, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
+        case .updateReminder:
+            // On in both channels (Drew, 2026-10-31). A guess at the marker:
+            // main stood at build 893 on 2026-10-31, so this squash merge is
+            // 894 and the release commit is 895. Other merges or releases
+            // before then make it stale. Check it when the release is cut.
+            // Nothing reads the number at run time.
+            FlagSpec(issue: 203, allowedStates: [.off, .on], devDefault: .on, releaseDefault: .on, releasedInBuild: 895)
         case .standaloneCapture, .recordingTools, .translationTools, .cloudShare, .automationURLs, .automaticUpdates:
             FlagSpec(issue: 119, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
         }

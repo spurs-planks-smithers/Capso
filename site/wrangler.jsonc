@@ -1,5 +1,6 @@
-// nextshot.dev on Cloudflare Workers. Deploy with site/deploy.sh, which stages
-// ../build/site and passes DMG_FILE and VERSION. See docs/site.md.
+// nextshot.dev on Cloudflare Workers. Deploy with site/deploy.sh. It stages a
+// copy of this file under build/site-stages/ with its assets folder changed and
+// one variable added, SIZES (the byte size of each video). See docs/site.md.
 {
   "name": "nextshot-site",
   "account_id": "2afca1b8aab7ec4024bdb7cb2fec47c0",

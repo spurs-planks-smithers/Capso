@@ -4,6 +4,8 @@ All notable changes to Nextshot are listed here. The format follows [Keep a Chan
 
 A pull request that changes what a person sees or can do adds one line under Unreleased. The release step moves those lines into the new version.
 
+The date of a version is the UTC date of the release run (`scripts/release.sh` uses `date -u`). The 0.3.0 run started at 21:01 on 2026-10-25 in Pacific time, so 0.3.0 reads 2026-10-26.
+
 Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This fork started from Capso 1.2.5.
 
 ## [Unreleased]
@@ -11,12 +13,14 @@ Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This for
 ### Added
 
 - Option+Shift+G captures the same screen area as your last Option+Shift+F capture, with no dragging. With no earlier area, it opens the selector.
+- About 7 days after a new build first runs, Nextshot shows one toast and a "Get the latest version…" row in the Nshot menu. Nextshot stays offline, so it cannot check for updates. The row opens nextshot.dev in your browser, which tells you whether a newer build is out. It sends nothing. Settings > General > About has a "Remind me about new versions" switch.
 
 ### Changed
 
 - A copied prompt starts with `Session Name:`, the app you captured, and your round's title, so agent tools list each round under its own name. A round with no written instruction uses its date and time.
 - A copied prompt lists your items and notes near the top and asks the agent to name its session, so sessions no longer share one name. Recent Rounds labels each round with your first instruction, and the date moves to the line below.
 - Esc on a marked capture copies the marked image and saves the capture to the round with no notes, then closes the editor. The round stays open. Before, Esc with marks only stepped back.
+- The website's download stats page lists versions first and shows the last 30 days as a bar chart. An info box explains bots and link previews.
 
 ## [0.5.0] - 2026-10-28
 

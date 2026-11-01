@@ -232,8 +232,8 @@ async function stats(env) {
 <main>
   <a class="brand" href="/"><img src="/nextshot-icon.png" alt="" width="32" height="32"><span>Nextshot downloads</span></a>
   <p class="total"><strong>${total.people}</strong> downloads by people, plus ${total.bots} from bots and link previews.</p>
-  ${table("By day, last 30 days (UTC)", "Day", days.results)}
   ${table("By version", "Version", versions.results)}
+  ${dayChart(days.results)}
   <p class="meta">Current version: ${esc(latest?.version)}. <a href="/">Back to the download page</a></p>
 </main>
 </body>
@@ -247,7 +247,91 @@ function table(title, firstColumn, rows) {
   const body = rows.length
     ? rows.map((r) => `<tr><td>${esc(r.label)}</td><td>${r.people}</td><td>${r.bots}</td></tr>`).join("")
     : `<tr><td>n/a</td><td>0</td><td>0</td></tr>`;
-  return `<section><h2>${title}</h2><table><thead><tr><th>${firstColumn}</th><th>People</th><th>Bots and previews</th></tr></thead><tbody>${body}</tbody></table></section>`;
+  return `<section><h2>${title}</h2><table><thead><tr><th>${firstColumn}</th><th>People</th><th>${botsLabel("bots-info-table", "end")}</th></tr></thead><tbody>${body}</tbody></table></section>`;
+}
+
+// The last 30 UTC days as stacked columns, oldest on the left. D1 has no row
+// for a day with no downloads, so that day shows as an empty column. The chart
+// is hidden from screen readers, which read the same counts from a table.
+function dayChart(rows) {
+  const byLabel = new Map(rows.map((r) => [r.label, r]));
+  const now = new Date();
+  const days = [];
+  for (let back = 29; back >= 0; back--) {
+    const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - back));
+    const label = date.toISOString().slice(0, 10);
+    const row = byLabel.get(label);
+    days.push({ date, label, people: row?.people ?? 0, bots: row?.bots ?? 0 });
+  }
+  const max = Math.max(...days.map((d) => d.people + d.bots));
+  const step = axisStep(max);
+  const top = Math.max(step, Math.ceil(max / step) * step);
+  const grid = [];
+  for (let value = 0; value <= top; value += step) {
+    grid.push(`<div class="grid" style="bottom:${(value / top) * 100}%"><span>${value}</span></div>`);
+  }
+  const bars = days.map((d) => {
+    const segments = [
+      d.bots ? `<span class="bots" style="flex-grow:${d.bots}"></span>` : "",
+      d.people ? `<span class="people" style="flex-grow:${d.people}"></span>` : "",
+    ].join("");
+    return `<div class="day" style="--h:${((d.people + d.bots) / top) * 100}%"><div class="stack">${segments}</div>` +
+      `<div class="tip"><span class="tip-day">${shortDate(d.date, true)}</span>` +
+      `<span><span class="key people"></span><strong>${d.people}</strong> people</span>` +
+      `<span><span class="key bots"></span><strong>${d.bots}</strong> bots and previews</span></div></div>`;
+  });
+  // Labels on the first day, every seventh day, and today.
+  const ticks = days.map((d, i) => `<span>${[0, 7, 14, 21, 29].includes(i) ? `<span>${shortDate(d.date)}</span>` : ""}</span>`);
+  const rowsForReaders = days
+    .map((d) => `<tr><td>${d.label}</td><td>${d.people}</td><td>${d.bots}</td></tr>`)
+    .join("");
+  return `<section class="by-day"><h2>By day, last 30 days (UTC)</h2>
+  <div class="legend"><span><span class="swatch people"></span>People</span><span><span class="swatch bots"></span>${botsLabel("bots-info-chart", "start")}</span></div>
+  <div class="chart" aria-hidden="true"><div class="plot">${grid.join("")}<div class="bars">${bars.join("")}</div></div><div class="ticks">${ticks.join("")}</div></div>
+  <div class="sr-only"><table><caption>Downloads by day, oldest first</caption><thead><tr><th>Day</th><th>People</th><th>Bots and previews</th></tr></thead><tbody>${rowsForReaders}</tbody></table></div>
+</section>`;
+}
+
+// The gridline step: the smallest of 1, 2, 5, 10, 20, 50, ... that splits the
+// tallest day into four parts or fewer.
+function axisStep(max) {
+  for (let scale = 1; ; scale *= 10) {
+    for (const base of [1, 2, 5]) if (base * scale * 4 >= max) return base * scale;
+  }
+}
+
+function shortDate(date, weekday = false) {
+  return date.toLocaleDateString("en-US", {
+    timeZone: "UTC",
+    month: "short",
+    day: "numeric",
+    ...(weekday ? { weekday: "short" } : {}),
+  });
+}
+
+// "Bots and previews" with an info icon. Hover or keyboard focus opens a box
+// that says what the column counts. The side says which edge the box lines up
+// with, so it stays on the page.
+function botsLabel(id, side) {
+  return `<span class="info info-${side}">Bots and previews<button type="button" class="info-button" aria-label="What are bots and previews?" aria-describedby="${id}">${icon("info")}</button>` +
+    `<span class="info-box" role="tooltip" id="${id}">` +
+    `<span class="info-row">${icon("bot")}<span><strong>Bots</strong> are programs that open the download link with no person behind them. Examples are search crawlers, scripts, and the site's own deploy check.</span></span>` +
+    `<span class="info-row">${icon("link")}<span><strong>Previews</strong> come from apps such as Slack, Teams, and Outlook. When someone pastes the link, the app opens it to draw a preview card.</span></span>` +
+    `<span class="info-row">${icon("users")}<span><strong>Why it matters:</strong> neither one is a person who gets Nextshot. The page counts them apart, so People shows real downloads.</span></span>` +
+    `<span class="info-note">The site sorts each request by its user agent (the name that a browser or app sends), so a few can land in the wrong column.</span>` +
+    `</span></span>`;
+}
+
+// Lucide icons (lucide-static 0.460.0, ISC license), drawn inline.
+const ICONS = {
+  info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+  bot: '<path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/>',
+  link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+  users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+};
+
+function icon(name) {
+  return `<svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`;
 }
 
 function esc(value) {

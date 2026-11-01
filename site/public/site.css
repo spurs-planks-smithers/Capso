@@ -344,6 +344,24 @@ kbd {
   opacity: 0.8;
 }
 
+/* The note shows only when the Nextshot app opens the page as /#from=<version>
+   (update-note.js). The video shrinks by the note's height, so the page still
+   fits one screen. */
+.update-note {
+  align-self: center;
+  width: min(100%, 920px);
+  margin: 10px 0 0;
+  padding: 10px 16px;
+  border: 1px solid rgba(143, 243, 228, 0.35);
+  border-radius: 12px;
+  background: rgba(21, 25, 28, 0.6);
+  font-size: 14px;
+}
+
+.update-compare { margin: 0 0 2px; color: var(--text); font-weight: 650; }
+.update-offline { margin: 0; color: var(--muted); }
+body.has-note .frame { width: min(100%, 920px, calc((100vh - 404px - 112px) * 16 / 9)); }
+
 @media (prefers-reduced-motion: reduce) {
   body::before { animation: none; }
 }
@@ -359,6 +377,55 @@ kbd {
 .stats th { color: var(--muted); font-weight: 600; }
 .stats td + td, .stats th + th { text-align: right; }
 .stats .meta { margin-top: 28px; }
+
+/* /stats day chart. People is the brand teal one step darker, and bots use the
+   brand indigo: both pass the dataviz palette checks on this dark surface. */
+.stats { --people: #25a99b; --bots: var(--indigo); }
+.stats .people { background: var(--people); }
+.stats .bots { background: var(--bots); }
+.stats .legend { position: relative; display: flex; flex-wrap: wrap; gap: 6px 20px; margin: 0 0 14px; font-size: 14px; color: var(--muted); }
+.stats .legend > span { display: inline-flex; align-items: center; gap: 8px; }
+.stats .swatch { width: 10px; height: 10px; border-radius: 2px; }
+.stats .chart { margin-left: 32px; }
+.stats .plot { position: relative; height: 180px; }
+.stats .grid { position: absolute; left: 0; right: 0; border-top: 1px solid var(--line); }
+.stats .grid span { position: absolute; right: calc(100% + 8px); top: -9px; font-size: 12px; line-height: 18px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.stats .bars, .stats .ticks { display: flex; gap: 2px; }
+.stats .bars { position: absolute; inset: 0; }
+.stats .day { position: relative; flex: 1; display: flex; justify-content: center; align-items: flex-end; border-radius: 4px 4px 0 0; }
+.stats .day:hover { background: rgba(255, 255, 255, 0.05); }
+.stats .stack { display: flex; flex-direction: column; gap: 2px; width: 72%; max-width: 24px; height: var(--h); }
+.stats .stack span { flex: 1 1 0; min-height: 1px; }
+.stats .stack span:first-child { border-radius: 4px 4px 0 0; }
+.stats .day:hover .stack { filter: brightness(1.2); }
+.stats .tip { display: none; position: absolute; bottom: calc(var(--h) + 8px); left: 50%; transform: translateX(-50%); z-index: 3; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); font-size: 13px; line-height: 1.6; white-space: nowrap; }
+.stats .day:nth-child(-n+4) .tip { left: 0; transform: none; }
+.stats .day:nth-last-child(-n+4) .tip { left: auto; right: 0; transform: none; }
+.stats .day:hover .tip { display: grid; }
+.stats .tip-day { color: var(--muted); }
+.stats .tip strong { font-weight: 600; }
+.stats .key { display: inline-block; width: 10px; height: 2px; margin: 0 8px 4px 0; vertical-align: middle; }
+.stats .ticks { height: 20px; margin-top: 8px; font-size: 12px; color: var(--muted); }
+.stats .ticks > span { position: relative; flex: 1; }
+.stats .ticks > span > span { position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap; }
+.stats .ticks > span:first-child > span { left: 0; transform: none; }
+.stats .ticks > span:last-child > span { left: auto; right: 0; transform: none; }
+.stats .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* /stats "Bots and previews" info box: opens on hover or keyboard focus. */
+.stats .info { position: relative; display: inline-flex; align-items: center; gap: 4px; }
+.stats .info-button { display: inline-flex; padding: 2px; border: 0; border-radius: 50%; background: none; color: var(--muted); cursor: help; }
+.stats .info:hover .info-button, .stats .info-button:focus-visible { color: var(--teal); }
+.stats .info-button:focus-visible { outline: 2px solid var(--mint); outline-offset: 2px; }
+.stats .info-box { display: none; position: absolute; top: calc(100% + 6px); right: 0; z-index: 4; gap: 10px; width: 360px; max-width: calc(100vw - 48px); padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--text); font-size: 14px; font-weight: 400; line-height: 1.5; text-align: left; white-space: normal; }
+/* The legend's box lines up with the legend's left edge, so it fits a phone. */
+.stats .info-start { position: static; }
+.stats .info-start .info-box { left: 0; right: auto; }
+.stats .info:hover .info-box, .stats .info:focus-within .info-box { display: grid; }
+.stats .info-row { display: grid; grid-template-columns: 16px 1fr; gap: 10px; }
+.stats .info-row .icon { margin-top: 3px; color: var(--teal); }
+.stats .info-box strong { font-weight: 600; }
+.stats .info-note { color: var(--muted); font-size: 13px; }
 
 @media (max-width: 1180px) {
   .below { grid-template-columns: minmax(0, 1fr); gap: 24px; }

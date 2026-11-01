@@ -31,6 +31,7 @@ The bot flag comes from a user-agent pattern in `site/src/worker.js`: bots, craw
 | `site/wrangler.jsonc` | Worker `nextshot-site`: account, assets folder `../build/site`, D1 binding `DB`, R2 binding `RELEASES` (bucket `nextshot-releases`), custom domains |
 | `site/src/worker.js` | The Worker. Plain JavaScript, no build step. |
 | `site/src/releases.mjs`, `site/test/releases.test.mjs` | Pure helpers: which file names the Worker may serve, what `latest.json` must hold, and which ranges are out of bounds. `node --test site/test/releases.test.mjs` runs the tests. |
+| `site/public/update-note.js`, `site/test/update-note.test.mjs` | The update note (#203). The Mac app opens `/#from=<version>` after a click on "Get the latest version…". The script reads the `#` part in the browser, which never sends it to a server, and shows a note (and "You have the newest build." or "You have X. Version Y is out."). It makes no request. The test fails on `fetch`, `XMLHttpRequest`, `sendBeacon`, `Image`, and HTML writing. `node --test site/test/update-note.test.mjs` runs it. Deploy this before the app release that ships the reminder. |
 | `site/schema.sql` | The `downloads` table |
 | `site/public/` | `index.html` (with `{{...}}` placeholders), `site.css`, and `dots.js` (the background dot field). The deploy copies every file in this folder. |
 | `site/deploy.sh` | Builds a fresh complete artifact under `build/site-stages/`, publishes its exact files, and runs the smoke test |
@@ -58,7 +59,9 @@ Nobody replaces a published file. A bad build gets a new PATCH number. A rollbac
 scripts/release.sh minor
 ```
 
-The steps and the checks are at the top of `scripts/release.sh`, and the plan is milestone M2 in `docs/plans/2026-10-25-versioning-roadmap.md`. `scripts/release.sh` alone shows the suggested bump. `--dry-run <bump>` runs every check and prints the plan without changing anything. `--promote <version>` moves the live version, forward or back. `--import-legacy` archives a date build that shipped before versions.
+The steps and the checks are at the top of `scripts/release.sh`, and the plan is milestone M2 in `docs/plans/2026-10-25-versioning-roadmap.md`. `scripts/release.sh` alone shows the suggested bump. `--dry-run <bump>` runs the preflight checks (branch, clean tree, certificate, notary profile, GitHub route, changelog, R2, tag) and prints the plan without changing anything. It skips the tests, the build, and the DMG check. `--promote <version>` moves the live version, forward or back. `--import-legacy` archives a date build that shipped before versions.
+
+`--promote`, and `--import-legacy` with `--and-promote`, then run `site/smoke.sh` against https://nextshot.dev. `NEXTSHOT_SITE_URL` points the test at another site. `--no-smoke` skips it, and only while the Worker that reads `latest.json` is not deployed. A release never skips the test. The release date in `CHANGELOG.md` and in the release record is the UTC date of the run.
 
 **A page or video change** is a deploy:
 
@@ -76,7 +79,12 @@ The script stops when a file is 25 MiB or larger (the static asset limit), when 
 
 - New video cut: render it, then pass explicit `--video` and `--poster` inputs. When the cut becomes the live video, change the `video=` default in `site/deploy.sh` and its fixture in `site/test/releases.test.mjs` in the same change, or the next deploy puts the old cut back.
 - Deploy from a worktree on `origin/main` when the main checkout is on another branch. The deploy stages Guides from the checkout it runs in, so a branch behind main removes newer Guides edits from the live site (2026-10-28).
-- Local check: `site/deploy.sh --stage-only`. Use the preview command it prints with its generated configuration. Populate its local R2 binding before checking app routes.
+- Local check: `site/deploy.sh --stage-only`. It prints the artifact path on its last line and a preview command. The artifact holds a generated `wrangler.json`, which already carries the `SIZES` variable. Populate the local R2 binding before checking app routes. The `.claude/launch.json` file is git-ignored, so use the plain commands:
+
+```bash
+artifact="$(site/deploy.sh --stage-only | tail -1)"
+wrangler dev --config "$artifact/wrangler.json" --persist-to /tmp/nextshot-rehearsal-r2
+```
 - Exact retry: `site/deploy.sh --deploy-staged /absolute/path/to/artifact`. This verifies the file inventory without rebuilding.
 - Guides failure: restore and verify the previous Worker deployment. Preserve the new app files and `latest.json` in R2. App promotion and rollback change only the app pointer.
 
