@@ -28,6 +28,8 @@ final class FeedbackController {
     private let jev: FeedbackJev
     /// The on-device summary names for the session name line (#200).
     private let summary: FeedbackSessionSummary
+    /// The pending request for the checked captures (#200), cancelled by the next click.
+    private var selectionPrimeTask: Task<Void, Never>?
     private(set) var round: FeedbackRound?
     private(set) var folderURL: URL?
 
@@ -1366,11 +1368,18 @@ final class FeedbackController {
     }
 
     /// Starts the summary for the checked captures, so Copy N Selected and
-    /// Zip N Selected usually find their name ready (#200).
+    /// Zip N Selected usually find their name ready (#200). It waits for a
+    /// pause in the clicks: five quick checks start one request for the
+    /// final selection, not five.
     private func primeSelectionSummary() {
+        selectionPrimeTask?.cancel()
         guard FeedbackSessionSummary.canRun, basket.count > 0 else { return }
-        let captures = FeedbackLibrary.entries(for: basket, in: store.rootURL).entries.map(\.capture)
-        summary.prime(captures)
+        selectionPrimeTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(800))
+            guard !Task.isCancelled, let self, self.basket.count > 0 else { return }
+            let captures = FeedbackLibrary.entries(for: self.basket, in: self.store.rootURL).entries.map(\.capture)
+            self.summary.prime(captures)
+        }
     }
 
     /// Waits until the capture and every answer are stored, then puts the

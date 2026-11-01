@@ -7,7 +7,8 @@ import Foundation
 /// only: the text the model reads, the key of a finished name, the clean-up of
 /// a reply, and the file that keeps the names.
 ///
-/// A name is stored under a key (`basis`) made from the reviewer's words. A
+/// A name is stored under a key (`basis`) made from the instruction text and the
+/// reviewer's words. A
 /// prompt asks for the name of its own captures, so the same key serves a
 /// round, a capture, and a selection, and a name never goes stale: when a note
 /// changes or a capture joins the round, the key changes and the old name is
@@ -23,9 +24,26 @@ public struct SummaryNames: Equatable, Sendable {
     /// No names. A prompt built with it is as it was before #200.
     public static let none = SummaryNames()
 
-    /// Part of every key. Raise it when the model instruction changes, so
-    /// names written under the old instruction are not found.
-    public static let revision = 1
+    /// The instruction for the on-device model. Tuned on 47 local rounds
+    /// (2026-10-31). The words "screen" and "app" in an earlier text came back
+    /// as generic names ("Screen control"), so this text bans them. A vague
+    /// note set gets NONE, which `cleaned` turns into no name, so the prompt
+    /// keeps the reviewer's own words.
+    public static let instruction = """
+    You name a work session from a reviewer's notes. \
+    The notes arrive in groups, one group per image. \
+    Name the subject of all the work in one noun phrase of two to six words. \
+    Keep the specific names the notes use for the page, the control, the label, or the feature, \
+    and put the most important one first. \
+    Never use the generic words app, screen, screenshot, image, review, feedback, notes, changes, update, or issues. \
+    When the groups cover different areas, name the two main areas. \
+    When the notes are too short or too vague to name a subject, reply NONE. \
+    Reply with the name only. No quotes, no period, no label.
+    """
+
+    /// Part of every key: a hash of the instruction. A new instruction gives
+    /// new keys, so names written under the old text are not found.
+    public static let revision = fnvHex(instruction)
 
     /// The names that the file keeps, newest last. The oldest go first.
     static let maxEntries = 1000
@@ -112,8 +130,12 @@ public struct SummaryNames: Equatable, Sendable {
     /// 16 hex digits. The hash is stable across launches, which `Hasher` is
     /// not. A clash would show a wrong name on a prompt and nothing worse.
     public static func basis(ofInput input: String) -> String {
+        fnvHex("r\(revision)\n\(input)")
+    }
+
+    private static func fnvHex(_ text: String) -> String {
         var hash: UInt64 = 0xcbf2_9ce4_8422_2325
-        for byte in "r\(revision)\n\(input)".utf8 {
+        for byte in text.utf8 {
             hash ^= UInt64(byte)
             hash = hash &* 0x0000_0100_0000_01b3
         }
@@ -157,7 +179,7 @@ public struct SummaryNames: Equatable, Sendable {
     private static let noNameReplies: Set<String> = ["none", "n/a", "no name", "unknown", "untitled"]
 
     /// Replies that refuse or explain instead of naming.
-    private static let refusalStarts = ["i'm sorry", "i am sorry", "sorry", "i can't", "i cannot", "i can’t", "as an ai", "i'm unable", "i am unable", "unfortunately"]
+    private static let refusalStarts = ["i'm sorry", "i am sorry", "sorry,", "sorry.", "sorry!", "i can't", "i cannot", "i can’t", "as an ai", "i'm unable", "i am unable", "unfortunately,"]
 
     /// The reply as one clean name, or nil when it cannot pass for a name.
     /// A reply may carry quotes, a closing period, a label, or Markdown marks.

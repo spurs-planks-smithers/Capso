@@ -18,8 +18,8 @@ The base of this pull request is `claude/magical-jones-ab0ded`, the branch of dr
 ## Calls I make
 
 1. **Storage:** one file, `.summary-names.json`, in the rounds folder. Not a field in `feedback.json`. Why: a selection spans rounds, so a round field cannot hold its name. A round field also needs a staleness check, and an older copy of the app would drop it on its next write. No `schemaVersion` change.
-2. **Key:** a 64-bit FNV-1a hash of the revision and the reviewer's words (`SummaryNames.basis`). The same words give the same key for a round, a capture, a selection, and a zip. A changed note or a new capture gives a new key, so a name never goes stale.
-3. **Request rule:** at most one request per key at a time. A key that gave no name is not asked again until a relaunch. Fewer than three words in all: no request.
+2. **Key:** a 64-bit FNV-1a hash of the instruction text and the reviewer's words (`SummaryNames.basis`). The same words give the same key for a round, a capture, a selection, and a zip. A changed note or a new capture gives a new key, so a name never goes stale.
+3. **Request rule:** at most one request per key at a time. A key that got NONE or a reply that is not a name is not asked again until a relaunch. A key whose request threw an error is asked again after 60 s. A selection request waits 0.8 s for a pause in the clicks. Fewer than three words in all: no request.
 4. **When it runs:** when a capture's notes become final (`startJev`'s point), for the capture and for its round. When a capture is checked in the Recent menu, for the selection. On every copy, for a missing name (this covers old rounds).
 5. **Wait rule:** no wait anywhere. Jev's round end waits at most 500 ms. The summary does not, because the brief says a copy never waits. A copy right after the last note usually has the cut name. A later copy has the summary.
 6. **Fallback:** an unavailable model, a refusal, an error, a vague input (the model answers NONE), or a reply that is not a name all give today's name.

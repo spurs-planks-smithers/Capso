@@ -23,7 +23,7 @@ The rule's reason is in the local-only section of `AGENTS.md`: reviewer words le
 
 ### Where the name is stored
 
-One file, `.summary-names.json`, in the rounds folder. Each entry is a key and a name. The key is a hash of the revision and the reviewer's words.
+One file, `.summary-names.json`, in the rounds folder. Each entry is a key and a name. The key is a hash of the instruction text and the reviewer's words. Edit the instruction and every old name stops matching, with no number to remember.
 
 I did not add a field to `feedback.json`:
 
@@ -40,7 +40,8 @@ The file keeps the newest 1,000 names. A file that is missing, unreadable, or fr
 
 - A copy never waits. Jev's round end waits at most 500 ms. The summary has no wait.
 - A capture's notes become final: the capture and its round start a request in the background.
-- A capture is checked in the Recent menu: the selection starts a request.
+- A capture is checked in the Recent menu: the selection starts a request after 0.8 s with no further click, so five quick checks start one request.
+- A NONE answer or a reply that is not a name is not asked again until a relaunch. An error, such as a rate limit, is asked again after 60 s.
 - Every copy starts a request for a missing name and uses the cut name now. This covers rounds made before the flag.
 - A capture prompt copied right after the last note usually has the cut name. The model needs 0.4 to 0.9 s. Copy Last Capture Prompt, and the round prompt, have the summary a moment later.
 - A name can differ between two pastes of one round: the first used the cut name, the second used the summary. That is the cost of never waiting.

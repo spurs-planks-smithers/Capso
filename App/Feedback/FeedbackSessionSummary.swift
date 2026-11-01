@@ -23,9 +23,13 @@ final class FeedbackSessionSummary {
     private var loaded: SummaryNames?
     /// Requests in progress, by key, so one input never runs twice at once.
     private var running: [String: Task<Void, Never>] = [:]
-    /// Keys that gave no name in this launch (a vague input, a refusal, an
-    /// error). They are not asked again until a relaunch.
+    /// Keys that gave no name in this launch (the model answered NONE, or the
+    /// reply was not a name). They are not asked again until a relaunch.
     private var declined: Set<String> = []
+    /// Keys whose request failed with an error, such as a rate limit. They
+    /// are asked again after this time.
+    private var retryAt: [String: Date] = [:]
+    private static let retryDelay: TimeInterval = 60
 
     init(rootURL: URL) {
         fileURL = rootURL.appendingPathComponent(SummaryNames.fileName)
@@ -65,28 +69,46 @@ final class FeedbackSessionSummary {
     /// Starts the summary for `captures` unless it is stored, running, or
     /// already declined. The reviewer's words are the only input.
     func prime(_ captures: [FeedbackCapture]) {
-        guard let input = SummaryNames.input(of: captures), Self.canRun else { return }
+        // The flags first: with either off, nothing else runs, not even the
+        // split of the captures into words.
+        guard Self.isEnabled, let input = SummaryNames.input(of: captures), FeedbackSummaryModel.isAvailable else { return }
         let basis = SummaryNames.basis(ofInput: input)
         guard running[basis] == nil, !declined.contains(basis), !stored.contains(basis: basis) else { return }
+        if let at = retryAt[basis], at > Date() { return }
         running[basis] = Task { [weak self] in
             let start = Date()
-            let name: String?
+            let outcome: Outcome
             do {
-                name = try await FeedbackSummaryModel.name(forInput: input)
+                outcome = try await FeedbackSummaryModel.name(forInput: input).map(Outcome.name) ?? .noName
             } catch {
                 // The error type only: the text can echo the notes.
                 FeedbackLog.logger.notice("session summary failed: \(String(describing: type(of: error)), privacy: .public)")
-                name = nil
+                outcome = .failed
             }
-            self?.finish(basis: basis, input: input, name: name, seconds: Date().timeIntervalSince(start))
+            self?.finish(basis: basis, input: input, outcome: outcome, seconds: Date().timeIntervalSince(start))
         }
     }
 
-    private func finish(basis: String, input: String, name: String?, seconds: Double) {
+    private enum Outcome {
+        case name(String)
+        /// A NONE answer or a reply that is not a name.
+        case noName
+        /// The model threw, for example a rate limit.
+        case failed
+    }
+
+    private func finish(basis: String, input: String, outcome: Outcome, seconds: Double) {
         running[basis] = nil
-        guard let name else {
+        let name: String
+        switch outcome {
+        case .name(let text):
+            name = text
+        case .noName:
             declined.insert(basis)
             FeedbackLog.logger.notice("session summary: no name, \(seconds, format: .fixed(precision: 2), privacy: .public) s")
+            return
+        case .failed:
+            retryAt[basis] = Date().addingTimeInterval(Self.retryDelay)
             return
         }
         var names = stored

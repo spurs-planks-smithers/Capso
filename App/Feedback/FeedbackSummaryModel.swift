@@ -12,26 +12,10 @@ import FoundationModels
 /// unavailable, and the prompt keeps the name that `RoundTitle` cuts.
 ///
 /// The input is `SummaryNames.input(of:)`: the reviewer's words only. Screen
-/// text (OCR text, window titles) never reaches the model.
+/// text (OCR text, window titles) never reaches the model. The instruction is
+/// `SummaryNames.instruction`. Only `SystemLanguageModel.default` runs here:
+/// never `PrivateCloudComputeLanguageModel`, which calls a server.
 enum FeedbackSummaryModel {
-    /// Tuned on 47 local rounds (2026-10-31). Words such as "screen" and "app"
-    /// in the instruction came back as generic names ("Screen control"), so the
-    /// instruction bans them. A vague note set gets NONE, which
-    /// `SummaryNames.cleaned` turns into no name, so the prompt keeps the
-    /// reviewer's own words. Change it only with a new `SummaryNames.revision`,
-    /// so names written under the old text are not found.
-    static let instructions = """
-    You name a work session from a reviewer's notes. \
-    The notes arrive in groups, one group per image. \
-    Name the subject of all the work in one noun phrase of two to six words. \
-    Keep the specific names the notes use for the page, the control, the label, or the feature, \
-    and put the most important one first. \
-    Never use the generic words app, screen, screenshot, image, review, feedback, notes, changes, update, or issues. \
-    When the groups cover different areas, name the two main areas. \
-    When the notes are too short or too vague to name a subject, reply NONE. \
-    Reply with the name only. No quotes, no period, no label.
-    """
-
     /// True when this Mac can run the model now: macOS 26 or newer, Apple
     /// Intelligence on, the model ready, and the system language supported.
     static var isAvailable: Bool {
@@ -51,7 +35,9 @@ enum FeedbackSummaryModel {
     static func name(forInput input: String) async throws -> String? {
         #if canImport(FoundationModels)
         guard #available(macOS 26, *), isAvailable else { return nil }
-        let session = LanguageModelSession(model: .default, instructions: instructions)
+        let session = LanguageModelSession(model: .default, instructions: SummaryNames.instruction)
+        // `sampling:` is deprecated in the macOS 27 SDK (`samplingMode:`), but
+        // it is the only spelling on macOS 26 and on older SDKs. The warning stays.
         let reply = try await session.respond(to: input, options: GenerationOptions(sampling: .greedy))
         return SummaryNames.cleaned(reply.content)
         #else

@@ -83,7 +83,16 @@ final class FeedbackZip {
             let unresolved = resolved.unresolved
             let downloads = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask)[0]
             let sessionTitle = Flags.isOn(.sessionTitle)
-            let summaries = summaryNames(list.map(\.capture))
+            // The README names the captures that go into the zip. Entries
+            // whose image files are gone are left out (`ZipWriter.write`
+            // makes the same test), so the name is looked up for those only.
+            let inZip = list.filter { entry in
+                let folder = URL(fileURLWithPath: entry.folderPath, isDirectory: true)
+                return [entry.capture.imageFile, entry.capture.cleanImageFile].allSatisfy {
+                    FileManager.default.fileExists(atPath: folder.appendingPathComponent($0).path)
+                }
+            }
+            let summaries = summaryNames(inZip.map(\.capture))
             do {
                 // An empty list throws noCaptures, so it gets the same toast.
                 let result = try await Task.detached(priority: .userInitiated) {
