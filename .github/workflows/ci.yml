@@ -63,3 +63,62 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             -only-testing:CapsoTests
+
+  windows-changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      windows: ${{ steps.filter.outputs.windows }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            windows:
+              - 'Windows/**'
+              - 'Packages/FeedbackKit/**'
+              - '.github/workflows/ci.yml'
+
+  windows:
+    needs: windows-changes
+    if: needs.windows-changes.outputs.windows == 'true'
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Test solution
+        run: dotnet test Windows/Nextshot.sln
+
+  windows-capture-smoke:
+    needs: windows-changes
+    if: needs.windows-changes.outputs.windows == 'true'
+    runs-on: windows-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: GDI CopyFromScreen smoke test
+        run: dotnet run --project Windows/tools/CaptureSmoke -- "${{ github.workspace }}\capture-smoke.png"
+
+      - name: Upload screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: capture-smoke
+          path: capture-smoke.png
+          if-no-files-found: warn
