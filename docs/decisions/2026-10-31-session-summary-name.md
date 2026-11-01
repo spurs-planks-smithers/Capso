@@ -48,14 +48,22 @@ The file keeps the newest 1,000 names. A file that is missing, unreadable, or fr
 
 ### Flag
 
-`sessionSummary` is off in both channels. It is not a Jev flag and not dev-only. The summary runs only when `sessionTitle` is on as well. Turn it on with `scripts/nextshot-flags.sh set sessionSummary on`.
+`sessionSummary` started off in both channels. On 2026-11-01 Drew tested Dev build 899 ("worked awesome") and turned it on in both channels for release 0.6.0. This replaces the off default above. It is not a Jev flag and not dev-only. The summary runs only when `sessionTitle` is on as well. Turn it off on one Mac with `scripts/nextshot-flags.sh set sessionSummary off`. Issue 198 said its change must not ship in 0.6.0 (2026-10-31). Drew's message of 2026-11-01 replaces that ruling, because the summary builds on the session name line.
+
+The `releasedInBuild` number in `FeatureFlags.swift` is a guess at the release commit's build. Nothing reads it at run time. Check it when the release is cut.
 
 ### Not changed
 
 - The files on disk (`prompt.md`, `<stem>-prompt.md`) never carry a session name.
 - The Recent Rounds menu title.
 - No upload, no TypeSafe call, no new permission.
-- No `CHANGELOG.md` line, as for issue 164: with the flag off a user sees nothing.
+- `CHANGELOG.md` got a line on 2026-11-01, because the flag is now on.
+
+### Research before the default-on change (2026-11-01)
+
+The memo `docs/research/2026-11-01-on-device-summary-availability.md` covers requirements, reach, and risks. Reach is a range with Low confidence: the summary should appear on 30% to 65% of all Macs and on 50% to 80% of Nextshot's audience. No public source measures it. It found one code gap, which this change closes: a guardrail violation, an unsupported language, a refusal, or an input that is too long used to count as a failure and was asked again after 60 seconds on every copy. It now counts as no name.
+
+Still open from the memo: nobody ran the notarized production DMG with the model. m5pro may not run production Nextshot, so the check needs another approved Mac. The scan rule for `PrivateCloudComputeLanguageModel` waits for Drew's approval, because his rule for this repository adds no test unprompted.
 
 ### Open
 

@@ -183,7 +183,12 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
             // stale, so check it when the release is cut.
             FlagSpec(issue: 164, allowedStates: [.off, .on], devDefault: .on, releaseDefault: .on, releasedInBuild: 889)
         case .sessionSummary:
-            FlagSpec(issue: 200, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
+            // On in both channels (Drew, 2026-11-01). A guess at the marker:
+            // main stood at build 908 on 2026-11-01, so the squash merge of
+            // #199 is 909, this one is 910, and the release commit is 911.
+            // Other merges before then make it stale. Check it when the
+            // release is cut. Nothing reads the number at run time.
+            FlagSpec(issue: 200, allowedStates: [.off, .on], devDefault: .on, releaseDefault: .on, releasedInBuild: 911)
         case .updateReminder:
             // On in both channels (Drew, 2026-10-31). A guess at the marker:
             // main stood at build 893 on 2026-10-31, so this squash merge is
