@@ -41,6 +41,7 @@ public enum ZipWriter {
         now: Date,
         timeZone: TimeZone,
         sessionTitle: Bool = false,
+        summaries: SummaryNames = .none,
         budget: Int = ZipLadder.budgetBytes,
         stagingRoot: URL = FileManager.default.temporaryDirectory
     ) throws -> ZipResult {
@@ -79,7 +80,7 @@ public enum ZipWriter {
             let folder = staging.appendingPathComponent(name, isDirectory: true)
             try? fileManager.removeItem(at: folder)
             try fileManager.createDirectory(at: folder, withIntermediateDirectories: true)
-            try writeFiles(plan, kind: kind, step: step, missing: missing, unresolved: unresolved, timeZone: timeZone, sessionTitle: sessionTitle, into: folder)
+            try writeFiles(plan, kind: kind, step: step, missing: missing, unresolved: unresolved, timeZone: timeZone, sessionTitle: sessionTitle, summaries: summaries, into: folder)
 
             let zipURL = staging.appendingPathComponent("\(name).zip")
             try? fileManager.removeItem(at: zipURL)
@@ -112,12 +113,13 @@ public enum ZipWriter {
         unresolved: [FeedbackBasketKey],
         timeZone: TimeZone,
         sessionTitle: Bool,
+        summaries: SummaryNames,
         into folder: URL
     ) throws {
         let paths = BundlePathMode.relative(exportFolderName: plan.round.folderName)
         let headerLines = plan.sourceRoundLines.isEmpty ? [] : ["Source rounds:"] + plan.sourceRoundLines
         let texts: [(String, String)] = [
-            ("README.md", ZipReadme.render(plan, kind: kind, missing: missing, unresolved: unresolved, sessionTitle: sessionTitle, timeZone: timeZone)),
+            ("README.md", ZipReadme.render(plan, kind: kind, missing: missing, unresolved: unresolved, sessionTitle: sessionTitle, summaries: summaries, timeZone: timeZone)),
             ("manifest.md", ManifestWriter.render(plan.round, paths: paths, timeZone: timeZone, headerLines: headerLines)),
         ] + plan.round.captures.map {
             ($0.promptFile, PromptBuilder.renderCapture($0, paths: paths, redo: true))

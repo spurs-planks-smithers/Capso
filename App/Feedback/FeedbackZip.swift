@@ -13,6 +13,9 @@ final class FeedbackZip {
     private let showToast: @MainActor (String) -> Void
     private let showShare: @MainActor (URL) -> Void
     private let report: @MainActor (Error, String) -> Void
+    /// The on-device summary names for the README's first line (#200). It
+    /// starts a missing summary in the background and returns at once.
+    private let summaryNames: @MainActor ([FeedbackCapture]) -> SummaryNames
     /// True while a zip runs. One zip at a time, so a double click never
     /// makes a second `-2` zip.
     private var running = false
@@ -22,13 +25,15 @@ final class FeedbackZip {
         waitForSaves: @escaping @MainActor () async -> Void,
         showToast: @escaping @MainActor (String) -> Void,
         showShare: @escaping @MainActor (URL) -> Void,
-        report: @escaping @MainActor (Error, String) -> Void
+        report: @escaping @MainActor (Error, String) -> Void,
+        summaryNames: @escaping @MainActor ([FeedbackCapture]) -> SummaryNames
     ) {
         self.rootURL = rootURL
         self.waitForSaves = waitForSaves
         self.showToast = showToast
         self.showShare = showShare
         self.report = report
+        self.summaryNames = summaryNames
     }
 
     /// Returns false, after a beep, when a zip already runs.
@@ -78,10 +83,20 @@ final class FeedbackZip {
             let unresolved = resolved.unresolved
             let downloads = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask)[0]
             let sessionTitle = Flags.isOn(.sessionTitle)
+            // The README names the captures that go into the zip. Entries
+            // whose image files are gone are left out (`ZipWriter.write`
+            // makes the same test), so the name is looked up for those only.
+            let inZip = list.filter { entry in
+                let folder = URL(fileURLWithPath: entry.folderPath, isDirectory: true)
+                return [entry.capture.imageFile, entry.capture.cleanImageFile].allSatisfy {
+                    FileManager.default.fileExists(atPath: folder.appendingPathComponent($0).path)
+                }
+            }
+            let summaries = summaryNames(inZip.map(\.capture))
             do {
                 // An empty list throws noCaptures, so it gets the same toast.
                 let result = try await Task.detached(priority: .userInitiated) {
-                    try ZipWriter.write(kind: kind, entries: list, unresolved: unresolved, into: downloads, now: Date(), timeZone: .current, sessionTitle: sessionTitle)
+                    try ZipWriter.write(kind: kind, entries: list, unresolved: unresolved, into: downloads, now: Date(), timeZone: .current, sessionTitle: sessionTitle, summaries: summaries)
                 }.value
                 making.cancel()
                 NSPasteboard.general.clearContents()
