@@ -4,7 +4,10 @@ import Foundation
 /// A short label for a round, cut from the reviewer's own words with plain
 /// code: no model and no network (Drew, 2026-10-28, #164). The Recent menu
 /// shows it in place of the date. Screen text (window titles, OCR text) never
-/// feeds it, so the label holds only what the reviewer wrote.
+/// feeds it, so the label holds only what the reviewer wrote. The rule holds
+/// for every use here. Only the `<name>` of the session name line may be a
+/// summary from the on-device model instead (`SummaryNames`, #200, Drew,
+/// 2026-10-31), and this cut title is its fallback.
 public enum RoundTitle {
     /// Longest title in characters, the ellipsis included.
     public static let maxLength = 50

@@ -41,12 +41,14 @@ public enum PromptBuilder {
     /// characters name the subject. The title step of an agent tool reads
     /// only that much of the first message. It also makes the first line
     /// `Session Name: <app> - <round title>` (#198). Without it the output is unchanged.
-    public static func render(_ round: FeedbackRound, folderPath: String, redo: Bool = false, refined: Bool = false, lanes: PromptLanes? = nil, sessionTitle: Bool = false) -> String {
-        render(round, paths: .absolute(folderPath: folderPath), redo: redo, refined: refined, lanes: lanes, sessionTitle: sessionTitle)
+    /// `summaries` (#200) are the on-device model's names. A stored name for the
+    /// round's words replaces the round title in that first line.
+    public static func render(_ round: FeedbackRound, folderPath: String, redo: Bool = false, refined: Bool = false, lanes: PromptLanes? = nil, sessionTitle: Bool = false, summaries: SummaryNames = .none) -> String {
+        render(round, paths: .absolute(folderPath: folderPath), redo: redo, refined: refined, lanes: lanes, sessionTitle: sessionTitle, summaries: summaries)
     }
 
     /// `render` with a path mode. A zip export passes `.relative` (#85).
-    public static func render(_ round: FeedbackRound, paths: BundlePathMode, redo: Bool = false, refined: Bool = false, lanes: PromptLanes? = nil, sessionTitle: Bool = false) -> String {
+    public static func render(_ round: FeedbackRound, paths: BundlePathMode, redo: Bool = false, refined: Bool = false, lanes: PromptLanes? = nil, sessionTitle: Bool = false, summaries: SummaryNames = .none) -> String {
         let missingInstructions = round.captures
             .flatMap { FeedbackItems.split($0).items }
             .filter { $0.badge.instruction == nil }
@@ -54,7 +56,7 @@ public enum PromptBuilder {
 
         var lines: [String] = []
         if sessionTitle {
-            lines.append(SessionName.line(for: round))
+            lines.append(SessionName.line(for: round, summaries: summaries))
         }
         lines += [
             #"<feedback_bundle\#(pathAttribute(paths)) captures="\#(round.captures.count)" items="\#(round.itemCount)">"#,
@@ -115,19 +117,21 @@ public enum PromptBuilder {
     /// capture's `-refined.md` file to the files to open, and one Authority line.
     /// `sessionTitle` (#164) adds the session name line after the Goal line.
     /// It also makes the first line `Session Name: <app> - <title>` (#198): the
-    /// capture's source app, then a title cut from its own words.
-    public static func renderCapture(_ capture: FeedbackCapture, folderPath: String, redo: Bool = false, refined: Bool = false, sessionTitle: Bool = false) -> String {
-        renderCapture(capture, paths: .absolute(folderPath: folderPath), redo: redo, refined: refined, sessionTitle: sessionTitle)
+    /// capture's source app, then a title cut from its own words. `summaries`
+    /// (#200) are the on-device model's names, which replace that title when one
+    /// is stored for the capture's words.
+    public static func renderCapture(_ capture: FeedbackCapture, folderPath: String, redo: Bool = false, refined: Bool = false, sessionTitle: Bool = false, summaries: SummaryNames = .none) -> String {
+        renderCapture(capture, paths: .absolute(folderPath: folderPath), redo: redo, refined: refined, sessionTitle: sessionTitle, summaries: summaries)
     }
 
     /// `renderCapture` with a path mode. A zip export passes `.relative` (#85).
-    public static func renderCapture(_ capture: FeedbackCapture, paths: BundlePathMode, redo: Bool = false, refined: Bool = false, sessionTitle: Bool = false) -> String {
+    public static func renderCapture(_ capture: FeedbackCapture, paths: BundlePathMode, redo: Bool = false, refined: Bool = false, sessionTitle: Bool = false, summaries: SummaryNames = .none) -> String {
         let split = FeedbackItems.split(capture)
         let prefix = capture.index
 
         var lines: [String] = []
         if sessionTitle {
-            lines.append(SessionName.line(for: capture))
+            lines.append(SessionName.line(for: capture, summaries: summaries))
         }
         lines += [
             #"<feedback_capture\#(pathAttribute(paths)) capture="\#(prefix)" items="\#(split.items.count)">"#,
@@ -186,7 +190,9 @@ public enum PromptBuilder {
     /// `sessionTitle` (#164) adds the session name line after the redo line.
     /// It also makes the first line `Session Name: <app> - <title>` (#198): the
     /// source apps of the selected captures, then a title cut from their words.
-    public static func renderSelection(_ entries: [FeedbackSelectionEntry], sessionTitle: Bool = false) -> String {
+    /// `summaries` (#200) are the on-device model's names, which replace that
+    /// title when one is stored for the selected captures' words.
+    public static func renderSelection(_ entries: [FeedbackSelectionEntry], sessionTitle: Bool = false, summaries: SummaryNames = .none) -> String {
         // Same order as `FeedbackLibrary.entries(for:in:)`: capture time, then
         // folder, then capture index.
         let ordered = entries.sorted { lhs, rhs in
@@ -203,7 +209,7 @@ public enum PromptBuilder {
         let roundCount = Set(ordered.map(\.folderPath)).count
 
         var lines: [String] = []
-        if sessionTitle, let line = SessionName.line(forSelection: ordered.map(\.capture)) {
+        if sessionTitle, let line = SessionName.line(forSelection: ordered.map(\.capture), summaries: summaries) {
             lines.append(line)
         }
         lines += [
