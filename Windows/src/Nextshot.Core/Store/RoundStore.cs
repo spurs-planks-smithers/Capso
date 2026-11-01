@@ -28,6 +28,7 @@ public sealed class RoundStore
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly IBundleTextRenderer _renderer;
     private readonly Func<DateTimeOffset> _now;
+    private readonly Func<string, string> _displayPath;
     private volatile FeedbackRound? _active;
 
     public string Root { get; }
@@ -38,8 +39,11 @@ public sealed class RoundStore
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Nextshot");
 
     public RoundStore(IBundleTextRenderer renderer, string? root = null, TimeZoneInfo? timeZone = null,
-        Func<DateTimeOffset>? now = null)
+        Func<DateTimeOffset>? now = null, Func<string, string>? displayPath = null)
     {
+        // displayPath maps a folder on disk to the path the prompts and manifest print.
+        // The default prints the real path. The golden tests print /golden/<folder>.
+        _displayPath = displayPath ?? (p => p);
         _renderer = renderer;
         Root = root ?? DefaultRoot();
         TimeZone = timeZone ?? TimeZoneInfo.Local;
@@ -214,11 +218,16 @@ public sealed class RoundStore
     {
         var folder = FolderPath(round.FolderName);
         Directory.CreateDirectory(folder);
-        var manifest = _renderer.RenderManifest(round, folder, TimeZone);
-        var prompt = _renderer.RenderPrompt(round, folder);
+        var shown = _displayPath(folder);
+        var manifest = _renderer.RenderManifest(round, shown, TimeZone);
+        var prompt = _renderer.RenderPrompt(round, shown);
+        var capturePrompts = round.Captures
+            .Select(c => (File: c.PromptFile, Text: _renderer.RenderCapturePrompt(c, shown))).ToList();
         WriteAtomic(Path.Combine(folder, RoundFileName), FeedbackRoundJson.SerializeBytes(round));
         WriteAtomic(Path.Combine(folder, ManifestFileName), Utf8.GetBytes(manifest));
         WriteAtomic(Path.Combine(folder, PromptFileName), Utf8.GetBytes(prompt));
+        foreach (var (file, text) in capturePrompts)
+            WriteAtomic(Path.Combine(folder, file), Utf8.GetBytes(text));
     }
 
     private void WriteActiveMarker(string folderName)

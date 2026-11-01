@@ -14,6 +14,9 @@ public sealed class RoundStoreTests : IDisposable
 
         public string RenderPrompt(FeedbackRound round, string folderPath) =>
             $"prompt {round.Name} {round.Captures.Count}";
+
+        public string RenderCapturePrompt(FeedbackCapture capture, string folderPath) =>
+            $"capture prompt {capture.Index}";
     }
 
     private readonly string _root = Path.Combine(Path.GetTempPath(), "nextshot-store-" + Guid.NewGuid().ToString("N"));
