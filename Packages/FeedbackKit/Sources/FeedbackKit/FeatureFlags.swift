@@ -133,6 +133,10 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
     /// days after a build first runs. Not a Jev feature, and it makes no
     /// request. Code only.
     case updateReminder
+    /// The linked plan prompt (#261). Copied prompts ask the agent to link
+    /// related items, keep an item ledger, and ask once. Files on disk never
+    /// change. Code only.
+    case linkedPlan
 
     /// New flags start with both defaults `off`. A release default turns on
     /// only with a released-in build number.
@@ -196,6 +200,8 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
             // release make it stale. Check it when the release is cut.
             // Nothing reads the number at run time.
             FlagSpec(issue: 203, allowedStates: [.off, .on], devDefault: .on, releaseDefault: .on, releasedInBuild: 911)
+        case .linkedPlan:
+            FlagSpec(issue: 261, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
         case .standaloneCapture, .recordingTools, .translationTools, .cloudShare, .automationURLs, .automaticUpdates:
             FlagSpec(issue: 119, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
         }
