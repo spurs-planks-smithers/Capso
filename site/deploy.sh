@@ -25,6 +25,13 @@ done
 if [[ -n "$artifact" ]]; then
   ((stage_only == 0 && custom_media == 0)) || fail "--deploy-staged cannot rebuild or override staged media"
 else
+  # Staging reads the Guides sources and the pinned video name from this checkout.
+  # A checkout behind origin/main publishes an old site that still passes the smoke
+  # test (2026-10-31: Guides release notes and the intro video rolled back).
+  git -C "$repo" fetch origin main --quiet 2>/dev/null || true
+  if git -C "$repo" rev-parse --verify --quiet origin/main >/dev/null && ! git -C "$repo" merge-base --is-ancestor origin/main HEAD; then
+    fail "this checkout is behind origin/main. Deploy from a clean worktree of it: git worktree add --detach <path> origin/main"
+  fi
   [[ -f "$video" && -f "$poster" ]] || fail "missing pinned video or poster; use --video FILE --poster FILE to override"
   # Build output goes to stderr. Stdout ends with the reusable artifact path.
   stage_log="$(mktemp)"
