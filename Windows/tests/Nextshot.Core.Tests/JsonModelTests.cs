@@ -8,20 +8,37 @@ namespace Nextshot.Core.Tests;
 
 public class JsonModelTests
 {
-    private static string FixtureDir => Path.Combine(AppContext.BaseDirectory, "Fixtures");
+    private static string GoldenRoot()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            string candidate = Path.Combine(dir.FullName, "Windows", "golden");
+            if (Directory.Exists(candidate)) return candidate;
+            dir = dir.Parent;
+        }
+        throw new DirectoryNotFoundException("Windows/golden not found above " + AppContext.BaseDirectory);
+    }
 
     public static IEnumerable<object[]> Fixtures() =>
-        Directory.GetFiles(FixtureDir, "*.feedback.json").OrderBy(f => f, StringComparer.Ordinal)
-            .Select(f => new object[] { Path.GetFileName(f) });
+        Directory.GetDirectories(GoldenRoot())
+            .Select(d => Path.GetFileName(d))
+            .Where(n => File.Exists(Path.Combine(GoldenRoot(), n, "feedback.json")))
+            .OrderBy(n => n, StringComparer.Ordinal)
+            .Select(n => new object[] { n });
 
     [Fact]
-    public void FixturesAreNotEmpty() => Assert.True(Fixtures().Count() >= 8);
+    public void GoldenFixturesAreFound()
+    {
+        Assert.True(Directory.Exists(GoldenRoot()));
+        Assert.True(Fixtures().Count() >= 8);
+    }
 
     [Theory]
     [MemberData(nameof(Fixtures))]
-    public void RoundTripGivesIdenticalBytes(string file)
+    public void RoundTripGivesIdenticalBytes(string caseName)
     {
-        byte[] original = File.ReadAllBytes(Path.Combine(FixtureDir, file));
+        byte[] original = File.ReadAllBytes(Path.Combine(GoldenRoot(), caseName, "feedback.json"));
         Assert.NotEmpty(original);
         var round = FeedbackRoundJson.Deserialize(original);
         Assert.Equal(original, FeedbackRoundJson.SerializeBytes(round));
