@@ -178,19 +178,24 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
             FlagSpec(issue: 118, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
         case .sessionTitle:
             // On in both channels (Drew, 2026-10-28). The marker is the build
-            // number two commits after the 2026-10-28 main tip: this merge,
-            // then the normal release commit. A commit in between makes it
+            // number of the 0.6.0 release commit, the first release with this
+            // flag on (set to 911 on 2026-11-01). A commit in between makes it
             // stale, so check it when the release is cut.
-            FlagSpec(issue: 164, allowedStates: [.off, .on], devDefault: .on, releaseDefault: .on, releasedInBuild: 889)
+            FlagSpec(issue: 164, allowedStates: [.off, .on], devDefault: .on, releaseDefault: .on, releasedInBuild: 911)
         case .sessionSummary:
-            FlagSpec(issue: 200, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
+            // On in both channels (Drew, 2026-11-01). A guess at the marker:
+            // main stood at build 908 on 2026-11-01, so the squash merge of
+            // #199 is 909, this one is 910, and the release commit is 911.
+            // Other merges before then make it stale. Check it when the
+            // release is cut. Nothing reads the number at run time.
+            FlagSpec(issue: 200, allowedStates: [.off, .on], devDefault: .on, releaseDefault: .on, releasedInBuild: 911)
         case .updateReminder:
-            // On in both channels (Drew, 2026-10-31). A guess at the marker:
-            // main stood at build 893 on 2026-10-31, so this squash merge is
-            // 894 and the release commit is 895. Other merges or releases
-            // before then make it stale. Check it when the release is cut.
+            // On in both channels (Drew, 2026-10-31). The marker is the build
+            // number of the 0.6.0 release commit, the first release with this
+            // flag on (set to 911 on 2026-11-01). Other merges before the
+            // release make it stale. Check it when the release is cut.
             // Nothing reads the number at run time.
-            FlagSpec(issue: 203, allowedStates: [.off, .on], devDefault: .on, releaseDefault: .on, releasedInBuild: 895)
+            FlagSpec(issue: 203, allowedStates: [.off, .on], devDefault: .on, releaseDefault: .on, releasedInBuild: 911)
         case .standaloneCapture, .recordingTools, .translationTools, .cloudShare, .automationURLs, .automaticUpdates:
             FlagSpec(issue: 119, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
         }

@@ -16,6 +16,8 @@ struct NetworkSourceScanTests {
     /// the browser after a click. This file may hold the URL literal and
     /// nothing else from the rules below.
     static let updateLink = "Packages/FeedbackKit/Sources/FeedbackKit/UpdateReminder.swift"
+    /// The one file that calls Apple's on-device model (#200).
+    static let summaryModelFile = "App/Feedback/FeedbackSummaryModel.swift"
     static let clientFolder = "Packages/JevKit/Sources/JevKit/Client/"
     static let endpointFile = "Packages/JevKit/Sources/JevKit/Client/JevEndpoint.swift"
 
@@ -33,6 +35,12 @@ struct NetworkSourceScanTests {
         Rule(name: "Network framework, sockets, streams, or web views",
              pattern: #"import Network|\bNW(Connection|Listener|Browser|Endpoint|PathMonitor)\b|CFSocket|CFStream|NSURLConnection|\bsocket\(|WKWebView"#) { _ in false },
         Rule(name: "a child process", pattern: #"\bProcess\(|NSTask|\bcurl\b"#) { _ in false },
+        // The session summary (#200) runs on the Mac only. The macOS 27 SDK adds
+        // a server model in the same framework, and any provider type could
+        // reach a network. So the framework is imported in one file, and the
+        // server model's name appears nowhere.
+        Rule(name: "the Private Cloud Compute model", pattern: #"PrivateCloudCompute"#) { _ in false },
+        Rule(name: "a FoundationModels import outside the summary model file", pattern: #"import FoundationModels"#) { $0 == summaryModelFile },
     ]
 
     static var repositoryRoot: URL {
@@ -65,6 +73,7 @@ struct NetworkSourceScanTests {
         try #require(files.contains(Self.supportTransport), "the scan missed the support transport")
         try #require(files.contains(Self.supportEndpoint), "the scan missed the support endpoint")
         try #require(files.contains(Self.updateLink), "the scan missed the update link file")
+        try #require(files.contains(Self.summaryModelFile), "the scan missed the summary model file")
 
         var findings: [String] = []
         for file in files {
@@ -125,6 +134,9 @@ struct NetworkSourceScanTests {
         #expect(matches(#"let url = URL(string: "https://example.com")"#) == ["a URL literal"])
         #expect(matches("let connection = NWConnection(host: host, port: 443, using: .tls)").count == 1)
         #expect(matches(#"let task = Process()"#) == ["a child process"])
+        #expect(matches("let model = PrivateCloudComputeLanguageModel()") == ["the Private Cloud Compute model"])
+        #expect(matches("import FoundationModels") == ["a FoundationModels import outside the summary model file"])
+        #expect(matches("let model = SystemLanguageModel.default").isEmpty)
         #expect(matches("let transport = URLSessionTransport()").isEmpty)
     }
 }

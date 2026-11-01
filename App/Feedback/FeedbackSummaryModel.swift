@@ -28,18 +28,54 @@ enum FeedbackSummaryModel {
         return false
     }
 
+    /// Why the model can or cannot run now, as a short word for the local use
+    /// counter (`SummaryUseCounter`). It holds no text from the user.
+    static var stateName: String {
+        #if canImport(FoundationModels)
+        if #available(macOS 26, *) {
+            let model = SystemLanguageModel.default
+            switch model.availability {
+            case .available:
+                return model.supportsLocale() ? "available" : "unsupportedLocale"
+            case .unavailable(.deviceNotEligible):
+                return "deviceNotEligible"
+            case .unavailable(.appleIntelligenceNotEnabled):
+                return "appleIntelligenceNotEnabled"
+            case .unavailable(.modelNotReady):
+                return "modelNotReady"
+            case .unavailable:
+                return "otherReason"
+            }
+        }
+        #endif
+        return "osTooOld"
+    }
+
     /// The model's name for the input, cleaned (`SummaryNames.cleaned`). Nil
     /// when the model is unavailable or its reply cannot pass for a name (a
-    /// refusal, an empty reply). It throws what the model throws, for the
-    /// caller to log. Greedy sampling gives the same name for the same input.
+    /// refusal, a guardrail violation, an unsupported language, an input that
+    /// is too long, an empty reply). It throws any other error the model
+    /// throws, for the caller to log. Greedy sampling gives the same name for the same input.
     static func name(forInput input: String) async throws -> String? {
         #if canImport(FoundationModels)
         guard #available(macOS 26, *), isAvailable else { return nil }
         let session = LanguageModelSession(model: .default, instructions: SummaryNames.instruction)
         // `sampling:` is deprecated in the macOS 27 SDK (`samplingMode:`), but
         // it is the only spelling on macOS 26 and on older SDKs. The warning stays.
-        let reply = try await session.respond(to: input, options: GenerationOptions(sampling: .greedy))
-        return SummaryNames.cleaned(reply.content)
+        do {
+            let reply = try await session.respond(to: input, options: GenerationOptions(sampling: .greedy))
+            return SummaryNames.cleaned(reply.content)
+        } catch let error as LanguageModelSession.GenerationError {
+            // The model gives these answers again for the same words. Nil makes
+            // the caller stop asking. Any other error, such as a rate limit,
+            // throws, and the caller asks again after a delay.
+            switch error {
+            case .guardrailViolation, .unsupportedLanguageOrLocale, .exceededContextWindowSize, .refusal:
+                return nil
+            default:
+                throw error
+            }
+        }
         #else
         return nil
         #endif

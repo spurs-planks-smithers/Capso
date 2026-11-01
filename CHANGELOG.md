@@ -18,6 +18,7 @@ Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This for
 ### Changed
 
 - A copied prompt starts with `Session Name:`, the app you captured, and your round's title, so agent tools list each round under its own name. A round with no written instruction uses its date and time.
+- On a Mac with macOS 26 or newer and Apple Intelligence on, the name on that first line is a short summary of all your captures, written by Apple's on-device model. Nothing leaves your Mac. Other Macs keep your round's title as the name.
 - A copied prompt lists your items and notes near the top and asks the agent to name its session, so sessions no longer share one name. Recent Rounds labels each round with your first instruction, and the date moves to the line below.
 - Esc on a marked capture copies the marked image and saves the capture to the round with no notes, then closes the editor. The round stays open. Before, Esc with marks only stepped back.
 - The website's download stats page lists versions first and shows the last 30 days as a bar chart. An info box explains bots and link previews.
