@@ -133,7 +133,7 @@ h1 {
    so the whole page fits one screen. */
 .frame {
   position: relative;
-  width: min(100%, 920px, calc((100vh - 404px) * 16 / 9));
+  width: min(100%, 920px, calc((100vh - 420px) * 16 / 9));
   min-width: min(100%, 560px);
   border-radius: 16px;
   padding: 1px;
@@ -381,6 +381,24 @@ kbd {
 }
 
 .contact a:hover, .contact a:focus-visible { border-color: var(--mint); background: rgba(143, 243, 228, 0.08); }
+
+/* The note shows only when the Nextshot app opens the page as /#from=<version>
+   (update-note.js). The video shrinks by the note's height, so the page still
+   fits one screen. */
+.update-note {
+  align-self: center;
+  width: min(100%, 920px);
+  margin: 10px 0 0;
+  padding: 10px 16px;
+  border: 1px solid rgba(143, 243, 228, 0.35);
+  border-radius: 12px;
+  background: rgba(21, 25, 28, 0.6);
+  font-size: 14px;
+}
+
+.update-compare { margin: 0 0 2px; color: var(--text); font-weight: 650; }
+.update-offline { margin: 0; color: var(--muted); }
+body.has-note .frame { width: min(100%, 920px, calc((100vh - 420px - 112px) * 16 / 9)); }
 
 @media (prefers-reduced-motion: reduce) {
   body::before { animation: none; }

@@ -32,6 +32,7 @@ Source keys: G = `App/Sources/Preferences/Tabs/GeneralSettingsView.swift`; S = `
 | Diagnostic Logs / Open | n/a | Prepares the local log file and reveals it in Finder. |
 | Crash Reports / Open | n/a | Opens the macOS DiagnosticReports folder. |
 | Version | Bundle value | Shows the installed app version and build. |
+| Remind me about new versions | On | Allows one toast and a "Get the latest version…" Nshot menu row about 7 days after a build first runs, for people with a saved round. The row opens nextshot.dev in the browser. The app makes no request. Hidden while the `updateReminder` flag is off or the `automaticUpdates` capability is on (#203). |
 | Report a Bug / Report | n/a | Opens the fork's GitHub bug form. Does not submit a report itself. |
 | Request a Feature / Request | n/a | Opens the fork's GitHub feature form. |
 | Source Code / Open | n/a | Opens the fork repository. |

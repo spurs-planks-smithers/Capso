@@ -12,6 +12,10 @@ struct NetworkSourceScanTests {
     static let transportFile = "Packages/JevKit/Sources/JevKit/Client/URLSessionTransport.swift"
     static let supportTransport = "Packages/SupportKit/Sources/SupportKit/SupportTransport.swift"
     static let supportEndpoint = "Packages/SupportKit/Sources/SupportKit/SupportEndpoint.swift"
+    /// The update reminder's link to nextshot.dev (#203). The app opens it in
+    /// the browser after a click. This file may hold the URL literal and
+    /// nothing else from the rules below.
+    static let updateLink = "Packages/FeedbackKit/Sources/FeedbackKit/UpdateReminder.swift"
     static let clientFolder = "Packages/JevKit/Sources/JevKit/Client/"
     static let endpointFile = "Packages/JevKit/Sources/JevKit/Client/JevEndpoint.swift"
 
@@ -25,7 +29,7 @@ struct NetworkSourceScanTests {
     static let rules: [Rule] = [
         Rule(name: "URLSession", pattern: #"\bURLSession\b"#) { $0 == transportFile || $0 == supportTransport },
         Rule(name: "URLRequest", pattern: #"\bURLRequest\b"#) { $0.hasPrefix(clientFolder) || $0 == supportTransport },
-        Rule(name: "a URL literal", pattern: #"https?://"#) { $0 == endpointFile || $0 == supportEndpoint },
+        Rule(name: "a URL literal", pattern: #"https?://"#) { $0 == endpointFile || $0 == supportEndpoint || $0 == updateLink },
         Rule(name: "Network framework, sockets, streams, or web views",
              pattern: #"import Network|\bNW(Connection|Listener|Browser|Endpoint|PathMonitor)\b|CFSocket|CFStream|NSURLConnection|\bsocket\(|WKWebView"#) { _ in false },
         Rule(name: "a child process", pattern: #"\bProcess\(|NSTask|\bcurl\b"#) { _ in false },
@@ -60,6 +64,7 @@ struct NetworkSourceScanTests {
         try #require(files.contains(Self.transportFile), "the scan missed the transport file")
         try #require(files.contains(Self.supportTransport), "the scan missed the support transport")
         try #require(files.contains(Self.supportEndpoint), "the scan missed the support endpoint")
+        try #require(files.contains(Self.updateLink), "the scan missed the update link file")
 
         var findings: [String] = []
         for file in files {
@@ -73,6 +78,21 @@ struct NetworkSourceScanTests {
             }
         }
         #expect(findings.isEmpty, "network code outside JevKit's client:\n\(findings.joined(separator: "\n"))")
+    }
+
+    @Test("The update link file holds the one URL literal and no request code")
+    func updateLinkHoldsOnlyTheLiteral() throws {
+        let text = try String(contentsOf: Self.repositoryRoot.appendingPathComponent(Self.updateLink), encoding: .utf8)
+        let code = text.components(separatedBy: .newlines)
+            .filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") }
+        // The exception is only worth keeping while the literal is there.
+        let literals = code.filter { $0.range(of: #"https?://"#, options: .regularExpression) != nil }
+        #expect(literals.count == 1, "expected one URL literal, found \(literals.count)")
+        // Every other rule still applies to this file.
+        for rule in Self.rules where rule.name != "a URL literal" {
+            let hits = code.filter { $0.range(of: rule.pattern, options: .regularExpression) != nil }
+            #expect(hits.isEmpty, "\(rule.name) in the update link file: \(hits)")
+        }
     }
 
     @Test("No job builds code text from a String, so screen text cannot skip consent")

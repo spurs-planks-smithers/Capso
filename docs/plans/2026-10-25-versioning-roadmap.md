@@ -91,6 +91,8 @@ To undo a site deploy by hand: `wrangler rollback`.
 
 Goal: a person who installed 0.3.x or later gets new versions without a new download.
 
+Update 2026-10-31: until M3, the offline update reminder ([#203](https://github.com/spurs-planks-smithers/Capso/issues/203)) tells people to check nextshot.dev about 7 days after a build first runs. It makes no request. It hides itself when the `automaticUpdates` capability is on, so it and Sparkle never run together. M3 stays open. Record: `docs/decisions/2026-10-31-update-reminder.md`.
+
 Findings first. The app already carries the Sparkle framework, an `UpdateManager`, and a Preferences update screen. Info.plist holds Capso's `SUPublicEDKey` and no `SUFeedURL`. The fork must not trust Capso's key, because Nextshot does not hold the matching private key.
 
 | Task | Size | Done when |

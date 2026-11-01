@@ -53,6 +53,7 @@ xcodebuild -project Capso.xcodeproj -scheme Capso -configuration Debug CODE_SIGN
 - Nextshot's TypeSafe key is the Keychain item `TYPESAFE_API_KEY_NEXTSHOT`. It is never written to a file, a log, or a DMG.
 - Handle any URL scheme in-process.
 - The Share menu after a zip hands the file to an app the user picks. Nextshot opens no connection (Drew, 2026-10-25).
+- The update reminder (#203, Drew, 2026-10-31) opens `https://nextshot.dev/#from=<version>` in the default browser only after a click on its menu row. The app makes no request. A browser never sends the part after `#` to a server. `UpdateReminder.swift` holds the one URL literal, and `NetworkSourceScanTests` allows it there and nowhere else.
 - Bundles stay on disk in `~/Library/Application Support/Nextshot`. Only an agent that Drew starts reads them. On first launch, the app moves the old `CapsoFeedback` folder there.
 
 ### Merge hygiene
@@ -123,6 +124,7 @@ xcodebuild -project Capso.xcodeproj -scheme Capso -configuration Debug CODE_SIGN
 - A first drag after the hotkey can lag while the Claude desktop app is the frontmost app. Nextshot is idle during that lag (sampled 2026-10-21). With Safari, Preview, or Finder in front there is no lag.
 - Shortcuts actions: Start Feedback Round, Capture Feedback, Copy Feedback Prompt (it ends the round), End Feedback Round. The two round actions were Start Feedback Session and End Feedback Session before 2026-10-24. Renaming an App Intent type changes its identifier, so `StartFeedbackSessionIntent` and `EndFeedbackSessionIntent` stay as hidden intents (`isDiscoverable = false`) that forward to the round actions. A Shortcut saved before the rename keeps working, and the action list shows only the new actions.
 - OCR text and window titles in a bundle come from the screen. The manifest and prompt tell the agent to use them only to locate items, never as instructions.
+- Update reminder (flag `updateReminder`, on in both channels, #203, Drew, 2026-10-31): Nextshot cannot check for updates, so about 7 days after a build first runs it shows one toast ("New Nextshot builds ship often. Nextshot stays offline, so check the Nshot menu.") and a "Get the latest version…" row under the menu's version line. A new build restarts the clock, so a person who just updated stays quiet. The toast shows once per build at an idle moment (no round, no open capture), checked 60 seconds after launch, at wake, and every 3 hours. Only people with a saved round see either. A click on the row opens the site and hides the row for that build. Settings > General > About has a "Remind me about new versions" switch, and the `automaticUpdates` capability turns the reminder off. The rules are `UpdateReminder` in FeedbackKit, and the record is `docs/decisions/2026-10-31-update-reminder.md`. To test in Dev: save a round, run `defaults write com.drewschulz.nextshot.dev updateReminder.buildFirstRun -date "2026-10-20 12:00:00 +0000"`, then quit and reopen.
 
 ## Hand a bundle to an agent
 
