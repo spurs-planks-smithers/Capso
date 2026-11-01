@@ -31,6 +31,7 @@ The bot flag comes from a user-agent pattern in `site/src/worker.js`: bots, craw
 | `site/wrangler.jsonc` | Worker `nextshot-site`: account, assets folder `../build/site`, D1 binding `DB`, R2 binding `RELEASES` (bucket `nextshot-releases`), custom domains |
 | `site/src/worker.js` | The Worker. Plain JavaScript, no build step. |
 | `site/src/releases.mjs`, `site/test/releases.test.mjs` | Pure helpers: which file names the Worker may serve, what `latest.json` must hold, and which ranges are out of bounds. `node --test site/test/releases.test.mjs` runs the tests. |
+| `site/public/update-note.js`, `site/test/update-note.test.mjs` | The update note (#203). The Mac app opens `/#from=<version>` after a click on "Get the latest version…". The script reads the `#` part in the browser, which never sends it to a server, and shows a note (and "You have the newest build." or "You have X. Version Y is out."). It makes no request. The test fails on `fetch`, `XMLHttpRequest`, `sendBeacon`, `Image`, and HTML writing. `node --test site/test/update-note.test.mjs` runs it. Deploy this before the app release that ships the reminder. |
 | `site/schema.sql` | The `downloads` table |
 | `site/public/` | `index.html` (with `{{...}}` placeholders), `site.css`, and `dots.js` (the background dot field). The deploy copies every file in this folder. |
 | `site/deploy.sh` | Builds a fresh complete artifact under `build/site-stages/`, publishes its exact files, and runs the smoke test |
