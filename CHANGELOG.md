@@ -10,6 +10,8 @@ Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This for
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-01
+
 ### Added
 
 - Option+Shift+G captures the same screen area as your last Option+Shift+F capture, with no dragging. With no earlier area, it opens the selector.
