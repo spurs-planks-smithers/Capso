@@ -133,8 +133,8 @@ h1 {
    so the whole page fits one screen. */
 .frame {
   position: relative;
-  width: min(100%, 920px, calc((100vh - 420px) * 16 / 9));
-  min-width: min(100%, 560px);
+  width: min(100%, 920px, calc((100vh - 412px) * 16 / 9));
+  min-width: min(100%, 540px);
   border-radius: 16px;
   padding: 1px;
   background: linear-gradient(140deg, rgba(143, 243, 228, 0.55), rgba(98, 112, 255, 0.35) 45%, rgba(255, 255, 255, 0.08) 75%);
@@ -346,7 +346,7 @@ kbd {
    the same rule serves a phone, a tablet, and either orientation. */
 .footer {
   margin-top: auto;
-  padding-top: 22px;
+  padding-top: 14px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -398,7 +398,7 @@ kbd {
 
 .update-compare { margin: 0 0 2px; color: var(--text); font-weight: 650; }
 .update-offline { margin: 0; color: var(--muted); }
-body.has-note .frame { width: min(100%, 920px, calc((100vh - 420px - 112px) * 16 / 9)); }
+body.has-note .frame { width: min(100%, 920px, calc((100vh - 412px - 112px) * 16 / 9)); }
 
 @media (prefers-reduced-motion: reduce) {
   body::before { animation: none; }
