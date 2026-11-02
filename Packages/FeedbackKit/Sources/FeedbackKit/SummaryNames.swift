@@ -32,7 +32,7 @@ public struct SummaryNames: Equatable, Sendable {
     public static let instruction = """
     You name a work session from a reviewer's notes. \
     The notes arrive in groups, one group per image. \
-    Name the subject of all the work in one noun phrase of two to six words. \
+    Name the subject of all the work in one noun phrase of two to five words. \
     Keep the specific names the notes use for the page, the control, the label, or the feature, \
     and put the most important one first. \
     Never use the generic words app, screen, screenshot, image, review, feedback, notes, changes, update, or issues. \
@@ -200,7 +200,7 @@ public struct SummaryNames: Equatable, Sendable {
         line = SessionName.safe(line).trimmingCharacters(in: marks)
         guard let first = line.first, !noNameReplies.contains(line.lowercased()), line.split(separator: " ").count <= maxReplyWords else { return nil }
         line = first.uppercased() + line.dropFirst()
-        return RoundTitle.shortened(line)
+        return RoundTitle.shortened(RoundTitle.limitWords(line))
     }
 
     // MARK: - The file

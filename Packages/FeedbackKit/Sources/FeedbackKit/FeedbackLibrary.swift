@@ -168,10 +168,11 @@ public enum FeedbackLibrary {
         }
     }
 
-    /// "3:43 PM <window title>". The app name stands in for a missing window
-    /// title, and "Capture <index>" for a missing app.
-    public static func captureRowTitle(_ capture: FeedbackCapture, timeZone: TimeZone, locale: Locale = .current) -> String {
-        let label = [capture.windowTitle, capture.sourceApp]
+    /// "3:43 PM <name>". The name is the capture's summary when one is stored
+    /// (Drew, 2026-11-02), else its window title. The app name stands in for a
+    /// missing window title, and "Capture <index>" for a missing app.
+    public static func captureRowTitle(_ capture: FeedbackCapture, summaryName: String? = nil, timeZone: TimeZone, locale: Locale = .current) -> String {
+        let label = [summaryName, capture.windowTitle, capture.sourceApp]
             .compactMap { $0 }
             .first { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
             ?? "Capture \(capture.index)"

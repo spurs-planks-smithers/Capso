@@ -16,9 +16,9 @@ struct FeedbackMenuState {
     /// Shows Zip Round and Zip N Selected (`zipHandoff` flag, #85).
     var zipEnabled = false
     var supportSubmissionEnabled = false
-    /// Rounds that another copy of Nextshot saved under a newer schema. This
-    /// copy hides them, so the menu says how many.
-    var newerSchemaCount = 0
+    /// Names that the on-device model wrote. Empty with `sessionTitle` or
+    /// `sessionSummary` off, so rows keep the cut title and the page name.
+    var summaryNames = SummaryNames.none
     /// Ended rounds beyond Recent's five, grouped under Show More.
     var older: [FeedbackRound] = []
     /// Shows "Get the latest version…" under the version line (#203).
@@ -57,7 +57,6 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     var onStartRound: (() -> Void)?
     var onScreenshotCapture: (() -> Void)?
     var onScreenshotAnnotate: (() -> Void)?
-    var onScreenshotHistory: (() -> Void)?
     var onOpenAllRounds: (() -> Void)?
     var onCopySelected: (() -> Void)?
     var onZipSelected: (() -> Void)?
@@ -236,12 +235,9 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         if Capabilities.current.screenshotCopy {
             addReused(screenshotCaptureItem, to: menu)
             addReused(screenshotAnnotateItem, to: menu)
-            menu.addItem(menuItem("Screenshot History", action: #selector(screenshotHistory)))
             menu.addItem(.separator())
         }
         if let active = state.active {
-            menu.addItem(grayLine("Round: \(active.slug)"))
-            menu.addItem(.separator())
             for item in [copyLastCaptureItem, copyPromptAndEndRoundItem, openRoundFolderItem, endRoundItem] {
                 addReused(item, to: menu)
             }
@@ -270,13 +266,7 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
             }
         }
         addHistory(to: menu, state: state)
-        // A round from a newer copy is never opened or saved here, so it
-        // cannot lose fields this copy does not know. Say why it is missing.
-        if state.newerSchemaCount > 0 {
-            let count = state.newerSchemaCount
-            menu.addItem(grayLine("\(count) \(count == 1 ? "round was" : "rounds were") saved by a newer \(ForkBranding.name) and \(count == 1 ? "is" : "are") hidden"))
-        }
-        if !recent.isEmpty || !historyGroups.isEmpty || state.newerSchemaCount > 0 {
+        if !recent.isEmpty || !historyGroups.isEmpty {
             menu.addItem(.separator())
         }
 
@@ -337,7 +327,9 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         // With sessionTitle on, the reviewer's words label the row and the
         // date moves to the subtitle. A round with no reviewer words keeps
         // the date as its title (#164).
-        let named = Flags.isOn(.sessionTitle) ? RoundTitle.title(for: round) : nil
+        // The name is the one the session name line uses (`SessionName`): the
+        // on-device summary, else the cut title, five words at most.
+        let named = Flags.isOn(.sessionTitle) ? SessionName.displayName(for: round, summaries: currentState().summaryNames) : nil
         let item = NSMenuItem(title: named ?? dated, action: nil, keyEquivalent: "")
         let datedTitle = named == nil ? nil : dated
         Self.updateRoundSubtitle(
@@ -451,7 +443,9 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
 
         for capture in FeedbackLibrary.capturesNewestFirst(round) {
             let key = FeedbackBasketKey(folderName: round.folderName, captureIndex: capture.index)
-            let title = FeedbackLibrary.captureRowTitle(capture, timeZone: .current)
+            // A summary of this capture's own notes, else its page name.
+            let summaryName = Flags.isOn(.sessionTitle) ? SessionName.summaryName(for: [capture], summaries: state.summaryNames) : nil
+            let title = FeedbackLibrary.captureRowTitle(capture, summaryName: summaryName, timeZone: .current)
             let rowView = FeedbackCaptureRowView(
                 key: key,
                 title: title,
@@ -540,7 +534,6 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     @objc private func getLatestVersion() { onGetLatestVersion?() }
     @objc private func screenshotCapture() { onScreenshotCapture?() }
     @objc private func screenshotAnnotate() { onScreenshotAnnotate?() }
-    @objc private func screenshotHistory() { onScreenshotHistory?() }
     @objc private func startRound() { onStartRound?() }
     @objc private func openAllRounds() { onOpenAllRounds?() }
     @objc private func copySelected() { onCopySelected?() }

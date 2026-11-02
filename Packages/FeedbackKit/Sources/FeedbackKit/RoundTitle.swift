@@ -12,6 +12,30 @@ public enum RoundTitle {
     /// Longest title in characters, the ellipsis included.
     public static let maxLength = 50
 
+    /// Most words in a round name, a capture name, or a cut title. Articles
+    /// do not count (Drew, 2026-11-02): the Nshot menu stays narrow, and the
+    /// prompt's session name stays short.
+    public static let maxWords = 5
+
+    /// Words that do not count toward `maxWords`.
+    private static let articles: Set<String> = ["a", "an", "the"]
+
+    /// At most `maxWords` words, not counting articles, with an ellipsis when
+    /// words were left out. A trailing article or mark before the ellipsis goes.
+    public static func limitWords(_ text: String) -> String {
+        let words = text.split(separator: " ")
+        var counted = 0
+        for (offset, word) in words.enumerated() where !articles.contains(word.lowercased()) {
+            counted += 1
+            guard counted > maxWords else { continue }
+            var kept = Array(words[..<offset])
+            while let last = kept.last, articles.contains(last.lowercased()) { kept.removeLast() }
+            let cut = kept.joined(separator: " ").trimmingCharacters(in: CharacterSet(charactersIn: " .,;:!?-"))
+            return cut + "\u{2026}"
+        }
+        return text
+    }
+
     /// The reviewer's first instruction in capture order, else the first
     /// capture note. Nil when the round holds no reviewer words, so the caller
     /// keeps the date as the row title.
@@ -58,7 +82,7 @@ public enum RoundTitle {
         text = text.trimmingCharacters(in: CharacterSet(charactersIn: " .,;:!?-"))
         guard let first = text.first else { return nil }
         text = first.uppercased() + text.dropFirst()
-        return shortened(text)
+        return shortened(limitWords(text))
     }
 
     private static func stripLeadIns(_ text: String) -> String {

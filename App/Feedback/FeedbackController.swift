@@ -152,7 +152,6 @@ final class FeedbackController {
             updateScreenshotShortcuts()
             statusItem.onScreenshotCapture = { [weak self] in self?.captureScreenshot() }
             statusItem.onScreenshotAnnotate = { [weak self] in self?.annotateScreenshot() }
-            statusItem.onScreenshotHistory = { [weak self] in self?.screenshot?.showHistory() }
         }
         captureCoordinator.feedbackCaptureCancelled = { [weak self] in
             // Esc cannot cancel a repeat, which has no selector, so a cancel
@@ -677,7 +676,7 @@ final class FeedbackController {
                 rootURL: self.store.rootURL,
                 zipEnabled: Flags.isOn(.zipHandoff),
                 supportSubmissionEnabled: Flags.isOn(.supportSubmission),
-                newerSchemaCount: listing.newerSchema.count,
+                summaryNames: self.summary.current,
                 older: Array(listing.rounds.dropFirst(5)),
                 updateReminderRow: self.updateReminder?.menuRowVisible() ?? false
             )

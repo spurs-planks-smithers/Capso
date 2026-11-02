@@ -36,7 +36,7 @@ struct RoundTitleTests {
     @Test("Uses the first instruction of the fixture round")
     func fixtureRound() {
         let fixture = FeedbackFixtures.round(captures: [FeedbackFixtures.pricingCapture()])
-        #expect(RoundTitle.title(for: fixture) == "Price is wrong, should be $15")
+        #expect(RoundTitle.title(for: fixture) == "Price is wrong, should be\u{2026}")
     }
 
     @Test("Strips lead-in words and the question mark")
@@ -50,7 +50,7 @@ struct RoundTitleTests {
     @Test("Stops at the first sentence end and keeps decimals whole")
     func firstClause() {
         #expect(RoundTitle.title(for: round(instructions: ["Make the header sticky. Also fix the footer."])) == "Make the header sticky")
-        #expect(RoundTitle.title(for: round(instructions: ["Change $19.99 to $15.99 on the card"])) == "Change $19.99 to $15.99 on the card")
+        #expect(RoundTitle.title(for: round(instructions: ["Change $19.99 to $15.99 on the card"])) == "Change $19.99 to $15.99 on\u{2026}")
     }
 
     @Test("Joins a dictated answer with line breaks into one line")
