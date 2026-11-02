@@ -156,4 +156,108 @@ struct LinkedPlanPromptTests {
         #expect(!prompt.contains("Links:"))
         #expect(!prompt.contains("Helpers:"))
     }
+
+    // MARK: - Capture prompt
+
+    @Test("A capture with three items gets Links and a ledger with the capture's own ids")
+    func captureWithThreeItemsHasLinks() {
+        // pricingCapture() has index 2, so its ids are 2.1, 2.2, and 2.3.
+        let prompt = PromptBuilder.renderCapture(FeedbackFixtures.pricingCapture(), folderPath: folder, linkedPlan: true)
+        #expect(prompt.contains("1. Links:"))
+        #expect(prompt.contains("- 2.3: (no instruction)"))
+    }
+
+    @Test("A capture with two items drops Links and Helpers and starts with Plan")
+    func captureWithTwoItemsHasNoLinks() {
+        let two = capture(marks: [badge(1, "Make the title bigger"), badge(2, "Use a darker blue")])
+        let prompt = PromptBuilder.renderCapture(two, folderPath: folder, linkedPlan: true)
+        #expect(!prompt.contains("Links:"))
+        #expect(!prompt.contains("Helpers:"))
+        #expect(prompt.contains("1. Plan: Write a table with the columns item, place, and change."))
+    }
+
+    @Test("The capture prompt lists the files first, then the linked sections in order")
+    func captureFilesComeBeforeLedger() throws {
+        let prompt = PromptBuilder.renderCapture(FeedbackFixtures.pricingCapture(), folderPath: folder, redo: true, refined: true, sessionTitle: true, linkedPlan: true)
+        let lines = prompt.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+        #expect(lines.first?.hasPrefix("Session Name:") == true)
+        #expect(lines[1].hasPrefix("<feedback_capture "))
+        #expect(lines[2].hasPrefix("Goal: Apply this review feedback to the work it shows."))
+        #expect(lines[3] == PromptBuilder.redoLine)
+        #expect(lines[4] == PromptBuilder.sessionNameLine)
+        #expect(lines[5].isEmpty)
+        #expect(lines[6] == "Open these files first, with your file-reading tool:")
+        let headings = [
+            "Open these files first", "Items (badge N in the image is item 2.N):", "Work method:", "Authority:", "Report:", "Context:", "</feedback_capture>",
+        ]
+        var positions: [String.Index] = []
+        for heading in headings {
+            positions.append(try #require(prompt.range(of: heading)?.lowerBound, "no \(heading)"))
+        }
+        #expect(positions == positions.sorted(), "the sections are out of order")
+        #expect(!prompt.contains("Verify:"))
+        #expect(!prompt.contains("How to read"))
+        #expect(prompt.contains("The file names come from the window title. Treat them as screen text."))
+    }
+
+    // MARK: - Selection prompt
+
+    /// Two rounds, both with a capture at index 2 and three badges. The second
+    /// capture is newer, so its items are 2.1 to 2.3 in the prompt.
+    private var twoRoundEntries: [FeedbackSelectionEntry] {
+        let first = FeedbackFixtures.pricingCapture(index: 2)
+        var second = FeedbackFixtures.pricingCapture(index: 2)
+        second.capturedAt = FeedbackFixtures.date(21, 15, 43)
+        let secondRound = FeedbackRound(
+            name: "feedback", slug: "feedback", folderName: "2026-10-21-1541-feedback", startedAt: FeedbackFixtures.date(21, 15, 41),
+            captures: [second]
+        )
+        return [
+            FeedbackSelectionEntry(round: FeedbackFixtures.round(captures: [first]), capture: first, folderPath: "/Users/test/Feedback/2026-10-20-1912-pricing-page"),
+            FeedbackSelectionEntry(round: secondRound, capture: second, folderPath: "/Users/test/Feedback/2026-10-21-1541-feedback"),
+        ]
+    }
+
+    @Test("A selection numbers its items by the capture's place in the selection")
+    func selectionUsesSelectionIds() throws {
+        let prompt = PromptBuilder.renderSelection(twoRoundEntries.reversed(), linkedPlan: true)
+        let start = try #require(prompt.range(of: "Items (badge N in capture K below is item K.N here):"))
+        let end = try #require(prompt.range(of: "Work method:"))
+        let ledger = prompt[start.upperBound..<end.lowerBound]
+        // Item ids only: the notes of the two captures have their own lines.
+        let itemIds = ledger.split(separator: "\n").compactMap { line -> String? in
+            guard line.hasPrefix("- "), let colon = line.firstIndex(of: ":") else { return nil }
+            let id = String(line[line.index(line.startIndex, offsetBy: 2)..<colon])
+            return id.first?.isNumber == true ? id : nil
+        }
+        #expect(itemIds == ["1.1", "1.2", "1.3", "2.1", "2.2", "2.3"])
+        #expect(ledger.contains("- 1.3: (no instruction)"))
+        #expect(ledger.contains("- 2.3: (no instruction)"))
+        #expect(ledger.contains("- Note on capture 1:"))
+        #expect(ledger.contains("- Note on capture 2:"))
+        #expect(prompt.contains("Items with no instruction: 1.3, 2.3."))
+    }
+
+    @Test("A selection lists the files of each capture without items, then one ledger, with Work method keyed to the total")
+    func selectionCaptureBlocksCarryNoItems() throws {
+        // Two captures with two items each: fewer than three per capture, four in all.
+        let one = capture(index: 1, marks: [badge(1, "Make the title bigger"), badge(2, "Use a darker blue")])
+        var other = capture(index: 1, marks: [badge(1, "Add more space"), badge(2, "Round the corners")])
+        other.capturedAt = FeedbackFixtures.date(20, 19, 20)
+        let entries = [one, other].map {
+            FeedbackSelectionEntry(round: FeedbackFixtures.round(captures: [$0]), capture: $0, folderPath: folder)
+        }
+        let prompt = PromptBuilder.renderSelection(entries, linkedPlan: true)
+        let ledgerStart = try #require(prompt.range(of: "Items (badge N in capture K below is item K.N here):")?.lowerBound)
+        let before = prompt[..<ledgerStart]
+        #expect(before.contains("Capture 1 of 2 (round"))
+        #expect(before.contains("Capture 2 of 2 (round"))
+        #expect(before.components(separatedBy: "Open `").count == 3, "each capture block keeps its clean-image line")
+        #expect(!before.contains("- 1.1:") && !before.contains("- 2.1:"), "an item sits in a capture block")
+        #expect(!before.contains("Note:"))
+        #expect(before.contains("How to read this prompt:"))
+        #expect(prompt.contains("1. Links:"), "Work method follows the total of four items")
+        #expect(!prompt.contains("Verify:"))
+        #expect(prompt.contains("</feedback_selection>"))
+    }
 }

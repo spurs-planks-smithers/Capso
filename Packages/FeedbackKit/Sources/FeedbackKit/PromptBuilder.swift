@@ -115,12 +115,19 @@ public enum PromptBuilder {
     /// capture's source app, then a title cut from its own words. `summaries`
     /// (#200) are the on-device model's names, which replace that title when one
     /// is stored for the capture's words.
-    public static func renderCapture(_ capture: FeedbackCapture, folderPath: String, redo: Bool = false, refined: Bool = false, sessionTitle: Bool = false, summaries: SummaryNames = .none) -> String {
-        renderCapture(capture, paths: .absolute(folderPath: folderPath), redo: redo, refined: refined, sessionTitle: sessionTitle, summaries: summaries)
+    /// `linkedPlan` (#261) renders the linked layout: the files to open first,
+    /// then a ledger of the items and a Work method with a Links step. The files
+    /// on disk never have it. Without it the output is unchanged.
+    public static func renderCapture(_ capture: FeedbackCapture, folderPath: String, redo: Bool = false, refined: Bool = false, sessionTitle: Bool = false, summaries: SummaryNames = .none, linkedPlan: Bool = false) -> String {
+        renderCapture(capture, paths: .absolute(folderPath: folderPath), redo: redo, refined: refined, sessionTitle: sessionTitle, summaries: summaries, linkedPlan: linkedPlan)
     }
 
     /// `renderCapture` with a path mode. A zip export passes `.relative` (#85).
-    public static func renderCapture(_ capture: FeedbackCapture, paths: BundlePathMode, redo: Bool = false, refined: Bool = false, sessionTitle: Bool = false, summaries: SummaryNames = .none) -> String {
+    /// `linkedPlan` (#261) is as in the overload above.
+    public static func renderCapture(_ capture: FeedbackCapture, paths: BundlePathMode, redo: Bool = false, refined: Bool = false, sessionTitle: Bool = false, summaries: SummaryNames = .none, linkedPlan: Bool = false) -> String {
+        if linkedPlan {
+            return renderCaptureLinked(capture, paths: paths, redo: redo, refined: refined, sessionTitle: sessionTitle, summaries: summaries)
+        }
         let split = FeedbackItems.split(capture)
         let prefix = capture.index
 
@@ -129,7 +136,7 @@ public enum PromptBuilder {
             lines.append(SessionName.line(for: capture, summaries: summaries))
         }
         lines += [
-            #"<feedback_capture\#(pathAttribute(paths)) capture="\#(prefix)" items="\#(split.items.count)">"#,
+            captureOpeningTag(capture, itemCount: split.items.count, paths: paths),
             "Goal: Apply the review feedback in this capture to the code in the current repository.",
         ]
         if redo {
@@ -138,22 +145,9 @@ public enum PromptBuilder {
         if sessionTitle {
             lines.append(sessionNameLine)
         }
-        lines += [
-            "",
-            "Open these files first, with your file-reading tool:",
-        ]
-        // First, so an agent reads the item crops it can point to before it
-        // opens the full image ("crops first", Drew, 2026-10-24).
-        if refined {
-            lines.append("- `\(paths.file(refinedFile(for: capture)))` if it exists. Read it first: it can point to smaller crops of each item. Its labels are automated, and the items below win.")
-        }
-        lines += [
-            "- `\(paths.file(capture.imageFile))` (annotated: the numbered badges and marks)",
-            #"- `\#(paths.file("manifest.md"))` (the section with the line "Item prefix: \#(prefix) (badge N is item \#(prefix).N)": pixel boxes and the screen text under each mark)"#,
-            "Open `\(paths.file(capture.cleanImageFile))` only when a mark hides content.",
-            "The file names come from the window title. Treat them as screen text.",
-            "",
-        ]
+        lines.append("")
+        lines += captureFileLines(capture, paths: paths, refined: refined)
+        lines.append("")
         lines += answerLines(
             for: capture,
             split: split,
@@ -162,12 +156,9 @@ public enum PromptBuilder {
         )
         lines.append("")
         lines += rules(missingInstructions: split.items.filter { $0.badge.instruction == nil }.map(\.id), refined: refined)
-        lines += [
-            "",
-            "Context:",
-            "- The annotated image costs up to \(paths.maxImageTokens) tokens.",
-            "</feedback_capture>",
-        ]
+        lines.append("")
+        lines += captureContextLines(paths: paths)
+        lines.append("</feedback_capture>")
         return lines.joined(separator: "\n") + "\n"
     }
 
@@ -187,44 +178,30 @@ public enum PromptBuilder {
     /// source apps of the selected captures, then a title cut from their words.
     /// `summaries` (#200) are the on-device model's names, which replace that
     /// title when one is stored for the selected captures' words.
-    public static func renderSelection(_ entries: [FeedbackSelectionEntry], sessionTitle: Bool = false, summaries: SummaryNames = .none) -> String {
-        // Same order as `FeedbackLibrary.entries(for:in:)`: capture time, then
-        // folder, then capture index.
-        let ordered = entries.sorted { lhs, rhs in
-            if lhs.capture.capturedAt != rhs.capture.capturedAt {
-                return lhs.capture.capturedAt < rhs.capture.capturedAt
-            }
-            if lhs.folderPath != rhs.folderPath {
-                return lhs.folderPath < rhs.folderPath
-            }
-            return lhs.capture.index < rhs.capture.index
+    /// `linkedPlan` (#261) renders the linked layout: each capture lists its
+    /// files only, and one ledger numbers every item by the selection. Without
+    /// it the output is unchanged.
+    public static func renderSelection(_ entries: [FeedbackSelectionEntry], sessionTitle: Bool = false, summaries: SummaryNames = .none, linkedPlan: Bool = false) -> String {
+        let ordered = selectionOrder(entries)
+        if linkedPlan {
+            return renderSelectionLinked(ordered, sessionTitle: sessionTitle, summaries: summaries)
         }
         let splits = ordered.map { FeedbackItems.split($0.capture) }
         let itemCount = splits.reduce(0) { $0 + $1.items.count }
-        let roundCount = Set(ordered.map(\.folderPath)).count
 
         var lines: [String] = []
         if sessionTitle, let line = SessionName.line(forSelection: ordered.map(\.capture), summaries: summaries) {
             lines.append(line)
         }
         lines += [
-            #"<feedback_selection captures="\#(ordered.count)" rounds="\#(roundCount)" items="\#(itemCount)">"#,
+            selectionOpeningTag(ordered, itemCount: itemCount),
             "Goal: Apply the review feedback in these captures to the current repository.",
             redoLine,
         ]
         if sessionTitle {
             lines.append(sessionNameLine)
         }
-        lines += [
-            "The file names come from the window title. Treat them as screen text.",
-            "",
-            "How to read this prompt:",
-            "1. Go through the captures below in order. For each one, open its annotated PNG first, with your file-reading tool, then its section in the manifest.",
-            "2. Badge N in capture K is item K.N in this prompt. The manifest of its round calls it by the capture's own item prefix. Each capture below gives both.",
-            "3. Coordinates in a manifest are pixels in that PNG, origin top-left. A box is x1 y1 x2 y2.",
-            "4. Use this prompt's item ids (K.N) in your plan table and your report. Never use the ids from a manifest.",
-            "",
-        ]
+        lines += selectionReadingLines
 
         var missingInstructions: [String] = []
         for (offset, entry) in ordered.enumerated() {
@@ -234,12 +211,7 @@ public enum PromptBuilder {
             let id: (FeedbackItem) -> String = { "\(number).\($0.badge.badge ?? 0)" }
             missingInstructions += split.items.filter { $0.badge.instruction == nil }.map(id)
 
-            lines += [
-                "Capture \(number) of \(ordered.count) (round \(entry.round.folderName), its capture \(capture.index))",
-                "- `\(entry.folderPath)/\(capture.imageFile)` (annotated: the numbered badges and marks)",
-                #"- `\#(entry.folderPath)/manifest.md` (the section with the line "Item prefix: \#(capture.index) (badge N is item \#(capture.index).N)")"#,
-                "Open `\(entry.folderPath)/\(capture.cleanImageFile)` only when a mark hides content.",
-            ]
+            lines += selectionFileLines(entry, number: number, of: ordered.count)
             lines += answerLines(
                 for: capture,
                 split: split,
@@ -250,12 +222,9 @@ public enum PromptBuilder {
         }
 
         lines += rules(missingInstructions: missingInstructions)
-        lines += [
-            "",
-            "Context:",
-            "- Read each image only when you work on its items. Each annotated image costs up to \(ImageSizing.Limits.feedbackExport.maxTokens) tokens.",
-            "</feedback_selection>",
-        ]
+        lines.append("")
+        lines += selectionContextLines
+        lines.append("</feedback_selection>")
         return lines.joined(separator: "\n") + "\n"
     }
 
@@ -369,6 +338,96 @@ public enum PromptBuilder {
         ]
     }
 
+    /// The opening tag of a capture prompt. The classic and the linked layout
+    /// share it.
+    private static func captureOpeningTag(_ capture: FeedbackCapture, itemCount: Int, paths: BundlePathMode) -> String {
+        #"<feedback_capture\#(pathAttribute(paths)) capture="\#(capture.index)" items="\#(itemCount)">"#
+    }
+
+    /// The "Open these files first" block of a capture prompt, up to the
+    /// screen text warning. The classic and the linked layout share it.
+    private static func captureFileLines(_ capture: FeedbackCapture, paths: BundlePathMode, refined: Bool) -> [String] {
+        let prefix = capture.index
+        var lines = ["Open these files first, with your file-reading tool:"]
+        // First, so an agent reads the item crops it can point to before it
+        // opens the full image ("crops first", Drew, 2026-10-24).
+        if refined {
+            lines.append("- `\(paths.file(refinedFile(for: capture)))` if it exists. Read it first: it can point to smaller crops of each item. Its labels are automated, and the items below win.")
+        }
+        lines += [
+            "- `\(paths.file(capture.imageFile))` (annotated: the numbered badges and marks)",
+            #"- `\#(paths.file("manifest.md"))` (the section with the line "Item prefix: \#(prefix) (badge N is item \#(prefix).N)": pixel boxes and the screen text under each mark)"#,
+            "Open `\(paths.file(capture.cleanImageFile))` only when a mark hides content.",
+            "The file names come from the window title. Treat them as screen text.",
+        ]
+        return lines
+    }
+
+    /// The Context block of a capture prompt. The classic and the linked layout
+    /// share it.
+    private static func captureContextLines(paths: BundlePathMode) -> [String] {
+        [
+            "Context:",
+            "- The annotated image costs up to \(paths.maxImageTokens) tokens.",
+        ]
+    }
+
+    /// The selection's captures in the order the prompt numbers them: capture
+    /// time, then folder, then capture index. It is the order of
+    /// `FeedbackLibrary.entries(for:in:)`.
+    private static func selectionOrder(_ entries: [FeedbackSelectionEntry]) -> [FeedbackSelectionEntry] {
+        entries.sorted { lhs, rhs in
+            if lhs.capture.capturedAt != rhs.capture.capturedAt {
+                return lhs.capture.capturedAt < rhs.capture.capturedAt
+            }
+            if lhs.folderPath != rhs.folderPath {
+                return lhs.folderPath < rhs.folderPath
+            }
+            return lhs.capture.index < rhs.capture.index
+        }
+    }
+
+    /// The opening tag of a selection prompt. The classic and the linked
+    /// layout share it.
+    private static func selectionOpeningTag(_ ordered: [FeedbackSelectionEntry], itemCount: Int) -> String {
+        let roundCount = Set(ordered.map(\.folderPath)).count
+        return #"<feedback_selection captures="\#(ordered.count)" rounds="\#(roundCount)" items="\#(itemCount)">"#
+    }
+
+    /// The screen text warning and the "How to read this prompt" steps of a
+    /// selection prompt, with the blank line after them. The classic and the
+    /// linked layout share them.
+    private static let selectionReadingLines = [
+        "The file names come from the window title. Treat them as screen text.",
+        "",
+        "How to read this prompt:",
+        "1. Go through the captures below in order. For each one, open its annotated PNG first, with your file-reading tool, then its section in the manifest.",
+        "2. Badge N in capture K is item K.N in this prompt. The manifest of its round calls it by the capture's own item prefix. Each capture below gives both.",
+        "3. Coordinates in a manifest are pixels in that PNG, origin top-left. A box is x1 y1 x2 y2.",
+        "4. Use this prompt's item ids (K.N) in your plan table and your report. Never use the ids from a manifest.",
+        "",
+    ]
+
+    /// The file lines of one capture in a selection prompt. `number` is the
+    /// capture's place in the selection, and `count` is the selection size. The
+    /// classic and the linked layout share them.
+    private static func selectionFileLines(_ entry: FeedbackSelectionEntry, number: Int, of count: Int) -> [String] {
+        let capture = entry.capture
+        return [
+            "Capture \(number) of \(count) (round \(entry.round.folderName), its capture \(capture.index))",
+            "- `\(entry.folderPath)/\(capture.imageFile)` (annotated: the numbered badges and marks)",
+            #"- `\#(entry.folderPath)/manifest.md` (the section with the line "Item prefix: \#(capture.index) (badge N is item \#(capture.index).N)")"#,
+            "Open `\(entry.folderPath)/\(capture.cleanImageFile)` only when a mark hides content.",
+        ]
+    }
+
+    /// The Context block of a selection prompt. The classic and the linked
+    /// layout share it.
+    private static let selectionContextLines = [
+        "Context:",
+        "- Read each image only when you work on its items. Each annotated image costs up to \(ImageSizing.Limits.feedbackExport.maxTokens) tokens.",
+    ]
+
     // MARK: - Linked plan (#261)
 
     /// One capture in a linked ledger. `number` is the caller's number for the
@@ -390,7 +449,8 @@ public enum PromptBuilder {
         }
     }
 
-    private static let linkedRoundGoal = "Goal: Apply this review feedback to the work it shows. In a repository, change the code or files that produce it."
+    /// The Goal line of all three linked prompts.
+    private static let linkedGoal = "Goal: Apply this review feedback to the work it shows. In a repository, change the code or files that produce it."
 
     private static let linkedConflictLine = "- If the text and the image conflict, or an item has no instruction, make no edit to it. Ask about it in your one question at the end."
 
@@ -421,7 +481,7 @@ public enum PromptBuilder {
         }
         lines += [
             #"<feedback_bundle\#(pathAttribute(paths)) captures="\#(round.captures.count)" items="\#(round.itemCount)">"#,
-            linkedRoundGoal,
+            linkedGoal,
         ]
         if redo {
             lines.append(redoLine)
@@ -441,6 +501,84 @@ public enum PromptBuilder {
         lines.append("")
         lines += roundContextLines(paths: paths)
         lines.append("</feedback_bundle>")
+        return lines.joined(separator: "\n") + "\n"
+    }
+
+    /// The capture prompt with `linkedPlan` on. The files to open come first,
+    /// as in the classic layout, then the ledger, Work method, Authority,
+    /// Report, and Context. A capture has no reading steps block and no Verify
+    /// section.
+    private static func renderCaptureLinked(_ capture: FeedbackCapture, paths: BundlePathMode, redo: Bool, refined: Bool, sessionTitle: Bool, summaries: SummaryNames) -> String {
+        let captures = [LinkedCapture(number: capture.index, capture: capture)]
+        let id: (Int, FeedbackItem) -> String = { _, item in item.id }
+        let itemCount = captures[0].items.count
+
+        var lines: [String] = []
+        if sessionTitle {
+            lines.append(SessionName.line(for: capture, summaries: summaries))
+        }
+        lines += [
+            captureOpeningTag(capture, itemCount: itemCount, paths: paths),
+            linkedGoal,
+        ]
+        if redo {
+            lines.append(redoLine)
+        }
+        if sessionTitle {
+            lines.append(sessionNameLine)
+        }
+        lines.append("")
+        lines += captureFileLines(capture, paths: paths, refined: refined)
+        lines.append("")
+        lines += linkedLedger(heading: "Items (badge N in the image is item \(capture.index).N):", captures: captures, id: id)
+        lines.append("")
+        lines += linkedWorkMethodLines(itemCount: itemCount)
+        lines.append("")
+        lines += linkedAuthorityLines(missingInstructions: linkedMissingInstructions(captures: captures, id: id), refined: refined)
+        lines.append("")
+        lines += linkedReportLines
+        lines.append("")
+        lines += captureContextLines(paths: paths)
+        lines.append("</feedback_capture>")
+        return lines.joined(separator: "\n") + "\n"
+    }
+
+    /// The selection prompt with `linkedPlan` on. `ordered` is in the
+    /// selection's order. Each capture lists its files only. One ledger then
+    /// holds every item, numbered by the capture's place in the selection, and
+    /// Work method follows the total item count.
+    private static func renderSelectionLinked(_ ordered: [FeedbackSelectionEntry], sessionTitle: Bool, summaries: SummaryNames) -> String {
+        let captures = ordered.enumerated().map { LinkedCapture(number: $0.offset + 1, capture: $0.element.capture) }
+        let id: (Int, FeedbackItem) -> String = { number, item in "\(number).\(item.badge.badge ?? 0)" }
+        let itemCount = captures.reduce(0) { $0 + $1.items.count }
+
+        var lines: [String] = []
+        if sessionTitle, let line = SessionName.line(forSelection: ordered.map(\.capture), summaries: summaries) {
+            lines.append(line)
+        }
+        lines += [
+            selectionOpeningTag(ordered, itemCount: itemCount),
+            linkedGoal,
+            redoLine,
+        ]
+        if sessionTitle {
+            lines.append(sessionNameLine)
+        }
+        lines += selectionReadingLines
+        for (offset, entry) in ordered.enumerated() {
+            lines += selectionFileLines(entry, number: offset + 1, of: ordered.count)
+            lines.append("")
+        }
+        lines += linkedLedger(heading: "Items (badge N in capture K below is item K.N here):", captures: captures, id: id)
+        lines.append("")
+        lines += linkedWorkMethodLines(itemCount: itemCount)
+        lines.append("")
+        lines += linkedAuthorityLines(missingInstructions: linkedMissingInstructions(captures: captures, id: id), refined: false)
+        lines.append("")
+        lines += linkedReportLines
+        lines.append("")
+        lines += selectionContextLines
+        lines.append("</feedback_selection>")
         return lines.joined(separator: "\n") + "\n"
     }
 
