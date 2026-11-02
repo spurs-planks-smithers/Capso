@@ -12,6 +12,7 @@ Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This for
 
 ### Changed
 
+- Option+Shift+E and Option+Shift+R now work while the note panel is open. They end the round at the current step, keep the text you typed there, leave the other steps empty, and copy the round prompt. They still beep during a selection or in an editor. ([#266](https://github.com/spurs-planks-smithers/Capso/issues/266))
 - Round names are five words or fewer, not counting a, an, and the. The Nshot menu's Recent Rounds rows and the `Session Name:` line of a copied prompt use one method: Apple's on-device summary when your Mac has one, else your first instruction cut to five words.
 - In a round's submenu, each capture shows a short summary name of what you marked and wrote. A capture with no summary keeps its page name.
 
