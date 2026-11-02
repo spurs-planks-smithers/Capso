@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 """Scores a replay: today's copied prompt against the linked prompt.
 
-    python3 -I scripts/replay/score.py build/replay/<date> [--no-judge]
+    python3 -I scripts/replay/score.py build/replay/<date> [--no-judge] [--yes]
         [--jobs N] [--retry-failed]
 
 It reads the run files that replay.py wrote (<date>/<round>/<agent>-<variant>-<run>.json)
 and the filtered feedback.json of each round (build/replay/rounds/<round>/). It
 prints one table row per agent and variant, writes score.json beside the runs,
 and prints the verdict of each bar. The exit status is 0 even when a bar fails.
+Exit status 2 is a bad folder or data, and 3 means a judge call is needed and
+--yes is missing (nothing was started). With --no-judge it writes
+score-nojudge.json and leaves score.json alone.
 
 Five measures (design Part D, rulings R21 to R24):
   1. Ledger coverage: the share of the round's item ids found in the answer.
@@ -19,7 +22,9 @@ Five measures (design Part D, rulings R21 to R24):
   5. Group fit: an agent from the other vendor rates each group from 1 to 5.
      This is the only measure that makes vendor calls (one per run). Results
      are cached in <date>/judge-<agent>-<variant>-<round>-<run>.json, so a
-     rerun makes no repeated paid call. --no-judge skips this measure.
+     rerun makes no repeated paid call. With every result cached, the script
+     makes no vendor call and needs no --yes. A missing result needs --yes.
+     --no-judge skips this measure.
 
 Privacy: the run files, the feedback.json files, and the judge input hold the
 reviewer's words. The script prints and saves counts, ids, and ratings only.
@@ -95,6 +100,14 @@ def load_replay():
 
 class ScoreError(Exception):
     """The data cannot be scored. The message holds no reviewer words."""
+
+
+class NeedsConfirmation(Exception):
+    """Judge calls are needed and --yes is missing. `count` is the number of calls."""
+
+    def __init__(self, count: int) -> None:
+        super().__init__(f"{count} judge calls needed")
+        self.count = count
 
 
 def read_round_items(feedback_file: Path) -> dict:
@@ -458,8 +471,14 @@ def read_cached_judge(path: Path, retry_failed: bool) -> dict | None:
     return record
 
 
-def run_judges(replay, date_dir: Path, runs: list[dict], round_items: dict, jobs: int, retry_failed: bool) -> dict:
-    """The judge record of each ok run, keyed by (round, agent, variant, run). Reuses the cache."""
+def run_judges(
+    replay, date_dir: Path, runs: list[dict], round_items: dict, jobs: int, retry_failed: bool, confirmed: bool
+) -> dict:
+    """The judge record of each ok run, keyed by (round, agent, variant, run). Reuses the cache.
+
+    With every result cached it makes no vendor call. When a call is needed and
+    `confirmed` (--yes) is false, it starts nothing and raises NeedsConfirmation.
+    """
     records: dict[tuple, dict] = {}
     todo: list[dict] = []
     for run in runs:
@@ -470,6 +489,8 @@ def run_judges(replay, date_dir: Path, runs: list[dict], round_items: dict, jobs
         else:
             todo.append(run)
     print(f"Judge: {len(records)} cached, {len(todo)} to call ({jobs} at a time).", flush=True)
+    if todo and not confirmed:
+        raise NeedsConfirmation(len(todo))
 
     def work(run: dict) -> dict:
         record = judge_run(replay, run, round_items[run["round"]])
@@ -590,7 +611,7 @@ def verdict(flag) -> str:
 
 def print_table(cells: dict, with_judge: bool) -> None:
     head = (
-        f"{'agent':<7}{'variant':<8}{'runs':>5} | {'cover':>7}{'<100%':>6} | {'grp/run':>8}{'nosec':>6} | "
+        f"{'agent':<7}{'variant':<8}{'runs':>5}{'out':>4} | {'cover':>7}{'<100%':>6} | {'grp/run':>8}{'nosec':>6} | "
         f"{'qpar':>5}{'qids':>5}{'qpass':>7} | {'tok.tot':>9}{'tok.out':>8}"
     )
     if with_judge:
@@ -599,7 +620,7 @@ def print_table(cells: dict, with_judge: bool) -> None:
     print("-" * len(head))
     for cell in cells.values():
         row = (
-            f"{cell['agent']:<7}{cell['variant']:<8}{cell['runs']:>5} | {pct(cell['coverage_mean']):>7}{cell['coverage_below_100']:>6} | "
+            f"{cell['agent']:<7}{cell['variant']:<8}{cell['runs']:>5}{cell['not_ok']:>4} | {pct(cell['coverage_mean']):>7}{cell['coverage_below_100']:>6} | "
             f"{fmt(cell['group_lines_mean'], '{:.2f}'):>8}{cell['no_groups_section']:>6} | "
             f"{cell['question_paragraph']:>5}{cell['question_names_ids']:>5}{pct(cell['question_pass_share']):>7} | "
             f"{fmt(cell['tokens_total_mean'], '{:,.0f}'):>9}{fmt(cell['tokens_out_mean'], '{:,.0f}'):>8}"
@@ -607,8 +628,12 @@ def print_table(cells: dict, with_judge: bool) -> None:
         if with_judge:
             row += f" | {cell['judge_groups']:>6}{fmt(cell['judge_rating_mean'], '{:.2f}'):>7}{cell['judge_failed']:>6}"
         print(row)
+    for key, cell in cells.items():
+        if cell["not_ok"]:
+            print(f"WARNING: {key} has {cell['not_ok']} run files with status not ok or an empty answer, left out of the scoring")
     print(
-        "columns: cover = mean ledger coverage, <100% = runs below 100%, grp/run = mean group lines per run, "
+        "columns: runs = runs scored, out = run files left out (status not ok or empty answer), "
+        "cover = mean ledger coverage, <100% = runs below 100%, grp/run = mean group lines per run, "
         "nosec = runs with no groups section, qpar = runs with a question paragraph, qids = runs whose question paragraph names ids, "
         "qpass = share of runs that pass the question bar, tok = mean tokens per run (input plus output, and output only), "
         "groups/rating/jfail = judged groups, mean rating, runs the judge failed on"
@@ -673,7 +698,10 @@ def run(args: argparse.Namespace) -> int:
     judged = None
     if not args.no_judge:
         try:
-            judged = run_judges(replay, date_dir, scorable, round_items, args.jobs, args.retry_failed)
+            judged = run_judges(replay, date_dir, scorable, round_items, args.jobs, args.retry_failed, args.yes)
+        except NeedsConfirmation as needed:
+            print(f"{needed.count} judge calls are needed (one vendor call each). Nothing was started. Add --yes to run, or --no-judge to skip measure 5.")
+            return 3
         finally:
             replay.AGENTS.stop_all()
 
@@ -717,7 +745,8 @@ def run(args: argparse.Namespace) -> int:
         "bars": {"coverage": COVERAGE_BAR, "question_share": QUESTION_BAR, "tokens_ratio": TOKEN_BAR},
         "rounds": rounds_summary, "runs": run_rows, "cells": cells, "verdicts": bars,
     }
-    target = date_dir / "score.json"
+    # A run without the judge must not overwrite the full result.
+    target = date_dir / ("score.json" if judged is not None else "score-nojudge.json")
     temporary = target.with_name(target.name + ".tmp")
     temporary.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     os.replace(temporary, target)
@@ -728,7 +757,8 @@ def run(args: argparse.Namespace) -> int:
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description="Score a replay: today against linked.")
     parser.add_argument("date_dir", help="build/replay/<date>")
-    parser.add_argument("--no-judge", action="store_true", help="skip measure 5 (it makes the vendor calls)")
+    parser.add_argument("--no-judge", action="store_true", help="skip measure 5 (it makes the vendor calls); writes score-nojudge.json")
+    parser.add_argument("--yes", action="store_true", help="allow the vendor calls for judge results that are not cached")
     parser.add_argument("--jobs", type=int, default=2, help="judge calls at the same time (default 2)")
     parser.add_argument("--retry-failed", action="store_true", help="call the judge again for runs whose cached judge result is failed")
     args = parser.parse_args(argv)

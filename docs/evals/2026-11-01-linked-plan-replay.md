@@ -5,11 +5,13 @@ Replay of today's copied prompt against the `linkedPlan` prompt (issue #261, des
 ## Result
 
 - 3 of the 4 scored bars pass for `linked` on both agents: ledger coverage, tokens, and group fit.
-- The question bar fails for `linked`: 16.7% of Claude runs and 41.7% of Codex runs pass, against a bar of 90%. The bar cannot pass on these rounds. No item lacks an instruction (0 of 21 items), so every question that names an id fails.
+- The question bar fails for `linked` on the formal definition, for both agents. Claude passes in 16.7% of `linked` runs and in 25.0% of `today` runs, so Claude fails under both prompts. Codex passes in 41.7% of `linked` runs and in 100.0% of `today` runs, a drop that comes from `linked`. The bar is 90%.
+- The Codex change is measured: id-naming questions rise from 0 of 12 runs to 7 of 12, and runs with any question paragraph rise from 3 of 12 to 9 of 12.
+- The bar passes only when no question names an id. It cannot tell a needed question from noise here, because no item lacks an instruction and no round has conflict labels (0 of 21 items).
 - Coverage: `linked` lists every id in all 24 runs. `today` misses one id in 1 of 24 runs.
-- Tokens: Claude `linked` costs 1.09 times `today` (bar 1.3). Codex `linked` costs 0.84 times.
+- Tokens: Claude `linked` uses 1.09 times the tokens of `today` (bar 1.3). Codex `linked` uses 0.84 times.
 - Group fit (model-judged): Claude 3.47 against 2.45, Codex 3.35 against 3.13. Both are above `today`.
-- Cross-capture groups (no bar): the lines count is 0.25 per run for Claude `linked` against 0.75 for `today`, and 0.58 against 0.00 for Codex. The counts are small and the parser is a heuristic (see Limits).
+- Cross-capture groups (no bar): the line count is 0.25 per run for Claude `linked` against 0.75 for `today`, and 0.58 against 0.00 for Codex. The counts are small and the parser is a heuristic (see Limits).
 
 ## What was run
 
@@ -30,13 +32,13 @@ The repository commit is the last commit of origin/main before the round started
 | Judge of Codex answers | claude-sonnet-5-5 | Claude Code, no tools, no MCP, empty scratch folder |
 
 - Harness: `scripts/replay/replay.py`, last changed in commit `b655021`.
-- Prompt tool: `nextshot-prompt` at commit `b4857a2` for the `linked` prompts (rendered 16:26 PST, `--linked`). The `today` prompts were rendered at 15:45 PST. Rendered again with the `b4857a2` tool, all 4 `today` prompts are byte-identical to the saved ones.
-- 2 of the 48 run files (both `today`) carry no tool version. The other 46 name the versions above.
-- Rerun: `python3 -I scripts/replay/score.py build/replay/2026-11-01`. The judge results are cached in `judge-*.json` beside the runs, so a rerun makes no vendor call.
+- Prompt tool: `nextshot-prompt` for the `linked` prompts was built from the working tree just before commit `b4857a2` (16:25 PST). It rendered the `linked` prompts at 16:26 PST with `--linked`. The `today` prompts were rendered at 15:45 PST. Rendered again with that binary, all 4 `today` prompts are byte-identical to the saved ones.
+- 2 of the 48 run files carry no tool version: round 2026-10-22-1609-feedback, run 1, both agents, `today`. They were written at 15:14 and 15:15 PST, before the 15:45 `today` render and before tool versions were recorded. The byte check does not cover their prompt. The other 46 files name the versions above.
+- Rerun: `python3 -I scripts/replay/score.py build/replay/2026-11-01`. With every judge result cached in `judge-*.json` beside the runs, a rerun makes no vendor call and needs no `--yes`. A missing judge result needs `--yes`, and the script exits with status 3 without it. `--no-judge` skips measure 5 and writes `score-nojudge.json`, not `score.json`.
 
 ## 1. Ledger coverage
 
-The share of the round's item ids found in the answer as a stand-alone id. Bar: 100% in every run.
+The share of the round's item ids found in the answer as a stand-alone id. Bar: 100% in every run. The bar is written for `linked`. The `today` rows apply the same rule only as a reference.
 
 | agent | variant | runs | mean coverage | runs below 100% | bar |
 |---|---|---|---|---|---|
@@ -64,7 +66,7 @@ Lines of the groups section that hold ids from 2 or more captures. A table row, 
 
 ## 3. Question precision
 
-The last paragraph with a question mark, and the ids it names. Bar: the paragraph names only ids that have no instruction, in at least 90% of runs. A run with no question paragraph, or with one that names no id, passes.
+The last paragraph with a question mark, and the ids it names. Bar: the paragraph names only ids that have no instruction, in at least 90% of runs. A run with no question paragraph, or with one that names no id, passes. The bar is written for `linked`. The `today` rows apply the same rule only as a reference.
 
 | agent | variant | runs | with a question paragraph | question paragraph is a table | name ids | pass | pass share | bar |
 |---|---|---|---|---|---|---|---|---|
@@ -73,9 +75,10 @@ The last paragraph with a question mark, and the ids it names. Bar: the paragrap
 | Codex | today | 12 | 3 | 0 | 0 | 12 | 100.0% | pass |
 | Codex | linked | 12 | 9 | 0 | 7 | 5 | 41.7% | fail |
 
-- The 4 rounds have 21 items and none lacks an instruction (counted from the data). The bar therefore reduces to "no question names an id". The result says how often an agent names an id when it asks. It does not say whether the question was needed.
-- Codex asks far more id-naming questions under `linked`: 7 of 12 runs against 0 of 12 under `today`.
-- Claude names ids in 10 of 12 runs under `linked` and 9 of 12 under `today`.
+- The 4 rounds have 21 items and none lacks an instruction (counted from the data). The bar therefore passes only when no question names an id. The result says how often an agent names an id when it asks. It does not say whether the question was needed.
+- Claude fails under both prompts (25.0% under `today`, 16.7% under `linked`). Its fail is not specific to `linked`. It names ids in 10 of 12 runs under `linked` and 9 of 12 under `today`.
+- Codex drops from 100.0% under `today` to 41.7% under `linked`. This drop is specific to `linked`.
+- Codex asks far more id-naming questions under `linked`: 7 of 12 runs against 0 of 12 under `today`. Runs with any question paragraph rise from 3 of 12 to 9 of 12.
 
 ## 4. Tokens
 
@@ -137,18 +140,20 @@ Supplementary, no bar: the mean rating per round (number of groups in brackets).
 
 ## Bars at a glance
 
-| bar | Claude | Codex |
+The bars are written for `linked`. This table shows the `linked` result. The `today` rows in the sections above apply the same rule only as a reference.
+
+| bar | Claude, `linked` | Codex, `linked` |
 |---|---|---|
 | 1 coverage, 100% in every run | pass (0 of 12 runs below) | pass (0 of 12 runs below) |
 | 2 cross-capture groups | no bar | no bar |
-| 3 questions name only unanswered items, in 90% of runs | fail (16.7%) | fail (41.7%) |
+| 3 questions name only unanswered items, in 90% of runs | fail (16.7%; `today` 25.0%) | fail (41.7%; `today` 100.0%) |
 | 4 tokens, at most 1.3 times `today` | pass (1.09 times) | pass (0.84 times) |
 | 5 group fit, at least `today` | pass (3.47 against 2.45) | pass (3.35 against 3.13) |
 
 ## Limits
 
 - 3 runs per cell, 4 rounds, 21 items. Runs of one round are not independent. Read the differences as direction, not proof.
-- Measure 3 is degenerate here. The rounds hold no item without an instruction and no labeled conflict, so the bar cannot separate a needed question from a noisy one. The design bar also allows items with a conflict. This replay has no conflict labels.
+- Measure 3 cannot separate a needed question from noise here. The rounds hold no item without an instruction (0 of 21) and no labeled conflict, so the bar passes only when no question names an id. The design bar also allows items with a conflict. This replay has no conflict labels. The failed bar is a measured result on the formal definition.
 - The group parser is a heuristic. It looks for a heading that starts with Links, Group, or Related. It counts list and table lines until the next section.
 - It misses groups that an agent writes as plain sentences (8 of 12 Codex `today` runs had no groups section).
 - It does not expand a range such as 2.1 to 2.3.
@@ -165,11 +170,13 @@ Supplementary, no bar: the mean rating per round (number of groups in brackets).
 
 Keep `linkedPlan` off, or try it in the Dev build?
 
-Bars that passed: ledger coverage (every `linked` run lists every id), tokens (1.09 times for Claude, 0.84 times for Codex, bar 1.3), and group fit (3.47 against 2.45 for Claude, 3.35 against 3.13 for Codex).
+Bars that passed for `linked`: ledger coverage (every `linked` run lists every id), tokens (uses 1.09 times the tokens of `today` for Claude, 0.84 times for Codex, bar 1.3), and group fit (3.47 against 2.45 for Claude, 3.35 against 3.13 for Codex).
 
-Bar that failed: question precision. Claude passes in 16.7% of `linked` runs and Codex in 41.7%, against a bar of 90%. This bar cannot pass on these 4 rounds, because no item lacks an instruction. It still shows one change: Codex asks an id-naming question in 7 of 12 `linked` runs and in 0 of 12 `today` runs.
+Bar that failed for `linked`: question precision, on the formal definition. The bar passes only when no question names an id. Claude passes in 16.7% of `linked` runs and in 25.0% of `today` runs, so Claude fails under both prompts. Codex passes in 41.7% of `linked` runs and in 100.0% of `today` runs, so its drop comes from `linked`. The design goal is to ask only when unsure.
 
-Not decided by the data: whether the extra questions are needed. The cross-capture group counts are small (4 to 10 groups per cell) and point both ways.
+The Codex change is measured. Id-naming questions rise from 0 of 12 runs to 7 of 12. Runs with any question paragraph rise from 3 of 12 to 9 of 12.
 
-1. **Try it in the Dev build (Recommended).** The measured bars pass or are degenerate, and the cost is low. Turn on `linkedPlan` in Nextshot Dev only. Release stays off. Watch the end-of-answer questions in your own rounds. If most of them are noise, turn it off again.
-2. **Keep it off.** Choose this if you read the extra Codex questions as a regression. The data gives no measured reason to choose it. It only delays your own check.
+Not decided by the data: whether the extra questions are needed. No item lacks an instruction (0 of 21) and no round has conflict labels. The cross-capture group counts are small (4 to 10 groups per cell) and point both ways.
+
+1. **Try it in the Dev build (Recommended).** Coverage, tokens, and group fit passed. The question bar failed, and the Codex rise is real: id-naming questions rise from 0 of 12 runs to 7 of 12, and runs with any question paragraph from 3 of 12 to 9 of 12. Only your own rounds can show whether the extra questions are needed. Turn on `linkedPlan` in Nextshot Dev only. Release stays off. Watch the end-of-answer questions in your own rounds, and count how many turned out to be unnecessary. If most are noise, turn it off again.
+2. **Keep it off.** Choose this if you read the Codex rise as a regression. The replay shows that rise: Codex passes the question bar in 100.0% of `today` runs and in 41.7% of `linked` runs.
