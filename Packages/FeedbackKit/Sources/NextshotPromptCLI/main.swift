@@ -12,6 +12,9 @@ import Foundation
 ///     nextshot-prompt zip <rounds-root> <folder> <out-dir>
 ///     nextshot-prompt subset <rounds-root> <folder> <captures> <out-root>
 ///
+/// `--linked` renders the linkedPlan layout (#261) in `round` and `capture`.
+/// `zip` and `subset` take no flags.
+///
 /// `subset` copies a round to `<out-root>/<folder>` with only the captures in
 /// `<captures>` (a comma list of capture indexes, or `all`). It holds a new
 /// `feedback.json`, a `manifest.md` rendered again from that round, and the
@@ -20,7 +23,7 @@ import Foundation
 /// It stops when `<out-root>/<folder>` exists, and it prints the new folder.
 ///
 /// Exit status: 0 on success, 1 when a round, capture, zip, or subset fails,
-/// 2 for `--linked`, and 64 for a command line it cannot read.
+/// and 64 for a command line it cannot read.
 
 let usage = """
 usage:
@@ -29,9 +32,6 @@ usage:
   nextshot-prompt zip <rounds-root> <folder> <out-dir>
   nextshot-prompt subset <rounds-root> <folder> <captures> <out-root>
 """
-
-/// Printed for `--linked` until the linked plan is wired in.
-let linkedNotBuilt = "linkedPlan is not built yet"
 
 func fail(_ message: String, status: Int32) -> Never {
     FileHandle.standardError.write(Data((message + "\n").utf8))
@@ -92,17 +92,24 @@ switch arguments[1] {
 case "round":
     let (words, flags) = parse(arguments.dropFirst(2), allowed: ["--redo", "--linked"])
     guard words.count == 2 else { usageError("round takes <rounds-root> <folder>") }
-    if flags.contains("--linked") { fail(linkedNotBuilt, status: 2) }
     let root = URL(fileURLWithPath: words[0], isDirectory: true)
     let round = loadRound(root: root, folder: words[1], notFound: "round not found: \(words[1])")
     let folderPath = root.appendingPathComponent(words[1], isDirectory: true).path
-    print(PromptBuilder.render(round, folderPath: folderPath, redo: flags.contains("--redo"), sessionTitle: true), terminator: "")
+    print(
+        PromptBuilder.render(
+            round,
+            folderPath: folderPath,
+            redo: flags.contains("--redo"),
+            sessionTitle: true,
+            linkedPlan: flags.contains("--linked")
+        ),
+        terminator: ""
+    )
 
 case "capture":
     let (words, flags) = parse(arguments.dropFirst(2), allowed: ["--redo", "--linked"])
     guard words.count == 3 else { usageError("capture takes <rounds-root> <folder> <index>") }
     guard let index = Int(words[2]) else { usageError("index is not a number: \(words[2])") }
-    if flags.contains("--linked") { fail(linkedNotBuilt, status: 2) }
     let root = URL(fileURLWithPath: words[0], isDirectory: true)
     let missingCapture = "capture not found: \(words[1]) \(index)"
     let round = loadRound(root: root, folder: words[1], notFound: missingCapture)
@@ -110,7 +117,16 @@ case "capture":
         fail(missingCapture, status: 1)
     }
     let folderPath = root.appendingPathComponent(words[1], isDirectory: true).path
-    print(PromptBuilder.renderCapture(capture, folderPath: folderPath, redo: flags.contains("--redo"), sessionTitle: true), terminator: "")
+    print(
+        PromptBuilder.renderCapture(
+            capture,
+            folderPath: folderPath,
+            redo: flags.contains("--redo"),
+            sessionTitle: true,
+            linkedPlan: flags.contains("--linked")
+        ),
+        terminator: ""
+    )
 
 case "zip":
     let (words, _) = parse(arguments.dropFirst(2), allowed: [])
