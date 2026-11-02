@@ -150,7 +150,7 @@ struct LinkedPlanPromptTests {
             captures: [capture(marks: [badge(1, "Make the title bigger"), badge(2, "Use a darker blue")])]
         )
         let prompt = linked(two)
-        #expect(prompt.contains("1. Plan: Write a table with the columns item, place, and change. Then continue without waiting."))
+        #expect(prompt.contains("1. Plan: Write a table with the columns item, place, and change. Make no edit before this table is in your reply. Then continue without waiting."))
         #expect(prompt.contains("2. Scope:"))
         #expect(prompt.contains("3. Questions:"))
         #expect(!prompt.contains("Links:"))
@@ -221,7 +221,7 @@ struct LinkedPlanPromptTests {
     @Test("A selection numbers its items by the capture's place in the selection")
     func selectionUsesSelectionIds() throws {
         let prompt = PromptBuilder.renderSelection(twoRoundEntries.reversed(), linkedPlan: true)
-        let start = try #require(prompt.range(of: "Items (badge N in capture K below is item K.N here):"))
+        let start = try #require(prompt.range(of: "Items (badge N in capture K is item K.N here):"))
         let end = try #require(prompt.range(of: "Work method:"))
         let ledger = prompt[start.upperBound..<end.lowerBound]
         // Item ids only: the notes of the two captures have their own lines.
@@ -248,7 +248,7 @@ struct LinkedPlanPromptTests {
             FeedbackSelectionEntry(round: FeedbackFixtures.round(captures: [$0]), capture: $0, folderPath: folder)
         }
         let prompt = PromptBuilder.renderSelection(entries, linkedPlan: true)
-        let ledgerStart = try #require(prompt.range(of: "Items (badge N in capture K below is item K.N here):")?.lowerBound)
+        let ledgerStart = try #require(prompt.range(of: "Items (badge N in capture K is item K.N here):")?.lowerBound)
         let before = prompt[..<ledgerStart]
         #expect(before.contains("Capture 1 of 2 (round"))
         #expect(before.contains("Capture 2 of 2 (round"))
@@ -259,5 +259,63 @@ struct LinkedPlanPromptTests {
         #expect(prompt.contains("1. Links:"), "Work method follows the total of four items")
         #expect(!prompt.contains("Verify:"))
         #expect(prompt.contains("</feedback_selection>"))
+    }
+
+    // MARK: - Plan rule and empty captures
+
+    /// One capture as a round prompt, a capture prompt, and a selection prompt
+    /// of one entry. A round and a capture prompt number the capture by its own
+    /// index. A selection numbers it 1.
+    private func linkedRenders(of cap: FeedbackCapture) -> [(name: String, number: Int, text: String)] {
+        let round = FeedbackRound(
+            name: "one", slug: "one", folderName: "2026-10-20-1912-one", startedAt: FeedbackFixtures.date(20, 19, 12),
+            captures: [cap]
+        )
+        let entry = FeedbackSelectionEntry(round: round, capture: cap, folderPath: folder)
+        return [
+            ("round prompt", cap.index, linked(round)),
+            ("capture prompt", cap.index, PromptBuilder.renderCapture(cap, folderPath: folder, linkedPlan: true)),
+            ("selection prompt", 1, PromptBuilder.renderSelection([entry], linkedPlan: true)),
+        ]
+    }
+
+    @Test("A capture with no item and no note tells the agent to ask, in all three prompts")
+    func emptyCaptureAsksTheUser() {
+        let ask = { (number: Int) in "- Note on capture \(number): none. Ask about it in your one question at the end." }
+        let arrow = FeedbackMark(kind: .arrow, box: FeedbackBox(x1: 100, y1: 400, x2: 300, y2: 420), point: FeedbackPoint(x: 300, y: 420))
+
+        // No marks and no note.
+        for (name, number, text) in linkedRenders(of: capture(index: 3)) {
+            #expect(text.contains("\n\(ask(number))\n"), "\(name) lacks the ask line")
+            #expect(!text.contains("Items: none."), "\(name) falls back to Items: none.")
+        }
+        // An arrow without a badge does not make an item: the marks line comes first.
+        for (name, number, text) in linkedRenders(of: capture(index: 3, marks: [arrow])) {
+            let marks = "Marks without a badge in capture \(number): 1. The manifest describes them."
+            #expect(text.contains("\n\(marks)\n\(ask(number))\n"), "\(name) lacks the marks line before the ask line")
+        }
+        // A note, or an item, means no ask line.
+        for (name, _, text) in linkedRenders(of: capture(index: 3, note: "The page feels slow.")) {
+            #expect(!text.contains(": none. Ask about it"), "\(name) asks although the capture has a note")
+            #expect(text.contains("- Note on capture"), "\(name) lost the note")
+        }
+        for (name, _, text) in linkedRenders(of: capture(index: 3, marks: [badge(1, "Make the title bigger")])) {
+            #expect(!text.contains(": none. Ask about it"), "\(name) asks although the capture has an item")
+        }
+        // Only a ledger with no capture at all is "Items: none."
+        let none = FeedbackRound(name: "none", slug: "none", folderName: "2026-10-20-1912-none", startedAt: FeedbackFixtures.date(20, 19, 12), captures: [])
+        #expect(linked(none).contains("Items: none."))
+    }
+
+    @Test("Both Plan steps keep the rule to make no edit before the table")
+    func planStepKeepsNoEditRule() {
+        let rule = "Make no edit before this table is in your reply. Then continue without waiting."
+        let three = capture(index: 3, marks: [badge(1, "Make the title bigger"), badge(2, "Use a darker blue"), badge(3, "Round the corners")])
+        let two = capture(index: 3, marks: [badge(1, "Make the title bigger"), badge(2, "Use a darker blue")])
+        for (layout, cap, columns) in [("three items", three, "item, group, place, and change"), ("two items", two, "item, place, and change")] {
+            for (name, _, text) in linkedRenders(of: cap) {
+                #expect(text.contains("Plan: Write a table with the columns \(columns). \(rule)"), "\(name) with \(layout) lacks the rule")
+            }
+        }
     }
 }

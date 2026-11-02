@@ -44,9 +44,9 @@ public enum PromptBuilder {
     /// `summaries` (#200) are the on-device model's names. A stored name for the
     /// round's words replaces the round title in that first line.
     /// `linkedPlan` (#261) renders the linked layout: a ledger of every item, a
-    /// Links step before the plan, and a report that repeats the ledger, with
-    /// no Verify section. It ignores `lanes`. The files on disk never have it.
-    /// Without it the output is unchanged.
+    /// Links step before the plan (only with three or more items), and a report
+    /// that repeats the ledger, with no Verify section. It ignores `lanes`. The
+    /// files on disk never have it. Without it the output is unchanged.
     public static func render(_ round: FeedbackRound, folderPath: String, redo: Bool = false, refined: Bool = false, lanes: PromptLanes? = nil, sessionTitle: Bool = false, summaries: SummaryNames = .none, linkedPlan: Bool = false) -> String {
         render(round, paths: .absolute(folderPath: folderPath), redo: redo, refined: refined, lanes: lanes, sessionTitle: sessionTitle, summaries: summaries, linkedPlan: linkedPlan)
     }
@@ -116,8 +116,9 @@ public enum PromptBuilder {
     /// (#200) are the on-device model's names, which replace that title when one
     /// is stored for the capture's words.
     /// `linkedPlan` (#261) renders the linked layout: the files to open first,
-    /// then a ledger of the items and a Work method with a Links step. The files
-    /// on disk never have it. Without it the output is unchanged.
+    /// then a ledger of the items and a Work method. Work method has a Links
+    /// step only with three or more items. The files on disk never have it.
+    /// Without it the output is unchanged.
     public static func renderCapture(_ capture: FeedbackCapture, folderPath: String, redo: Bool = false, refined: Bool = false, sessionTitle: Bool = false, summaries: SummaryNames = .none, linkedPlan: Bool = false) -> String {
         renderCapture(capture, paths: .absolute(folderPath: folderPath), redo: redo, refined: refined, sessionTitle: sessionTitle, summaries: summaries, linkedPlan: linkedPlan)
     }
@@ -455,8 +456,8 @@ public enum PromptBuilder {
     private static let linkedConflictLine = "- If the text and the image conflict, or an item has no instruction, make no edit to it. Ask about it in your one question at the end."
 
     private static let linkedLinksStep = "Links: Before your plan, write a Links section. Group the items that share one intent or one cause, across captures. Give each group its item ids and the one decision that applies to all of them. Look for one shared source in the code, such as a component, a style, or a string. An item can stand alone."
-    private static let linkedPlanStep = "Plan: Write a table with the columns item, group, place, and change. Then continue without waiting."
-    private static let linkedPlanStepWithoutGroups = "Plan: Write a table with the columns item, place, and change. Then continue without waiting."
+    private static let linkedPlanStep = "Plan: Write a table with the columns item, group, place, and change. Make no edit before this table is in your reply. Then continue without waiting."
+    private static let linkedPlanStepWithoutGroups = "Plan: Write a table with the columns item, place, and change. Make no edit before this table is in your reply. Then continue without waiting."
     private static let linkedScopeStep = #"Scope: A group's decision reaches unmarked places only when the reviewer's words ask for it, such as "everywhere", "all", or "never". List other places it would affect under Suggestions, and do not change them."#
     private static let linkedScopeStepWithoutGroups = #"Scope: A change reaches unmarked places only when the reviewer's words ask for it, such as "everywhere", "all", or "never". List other places it would affect under Suggestions, and do not change them."#
     private static let linkedQuestionsStep = "Questions: Do every clear item first. Make no edit on an item with no instruction, on items that conflict, or where two readings would lead to different work. Ask once at the end, with all of their ids in one message."
@@ -569,7 +570,7 @@ public enum PromptBuilder {
             lines += selectionFileLines(entry, number: offset + 1, of: ordered.count)
             lines.append("")
         }
-        lines += linkedLedger(heading: "Items (badge N in capture K below is item K.N here):", captures: captures, id: id)
+        lines += linkedLedger(heading: "Items (badge N in capture K is item K.N here):", captures: captures, id: id)
         lines.append("")
         lines += linkedWorkMethodLines(itemCount: itemCount)
         lines.append("")
@@ -584,8 +585,10 @@ public enum PromptBuilder {
 
     /// The ledger: every item of every capture, then its marks without a
     /// badge, then its general note. The caller gives the heading and the item
-    /// ids, so a round, a capture, and a selection prompt share it. With no
-    /// item, no mark without a badge, and no note, it is "Items: none."
+    /// ids, so a round, a capture, and a selection prompt share it. A capture
+    /// with no item and no note gets the line "Note on capture K: none" with an
+    /// instruction to ask, so the agent asks the user what should change. Only a
+    /// ledger with no captures at all is "Items: none."
     private static func linkedLedger(heading: String, captures: [LinkedCapture], id: (Int, FeedbackItem) -> String) -> [String] {
         var lines: [String] = []
         for entry in captures {
@@ -597,6 +600,8 @@ public enum PromptBuilder {
             }
             if let note = entry.capture.note.map(oneLine), !note.isEmpty {
                 lines.append("- Note on capture \(entry.number): \(note)")
+            } else if entry.items.isEmpty {
+                lines.append("- Note on capture \(entry.number): none. Ask about it in your one question at the end.")
             }
         }
         return lines.isEmpty ? ["Items: none."] : [heading] + lines
