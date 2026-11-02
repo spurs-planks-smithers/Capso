@@ -38,7 +38,7 @@ Click **Nshot** in the menu bar to:
 - **Change Start Round Shortcut...** to pick a key other than **Option+Shift+F**.
 - Open **Settings...**, or **Quit Nextshot**.
 
-The four round keys work only while a round is active. At other times each key types its character as usual. **Option+Shift+F** and **Option+Shift+G** are always on. While you select, mark, or add notes to a capture, **Option+Shift+R** and **Option+Shift+E** only beep, so the round never ends under an open capture. **Settings**, **Shortcuts** lists all six Nextshot keys, and each row in the menu shows its key.
+The four round keys work only while a round is active. At other times each key types its character as usual. **Option+Shift+F** and **Option+Shift+G** are always on. While you select or mark a capture, **Option+Shift+R** and **Option+Shift+E** only beep, so the round never ends under an unsaved capture. While the note panel is open they end the round at that step, keep what you typed, and copy the prompt. **Settings**, **Shortcuts** lists all six Nextshot keys, and each row in the menu shows its key.
 
 Nextshot shows one item in the menu bar. The menu for other captures (window, fullscreen, recording, history) is hidden. To show it, turn on **Show menu bar icon** in **Settings**, **General**. The capture shortcuts work either way.
 

@@ -30,6 +30,7 @@ final class FeedbackNotePanel {
     var onClosed: (() -> Void)?
 
     private var panel: KeyNotePanel?
+    private var model: FeedbackNoteModel?
 
     var isOpen: Bool { panel != nil }
 
@@ -60,6 +61,7 @@ final class FeedbackNotePanel {
                 onFinish()
             }
         )
+        self.model = model
         let panel = KeyNotePanel(
             contentRect: NSRect(x: 0, y: 0, width: 520, height: 110),
             styleMask: [.titled, .closable, .fullSizeContentView, .nonactivatingPanel],
@@ -76,6 +78,7 @@ final class FeedbackNotePanel {
         panel.onClose = { [weak self, weak panel] in
             guard let self, let panel, self.panel === panel else { return }
             self.panel = nil
+            self.model = nil
             onEnd()
             self.onClosed?()
         }
@@ -97,6 +100,14 @@ final class FeedbackNotePanel {
         FeedbackLog.logger.notice("note panel closing")
         panel.close()
     }
+
+    /// Saves the text typed in the current step, then closes. End Round
+    /// calls this, so the round keeps what the reviewer typed (#266). The
+    /// empty steps stay empty.
+    func commitAndClose() {
+        model?.commitInProgress()
+        close()
+    }
 }
 
 /// The steps, the current step, and the answers given so far.
@@ -110,6 +121,7 @@ final class FeedbackNoteModel {
     @ObservationIgnored private var answers: [FeedbackNoteStep: String] = [:]
     private let onAnswer: (FeedbackNoteStep, String) -> Void
     private let onFinish: () -> Void
+    private var finished = false
 
     init(
         steps: [FeedbackNoteStep],
@@ -132,6 +144,15 @@ final class FeedbackNoteModel {
     /// Esc: goes on without saving. An answer saved earlier stays.
     func skip() {
         goForwardOrFinish()
+    }
+
+    /// Saves the text typed in the current step, without moving. Used when
+    /// the round ends under the open panel (#266). After the last step has
+    /// finished, the panel is closing and Esc may have skipped the text on
+    /// purpose, so nothing is saved then.
+    func commitInProgress() {
+        guard !finished else { return }
+        saveAnswer()
     }
 
     /// Saves the answer and moves `delta` steps. Returns false, and stays,
@@ -157,6 +178,7 @@ final class FeedbackNoteModel {
         if position + 1 < steps.count {
             show(position + 1)
         } else {
+            finished = true
             onFinish()
         }
     }
