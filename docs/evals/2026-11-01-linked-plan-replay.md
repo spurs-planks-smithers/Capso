@@ -79,6 +79,7 @@ The last paragraph with a question mark, and the ids it names. Bar: the paragrap
 - Claude fails under both prompts (25.0% under `today`, 16.7% under `linked`). Its fail is not specific to `linked`. It names ids in 10 of 12 runs under `linked` and 9 of 12 under `today`.
 - Codex drops from 100.0% under `today` to 41.7% under `linked`. This drop is specific to `linked`.
 - Codex asks far more id-naming questions under `linked`: 7 of 12 runs against 0 of 12 under `today`. Runs with any question paragraph rise from 3 of 12 to 9 of 12.
+- The linked Questions step asks the agent to ask when two readings lead to different work, and to name all of their ids. The prompt therefore asks for part of what the formal bar counts as a failure, because the bar counts only empty or conflicting items as valid questions.
 
 ## 4. Tokens
 
@@ -154,6 +155,8 @@ The bars are written for `linked`. This table shows the `linked` result. The `to
 
 - 3 runs per cell, 4 rounds, 21 items. Runs of one round are not independent. Read the differences as direction, not proof.
 - Measure 3 cannot separate a needed question from noise here. The rounds hold no item without an instruction (0 of 21) and no labeled conflict, so the bar passes only when no question names an id. The design bar also allows items with a conflict. This replay has no conflict labels. The failed bar is a measured result on the formal definition.
+- The linked Questions step asks the agent to ask when two readings lead to different work, and to name all of their ids. The prompt therefore asks for part of what the formal bar counts as a failure, because the bar counts only empty or conflicting items as valid questions.
+- The replay worktrees sit inside this checkout, under `build/replay/worktrees`. Claude Code may therefore have loaded this checkout's `AGENTS.md` and parent instruction files as well. Both variants saw the same files (`AGENTS.md` differed only by the final docs commit, which came after the runs), so the comparison is not biased. The phrase "a worktree at that commit" may still overstate what Claude saw. This is not verified.
 - The group parser is a heuristic. It looks for a heading that starts with Links, Group, or Related. It counts list and table lines until the next section.
 - It misses groups that an agent writes as plain sentences (8 of 12 Codex `today` runs had no groups section).
 - It does not expand a range such as 2.1 to 2.3.
@@ -165,6 +168,10 @@ The bars are written for `linked`. This table shows the `linked` result. The `to
 - Ratings cluster by round. In round 2026-10-24-1631-feedback all 7 Claude `today` groups are rated 1.
 - Plan-only runs. The score does not test whether a plan is correct or whether a change works.
 - All 4 rounds come from one reviewer and one app.
+
+## Prompt changes after the replay
+
+After the runs, three copy changes were made. They were not re-measured. The Plan step gained the sentence "Make no edit before this table is in your reply." A capture with no items and no note gets a line that tells the agent to ask. The selection ledger heading lost the word "below". The replay used the round prompt as built at `b4857a2` and is plan-only, so the first change does not affect what it measured.
 
 ## Decision for Drew
 
@@ -178,5 +185,5 @@ The Codex change is measured. Id-naming questions rise from 0 of 12 runs to 7 of
 
 Not decided by the data: whether the extra questions are needed. No item lacks an instruction (0 of 21) and no round has conflict labels. The cross-capture group counts are small (4 to 10 groups per cell) and point both ways.
 
-1. **Try it in the Dev build (Recommended).** Coverage, tokens, and group fit passed. The question bar failed, and the Codex rise is real: id-naming questions rise from 0 of 12 runs to 7 of 12, and runs with any question paragraph from 3 of 12 to 9 of 12. Only your own rounds can show whether the extra questions are needed. Turn on `linkedPlan` in Nextshot Dev only. Release stays off. Watch the end-of-answer questions in your own rounds, and count how many turned out to be unnecessary. If most are noise, turn it off again.
+1. **Try it in the Dev build (Recommended).** Coverage, tokens, and group fit passed. The question bar failed, and the Codex rise is measured: id-naming questions rise from 0 of 12 runs to 7 of 12, and runs with any question paragraph from 3 of 12 to 9 of 12. Only your own rounds can show whether the extra questions are needed. Turn on `linkedPlan` in Nextshot Dev only. Release stays off. Watch the end-of-answer questions in your own rounds, and count how many turned out to be unnecessary. If most are noise, turn it off again.
 2. **Keep it off.** Choose this if you read the Codex rise as a regression. The replay shows that rise: Codex passes the question bar in 100.0% of `today` runs and in 41.7% of `linked` runs.

@@ -20,7 +20,7 @@ import Foundation
 let fixedRound = "2026-10-31-2125-feedback"
 /// The capture of that round whose prompt and image t1 and t4-N paste.
 let fixedCaptureIndex = 1
-/// The round that the runbook gives to t6: two captures of the Settings window.
+/// The round that the runbook gives to t6: two captures. Capture 1 is an app window, capture 2 is the Settings window.
 /// Capture 2 has badge 1, so item 2.1 exists. t6 takes any round with two or more captures.
 let t6Round = "2026-10-22-1609-feedback"
 /// The last line of every t4-N text. The T4 question asks the app to quote it.

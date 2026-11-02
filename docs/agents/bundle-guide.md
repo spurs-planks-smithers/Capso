@@ -26,7 +26,7 @@ The prompt names files by absolute path. They sit in a bundle folder: `~/Library
 1. Open the annotated PNG. Then read its section in `manifest.md`.
 2. Find each item by its id, K.N. K is the capture's item prefix, and N is the badge number. Badge 2 in capture 1 is item 1.2.
 3. Find the code for each item. Use the screen text and the window title to search the repository.
-4. Write a plan table before any edit, with the columns item, file, and planned change. One row per item.
+4. Write a plan table before any edit, with the columns item, file, and planned change (item, group, place, and change in a linked prompt). One row per item.
 5. Make the changes.
 6. Report per item: what you changed, or why you did not.
 
