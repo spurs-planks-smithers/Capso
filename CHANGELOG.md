@@ -10,6 +10,15 @@ Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This for
 
 ## [Unreleased]
 
+### Changed
+
+- Round names are five words or fewer, not counting a, an, and the. The Nshot menu's Recent Rounds rows and the `Session Name:` line of a copied prompt use one method: Apple's on-device summary when your Mac has one, else your first instruction cut to five words.
+- In a round's submenu, each capture shows a short summary name of what you marked and wrote. A capture with no summary keeps its page name.
+
+### Removed
+
+- The Nshot menu no longer shows the gray "Round: feedback" line, the "Screenshot History" row, or the line about rounds saved by a newer Nextshot.
+
 ## [0.6.0] - 2026-11-01
 
 ### Added
