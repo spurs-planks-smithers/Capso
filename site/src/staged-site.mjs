@@ -26,6 +26,14 @@ export function verify(root) {
   if (manifest.schema !== 1 || !manifest.video || !manifest.guides) throw new Error("Invalid artifact metadata");
   return manifest;
 }
+// Pagefind once wrote an empty pagefind.js with no error (2026-11-05, first build after npm ci).
+// The Guides search dialog then hung on "Searching...". The cause is unknown, so refuse such a build.
+const searchFile = "guides/pagefind/pagefind.js";
+export function checkSearchFile(assets) {
+  const info = statSync(join(assets, searchFile), { throwIfNoEntry: false });
+  if (!info?.isFile()) throw new Error(`Guides search file is missing: ${searchFile}. Run staging again.`);
+  if (info.size === 0) throw new Error(`Guides search file is empty (0 bytes): ${searchFile}. Run staging again.`);
+}
 export function stage(repo, video, poster) {
   // The guide build must succeed before a staging artifact can be accepted.
   execFileSync("npm", ["ci", "--include=dev"], { cwd: join(repo, "site/guides"), stdio: "inherit" });
@@ -51,6 +59,7 @@ export function stage(repo, video, poster) {
   writeFileSync(index, html);
   const assetFiles = files(assets);
   if (!assetFiles.includes("guides/index.html") || !assetFiles.some(path => path.startsWith("guides/pagefind/"))) throw new Error("Guide HTML or Pagefind is missing");
+  checkSearchFile(assets);
   for (const path of assetFiles) {
     if (statSync(join(assets, path)).size >= 25 * 1024 * 1024) throw new Error(`Static asset is 25 MiB or larger: ${path}`);
   }
