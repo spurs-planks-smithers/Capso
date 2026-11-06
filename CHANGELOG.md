@@ -10,6 +10,8 @@ Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This for
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-06
+
 ### Added
 
 - Copy Selected and Clear Selection now sit at the top of every round's submenu in Recent Rounds. They stay gray until you check a capture, so the list never moves. They act on every checked capture, including captures in other rounds.
