@@ -10,8 +10,23 @@ import FeedbackKit
 /// held calls `onQuickLook` and leaves the checkbox as it is. A tracking area
 /// draws the same rounded highlight and white text that native rows use,
 /// because a view in a menu item gets no native highlight.
+///
+/// The same tracking area drives the hover preview (#265): entering the row
+/// starts the delay, leaving it ends the preview.
 @MainActor
 final class FeedbackCaptureRowView: NSView {
+    /// What the row tells the hover preview. All three take the row's key, so
+    /// a late call from an old row cannot end the preview of a new one.
+    struct Hover {
+        /// The pointer entered. The rectangles are in screen points: this
+        /// row, then the submenu window that holds it.
+        var begin: (FeedbackBasketKey, _ rowFrame: NSRect, _ menuFrame: NSRect, NSScreen?) -> Void
+        /// A click on the row. A preview that has not shown yet is dropped.
+        var cancelPending: (FeedbackBasketKey) -> Void
+        /// The pointer left, or the row left its window.
+        var end: (FeedbackBasketKey) -> Void
+    }
+
     static let rowSize = NSSize(width: 350, height: 34)
 
     private static let highlightInset: CGFloat = 5
@@ -28,6 +43,7 @@ final class FeedbackCaptureRowView: NSView {
     private let thumbnail: NSImage?
     private let onToggle: (FeedbackBasketKey) -> Void
     private let onQuickLook: (FeedbackBasketKey) -> Void
+    private let hover: Hover?
     private let titleLabel: NSTextField
     private let subtitleLabel: NSTextField
     private var checked: Bool
@@ -47,13 +63,15 @@ final class FeedbackCaptureRowView: NSView {
         thumbnail: NSImage?,
         checked: Bool,
         onToggle: @escaping (FeedbackBasketKey) -> Void,
-        onQuickLook: @escaping (FeedbackBasketKey) -> Void
+        onQuickLook: @escaping (FeedbackBasketKey) -> Void,
+        hover: Hover? = nil
     ) {
         self.key = key
         self.thumbnail = thumbnail
         self.checked = checked
         self.onToggle = onToggle
         self.onQuickLook = onQuickLook
+        self.hover = hover
         titleLabel = Self.makeLabel(title, size: 13)
         subtitleLabel = Self.makeLabel(subtitle, size: 11)
         super.init(frame: NSRect(origin: .zero, size: Self.rowSize))
@@ -192,14 +210,25 @@ final class FeedbackCaptureRowView: NSView {
 
     // MARK: Mouse
 
-    override func mouseEntered(with event: NSEvent) { isHovered = true }
-    override func mouseExited(with event: NSEvent) { isHovered = false }
+    override func mouseEntered(with event: NSEvent) {
+        isHovered = true
+        guard let hover, let window else { return }
+        let rowFrame = window.convertToScreen(convert(bounds, to: nil))
+        hover.begin(key, rowFrame, window.frame, window.screen)
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        isHovered = false
+        hover?.end(key)
+    }
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         // A menu can close with the pointer over the row, and no exit event
-        // arrives then. Start each open without the highlight.
+        // arrives then. Start each open without the highlight, and end any
+        // preview of this row.
         isHovered = false
+        hover?.end(key)
     }
 
     /// Return self for any point in the row, so the labels never take the click.
@@ -216,8 +245,10 @@ final class FeedbackCaptureRowView: NSView {
         // Ignore a release outside the row, for example after a drag from another row.
         guard bounds.contains(convert(event.locationInWindow, from: nil)) else { return }
         if event.modifierFlags.contains(.option) {
+            hover?.end(key)
             onQuickLook(key)
         } else {
+            hover?.cancelPending(key)
             toggle()
         }
     }
