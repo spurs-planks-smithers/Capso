@@ -12,7 +12,7 @@ Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This for
 
 ### Added
 
-- Copy Selected, Zip Selected, and Clear Selection now sit at the top of every round's submenu in Recent Rounds. They stay gray until you check a capture, so the list never moves. They act on every checked capture, including captures in other rounds.
+- Copy Selected and Clear Selection now sit at the top of every round's submenu in Recent Rounds. They stay gray until you check a capture, so the list never moves. They act on every checked capture, including captures in other rounds.
 - Rest the pointer on a capture row in a round's submenu for a second to see a large preview of its annotated image beside the menu. It disappears when you move off the row.
 
 ### Changed
