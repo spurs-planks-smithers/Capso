@@ -100,8 +100,9 @@ def build(output):
         ("Open round folder", "Option + Shift + O"),
         ("End round and copy its prompt", "Option + Shift + E"),
     ])
-    text("Round keys need an active round. Finish a capture before using R or E.", LEFT + 10, y + 1, 496, size=9.5, color=MUTED)
-    text("Change keys in Settings > Shortcuts > Nextshot.", LEFT + 10, y - 14, 496, size=9.5, color=MUTED)
+    text("Round keys need an active round. R and E beep during a selection or in an editor.", LEFT + 10, y + 1, 496, size=9.5, color=MUTED)
+    text("In the note panel, R and E end the round at the current step (Nextshot 0.7.0 and later).", LEFT + 10, y - 14, 496, size=9.5, color=MUTED)
+    text("Change keys in Settings > Shortcuts > Nextshot.", LEFT + 10, y - 29, 496, size=9.5, color=MUTED)
 
     pdf.setStrokeColor(RULE)
     pdf.line(LEFT, 51, RIGHT, 51)
