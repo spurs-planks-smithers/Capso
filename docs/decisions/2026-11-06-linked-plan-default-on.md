@@ -33,13 +33,21 @@ The replay of 2026-11-01 (`docs/evals/2026-11-01-linked-plan-replay.md`) used 4 
 
 ### Copy changes after the replay
 
-Three changes came after the runs. None was re-measured.
+Three changes came after the first runs. The re-run below measured them, except the selection heading, which the replay does not use.
 
 - The Plan step gained the sentence "Make no edit before this table is in your reply."
 - A capture with no items and no note gets a line that tells the agent to ask.
 - The selection ledger heading lost the word "below".
 
-A second run of the 24 linked runs on the final prompt is appended to the report before the merge.
+### Re-run on the final prompt (2026-11-06)
+
+The 24 linked runs were repeated on the final prompt: same rounds, agents, and run counts, all 24 ok. The today baseline is the 2026-11-01 runs, not re-run. Drew chose default-on after the first replay. The re-run changes none of the pass or fail verdicts. Report section: "Re-run on the final prompt (2026-11-06)" in `docs/evals/2026-11-01-linked-plan-replay.md`.
+
+- Coverage: 100.0% for both agents.
+- Tokens, linked over today: Claude 1.02 times, Codex 1.22 times (bar 1.3). Codex was 0.84 times in the first run.
+- Group fit: Claude 3.00 against 2.45, Codex 3.75 against 3.13.
+- Question bar: Claude 0.0%, Codex 50.0%, against 90%. It fails again.
+- The Codex tool version also changed between the runs. The cause of the Codex token rise (prompt, tool version, or chance) is not known.
 
 ### Windows
 
