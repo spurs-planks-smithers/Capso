@@ -36,6 +36,7 @@ xcodebuild -project Capso.xcodeproj -scheme Capso -configuration Debug CODE_SIGN
 
 - One package: `swift test --package-path Packages/<Name>`.
 - CI package set: SharedKit, AnnotationKit, CaptureKit, RecordingKit, OCRKit.
+- CI scope (2026-11-07): the macOS job `build-and-test` runs only when a change touches `App/`, `Packages/`, `project.yml`, `THIRD_PARTY_NOTICES.md`, or `.github/workflows/ci.yml`. A PR that changes only docs, site, scripts, or Windows files shows it as skipped, and that is correct. The `changes` job sets this with its `app` filter in `.github/workflows/ci.yml`. Add a folder to that filter when `project.yml` starts to read it. A new push to a PR also cancels that PR's older run. GitHub disabled the fork's workflows from 2026-11-03 to 2026-11-06 for the scale of Actions usage, and these rules cut the run time of the 2026-10-27 to 2026-11-02 history by an estimated 36%.
 - Fork package: `swift test --package-path Packages/FeedbackKit`.
 - JevKit in Release, before each trial build: `swift test -c release -Xswiftc -enable-testing --package-path Packages/JevKit`. The installed app is a Release build. On 2026-10-25 an optimizer bug lost a dupes result in Release only, and every Debug test passed (#39).
 - App tests: `xcodebuild test -project Capso.xcodeproj -scheme Capso -configuration Debug CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO -only-testing:CapsoTests`.
