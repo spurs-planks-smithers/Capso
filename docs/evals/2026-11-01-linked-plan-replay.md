@@ -303,3 +303,16 @@ Supplementary, no bar: group lines per run from the parser, and the groups that 
 - The `today` baseline was not re-run, and its prompt differs from today's classic prompt in the `Session Name:` line (see above).
 - The judge listed 35 single-item entries as groups in the new `linked` runs (Claude 20, Codex 15). They are dropped, as in the first run.
 - The group lines per run (0.33 and 0.42) are small counts from a heuristic parser (4 and 5 lines in all).
+
+## Paste check in a Claude desktop session (2026-11-07)
+
+One hand paste of a copied round prompt into a Claude desktop session. It is not hand test T1, T4, or T6. Those tests have their own runbook and no results yet.
+
+- **Build and flag:** Nextshot Dev 0.7.0-dev (923), built from main at `535204f`. No `flag.linkedPlan` override was set (`scripts/nextshot-flags.sh list` shows none, and `defaults read` finds no key). The default (`.on`) chose the linked layout.
+- **Round:** `2026-11-07-0551-feedback`, 1 capture, 3 items. All three notes were remarks about the test. None asked for a change.
+- **Layout in the paste:** it matches Part A of the design spec at each point the spec names. It has a Session Name line, the opening tag, Goal, the item ledger, the bundle-reading steps, Links, a plan table with the columns item, group, place, and change, Scope, Questions, Helpers, Authority, and a report that repeats the ledger. It has no Verify section and no lanes section. It names no agent product (#109).
+- **Render check:** `nextshot-prompt round ... --linked` renders the same round from the code. It matches the paste line for line, except line 1. The paste carries the on-device summary name, and the command renders the cut name, because the command has no model.
+- **Files on disk:** `0551-claude-prompt.md` stayed classic (file column, Verify section).
+- **Whole paste:** the text arrived whole, up to the last line.
+- **Receiving session:** it wrote Links and a plan table first, made no edit, and asked one question that named all three item ids, as the Questions step asks.
+- **Not covered:** group quality on a round with related items (the three items formed one group with no shared decision), a paste with an image, and a long chat. The question bar from the replay stays open.
