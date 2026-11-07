@@ -1,14 +1,14 @@
 # Linked plan prompt on by default, November 6, 2026
 
-Issue 261. The `linkedPlan` flag shipped off in both channels (PR 262, 2026-11-01). Drew decided on 2026-11-06 to turn it on in both channels for release 0.8.0.
+Issue 261. The `linkedPlan` flag merged off in both channels (PR 262, 2026-11-06; the replay ran on 2026-11-01). Drew decided on 2026-11-06 to turn it on in both channels for release 0.8.0.
 
 ### Decision
 
 Copied prompts use the linked layout by default. This covers the round prompt, the capture prompt, and the selection prompt.
 
 - A ledger lists every item in the reviewer's own words.
-- With three or more items, a Links step groups related items under one shared decision, and the plan table has a group column.
-- The plan table has the columns item, group, place, and change.
+- With three or more items, a Links step groups related items under one shared decision.
+- The plan table has the columns item, group, place, and change (item, place, and change below three items).
 - The agent asks one batch question at the end for anything unclear.
 - The report repeats the ledger and gives evidence per item.
 - There is no Verify section and no lanes section.
@@ -45,7 +45,7 @@ A second run of the 24 linked runs on the final prompt is appended to the report
 
 The Windows app has no copy-prompt path. Its only `PromptBuilder` callers write files on disk (`BundleTextRenderer`) and zips (`ZipText`, `ZipWriter`). A search of `Windows/` on 2026-11-06 found no clipboard call. These files stay classic, and `GoldenParityTests` covers them. So no C# port is needed now. Port the layout when Windows copies prompts.
 
-This replaces the Constraints lines of the design (`docs/superpowers/specs/2026-11-01-visual-direction-handoff-design.md`) that ask for the port before the flag turns on.
+The design (`docs/superpowers/specs/2026-11-01-visual-direction-handoff-design.md`) asks for the port before a flag turns on, in Constraints and Left to the builder. That rule stays for the day Windows copies prompts. The port is deferred because Windows has no copy path today.
 
 ### Rollback
 
@@ -54,6 +54,6 @@ This replaces the Constraints lines of the design (`docs/superpowers/specs/2026-
 
 ### Open
 
-- The paste hand tests belong to Part C of the design (`pasteAttachments`), not to this flag.
+- Hand tests T1, T4, and T6 (design, Proposed order step 1) are not done. T4 matters here: it finds the pasted-text length at which Claude chat turns a paste into an attachment, and the linked prompt is longer than the classic one. Run them before the 0.8.0 release. Drew decides whether they block the release.
 - The `releasedInBuild` number (924) is a guess at the 0.8.0 release commit's build. Nothing reads it at run time. Check it when the release is cut.
 - The replay harness asks for a Links section even for rounds with fewer than three items. The app prompt drops that step below three items, as the 2-item round of the replay shows.
