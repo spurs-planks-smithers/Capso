@@ -51,17 +51,35 @@ public enum SessionName {
     }
 
     private static func name(captures: [FeedbackCapture], date: Date, summaries: SummaryNames, timeZone: TimeZone, locale: Locale) -> String {
-        // A stored summary is cleaned again here, so a hand-edited names file
-        // cannot forge the bundle tag. `safe` can lengthen a title (it splits
-        // emoji joined by a zero-width joiner), so the 50 character limit
-        // applies again after it.
-        if let summary = summaries.name(for: captures).map(safe).map({ RoundTitle.shortened($0) }), !summary.isEmpty {
-            return summary
-        }
-        if let title = RoundTitle.title(forCaptures: captures).map(safe).map({ RoundTitle.shortened($0) }), !title.isEmpty {
-            return title
-        }
-        return FeedbackLibrary.dateLabel(date, timeZone: timeZone, locale: locale)
+        displayName(captures: captures, summaries: summaries) ?? FeedbackLibrary.dateLabel(date, timeZone: timeZone, locale: locale)
+    }
+
+    /// The name of a round or a selection, for the session name line and for
+    /// the Recent Rounds row (Drew, 2026-11-02): the stored summary, else the
+    /// reviewer's cut title. Nil when the reviewer wrote no words, so the
+    /// caller picks a date label.
+    public static func displayName(for round: FeedbackRound, summaries: SummaryNames = .none) -> String? {
+        displayName(captures: round.captures, summaries: summaries)
+    }
+
+    static func displayName(captures: [FeedbackCapture], summaries: SummaryNames) -> String? {
+        summaryName(for: captures, summaries: summaries)
+            ?? RoundTitle.title(forCaptures: captures).flatMap(finish)
+    }
+
+    /// The stored summary for these captures, cleaned and cut to the word
+    /// and character limits. Nil when none is stored. A capture's row in the
+    /// round submenu uses it alone: with no summary the row keeps its page name.
+    public static func summaryName(for captures: [FeedbackCapture], summaries: SummaryNames) -> String? {
+        summaries.name(for: captures).flatMap(finish)
+    }
+
+    /// A stored summary is cleaned again here, so a hand-edited names file
+    /// cannot forge the bundle tag. `safe` can lengthen a title (it splits
+    /// emoji joined by a zero-width joiner), so the limits apply again after it.
+    private static func finish(_ text: String) -> String? {
+        let name = RoundTitle.shortened(RoundTitle.limitWords(safe(text)))
+        return name.isEmpty ? nil : name
     }
 
     /// The source apps, as the Recent Rounds subtitle picks them: distinct, in

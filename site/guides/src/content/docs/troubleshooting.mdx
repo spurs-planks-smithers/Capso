@@ -1,7 +1,7 @@
 ---
 title: Fix a problem
 description: Check the cause, make the smallest correction, and continue your round.
-reviewedFor: 0.5.0
+reviewedFor: 0.6.0
 minVersion: 0.5.0
 sidebar:
   order: 7
@@ -39,7 +39,9 @@ If another app replaces the clipboard, choose **Copy Last Capture Prompt** or co
 
 ## End Round beeps
 
-Finish or close the open editor or note panel first. The R and E round shortcuts pause while a capture is open.
+The R and E keys beep during a selection or in an editor. That capture is not saved yet. Press Command+S to save it, or Esc to close it. Then press the key again.
+
+The keys work while the note panel is open. They end the round at the current step and keep what you typed there. Nextshot 0.7.0 and later does this. Earlier versions beep in the note panel too. [Check your version](#find-the-installed-version).
 
 Return to the Nshot menu to confirm the current round state.
 
@@ -47,7 +49,7 @@ Return to the Nshot menu to confirm the current round state.
 
 Recent Rounds lists the five most recent ended rounds with captures. Choose **Show More** for older rounds grouped by day, week, and month. Choose **All Rounds** to open the rounds folder in Finder.
 
-An older app also hides a round written with a newer format and reports that in the menu. Use a compatible newer app to reopen that round.
+An older app also hides a round written with a newer format. Use a compatible newer app to reopen that round.
 
 ## Finder says Nextshot is in use
 

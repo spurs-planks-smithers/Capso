@@ -75,7 +75,7 @@ The script builds Guides before staging. Its default inputs are the fixed `build
 site/deploy.sh --video build/releases/<new cut>.mp4 --poster <image>
 ```
 
-The script stops when a file is 25 MiB or larger (the static asset limit), when `LICENSE` is missing, or when R2 holds no valid `latest.json` (the new Worker would have nothing to serve). After the deploy it runs `site/smoke.sh`: page, noindex header, `/latest.json`, the "Version" line, the `/download` redirect, the DMG SHA-256 and size, Range replies (206, and 416 past the end), that a path cannot leave `releases/`, a video Range request, the www redirect, and `/stats`.
+The script stops when a file is 25 MiB or larger (the static asset limit), when `LICENSE` is missing, when `guides/pagefind/pagefind.js` is missing or empty (the Guides search would hang on "Searching..."), or when R2 holds no valid `latest.json` (the new Worker would have nothing to serve). After the deploy it runs `site/smoke.sh`: page, noindex header, `/latest.json`, the "Version" line, the `/download` redirect, the DMG SHA-256 and size, Range replies (206, and 416 past the end), that a path cannot leave `releases/`, a video Range request, the www redirect, and `/stats`.
 
 - New video cut: render it, then pass explicit `--video` and `--poster` inputs. When the cut becomes the live video, change the `video=` default in `site/deploy.sh` and its fixture in `site/test/releases.test.mjs` in the same change, or the next deploy puts the old cut back.
 - Deploy from a worktree on `origin/main` when the main checkout is on another branch. The deploy stages Guides from the checkout it runs in, so a branch behind main removes newer Guides edits from the live site (2026-10-28).

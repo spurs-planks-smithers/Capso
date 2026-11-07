@@ -264,6 +264,25 @@ test("stage-only reports the exact reusable artifact and fails closed if the Gui
   } finally { f.clean(); }
 });
 
+test("stage-only refuses a Guides build whose search file is empty or missing", () => {
+  const f = fixture();
+  try {
+    const args = [join(f.root, "site/deploy.sh"), "--stage-only", "--video", join(f.root, "video.mp4"), "--poster", join(f.root, "poster.jpg")];
+    f.put("site/guides/dist/pagefind/pagefind.js", "");
+    let result = spawnSync("bash", args, { env: f.env, input: "", encoding: "utf8" });
+    assert.equal(result.status, 1, "an empty pagefind.js must stop staging");
+    assert.match(result.stderr, /Guides search file is empty \(0 bytes\)/);
+    assert.match(result.stderr, /nothing was deployed/);
+    // Another Pagefind file stays, so the older "some Pagefind file exists" check passes.
+    rmSync(join(f.root, "site/guides/dist/pagefind/pagefind.js"));
+    f.put("site/guides/dist/pagefind/pagefind-ui.js", "other search file");
+    result = spawnSync("bash", args, { env: f.env, input: "", encoding: "utf8" });
+    assert.equal(result.status, 1, "a missing pagefind.js must stop staging");
+    assert.match(result.stderr, /Guides search file is missing/);
+    assert.match(result.stderr, /nothing was deployed/);
+  } finally { f.clean(); }
+});
+
 
 function releaseFixture() {
   const f = fixture();

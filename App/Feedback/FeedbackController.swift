@@ -152,7 +152,6 @@ final class FeedbackController {
             updateScreenshotShortcuts()
             statusItem.onScreenshotCapture = { [weak self] in self?.captureScreenshot() }
             statusItem.onScreenshotAnnotate = { [weak self] in self?.annotateScreenshot() }
-            statusItem.onScreenshotHistory = { [weak self] in self?.screenshot?.showHistory() }
         }
         captureCoordinator.feedbackCaptureCancelled = { [weak self] in
             // Esc cannot cancel a repeat, which has no selector, so a cancel
@@ -544,7 +543,8 @@ final class FeedbackController {
             return try await ending.value
         }
         defer { Task { await refresh() } }
-        notePanel.close()
+        // Keeps the text typed in the open step, then closes (#266).
+        notePanel.commitAndClose()
         let saves = Array(saveTasks.values)
         FeedbackLog.logger.notice("end round: waiting for \(saves.count) saves")
         let ending = Task {
@@ -613,12 +613,12 @@ final class FeedbackController {
         updateRoundShortcuts()
     }
 
-    /// Option+Shift+R and E beep and do nothing while a capture is open:
-    /// being selected, in an editor, or in the note panel (#25). Ending the
-    /// round then would save that capture into a new round and close the
-    /// note panel before its last answer is saved. The menu rows still end
-    /// the round, because a click is deliberate. C and O change nothing, so
-    /// they stay active.
+    /// Option+Shift+R and E beep and do nothing while a capture is being
+    /// selected or is in an editor (#25): ending the round then would save
+    /// that capture into a new round. In the note panel they end the round
+    /// at once and keep what it holds (#266). The menu rows end the round
+    /// in every state, because a click is deliberate. C and O change
+    /// nothing, so they stay active.
     private var hasOpenCapture: Bool {
         captureCoordinator?.isCaptureSelectionActive == true
             || inlineEditor != nil || fullEditor != nil || notePanel.isOpen || screenshot?.editorIsOpen == true || screenshot?.isBusy == true
@@ -629,7 +629,15 @@ final class FeedbackController {
         // `selectionPhase` stays `.starting` when the coordinator does not
         // start the selection, and then no end notification comes. The
         // coordinator's live state confirms that a selection is up.
-        let captureOpen = hasOpenCapture
+        // The note panel is not a reason to refuse (#266): its capture is
+        // stored, and End Round keeps what the reviewer typed.
+        let captureOpen = !RoundEndKeyPolicy.allows(
+            selectionActive: captureCoordinator?.isCaptureSelectionActive == true
+                || (Capabilities.current.screenshotCopy && capturePurpose != nil),
+            editorOpen: inlineEditor != nil || fullEditor != nil || screenshot?.editorIsOpen == true,
+            screenshotBusy: screenshot?.isBusy == true,
+            notePanelOpen: notePanel.isOpen
+        )
         if captureOpen {
             FeedbackLog.logger.notice("round end key refused: a capture is open")
             NSSound.beep()
@@ -677,7 +685,7 @@ final class FeedbackController {
                 rootURL: self.store.rootURL,
                 zipEnabled: Flags.isOn(.zipHandoff),
                 supportSubmissionEnabled: Flags.isOn(.supportSubmission),
-                newerSchemaCount: listing.newerSchema.count,
+                summaryNames: self.summary.current,
                 older: Array(listing.rounds.dropFirst(5)),
                 updateReminderRow: self.updateReminder?.menuRowVisible() ?? false
             )
@@ -1310,7 +1318,15 @@ final class FeedbackController {
                     } else { answer = text }
                     pending.answers.append((step, answer))
                     if let index = pending.captureIndex {
-                        pending.writes.append(Task { await self.saveAnswer(step, answer, capture: index) })
+                        let write = Task { await self.saveAnswer(step, answer, capture: index) }
+                        pending.writes.append(write)
+                        // End Round waits for this write, so an answer given
+                        // just before the end is in the ended round (#266).
+                        let writeID = UUID()
+                        self.saveTasks[writeID] = Task {
+                            await write.value
+                            self.saveTasks[writeID] = nil
+                        }
                     }
                 },
                 onFinish: {

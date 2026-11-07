@@ -16,9 +16,9 @@ struct FeedbackMenuState {
     /// Shows Zip Round and Zip N Selected (`zipHandoff` flag, #85).
     var zipEnabled = false
     var supportSubmissionEnabled = false
-    /// Rounds that another copy of Nextshot saved under a newer schema. This
-    /// copy hides them, so the menu says how many.
-    var newerSchemaCount = 0
+    /// Names that the on-device model wrote. Empty with `sessionTitle` or
+    /// `sessionSummary` off, so rows keep the cut title and the page name.
+    var summaryNames = SummaryNames.none
     /// Ended rounds beyond Recent's five, grouped under Show More.
     var older: [FeedbackRound] = []
     /// Shows "Get the latest version…" under the version line (#203).
@@ -57,7 +57,6 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     var onStartRound: (() -> Void)?
     var onScreenshotCapture: (() -> Void)?
     var onScreenshotAnnotate: (() -> Void)?
-    var onScreenshotHistory: (() -> Void)?
     var onOpenAllRounds: (() -> Void)?
     var onCopySelected: (() -> Void)?
     var onZipSelected: (() -> Void)?
@@ -103,6 +102,17 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     private var zipEnabled = false
     /// Kept while the Share menu shows.
     private var sharePicker: NSSharingServicePicker?
+    /// The large image that shows when the pointer rests on a capture row (#265).
+    private let hoverPreview = FeedbackHoverPreview()
+
+    /// Tags of the selection rows at the top of each round submenu (#264).
+    /// `basketDidChange` finds them by tag, so it never inserts or removes a
+    /// row while a submenu is open.
+    private enum SelectionTag {
+        static let copy = 7_264_001
+        static let zip = 7_264_002
+        static let clear = 7_264_003
+    }
 
     /// Made once and added again on each rebuild. `setShortcut(for:)` adds a
     /// notification observer that nothing removes, so a new item on every menu
@@ -173,6 +183,7 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
                 selectedCount: basket.count(inFolder: row.round.folderName),
                 datedTitle: row.datedTitle
             )
+            applySelectionRows(to: row.menu, count: basket.count)
         }
     }
 
@@ -236,12 +247,9 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         if Capabilities.current.screenshotCopy {
             addReused(screenshotCaptureItem, to: menu)
             addReused(screenshotAnnotateItem, to: menu)
-            menu.addItem(menuItem("Screenshot History", action: #selector(screenshotHistory)))
             menu.addItem(.separator())
         }
         if let active = state.active {
-            menu.addItem(grayLine("Round: \(active.slug)"))
-            menu.addItem(.separator())
             for item in [copyLastCaptureItem, copyPromptAndEndRoundItem, openRoundFolderItem, endRoundItem] {
                 addReused(item, to: menu)
             }
@@ -270,13 +278,7 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
             }
         }
         addHistory(to: menu, state: state)
-        // A round from a newer copy is never opened or saved here, so it
-        // cannot lose fields this copy does not know. Say why it is missing.
-        if state.newerSchemaCount > 0 {
-            let count = state.newerSchemaCount
-            menu.addItem(grayLine("\(count) \(count == 1 ? "round was" : "rounds were") saved by a newer \(ForkBranding.name) and \(count == 1 ? "is" : "are") hidden"))
-        }
-        if !recent.isEmpty || !historyGroups.isEmpty || state.newerSchemaCount > 0 {
+        if !recent.isEmpty || !historyGroups.isEmpty {
             menu.addItem(.separator())
         }
 
@@ -337,7 +339,9 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         // With sessionTitle on, the reviewer's words label the row and the
         // date moves to the subtitle. A round with no reviewer words keeps
         // the date as its title (#164).
-        let named = Flags.isOn(.sessionTitle) ? RoundTitle.title(for: round) : nil
+        // The name is the one the session name line uses (`SessionName`): the
+        // on-device summary, else the cut title, five words at most.
+        let named = Flags.isOn(.sessionTitle) ? SessionName.displayName(for: round, summaries: currentState().summaryNames) : nil
         let item = NSMenuItem(title: named ?? dated, action: nil, keyEquivalent: "")
         let datedTitle = named == nil ? nil : dated
         Self.updateRoundSubtitle(
@@ -383,11 +387,11 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     // MARK: - Basket lines
 
     private static func copySelectedTitle(_ count: Int) -> String {
-        "Copy \(count) Selected"
+        SubmenuSelectionRows.copyTitle(count)
     }
 
     private static func zipSelectedTitle(_ count: Int) -> String {
-        "Zip \(count) Selected"
+        SubmenuSelectionRows.zipTitle(count)
     }
 
     /// The basket lines sit below the Recent rows: a separator, Copy N
@@ -449,9 +453,43 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         }
         menu.addItem(.separator())
 
+        // Copy, Zip, and Clear for the checked captures (#264). They are
+        // always here and off with nothing checked, so a check never moves a
+        // capture row under the pointer.
+        let selectionRows = SubmenuSelectionRows(selectedCount: state.basket.count, zipEnabled: state.zipEnabled)
+        let copyRow = menuItem(selectionRows.copy.title, action: #selector(copySelected))
+        copyRow.tag = SelectionTag.copy
+        copyRow.isEnabled = selectionRows.copy.isEnabled
+        menu.addItem(copyRow)
+        if let zipRow = selectionRows.zip {
+            let item = menuItem(zipRow.title, action: #selector(zipSelected))
+            item.tag = SelectionTag.zip
+            item.isEnabled = zipRow.isEnabled
+            menu.addItem(item)
+        }
+        let clearRow = menuItem(selectionRows.clear.title, action: #selector(clearSelection))
+        clearRow.tag = SelectionTag.clear
+        clearRow.isEnabled = selectionRows.clear.isEnabled
+        menu.addItem(clearRow)
+        menu.addItem(.separator())
+
+        let hover = FeedbackCaptureRowView.Hover(
+            begin: { [weak self] key, rowFrame, menuFrame, screen in
+                guard let self else { return }
+                let imageURL = folderURL.appendingPathComponent(
+                    round.captures.first { $0.index == key.captureIndex }?.imageFile ?? ""
+                )
+                self.hoverPreview.begin(key: key, imageURL: imageURL, rowFrame: rowFrame, menuFrame: menuFrame, screen: screen)
+            },
+            cancelPending: { [weak self] key in self?.hoverPreview.cancelPending(key: key) },
+            end: { [weak self] key in self?.hoverPreview.end(key: key) }
+        )
+
         for capture in FeedbackLibrary.capturesNewestFirst(round) {
             let key = FeedbackBasketKey(folderName: round.folderName, captureIndex: capture.index)
-            let title = FeedbackLibrary.captureRowTitle(capture, timeZone: .current)
+            // A summary of this capture's own notes, else its page name.
+            let summaryName = Flags.isOn(.sessionTitle) ? SessionName.summaryName(for: [capture], summaries: state.summaryNames) : nil
+            let title = FeedbackLibrary.captureRowTitle(capture, summaryName: summaryName, timeZone: .current)
             let rowView = FeedbackCaptureRowView(
                 key: key,
                 title: title,
@@ -459,7 +497,8 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
                 thumbnail: FeedbackThumbnails.image(for: folderURL.appendingPathComponent(capture.imageFile)),
                 checked: state.basket.contains(key),
                 onToggle: { [weak self] key in self?.onToggleCapture?(key) },
-                onQuickLook: { [weak self] key in self?.closeMenuThenQuickLook(key) }
+                onQuickLook: { [weak self] key in self?.closeMenuThenQuickLook(key) },
+                hover: hover
             )
             let rowItem = NSMenuItem(title: title, action: nil, keyEquivalent: "")
             rowItem.view = rowView
@@ -472,6 +511,29 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         if state.active == nil {
             menu.addItem(menuItem("Resume Round", action: #selector(resumeRound(_:)), round: round))
         }
+    }
+
+    /// Sets the title and enabled state of the selection rows in a round
+    /// submenu. A submenu without them (still loading) is left alone.
+    private func applySelectionRows(to menu: NSMenu, count: Int) {
+        let rows = SubmenuSelectionRows(selectedCount: count, zipEnabled: zipEnabled)
+        if let item = menu.item(withTag: SelectionTag.copy) {
+            item.title = rows.copy.title
+            item.isEnabled = rows.copy.isEnabled
+        }
+        if let item = menu.item(withTag: SelectionTag.zip), let row = rows.zip {
+            item.title = row.title
+            item.isEnabled = row.isEnabled
+        }
+        if let item = menu.item(withTag: SelectionTag.clear) {
+            item.title = rows.clear.title
+            item.isEnabled = rows.clear.isEnabled
+        }
+    }
+
+    /// A menu closed. No exit event reaches a row then, so hide the preview here.
+    func menuDidClose(_ menu: NSMenu) {
+        hoverPreview.endAll()
     }
 
     /// Option-click on a capture row. The menu closes first, so the Quick Look
@@ -540,7 +602,6 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     @objc private func getLatestVersion() { onGetLatestVersion?() }
     @objc private func screenshotCapture() { onScreenshotCapture?() }
     @objc private func screenshotAnnotate() { onScreenshotAnnotate?() }
-    @objc private func screenshotHistory() { onScreenshotHistory?() }
     @objc private func startRound() { onStartRound?() }
     @objc private func openAllRounds() { onOpenAllRounds?() }
     @objc private func copySelected() { onCopySelected?() }

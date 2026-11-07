@@ -1,7 +1,7 @@
 ---
 title: Find and reuse past work
 description: Copy a previous handoff, select a few captures, or continue an ended round.
-reviewedFor: 0.6.0
+reviewedFor: 0.7.0
 minVersion: 0.5.0
 sidebar:
   order: 5
@@ -13,7 +13,9 @@ import GuideImage from '../../components/GuideImage.astro';
 
 Click the Nshot menu. **Recent Rounds** lists the active round, once it has a saved capture, followed by the five most recent ended rounds.
 
-Each round shows a title taken from your first instruction. A round with no written instruction shows its time as the title. The prompt you copy from a round starts with `Session Name:`, the app your screenshots show, and a name for the round. The name is the menu title. On a Mac with macOS 26 or newer and Apple Intelligence on, it is a short summary of your notes instead. Apple's on-device model writes the summary, and nothing leaves your Mac. The same round can show a different name on another Mac. Your agent can then list each round under its own name. The line below the title shows the time, the apps it includes, and its capture count. Open the round’s submenu for its actions and captures.
+Each round shows a name of five words or fewer. On a Mac with macOS 26 or newer and Apple Intelligence on, the name is a short summary of your notes. Apple's on-device model writes the summary, and nothing leaves your Mac. On other Macs, the name is your first instruction, cut to five words. A round with no written instruction shows its time as the name. The same round can show a different name on another Mac.
+
+The prompt you copy from a round starts with `Session Name:`, the app your screenshots show, and the same name. Your agent can then list each round under its own name. The line below the name shows the time, the apps it includes, and its capture count. Open the round’s submenu for its actions and captures.
 
 Choose **Show More** for older ended rounds. Open a date, week, or month group to find its rounds. Their submenus offer the same copy, folder, and resume actions.
 
@@ -21,9 +23,11 @@ Long app lists use compact names and a +N count. Capture and selection counts st
 
 The newest capture appears first in the menu. The files and the agent’s item numbers keep their original capture order.
 
+Each capture row shows its time and a short name for what you marked and wrote. A capture with no summary shows its page or window name instead.
+
 ## Copy a round again
 
-Choose **Copy Round Prompt** in the round’s submenu. Paste into the agent working on the relevant project.
+Choose **Copy Round Prompt** in the round’s submenu. Paste the prompt into the agent that works on your project.
 
 This copy does not end an active round. It also tells the agent to check the code before repeating earlier work.
 
@@ -32,15 +36,17 @@ This copy does not end an active round. It also tells the agent to check the cod
 1. Open a round’s submenu.
 2. Click the captures you want. Each selected row gets a check.
 3. Select captures from another round if needed.
-4. Choose **Copy N Selected** in the main Nshot menu.
+4. Choose **Copy N Selected**. It appears at the top of every round’s submenu and in the main Nshot menu.
 
-Nextshot copies one combined prompt and clears the checks. One checked capture gives you that capture’s prompt.
+Nextshot copies one combined prompt for every checked capture, including captures in other rounds, and clears the checks. One checked capture gives you that capture’s prompt.
 
-Choose **Clear Selection** to remove the checks without copying.
+The rows stay gray until you check a capture, so the list never moves while you click. Choose **Clear Selection** to remove the checks without copying.
 
 ## Preview an image
 
-Hold Option and click a capture row. Nextshot opens its annotated image in Quick Look. This does not select the capture.
+Rest the pointer on a capture row for a second. A large preview of the annotated image appears beside the menu. It disappears when you move off the row.
+
+You can also hold Option and click a capture row. Nextshot opens its annotated image in Quick Look. This does not select the capture.
 
 ## Resume a round
 
