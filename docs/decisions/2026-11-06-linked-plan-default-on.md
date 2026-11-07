@@ -33,7 +33,7 @@ The replay of 2026-11-01 (`docs/evals/2026-11-01-linked-plan-replay.md`) used 4 
 
 ### Copy changes after the replay
 
-Three changes came after the first runs. The re-run below measured them, except the selection heading, which the replay does not use.
+Three changes came after the first runs. The re-run below exercised the Plan step sentence. The ask line and the selection heading are in the final prompt, but these four rounds do not exercise them (no replayed capture lacks both an item and a note, and the replay uses the round prompt, not the selection prompt).
 
 - The Plan step gained the sentence "Make no edit before this table is in your reply."
 - A capture with no items and no note gets a line that tells the agent to ask.
@@ -41,13 +41,13 @@ Three changes came after the first runs. The re-run below measured them, except 
 
 ### Re-run on the final prompt (2026-11-06)
 
-The 24 linked runs were repeated on the final prompt: same rounds, agents, and run counts, all 24 ok. The today baseline is the 2026-11-01 runs, not re-run. Drew chose default-on after the first replay. The re-run changes none of the pass or fail verdicts. Report section: "Re-run on the final prompt (2026-11-06)" in `docs/evals/2026-11-01-linked-plan-replay.md`.
+The 24 linked runs were repeated on the final prompt: same rounds, models, and run counts, all 24 ok. The today baseline is the 2026-11-01 runs, not re-run. Drew chose default-on after the first replay. The re-run changes none of the pass or fail verdicts. Report section: "Re-run on the final prompt (2026-11-06)" in `docs/evals/2026-11-01-linked-plan-replay.md`.
 
 - Coverage: 100.0% for both agents.
-- Tokens, linked over today: Claude 1.02 times, Codex 1.22 times (bar 1.3). Codex was 0.84 times in the first run.
+- Tokens, linked over today: Claude 1.02 times, Codex 1.22 times (bar 1.3; the Codex tool version differs). Codex was 0.84 times in the first run.
 - Group fit: Claude 3.00 against 2.45, Codex 3.75 against 3.13.
 - Question bar: Claude 0.0%, Codex 50.0%, against 90%. It fails again.
-- The Codex tool version also changed between the runs. The cause of the Codex token rise (prompt, tool version, or chance) is not known.
+- The Codex tool version also changed between the runs. The cause of the Codex token rise (tool version, final prompt text, or chance) is not known.
 
 ### Windows
 
@@ -63,5 +63,6 @@ The design (`docs/superpowers/specs/2026-11-01-visual-direction-handoff-design.m
 ### Open
 
 - Hand tests T1, T4, and T6 (design, Proposed order step 1) are not done. T4 matters here: it finds the pasted-text length at which Claude chat turns a paste into an attachment, and the linked prompt is longer than the classic one. Run them before the 0.8.0 release. Drew decides whether they block the release.
+- Release prep: before `scripts/release.sh`, add the UTC date line under `## 0.8.0` in `site/guides/src/content/docs/release-notes.mdx` (format as the neighbors). Raise `reviewedFor` on `release-notes.mdx` and, after the Dev app check, on `first-handoff.mdx`, `connect-agent.mdx`, and `troubleshooting.mdx`. Recheck the marker (`git rev-list --count HEAD` at the release commit) and the release-notes bullets against the final CHANGELOG line. A Guides-only deploy between the merge and the 0.8.0 release would publish 0.8.0 text to 0.7.0 users.
 - The `releasedInBuild` number (924) is a guess at the 0.8.0 release commit's build. Nothing reads it at run time. Check it when the release is cut.
 - The replay harness asks for a Links section even for rounds with fewer than three items. The app prompt drops that step below three items, as the 2-item round of the replay shows.

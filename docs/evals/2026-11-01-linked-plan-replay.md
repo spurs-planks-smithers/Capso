@@ -171,7 +171,7 @@ The bars are written for `linked`. This table shows the `linked` result. The `to
 
 ## Prompt changes after the replay
 
-After the runs, three copy changes were made. The re-run of 2026-11-06 (last section) measured them, except the selection heading, which the replay does not use. The Plan step gained the sentence "Make no edit before this table is in your reply." A capture with no items and no note gets a line that tells the agent to ask. The selection ledger heading lost the word "below". The replay used the round prompt as built at `b4857a2` and is plan-only, so the first change does not affect what it measured.
+After the runs, three copy changes were made. The Plan step gained the sentence "Make no edit before this table is in your reply." A capture with no items and no note gets a line that tells the agent to ask. The selection ledger heading lost the word "below". The re-run of 2026-11-06 (last section) exercised the Plan step sentence. The ask line and the selection heading are in the final prompt, but these four rounds do not exercise them: no replayed capture lacks both an item and a note, and the replay uses the round prompt, not the selection prompt. The first replay used the round prompt as built at `b4857a2` and is plan-only, so the first change does not affect what it measured.
 
 ## Decision for Drew
 
@@ -190,11 +190,11 @@ Not decided by the data: whether the extra questions are needed. No item lacks a
 
 ## Re-run on the final prompt (2026-11-06)
 
-The 24 `linked` runs were repeated on the final prompt: the same 4 rounds, the same two agents and models, 3 runs per cell. All 24 runs have status ok. Scored on 2026-11-06 at 20:50 PST with `scripts/replay/score.py` (`build/replay/2026-11-06/score.json`). This section holds numbers only: no reviewer words and no agent text. Every number and table above is the first run and stays as it was. The Decision for Drew section above is the state of 2026-11-01.
+The 24 `linked` runs were repeated on the final prompt: the same 4 rounds, the same models (the Codex tool version differs), 3 runs per cell. All 24 runs have status ok. Scored on 2026-11-06 at 20:50 PST with `scripts/replay/score.py` (`build/replay/2026-11-06/score.json`). This section holds numbers only: no reviewer words and no agent text. Every number and table above is the first run and stays as it was. The Decision for Drew section above is the state of 2026-11-01.
 
 ### Result
 
-- Coverage, tokens, and group fit pass for `linked` on both agents, as in the first run.
+- Coverage, tokens, and group fit pass for `linked` on both agents, as in the first run. The Codex token ratio (1.22 times) compares runs on different Codex tool versions.
 - The question bar fails for `linked` on both agents, as in the first run. Claude passes in 0.0% of `linked` runs (first run 16.7%). Codex passes in 50.0% (first run 41.7%). The bar is 90%.
 - No pass or fail verdict changes between the first run and the re-run.
 
@@ -211,7 +211,9 @@ The 24 `linked` runs were repeated on the final prompt: the same 4 rounds, the s
 | repository commits | bcad196, 9beb0ad, 2930a9a, 9d2e59e | same |
 
 - The `today` prompt is the classic prompt of 2026-11-01. Main changed it after that date in one way: round names are five words or fewer (PR 263). This changes the text of the first `Session Name:` line only. So the `today` baseline differs from today's classic prompt in that line.
-- The `linked` prompt is the final one. The replay uses the round prompt, so the selection heading change is not exercised.
+- The first line of the re-run `linked` prompts also differs from the first run's `linked` prompts, because PR 263 (five-word round names) landed between the runs. It changes the `linked` prompts the same way as the `today` baseline.
+- The `linked` prompt is the final one. The replay uses the round prompt, so the selection heading change is not exercised. No replayed capture lacks both an item and a note, so the ask line for such a capture is not exercised either.
+- Prompt tool: `nextshot-prompt` for the re-run `linked` prompts was built from main at `95b671d` (the PR 262 merge `b80f1c0` plus PR 274), on branch `feature/linked-plan-default-on` before the default-on commits. The flag change does not affect that tool.
 - The harness final line still asks for a Links section for the 2-item round, as before.
 - The `today` Codex runs used the older Codex tool version (11 of 12 files name it, and the other carries no version, as in the first run). The 12 new `linked` Codex runs used the newer one.
 - 24 new judge calls returned usable JSON on the first attempt. 0 runs were excluded. The 24 `today` judge results are the cached ones from 2026-11-01.
@@ -285,14 +287,14 @@ Supplementary, no bar: group lines per run from the parser, and the groups that 
 | 1 coverage, 100% in every run | pass (0 of 12 runs below) | pass (0 of 12 runs below) |
 | 2 cross-capture groups | no bar | no bar |
 | 3 questions name only unanswered items, in 90% of runs | fail (0.0%; first run 16.7%) | fail (50.0%; first run 41.7%) |
-| 4 tokens, at most 1.3 times `today` | pass (1.02 times) | pass (1.22 times) |
+| 4 tokens, at most 1.3 times `today` | pass (1.02 times) | pass (1.22 times; Codex tool version differs) |
 | 5 group fit, at least `today` | pass (3.00 against 2.45) | pass (3.75 against 3.13) |
 
 ### Reading
 
 - The pattern of the first run holds. Coverage, tokens, and group fit pass for both agents. The question bar fails for both.
 - The question bar is worse for Claude under the final prompt (0.0% against 16.7%). For Codex it is 50.0% against 41.7%.
-- Codex token use rose against the first `linked` run: mean total 278,504 against 191,606, and output 2.10 times `today`. The ratio of 1.22 times still passes the 1.3 bar. Two things changed for Codex between the runs: the prompt (including the Plan step sentence) and the Codex tool version. With 3 runs per cell, the data cannot say which one caused the rise, or whether chance did.
+- Codex token use rose against the first `linked` run: mean total 278,504 against 191,606, and output 2.10 times `today`. The ratio of 1.22 times still passes the 1.3 bar (Codex tool version differs). The possible causes are the Codex tool version, the final prompt text, or chance. With 3 runs per cell, the data cannot say which.
 - The Codex ratio compares `linked` runs on one tool version with `today` runs on another.
 
 ### Limits
