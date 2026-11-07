@@ -10,6 +10,10 @@ Capso's own history (versions 0.9.3 to 1.2.5) is not part of this file. This for
 
 ## [Unreleased]
 
+### Changed
+
+- Copied prompts now open with a list of every item you marked, in your own words, and no longer end with the Order and lanes section. They ask the agent to group related items and make one shared decision per group (with three or more items), to ask one question at the end for anything unclear, and to report each item with evidence. The files in the bundle folder do not change.
+
 ## [0.7.0] - 2026-11-06
 
 ### Added
