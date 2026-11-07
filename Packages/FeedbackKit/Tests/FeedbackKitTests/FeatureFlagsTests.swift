@@ -221,6 +221,21 @@ struct FeatureFlagsTests {
         #expect(FeatureFlag.subFlags(of: .updateReminder).isEmpty)
     }
 
+    @Test("The linked plan flag is not a Jev flag, is on in both channels, and an override can turn it off")
+    func linkedPlanFlag() {
+        let spec = FeatureFlag.linkedPlan.spec
+        #expect(spec.issue == 261)
+        #expect(spec.devOnly == false && spec.parent == nil)
+        #expect(spec.allowedStates == [.off, .on])
+        #expect(spec.devDefault == .on && spec.releaseDefault == .on)
+        #expect(spec.releasedInBuild != nil)
+        #expect(FlagResolver.state(of: .linkedPlan, channel: .dev) { _ in nil } == .on)
+        #expect(FlagResolver.state(of: .linkedPlan, channel: .release) { _ in nil } == .on)
+        // Not dev-only: an override turns it off in a release build too.
+        #expect(FlagResolver.state(of: .linkedPlan, channel: .release) { _ in "off" } == .off)
+        #expect(FeatureFlag.subFlags(of: .linkedPlan).isEmpty)
+    }
+
     @Test("Every Jev flag is dev-only, and a dev-only flag defaults to off in release")
     func jevFlagsAreDevOnly() {
         for flag in FeatureFlag.allCases where !Self.nonJevFlags.contains(flag) {

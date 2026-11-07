@@ -1,6 +1,6 @@
 # Linked plan replay: results, 2026-11-01
 
-Replay of today's copied prompt against the `linkedPlan` prompt (issue #261, design Part D in `docs/superpowers/specs/2026-11-01-visual-direction-handoff-design.md`). Four saved Nextshot rounds, two agents, two prompt variants, three runs per cell: 48 runs, all with status ok. The runs started at 15:14 PST and ended at 16:37 PST on 2026-11-01. Scored with `scripts/replay/score.py`. This report holds numbers only: no reviewer words and no agent text.
+Replay of today's copied prompt against the `linkedPlan` prompt (issue #261, design Part D in `docs/superpowers/specs/2026-11-01-visual-direction-handoff-design.md`). Four saved Nextshot rounds, two agents, two prompt variants, three runs per cell: 48 runs, all with status ok. The runs started at 15:14 PST and ended at 16:37 PST on 2026-11-01. Scored with `scripts/replay/score.py`. This report holds numbers only: no reviewer words and no agent text. A re-run on the final prompt (2026-11-06) is the last section.
 
 ## Result
 
@@ -171,7 +171,7 @@ The bars are written for `linked`. This table shows the `linked` result. The `to
 
 ## Prompt changes after the replay
 
-After the runs, three copy changes were made. They were not re-measured. The Plan step gained the sentence "Make no edit before this table is in your reply." A capture with no items and no note gets a line that tells the agent to ask. The selection ledger heading lost the word "below". The replay used the round prompt as built at `b4857a2` and is plan-only, so the first change does not affect what it measured.
+After the runs, three copy changes were made. The Plan step gained the sentence "Make no edit before this table is in your reply." A capture with no items and no note gets a line that tells the agent to ask. The selection ledger heading lost the word "below". The re-run of 2026-11-06 (last section) exercised the Plan step sentence. The ask line and the selection heading are in the final prompt, but these four rounds do not exercise them: no replayed capture lacks both an item and a note, and the replay uses the round prompt, not the selection prompt. The first replay used the round prompt as built at `b4857a2` and is plan-only, so the first change does not affect what it measured.
 
 ## Decision for Drew
 
@@ -187,3 +187,119 @@ Not decided by the data: whether the extra questions are needed. No item lacks a
 
 1. **Try it in the Dev build (Recommended).** Coverage, tokens, and group fit passed. The question bar failed, and the Codex rise is measured: id-naming questions rise from 0 of 12 runs to 7 of 12, and runs with any question paragraph from 3 of 12 to 9 of 12. Only your own rounds can show whether the extra questions are needed. Turn on `linkedPlan` in Nextshot Dev only. Release stays off. Watch the end-of-answer questions in your own rounds, and count how many turned out to be unnecessary. If most are noise, turn it off again.
 2. **Keep it off.** Choose this if you read the Codex rise as a regression. The replay shows that rise: Codex passes the question bar in 100.0% of `today` runs and in 41.7% of `linked` runs.
+
+## Re-run on the final prompt (2026-11-06)
+
+The 24 `linked` runs were repeated on the final prompt: the same 4 rounds, the same models (the Codex tool version differs), 3 runs per cell. All 24 runs have status ok. Scored on 2026-11-06 at 20:50 PST with `scripts/replay/score.py` (`build/replay/2026-11-06/score.json`). This section holds numbers only: no reviewer words and no agent text. Every number and table above is the first run and stays as it was. The Decision for Drew section above is the state of 2026-11-01.
+
+### Result
+
+- Coverage, tokens, and group fit pass for `linked` on both agents, as in the first run. The Codex token ratio (1.22 times) compares runs on different Codex tool versions.
+- The question bar fails for `linked` on both agents, as in the first run. Claude passes in 0.0% of `linked` runs (first run 16.7%). Codex passes in 50.0% (first run 41.7%). The bar is 90%.
+- No pass or fail verdict changes between the first run and the re-run.
+
+### What differs from the first run
+
+| item | first run (2026-11-01) | re-run (2026-11-06) |
+|---|---|---|
+| `linked` prompt | round prompt as built at `b4857a2` | final prompt, with the three copy changes |
+| `today` baseline | 24 runs on 2026-11-01 | the same 24 runs, copied into the new folder with their cached judge results, not re-run |
+| Claude agent | claude-opus-5-5, Claude Code 2.1.307 | same |
+| Codex agent | gpt-6.1-sol, codex-cli 0.164.0-alpha.11.1 | gpt-6.1-sol, codex-cli 0.166.0-alpha.6 |
+| Judge of Claude answers | gpt-6.1-sol | same |
+| Judge of Codex answers | claude-sonnet-5-5 | same |
+| repository commits | bcad196, 9beb0ad, 2930a9a, 9d2e59e | same |
+
+- The `today` prompt is the classic prompt of 2026-11-01. Main changed it after that date in one way: round names are five words or fewer (PR 263). This changes the text of the first `Session Name:` line only. So the `today` baseline differs from today's classic prompt in that line.
+- The first line of the re-run `linked` prompts also differs from the first run's `linked` prompts, because PR 263 (five-word round names) landed between the runs. It changes the `linked` prompts the same way as the `today` baseline.
+- The `linked` prompt is the final one. The replay uses the round prompt, so the selection heading change is not exercised. No replayed capture lacks both an item and a note, so the ask line for such a capture is not exercised either.
+- Prompt tool: `nextshot-prompt` for the re-run `linked` prompts was built from main at `95b671d` (the PR 262 merge `b80f1c0` plus PR 274), on branch `feature/linked-plan-default-on` before the default-on commits. The flag change does not affect that tool.
+- The harness final line still asks for a Links section for the 2-item round, as before.
+- The `today` Codex runs used the older Codex tool version (11 of 12 files name it, and the other carries no version, as in the first run). The 12 new `linked` Codex runs used the newer one.
+- 24 new judge calls returned usable JSON on the first attempt. 0 runs were excluded. The 24 `today` judge results are the cached ones from 2026-11-01.
+- Rerun: `python3 -I scripts/replay/score.py build/replay/2026-11-06`. With every judge result cached, a rerun makes no vendor call.
+
+### 1. Ledger coverage and 4. Tokens
+
+Coverage bar: 100% in every run. Token bar: the mean total of `linked` is at most 1.3 times `today`, per agent. Total is input plus output. Compare token counts only within one agent.
+
+| agent | variant | runs | mean coverage | runs below 100% | mean input | mean output | mean total |
+|---|---|---|---|---|---|---|---|
+| Claude | today | 12 | 99.1% | 1 | 276,401 | 5,618 | 282,020 |
+| Claude | linked, first run | 12 | 100.0% | 0 | 300,017 | 6,337 | 306,354 |
+| Claude | linked, re-run | 12 | 100.0% | 0 | 279,961 | 6,603 | 286,564 |
+| Codex | today | 12 | 100.0% | 0 | 226,199 | 1,576 | 227,775 |
+| Codex | linked, first run | 12 | 100.0% | 0 | 189,947 | 1,659 | 191,606 |
+| Codex | linked, re-run | 12 | 100.0% | 0 | 275,193 | 3,311 | 278,504 |
+
+| agent | total, linked over today: first run | total: re-run | output only: first run | output only: re-run | bar |
+|---|---|---|---|---|---|
+| Claude | 1.09 times | 1.02 times | 1.13 times | 1.18 times | pass |
+| Codex | 0.84 times | 1.22 times | 1.05 times | 2.10 times | pass |
+
+### 3. Question precision
+
+The last paragraph with a question mark, and the ids it names. Bar: the paragraph names only ids that have no instruction, in at least 90% of runs. The 4 rounds hold 21 items and none lacks an instruction (counted from the data). The bar therefore passes only when no question names an id.
+
+| agent | variant | runs | with a question paragraph | question paragraph is a table | name ids | pass | pass share | bar |
+|---|---|---|---|---|---|---|---|---|
+| Claude | today | 12 | 12 | 0 | 9 | 3 | 25.0% | fail |
+| Claude | linked, first run | 12 | 12 | 0 | 10 | 2 | 16.7% | fail |
+| Claude | linked, re-run | 12 | 12 | 0 | 12 | 0 | 0.0% | fail |
+| Codex | today | 12 | 3 | 0 | 0 | 12 | 100.0% | pass |
+| Codex | linked, first run | 12 | 9 | 0 | 7 | 5 | 41.7% | fail |
+| Codex | linked, re-run | 12 | 7 | 0 | 6 | 6 | 50.0% | fail |
+
+- Claude names ids in all 12 `linked` runs of the re-run, against 10 of 12 in the first run and 9 of 12 under `today`.
+- Codex names ids in 6 of 12 `linked` runs of the re-run, against 7 of 12 in the first run and 0 of 12 under `today`. Runs with any question paragraph are 7 of 12, against 9 of 12 and 3 of 12.
+- The linked Questions step tells the agent to name the ids of the items it asks about. Id-naming questions are therefore the intended behavior, and the bar counts them as failures. The bar cannot tell a needed question from noise here.
+
+### 5. Group fit
+
+One judge call per run, from the other vendor, blind to the variant, as in the first run. Bar: the mean rating of `linked` is at least the mean of `today`, per judged agent.
+
+| judged agent | variant | runs judged | judge failed | runs with groups | groups | mean rating | ratings 1, 2, 3, 4, 5 |
+|---|---|---|---|---|---|---|---|
+| Claude | today | 12 | 0 | 10 | 20 | 2.45 | 10, 3, 1, 0, 6 |
+| Claude | linked, first run | 12 | 0 | 9 | 17 | 3.47 | 5, 2, 0, 0, 10 |
+| Claude | linked, re-run | 12 | 0 | 9 | 18 | 3.00 | 8, 1, 0, 1, 8 |
+| Codex | today | 12 | 0 | 9 | 15 | 3.13 | 0, 6, 4, 2, 3 |
+| Codex | linked, first run | 12 | 0 | 9 | 20 | 3.35 | 0, 7, 2, 8, 3 |
+| Codex | linked, re-run | 12 | 0 | 9 | 16 | 3.75 | 0, 3, 1, 9, 3 |
+
+Both re-run means are above `today`: Claude 3.00 against 2.45, Codex 3.75 against 3.13. Claude is below its first run (3.47). Codex is above its first run (3.35).
+
+Supplementary, no bar: group lines per run from the parser, and the groups that span 2 or more captures (model-judged).
+
+| agent | variant | group lines per run | cross-capture groups | mean rating |
+|---|---|---|---|---|
+| Claude | today | 0.75 | 10 | 3.50 |
+| Claude | linked, first run | 0.25 | 6 | 5.00 |
+| Claude | linked, re-run | 0.33 | 7 | 4.29 |
+| Codex | today | 0.00 | 4 | 4.00 |
+| Codex | linked, first run | 0.58 | 10 | 3.20 |
+| Codex | linked, re-run | 0.42 | 9 | 3.44 |
+
+### Bars at a glance
+
+| bar | Claude, `linked` re-run | Codex, `linked` re-run |
+|---|---|---|
+| 1 coverage, 100% in every run | pass (0 of 12 runs below) | pass (0 of 12 runs below) |
+| 2 cross-capture groups | no bar | no bar |
+| 3 questions name only unanswered items, in 90% of runs | fail (0.0%; first run 16.7%) | fail (50.0%; first run 41.7%) |
+| 4 tokens, at most 1.3 times `today` | pass (1.02 times) | pass (1.22 times; Codex tool version differs) |
+| 5 group fit, at least `today` | pass (3.00 against 2.45) | pass (3.75 against 3.13) |
+
+### Reading
+
+- The pattern of the first run holds. Coverage, tokens, and group fit pass for both agents. The question bar fails for both.
+- The question bar is worse for Claude under the final prompt (0.0% against 16.7%). For Codex it is 50.0% against 41.7%.
+- Codex token use rose against the first `linked` run: mean total 278,504 against 191,606, and output 2.10 times `today`. The ratio of 1.22 times still passes the 1.3 bar (Codex tool version differs). The possible causes are the Codex tool version, the final prompt text, or chance. With 3 runs per cell, the data cannot say which.
+- The Codex ratio compares `linked` runs on one tool version with `today` runs on another.
+
+### Limits
+
+- Same limits as the first run: 3 runs per cell, 4 rounds, 21 items, a heuristic group parser, token counts that include caches, a model judge (ratings are model-judged estimates), and plan-only runs. Runs of one round are not independent. Read the differences as direction, not proof.
+- The `today` baseline was not re-run, and its prompt differs from today's classic prompt in the `Session Name:` line (see above).
+- The judge listed 35 single-item entries as groups in the new `linked` runs (Claude 20, Codex 15). They are dropped, as in the first run.
+- The group lines per run (0.33 and 0.42) are small counts from a heuristic parser (4 and 5 lines in all).

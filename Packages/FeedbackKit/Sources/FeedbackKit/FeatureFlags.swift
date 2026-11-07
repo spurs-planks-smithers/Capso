@@ -201,7 +201,12 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
             // Nothing reads the number at run time.
             FlagSpec(issue: 203, allowedStates: [.off, .on], devDefault: .on, releaseDefault: .on, releasedInBuild: 911)
         case .linkedPlan:
-            FlagSpec(issue: 261, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
+            // On in both channels (Drew, 2026-11-06). A guess at the marker:
+            // main stood at build 922 on 2026-11-06, so the squash merge of
+            // this change is 923 and the 0.8.0 release commit is 924. Other
+            // merges before then make it stale. Check it when the release is
+            // cut. Nothing reads the number at run time.
+            FlagSpec(issue: 261, allowedStates: [.off, .on], devDefault: .on, releaseDefault: .on, releasedInBuild: 924)
         case .standaloneCapture, .recordingTools, .translationTools, .cloudShare, .automationURLs, .automaticUpdates:
             FlagSpec(issue: 119, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
         }
