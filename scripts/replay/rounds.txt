@@ -1,0 +1,10 @@
+# Rounds that scripts/replay/replay.py may send to an AI vendor.
+# Approved by Drew on 2026-11-01. Only Nextshot rounds may be listed here.
+# A round that shows mail, Nextiva reports, or customer data must never be added.
+#
+# One round per line: <folder> [captures=<index>[,<index>...]]
+# A line with captures= sends only those captures. The others never leave this Mac.
+2026-10-27-0939-feedback
+2026-10-24-1631-feedback
+2026-10-22-1609-feedback
+2026-10-24-1823-feedback captures=3,4
