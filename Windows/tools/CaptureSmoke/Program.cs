@@ -3,6 +3,7 @@ using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 
 // Smoke test: can a hosted runner capture its screen with GDI CopyFromScreen?
+// Throwaway CI probe (chore/ci-check-after-reenable). Do not merge.
 var w = NativeMethods.GetSystemMetrics(0);
 var h = NativeMethods.GetSystemMetrics(1);
 Console.WriteLine($"Primary screen metrics: {w}x{h}");
