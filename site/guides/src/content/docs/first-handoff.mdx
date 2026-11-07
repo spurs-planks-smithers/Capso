@@ -110,17 +110,21 @@ Confirm that the agent opens the annotated image and reads the numbered notes. I
 
 <Step number={7} title="Review the plan, then the changes">
 
-The prompt asks for a plan table before edits. For this demo, the table should cover all three items:
+The prompt lists your notes, then asks for a plan table before any edit. With three or more items, it first asks for a Links section. Links group the notes that share one intent or one cause, with one shared decision for each group. The three notes in this demo are separate changes, so each item stands alone. The table should cover all three items:
 
-| Item | File | Planned change |
-| --- | --- | --- |
-| 1.1 | index.html | Change “Lemonaid” to “Lemonade.” |
-| 1.2 | index.html | Set the displayed price to $3 a cup. |
-| 1.3 | index.html | Increase the Buy button’s clickable area. |
+| Item | Group | Place | Change |
+| --- | --- | --- | --- |
+| 1.1 | Alone | index.html, page title | Change “Lemonaid” to “Lemonade.” |
+| 1.2 | Alone | index.html, price | Set the displayed price to $3 a cup. |
+| 1.3 | Alone | index.html, Buy button | Increase the Buy button’s clickable area. |
 
-The actual file names depend on your project. Check that the agent understands each request before it changes the code.
+The group names and places depend on your agent and your project. With fewer than three items, the prompt skips Links and the Group column.
 
-After the work, ask it to show the running result. Review each item. Start another round for anything that needs a further change.
+The agent continues after the table without waiting for you. Read each row against your note. Interrupt the agent if a row is wrong.
+
+The agent does every clear item first. It then asks one question at the end about the rest.
+
+After the work, the agent reports each item as done, partly, not done, or needs input, with evidence. Ask it to show the running result. Review each item. Start another round for anything that needs a further change.
 
 </Step>
 
@@ -130,7 +134,7 @@ Default settings support this handoff. [Adjust Settings](/guides/settings/) when
 
 Name the result you want. “Set the price to $3” gives your agent a clearer instruction than “Fix this.”
 
-Your notes take priority. Screen text helps locate the code. The prompt tells the agent to ask when a note is missing or conflicts with the image.
+Your notes take priority. Screen text helps locate the code. When a note is missing or conflicts with the image, the prompt tells the agent to make no edit to that item and to ask about it once, at the end.
 
 The round files stay on your Mac. Your agent controls what it reads and sends to its own model service.
 
