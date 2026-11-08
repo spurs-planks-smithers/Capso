@@ -76,16 +76,7 @@ while [[ $# -gt 0 ]]; do
 done
 python3 -I "$repo/scripts/nextshot-local.py" check
 
-# Asks on the terminal. A closed stdin, a pipe, or anything but y stops.
-confirm() {
-  local answer
-  if [[ ! -t 0 ]]; then
-    echo "release: no terminal to ask on. Nothing was published." >&2
-    return 1
-  fi
-  read -r -p "$1 [y/N] " answer || return 1
-  [[ "$answer" == y || "$answer" == Y || "$answer" == yes ]]
-}
+# confirm (the one question before anything is published) is in release-lib.sh.
 
 # --no-smoke is for one step: filling the bucket before the Worker that reads
 # it is deployed. The live site has no /latest.json route yet, so the test
