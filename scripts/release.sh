@@ -21,10 +21,14 @@
 # A release runs these steps:
 #   1. Preflight. On main, equal to origin/main, clean tree. Tests pass,
 #      JevKit in Release too. Certificate, notary profile, R2, and GitHub
-#      route are ready. CHANGELOG.md has an entry under Unreleased.
+#      route are ready. CHANGELOG.md has an entry under Unreleased. The Guides
+#      release notes have a "## X.Y.Z" heading for the new version.
 #   2. Bump. Moves Unreleased to the new version in CHANGELOG.md, writes
-#      VERSION, makes the commit "chore: release X.Y.Z" and the tag
-#      nextshot-vX.Y.Z. Both stay local until step 6.
+#      VERSION, sets each flag marker above the last release's build to the
+#      release commit's build, dates the Guides release notes
+#      (scripts/release-markers.py, issue 281), makes the commit
+#      "chore: release X.Y.Z" and the tag nextshot-vX.Y.Z, and checks that
+#      the commit's build equals the markers. Both stay local until step 6.
 #   3. Stage Guides (nonblocking), then build the app: sign, notarize, staple.
 #   4. Check the DMG: ticket, Gatekeeper, bundle ID, version, build, signature.
 #   5. Ask once. Shows the version, build, hash, and notes. A closed stdin or
@@ -237,6 +241,15 @@ no_tag() { ! git -C "$repo" rev-parse -q --verify "refs/tags/$tag" >/dev/null; }
 not_in_r2() { r2_reachable && ! r2_get "releases/Nextshot-$new.json" "$(mktemp)"; }
 need "tag $tag does not exist" no_tag
 need "R2 holds no release $new" not_in_r2
+markers_py="$repo/scripts/release-markers.py"
+notes_ready() { python3 -I "$markers_py" notes-check "$new"; }
+need "Guides release notes have a '## $new' heading" notes_ready
+
+# The release commit adds one commit, so its build is the count of HEAD plus 1.
+# A flag marker above the last release's build gets that number (issue 281).
+release_build=$(($(git -C "$repo" rev-list --count HEAD) + 1))
+last_build=""
+[[ -z "$last_tag" ]] || last_build="$(git -C "$repo" rev-list --count "$last_tag")"
 
 echo
 echo "== Plan"
@@ -245,6 +258,11 @@ echo "  Tag:       $tag"
 echo "  Files:     build/releases/Nextshot-$new.dmg and .zip"
 echo "  R2:        releases/Nextshot-$new.{dmg,zip,dmg.sha256,json}, then latest.json"
 echo "  Site:      $site_url"
+echo "  Build:     $release_build (the release commit)"
+if [[ -n "$last_build" ]]; then
+  echo "  Markers (above $last_build, set to $release_build):"
+  python3 -I "$markers_py" list "$last_build" "$release_build" 2>/dev/null | sed 's/^/    /' || true
+fi
 echo "  Notes (CHANGELOG.md, Unreleased):"
 python3 -I "$repo/scripts/release-changelog.py" notes Unreleased "$repo/CHANGELOG.md" 2>/dev/null | sed 's/^/    /' || true
 
@@ -305,9 +323,17 @@ echo
 echo "== Bump"
 python3 -I "$repo/scripts/release-changelog.py" rotate "$new" "$today" "$repo/CHANGELOG.md"
 printf '%s\n' "$new" >"$repo/VERSION"
-git -C "$repo" add VERSION CHANGELOG.md
-git -C "$repo" commit -q -m "chore: release $new" -- VERSION CHANGELOG.md
+flags_rel="Packages/FeedbackKit/Sources/FeedbackKit/FeatureFlags.swift"
+notes_rel="site/guides/src/content/docs/release-notes.mdx"
+if [[ -n "$last_build" ]]; then
+  python3 -I "$markers_py" set "$last_build" "$release_build" "$repo/$flags_rel"
+fi
+python3 -I "$markers_py" notes-date "$new" "$today" "$repo/$notes_rel"
+git -C "$repo" add VERSION CHANGELOG.md "$flags_rel" "$notes_rel"
+git -C "$repo" commit -q -m "chore: release $new" -- VERSION CHANGELOG.md "$flags_rel" "$notes_rel"
 created_commit="$(git -C "$repo" rev-parse HEAD)"
+[[ "$(git -C "$repo" rev-list --count HEAD)" == "$release_build" ]] ||
+  rel_fail "the release commit is build $(git -C "$repo" rev-list --count HEAD), but the markers say $release_build"
 git -C "$repo" tag -a "$tag" -m "Nextshot $new"
 created_tag="$tag"
 echo "ok    commit ${created_commit:0:7} and tag $tag, local only"
