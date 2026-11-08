@@ -1,109 +1,131 @@
 import AppKit
+import FeedbackKit
 import ImageIO
 import Observation
 import SwiftUI
 
+/// Fork: what the Find Capture window shows (#125). The controller owns the
+/// checks. The window gets a read-only copy each time they change.
 @MainActor
 @Observable
 final class ScreenshotHistoryPresentation {
-    var items: [ScreenshotHistoryItem] = []
+    private(set) var items: [ScreenshotHistoryItem] = []
+    /// The items with their folded search text, made once per load.
+    private(set) var entries: [CaptureSearch.Entry<ScreenshotHistoryItem>] = []
+    /// False until the first load ends.
+    private(set) var loaded = false
+    /// The Nshot menu's checks.
+    var basket = FeedbackBasket()
+    var zipEnabled = false
+    /// A round is active, so Resume Round stays hidden.
+    var roundActive = false
+    /// Raised each time the window shows, so the search field takes focus.
+    var focusRequest = 0
+
+    func setItems(_ items: [ScreenshotHistoryItem]) {
+        self.items = items
+        entries = items.map { item in
+            CaptureSearch.Entry(
+                value: item,
+                date: item.createdAt,
+                tieBreak: item.id.sortKey,
+                fields: CaptureSearch.Fields(
+                    appName: item.appName, windowTitle: item.windowTitle, marks: item.marks,
+                    note: item.note, roundName: item.roundName, captureName: item.captureName
+                )
+            )
+        }
+        loaded = true
+    }
 }
 
+/// Fork: Find Capture (#125). A search field, the app filter, and every saved
+/// capture grouped by day, newest first. A click on a card checks it in the
+/// Nshot menu's checks. A click on a round chip shows only that round.
 @MainActor
 struct ScreenshotHistoryView: View {
     let presentation: ScreenshotHistoryPresentation
-    let onCopy: (ScreenshotHistoryItem, ScreenshotImageVariant) -> Void
-    let onPreview: (ScreenshotHistoryItem) -> Void
-    let onAnnotate: (ScreenshotHistoryItem) -> Void
+    let actions: FindCaptureActions
 
+    private enum Focus: Hashable {
+        case search
+        case grid
+    }
+
+    @State private var query = ""
     @State private var appFilter: String?
-    @State private var selection: ScreenshotSourceID?
+    /// The round folder that a chip click picked, or nil for every round.
+    @State private var roundFilter: String?
+    /// The card that Space opens in Quick Look.
+    @State private var lastClicked: ScreenshotSourceID?
+    @FocusState private var focus: Focus?
 
-    private var items: [ScreenshotHistoryItem] {
-        presentation.items.filter { appFilter == nil || appName($0) == appFilter }
-            .sorted {
-                if $0.createdAt == $1.createdAt { return $0.id.sortKey < $1.id.sortKey }
-                return $0.createdAt > $1.createdAt
-            }
+    /// The entries inside the round and app filters, before the search.
+    private var scoped: [CaptureSearch.Entry<ScreenshotHistoryItem>] {
+        presentation.entries.filter { entry in
+            (roundFilter == nil || entry.value.id.basketKey?.folderName == roundFilter)
+                && (appFilter == nil || appName(entry.value) == appFilter)
+        }
     }
 
     private var apps: [String] {
         Array(Set(presentation.items.map(appName))).sorted { $0.localizedStandardCompare($1) == .orderedAscending }
     }
 
-    private var selectedItem: ScreenshotHistoryItem? {
-        items.first { $0.id == selection }
-    }
-
-    private var groups: [(date: Date, items: [ScreenshotHistoryItem])] {
-        let grouped = Dictionary(grouping: items) { Calendar.current.startOfDay(for: $0.createdAt) }
-        return grouped.keys.sorted(by: >).map { ($0, grouped[$0] ?? []) }
-    }
-
     var body: some View {
+        let results = CaptureSearch.results(scoped, query: query)
         VStack(spacing: 0) {
-            header
+            header(count: results.count)
             Divider()
-            if items.isEmpty {
+            if !presentation.loaded {
+                ProgressView().controlSize(.small)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if results.isEmpty {
                 emptyState
             } else {
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 24) {
-                        ForEach(groups, id: \.date) { group in
-                            VStack(alignment: .leading, spacing: 12) {
-                                Text(group.date.formatted(date: .complete, time: .omitted))
-                                    .font(.headline)
-                                    .accessibilityAddTraits(.isHeader)
-                                LazyVGrid(columns: [GridItem(.adaptive(minimum: 245, maximum: 340), spacing: 16)], spacing: 16) {
-                                    ForEach(group.items) { item in
-                                        card(item)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    .padding(20)
-                }
+                grid(results)
             }
             Divider()
-            selectionBar
+            bar
         }
         .background(Color(nsColor: .windowBackgroundColor))
-        .onChange(of: appFilter) { _, _ in selection = nil }
-        .onChange(of: presentation.items.map(\.id)) { _, ids in
-            if let selection, !ids.contains(selection) { self.selection = nil }
-        }
+        .defaultFocus($focus, .search)
+        // Runs at the first show and at each later show.
+        .task(id: presentation.focusRequest) { focus = .search }
     }
 
-    private var header: some View {
-        HStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Screenshot History").font(.system(size: 20, weight: .semibold))
-                Text("\(items.count) images from screenshots and feedback rounds")
-                    .font(.subheadline).foregroundStyle(.secondary)
-            }
-            Spacer()
-            Picker("Captured app", selection: $appFilter) {
-                Text("All Apps").tag(String?.none)
-                ForEach(apps, id: \.self) { app in
-                    Text(app).tag(Optional(app))
+    private func header(count: Int) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 12) {
+                TextField("Search", text: $query, prompt: Text("Search apps, windows, notes, and rounds"))
+                    .textFieldStyle(.roundedBorder)
+                    .controlSize(.large)
+                    .focused($focus, equals: .search)
+                Picker("Captured app", selection: $appFilter) {
+                    Text("All Apps").tag(String?.none)
+                    ForEach(apps, id: \.self) { app in
+                        Text(app).tag(Optional(app))
+                    }
                 }
+                .labelsHidden()
+                .frame(width: 220)
+                .help("Show the captures of one app.")
             }
-            .frame(width: 250)
-            .help("Filter by the app shown when the screenshot was captured.")
+            Text(count == 1 ? "1 capture" : "\(count) captures")
+                .font(.caption).foregroundStyle(.secondary)
         }
-        .padding(20)
+        .padding(16)
     }
 
     private var emptyState: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "photo.on.rectangle.angled")
-                .font(.system(size: 36)).foregroundStyle(.secondary)
-            Text(presentation.items.isEmpty ? "No screenshots yet" : "No screenshots from this app")
+        VStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 32)).foregroundStyle(.secondary)
+            Text(presentation.items.isEmpty ? "No captures yet" : "No captures match")
                 .font(.headline)
             Text(presentation.items.isEmpty
-                 ? "Capture an area with Option+Shift+4. Saved feedback captures also appear here."
-                 : "Choose All Apps to see the rest of your history.")
+                 ? "Captures that you save to a round show here."
+                 : "Change the search, or choose All Apps.")
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 420)
@@ -111,121 +133,187 @@ struct ScreenshotHistoryView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    private func grid(_ results: [ScreenshotHistoryItem]) -> some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 24) {
+                ForEach(groups(results), id: \.date) { group in
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(group.date.formatted(date: .complete, time: .omitted))
+                            .font(.headline)
+                            .accessibilityAddTraits(.isHeader)
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 230, maximum: 320), spacing: 16)], spacing: 16) {
+                            ForEach(group.items) { item in
+                                card(item)
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(20)
+        }
+        // A card click moves focus here, so Space opens Quick Look and does
+        // not type into the search field.
+        .focusable()
+        .focused($focus, equals: .grid)
+        .focusEffectDisabled()
+        .onKeyPress(.space) {
+            if let item = presentation.items.first(where: { $0.id == lastClicked }) {
+                actions.quickLook(item.annotatedURL)
+            }
+            return .handled
+        }
+    }
+
+    /// Day groups, newest day first. Each group keeps the result order.
+    private func groups(_ results: [ScreenshotHistoryItem]) -> [(date: Date, items: [ScreenshotHistoryItem])] {
+        let grouped = Dictionary(grouping: results) { Calendar.current.startOfDay(for: $0.createdAt) }
+        return grouped.keys.sorted(by: >).map { ($0, grouped[$0] ?? []) }
+    }
+
     private func card(_ item: ScreenshotHistoryItem) -> some View {
-        let selected = selection == item.id
-        return VStack(alignment: .leading, spacing: 9) {
+        let key = item.id.basketKey
+        let checked = key.map(presentation.basket.contains) ?? false
+        let lastClick = lastClicked == item.id
+        return VStack(alignment: .leading, spacing: 8) {
             ScreenshotHistoryThumbnail(url: item.thumbnailURL ?? item.annotatedURL)
-                .frame(height: 145)
+                .frame(height: 140)
                 .frame(maxWidth: .infinity)
                 .background(Color(nsColor: .textBackgroundColor))
                 .clipShape(RoundedRectangle(cornerRadius: 5))
+                .overlay(alignment: .topTrailing) {
+                    if key != nil {
+                        Image(systemName: checked ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: 18))
+                            .foregroundStyle(checked ? Color.accentColor : Color.secondary)
+                            .background(Circle().fill(Color(nsColor: .windowBackgroundColor)))
+                            .padding(6)
+                            .accessibilityHidden(true)
+                    }
+                }
             HStack {
                 Text(appName(item)).fontWeight(.semibold).lineLimit(1)
                 Spacer(minLength: 6)
                 Text(item.createdAt.formatted(date: .omitted, time: .shortened))
                     .foregroundStyle(.secondary).fixedSize()
             }
-            Text(title(item)).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
-            HStack {
-                Text(sourceName(item))
-                Spacer()
-                Text("\(item.size.width) × \(item.size.height)")
-            }
-            .font(.caption).foregroundStyle(.secondary)
+            Text(captureName(item)).lineLimit(1).truncationMode(.tail)
+            chip(item)
         }
         .font(.system(size: 12))
         .padding(10)
-        .background(selected ? Color.accentColor.opacity(0.10) : Color(nsColor: .controlBackgroundColor))
+        .background(checked ? Color.accentColor.opacity(0.10) : Color(nsColor: .controlBackgroundColor))
         .clipShape(RoundedRectangle(cornerRadius: 8))
-        .overlay(RoundedRectangle(cornerRadius: 8).stroke(selected ? Color.accentColor : Color.primary.opacity(0.10), lineWidth: selected ? 2 : 1))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8).stroke(
+                checked ? Color.accentColor : Color.primary.opacity(lastClick ? 0.35 : 0.10),
+                lineWidth: checked ? 2 : 1
+            )
+        )
         .contentShape(Rectangle())
-        .focusable()
-        .onKeyPress(.space) {
-            selection = item.id
-            onPreview(item)
-            return .handled
-        }
-        .onKeyPress(.return) {
-            selection = item.id
-            return .handled
-        }
-        .onTapGesture(count: 2) { selection = item.id; onPreview(item) }
-        .onTapGesture { selection = item.id }
+        .onTapGesture { click(item) }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(appName(item)), \(title(item)), \(item.createdAt.formatted(date: .complete, time: .shortened))")
-        .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
-        .accessibilityAction { selection = item.id }
-        .accessibilityAction(named: "Preview") { onPreview(item) }
-        .help("\(title(item))\nCreated: \(timestamp(item.createdAt))\nCaptured: \(timestamp(item.capturedAt))\nDouble-click to preview.")
-        .contextMenu {
-            Button("Copy Image") { onCopy(item, .annotated) }
-            Button("Copy Without Annotations") { onCopy(item, .withoutAnnotations) }
-                .disabled(item.cleanURL == nil)
-            Divider()
-            Button("Preview") { onPreview(item) }
-            Button("Annotate") { onAnnotate(item) }
+        .accessibilityLabel("\(appName(item)), \(captureName(item)), \(item.createdAt.formatted(date: .complete, time: .shortened))")
+        .accessibilityAddTraits(checked ? [.isSelected, .isButton] : .isButton)
+        .accessibilityAction { click(item) }
+        .accessibilityAction(named: "Quick Look") { actions.quickLook(item.annotatedURL) }
+        .accessibilityAction(named: "Show This Round") {
+            if let folder = key?.folderName { roundFilter = folder }
+        }
+        .help(key == nil
+              ? "\(captureName(item))\nPress Space for Quick Look."
+              : "\(captureName(item))\nClick to check. Press Space for Quick Look.")
+    }
+
+    /// The round chip. A click shows only that round. A screenshot has no
+    /// round, so its chip is a plain label.
+    @ViewBuilder
+    private func chip(_ item: ScreenshotHistoryItem) -> some View {
+        if let folder = item.id.basketKey?.folderName {
+            Button {
+                roundFilter = folder
+            } label: {
+                Text(item.roundName ?? folder)
+                    .font(.system(size: 10.5, weight: .medium))
+                    .lineLimit(1)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 2)
+                    .background(Capsule().fill(Color.accentColor.opacity(roundFilter == folder ? 0.22 : 0.12)))
+                    .foregroundStyle(Color.accentColor)
+            }
+            .buttonStyle(.plain)
+            .help("Show only the captures of this round.")
+        } else {
+            Text(item.metadata.parent == nil ? "Screenshot" : "Edited version")
+                .font(.system(size: 10.5, weight: .medium))
+                .lineLimit(1)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 2)
+                .background(Capsule().fill(Color.primary.opacity(0.08)))
+                .foregroundStyle(.secondary)
         }
     }
 
-    private var selectionBar: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if let item = selectedItem {
-                HStack(alignment: .top, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(title(item)).fontWeight(.medium).lineLimit(1).truncationMode(.middle)
-                        Text("Created \(timestamp(item.createdAt))")
-                            .font(.caption).foregroundStyle(.secondary)
-                        if item.createdAt != item.capturedAt {
-                            Text("Originally captured \(timestamp(item.capturedAt))")
-                                .font(.caption).foregroundStyle(.secondary)
-                        }
-                    }
-                    Spacer(minLength: 8)
-                    Button("Preview") { onPreview(item) }
-                    Button("Annotate") { onAnnotate(item) }
-                    Button("Copy Image") { onCopy(item, .annotated) }
-                        .keyboardShortcut("c", modifiers: .command)
-                    Button("Copy Without Annotations") { onCopy(item, .withoutAnnotations) }
-                        .disabled(item.cleanURL == nil)
-                        .help(item.cleanURL == nil ? "A reliable image without annotations is unavailable for this capture." : "Copy without marks. Keep redactions.")
-                }
-                if item.cleanURL == nil {
-                    Text("Copy Without Annotations is unavailable. This capture has no verified clean image.")
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-            } else {
-                Text("Select a screenshot to copy or annotate. Double-click to preview.")
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
+    private var bar: some View {
+        let model = FindCaptureBar(
+            roundName: roundFilter.map(roundLabel),
+            selectedCount: presentation.basket.count,
+            zipEnabled: presentation.zipEnabled,
+            roundActive: presentation.roundActive
+        )
+        let leading = model.buttons.filter { $0.action == .back }
+        let trailing = model.buttons.filter { $0.action != .back }
+        return HStack(spacing: 10) {
+            ForEach(leading, id: \.action) { button($0) }
+            Text(model.label).fontWeight(.medium).lineLimit(1).truncationMode(.tail)
+            Spacer(minLength: 8)
+            ForEach(trailing, id: \.action) { button($0) }
         }
         .font(.system(size: 12))
-        .padding(16)
-        .frame(minHeight: 78, alignment: .leading)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+    }
+
+    private func button(_ model: FindCaptureBar.Button) -> some View {
+        Button(model.title) { perform(model.action) }
+            .disabled(!model.isEnabled)
+    }
+
+    private func perform(_ action: FindCaptureBar.Action) {
+        switch action {
+        case .copySelected: actions.copySelected()
+        case .zipSelected: actions.zipSelected()
+        case .clearSelection: actions.clearSelection()
+        case .back: roundFilter = nil
+        case .copyRoundPrompt: if let roundFilter { actions.copyRoundPrompt(roundFilter) }
+        case .zipRound: if let roundFilter { actions.zipRound(roundFilter) }
+        case .openFolder: if let roundFilter { actions.openFolder(roundFilter) }
+        case .resumeRound: if let roundFilter { actions.resumeRound(roundFilter) }
+        }
+    }
+
+    private func click(_ item: ScreenshotHistoryItem) {
+        lastClicked = item.id
+        focus = .grid
+        if let key = item.id.basketKey { actions.toggle(key) }
+    }
+
+    /// The name the round's chips show, else its folder name.
+    private func roundLabel(_ folder: String) -> String {
+        presentation.items.first { $0.id.basketKey?.folderName == folder }?.roundName ?? folder
     }
 
     private func appName(_ item: ScreenshotHistoryItem) -> String {
         nonempty(item.appName) ?? "Unknown App"
     }
 
-    private func title(_ item: ScreenshotHistoryItem) -> String {
-        nonempty(item.windowTitle) ?? "n/a"
+    /// The summary name or first instruction, else the window title.
+    private func captureName(_ item: ScreenshotHistoryItem) -> String {
+        nonempty(item.captureName) ?? nonempty(item.windowTitle) ?? "n/a"
     }
 
     private func nonempty(_ value: String?) -> String? {
         guard let value, !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
         return value
-    }
-
-    private func timestamp(_ date: Date) -> String {
-        date.formatted(.dateTime.year().month(.abbreviated).day().hour().minute().timeZone(.genericName(.short)))
-    }
-
-    private func sourceName(_ item: ScreenshotHistoryItem) -> String {
-        switch item.id {
-        case .local: return item.metadata.parent == nil ? "Screenshot" : "Edited version"
-        case .round: return "Feedback round"
-        }
     }
 }
 

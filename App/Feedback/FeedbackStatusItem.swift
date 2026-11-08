@@ -23,6 +23,8 @@ struct FeedbackMenuState {
     var older: [FeedbackRound] = []
     /// Shows "Get the latest version…" under the version line (#203).
     var updateReminderRow = false
+    /// Shows "Find Capture..." after "All Rounds..." (`findCapture` flag, #125).
+    var findCaptureEnabled = false
 
     /// What the menu shows when no provider is set.
     static let empty = FeedbackMenuState(
@@ -69,6 +71,7 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     var onOpenRecentFolder: ((FeedbackRound) -> Void)?
     var onResumeRound: ((FeedbackRound) -> Void)?
     var onGetLatestVersion: (() -> Void)?
+    var onFindCapture: (() -> Void)?
 
     /// One round line in the open menu.
     private struct RoundRow {
@@ -285,6 +288,11 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         let allRounds = menuItem("All Rounds...", action: #selector(openAllRounds))
         allRoundsItem = allRounds
         menu.addItem(allRounds)
+        // After All Rounds, so the basket lines, which go in above All
+        // Rounds, never move it (#125).
+        if state.findCaptureEnabled {
+            menu.addItem(menuItem("Find Capture...", action: #selector(findCapture)))
+        }
         menu.addItem(menuItem("Change Start Round Shortcut...", action: #selector(showShortcut)))
         // The capture menu's icon is hidden by default (`ForkDefaults`), so
         // this menu carries Settings and Quit.
@@ -604,6 +612,7 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     @objc private func screenshotAnnotate() { onScreenshotAnnotate?() }
     @objc private func startRound() { onStartRound?() }
     @objc private func openAllRounds() { onOpenAllRounds?() }
+    @objc private func findCapture() { onFindCapture?() }
     @objc private func copySelected() { onCopySelected?() }
     @objc private func submitRecentRound(_ sender: NSMenuItem) {
         if let round = sender.representedObject as? FeedbackRound { onSubmitRecentRound?(round) }

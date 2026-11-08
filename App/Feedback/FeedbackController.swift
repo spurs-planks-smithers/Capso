@@ -69,8 +69,13 @@ final class FeedbackController {
     /// True while Copy Prompt and End Round from the menu or its key runs, so
     /// a second press copies nothing more.
     private var copyingRoundPrompt = false
-    /// The captures checked in the Recent menu.
-    private var basket = FeedbackBasket()
+    /// The captures checked in the Recent menu and in Find Capture. The
+    /// controller is the only owner. Find Capture gets a copy of each change.
+    private var basket = FeedbackBasket() {
+        didSet { findCapture?.basketDidChange(basket) }
+    }
+    /// The Find Capture window (#125). Made in `start`.
+    private var findCapture: FindCaptureCoordinator?
     /// Zip Round and Zip N Selected (#85). Made in `start`.
     private var zip: FeedbackZip?
     private var supportSubmission: FeedbackSupportSubmission?
@@ -138,13 +143,7 @@ final class FeedbackController {
             do {
                 screenshot = try ScreenshotWorkflow(settings: settings, rootURL: store.rootURL,
                     rounds: { [weak self] in
-                        guard let self else { return [] }
-                        var rounds = self.historyListing().rounds
-                        if let active = await self.store.activeRound {
-                            rounds.removeAll { $0.folderName == active.folderName }
-                            rounds.append(active)
-                        }
-                        return rounds
+                        await self?.roundsForIndex() ?? []
                     }, promote: { [weak self] input in
                         guard let self else { throw CocoaError(.userCancelled) }
                         try await self.promoteScreenshot(input)
@@ -233,6 +232,7 @@ final class FeedbackController {
             showToast: { [weak self] message in self?.showToast(message, screen: nil) }
         )
         connectHistoryMenu()
+        connectFindCapture()
         let info = Bundle.main.infoDictionary
         let reminder = FeedbackUpdateReminder(
             version: info?["CFBundleShortVersionString"] as? String ?? "",
@@ -593,6 +593,7 @@ final class FeedbackController {
         statusItem.update(round: round)
         updateRoundShortcuts()
         updateHelp()
+        findCapture?.roundDidChange(active: round != nil)
     }
 
     // MARK: - Round keys
@@ -699,7 +700,8 @@ final class FeedbackController {
                 supportSubmissionEnabled: Flags.isOn(.supportSubmission),
                 summaryNames: self.summary.current,
                 older: Array(listing.rounds.dropFirst(5)),
-                updateReminderRow: self.updateReminder?.menuRowVisible() ?? false
+                updateReminderRow: self.updateReminder?.menuRowVisible() ?? false,
+                findCaptureEnabled: Flags.isOn(.findCapture)
             )
         }
         statusItem.onGetLatestVersion = { [weak self] in
@@ -713,14 +715,9 @@ final class FeedbackController {
             FeedbackLog.logger.notice("menu: Zip Round")
             self?.zip?.zipRound(folderName: round.folderName)
         }
-        // The basket clears as Copy N Selected clears it, but only when the
-        // zip starts: a click during a running zip keeps the checks.
         statusItem.onZipSelected = { [weak self] in
-            guard let self else { return }
             FeedbackLog.logger.notice("menu: Zip Selected")
-            if self.zip?.zipSelected(self.basket) == true {
-                self.basket.removeAll()
-            }
+            self?.zipSelected()
         }
         statusItem.onStartRound = { [weak self] in
             self?.capture()
@@ -729,13 +726,10 @@ final class FeedbackController {
             self?.openAllRounds()
         }
         statusItem.onToggleCapture = { [weak self] key in
-            guard let self else { return }
-            self.basket.toggle(key)
-            self.statusItem.basketDidChange(self.basket)
-            self.primeSelectionSummary()
+            self?.toggleCapture(key)
         }
         statusItem.onClearSelection = { [weak self] in
-            self?.basket.removeAll()
+            self?.clearSelection()
         }
         statusItem.onCopySelected = { [weak self] in
             self?.copySelected()
@@ -747,12 +741,106 @@ final class FeedbackController {
             self?.copyRecentRoundPrompt(round)
         }
         statusItem.onOpenRecentFolder = { [weak self] round in
-            guard let self else { return }
-            NSWorkspace.shared.open(self.store.rootURL.appendingPathComponent(round.folderName, isDirectory: true))
+            self?.openRoundFolder(named: round.folderName)
         }
         statusItem.onResumeRound = { [weak self] round in
             Task { await self?.resumeRound(round) }
         }
+    }
+
+    /// Find Capture (#125): a search over every saved capture. It works with
+    /// or without the `screenshotCopy` capability: without it, the window
+    /// lists round captures only. The menu row shows with `findCapture` on.
+    private func connectFindCapture() {
+        findCapture = FindCaptureCoordinator(
+            rootURL: store.rootURL,
+            sources: FindCaptureCoordinator.Sources(
+                rounds: { [weak self] in await self?.roundsForIndex() ?? [] },
+                localItems: { [weak self] in
+                    guard let self, let workflow = self.screenshot else { return [] }
+                    do {
+                        return try await workflow.localItems()
+                    } catch {
+                        self.report(error, context: "Find Capture did not read saved screenshots", audible: false)
+                        return []
+                    }
+                },
+                summaryNames: { [weak self] in self?.summary.current ?? .none }
+            ),
+            actions: FindCaptureActions(
+                toggle: { [weak self] key in self?.toggleCapture(key) },
+                quickLook: { [weak self] url in self?.quickLook.show(url) },
+                copySelected: { [weak self] in self?.copySelected() },
+                zipSelected: { [weak self] in
+                    FeedbackLog.logger.notice("find capture: Zip Selected")
+                    self?.zipSelected()
+                },
+                clearSelection: { [weak self] in self?.clearSelection() },
+                copyRoundPrompt: { [weak self] folderName in
+                    guard let self, let round = self.listedRound(named: folderName) else { NSSound.beep(); return }
+                    self.copyRecentRoundPrompt(round)
+                },
+                zipRound: { [weak self] folderName in
+                    FeedbackLog.logger.notice("find capture: Zip Round")
+                    self?.zip?.zipRound(folderName: folderName)
+                },
+                openFolder: { [weak self] folderName in self?.openRoundFolder(named: folderName) },
+                resumeRound: { [weak self] folderName in
+                    // Only one round can be active, so Resume waits until it ends.
+                    guard let self, self.round == nil, let round = self.listedRound(named: folderName) else {
+                        NSSound.beep()
+                        return
+                    }
+                    Task { await self.resumeRound(round) }
+                }
+            )
+        )
+        statusItem.onFindCapture = { [weak self] in
+            guard let self else { return }
+            FeedbackLog.logger.notice("menu: Find Capture")
+            self.findCapture?.show(basket: self.basket, roundActive: self.round != nil)
+        }
+    }
+
+    /// The rounds for the capture index: every compatible ended round and the
+    /// active round, read fresh from the store.
+    private func roundsForIndex() async -> [FeedbackRound] {
+        var rounds = historyListing().rounds
+        if let active = await store.activeRound {
+            rounds.removeAll { $0.folderName == active.folderName }
+            rounds.append(active)
+        }
+        return rounds
+    }
+
+    /// A round by folder name: the active round when it matches, else the
+    /// round on disk.
+    private func listedRound(named folderName: String) -> FeedbackRound? {
+        if let round, round.folderName == folderName { return round }
+        return FeedbackLibrary.round(named: folderName, in: store.rootURL)
+    }
+
+    /// Checks or unchecks one capture, from the menu or from Find Capture.
+    private func toggleCapture(_ key: FeedbackBasketKey) {
+        basket.toggle(key)
+        statusItem.basketDidChange(basket)
+        primeSelectionSummary()
+    }
+
+    private func clearSelection() {
+        basket.removeAll()
+    }
+
+    /// The checks clear as Copy N Selected clears them, but only when the zip
+    /// starts: a click during a running zip keeps the checks.
+    private func zipSelected() {
+        if zip?.zipSelected(basket) == true {
+            basket.removeAll()
+        }
+    }
+
+    private func openRoundFolder(named folderName: String) {
+        NSWorkspace.shared.open(store.rootURL.appendingPathComponent(folderName, isDirectory: true))
     }
 
     /// All ended rounds. The cache decodes only the folders whose

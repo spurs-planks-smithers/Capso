@@ -137,6 +137,10 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
     /// related items, keep an item ledger, and ask once. Files on disk never
     /// change. Code only.
     case linkedPlan
+    /// The Find Capture window (#125): a search over every saved capture,
+    /// opened from the Nshot menu. Its checks are the menu's checks. Not a
+    /// Jev feature: it reads local files only. Code only.
+    case findCapture
 
     /// New flags start with both defaults `off`. A release default turns on
     /// only with a released-in build number.
@@ -210,6 +214,11 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
             // merges before then make it stale. Check it when the release is
             // cut. Nothing reads the number at run time.
             FlagSpec(issue: 261, allowedStates: [.off, .on], devDefault: .on, releaseDefault: .on, releasedInBuild: 924)
+        case .findCapture:
+            // On in both channels (Drew, 2026-11-08, for 0.8.0). The marker
+            // is a placeholder above the 0.7.0 release build (919). The 0.8.0
+            // release commit sets the real number. Nothing reads it at run time.
+            FlagSpec(issue: 125, allowedStates: [.off, .on], devDefault: .on, releaseDefault: .on, releasedInBuild: 927)
         case .standaloneCapture, .recordingTools, .translationTools, .cloudShare, .automationURLs, .automaticUpdates:
             FlagSpec(issue: 119, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
         }
