@@ -71,10 +71,11 @@ def build(output):
     y = section("Capture", 655, [
         ("Start or add a capture", "Option + Shift + F"),
         ("Capture the same area again", "Option + Shift + G"),
+        ("Search captures", "Option + Shift + S"),
     ])
     text("Press F, then drag to select an area. G repeats the last area with no drag.", LEFT + 10, y + 1, 496, size=9.5, color=MUTED)
 
-    y = section("Mark the capture", 560, [
+    y = section("Mark the capture", 545, [
         ("Add the next numbered dot (dot tool)", "Click"),
         ("Select the dot tool", "C or N"),
         ("Select the arrow tool", "A"),

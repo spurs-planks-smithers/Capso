@@ -1,4 +1,5 @@
 import AppKit
+import FeedbackKit
 import QuickLookUI
 import SwiftUI
 
@@ -130,6 +131,25 @@ private final class ScreenshotHistoryPanel: NSPanel {
             return nil
         }
         return contentView.flatMap { find(in: $0) }
+    }
+
+    /// The editing keys reach the search field's editor here (#125). Nextshot
+    /// has no Edit menu, so nothing else maps Command+A, C, X, V, Z, and
+    /// Shift+Command+Z to the editor. Any other key, and every key while the
+    /// grid has focus, goes on as before.
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        if let editor = firstResponder as? NSTextView, let key = TextEditingKey.action(for: event) {
+            key.perform(in: editor)
+            return true
+        }
+        return super.performKeyEquivalent(with: event)
+    }
+
+    /// The search field's editor records its changes, so Command+Z works.
+    override func makeFirstResponder(_ responder: NSResponder?) -> Bool {
+        let made = super.makeFirstResponder(responder)
+        (firstResponder as? NSTextView)?.allowsUndo = true
+        return made
     }
 
     /// Quick Look takes Esc first while its panel shows.

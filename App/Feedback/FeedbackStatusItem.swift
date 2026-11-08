@@ -563,9 +563,26 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         }
     }
 
+    /// The top menu opens: the search field takes focus and keeps it while
+    /// the menu's window settles (#125, `FeedbackMenuSearchView.focusWhileOpening`).
+    func menuWillOpen(_ menu: NSMenu) {
+        guard menu === topMenu, searchItem.menu === menu else { return }
+        searchView.focusWhileOpening()
+    }
+
     /// A menu closed. No exit event reaches a row then, so hide the preview here.
     func menuDidClose(_ menu: NSMenu) {
         hoverPreview.endAll()
+    }
+
+    /// Option+Shift+S (#125): opens the menu as a click on the Nshot item
+    /// does. The search field has focus when it opens, so typing works at
+    /// once. The click runs on the next turn of the run loop, because the
+    /// open menu runs its own loop until it closes.
+    func openSearch() {
+        RunLoop.main.perform(inModes: [.default]) { [weak self] in
+            MainActor.assumeIsolated { self?.item?.button?.performClick(nil) }
+        }
     }
 
     /// Return in the search field: close the menu, then open Find Capture

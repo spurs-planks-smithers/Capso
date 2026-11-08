@@ -196,6 +196,15 @@ final class FeedbackController {
             FeedbackLog.logger.notice("hotkey: Capture Same Area Again")
             self?.repeatCapture()
         }
+        KeyboardShortcuts.onKeyDown(for: .feedbackSearch) { [weak self] in
+            guard Flags.isOn(.findCapture), FeedbackShortcutGuard.isAvailable(.feedbackSearch) else { return }
+            FeedbackLog.logger.notice("hotkey: Search Captures")
+            self?.openMenuSearch()
+        }
+        // Off, the key stays free, so Option+Shift+S types in other apps.
+        if !Flags.isOn(.findCapture) {
+            KeyboardShortcuts.disable([.feedbackSearch])
+        }
         connectRoundKeys()
         // Before any recorder can exist, so the guard holds each key's old value.
         FeedbackShortcutGuard.rememberCurrentKeys()
@@ -463,6 +472,18 @@ final class FeedbackController {
         }
     }
 
+    /// Option+Shift+S (#125): opens the Nshot menu with the cursor in its
+    /// search field. It beeps while a capture is being selected, is in an
+    /// editor, or has its note panel open, as Option+Shift+G does.
+    func openMenuSearch() {
+        guard !hasOpenCapture else {
+            FeedbackLog.logger.notice("menu search refused: a capture is open")
+            NSSound.beep()
+            return
+        }
+        statusItem.openSearch()
+    }
+
     /// A selection can end with no `.capsoCaptureDidEnd`, for example when
     /// the overlay fails after its delay (#28). Then `selectionPhase` would
     /// keep the help box hidden, or stuck on the select keys, until some
@@ -677,7 +698,7 @@ final class FeedbackController {
             KeyboardShortcuts.enable(KeyboardShortcuts.Name.feedbackRoundKeys)
         } else {
             let alwaysOn = Set(
-                (KeyboardShortcuts.Name.allCapso + [.feedbackCapture, .feedbackRepeatCapture]).compactMap { KeyboardShortcuts.getShortcut(for: $0) }
+                (KeyboardShortcuts.Name.allCapso + KeyboardShortcuts.Name.alwaysOnKeys).compactMap { KeyboardShortcuts.getShortcut(for: $0) }
             )
             KeyboardShortcuts.disable(KeyboardShortcuts.Name.feedbackRoundKeys.filter { name in
                 KeyboardShortcuts.getShortcut(for: name).map { !alwaysOn.contains($0) } ?? false

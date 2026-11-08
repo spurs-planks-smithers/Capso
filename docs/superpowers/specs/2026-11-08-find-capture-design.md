@@ -20,6 +20,7 @@ All from Drew on 2026-11-08.
 - A click on a card's round chip narrows the window to that round's captures. The typed search still applies inside the round. The bar then shows Back (it clears only the round filter), Copy Round Prompt, Zip Round (with `zipHandoff` on), Open Folder, and Resume Round (only when no round is active).
 - No hover preview in the window.
 - 2026-11-08 (Drew, after the Dev check): a search field at the top of the Nshot menu; Return opens the window with the query; the row stays.
+- 2026-11-08 (Drew, second Dev check): Option+Shift+S opens the menu with the cursor in the search field; standard editing keys work in both fields.
 
 ## Menu search field
 
@@ -29,7 +30,10 @@ The field sits right below the gray build line and its separator, in both menu s
 - Evidence (2026-11-08, macOS 27): key events posted into an open menu typed into the field ("ab", Delete, "c" gave "ac"), with no highlight change. A Down arrow highlighted the first item. A Carbon raw-key handler on the event dispatcher target and a local key monitor saw no event in the open menu, so neither is used. With the field set to refuse first responder, "b" highlighted the item "Bravo" (type-select).
 - Return reaches the field delegate as `insertNewline:`. It closes the menu and opens the window with the text. With an item highlighted, the menu takes Return and chooses the item, as in any menu. Esc reaches the delegate as `cancelOperation:` and closes the menu.
 - The window gets the text through the field editor, as typing would, so the SwiftUI binding and the results follow, and the caret ends at the end. The app and round filters reset. Empty text clears the search. The "Find Capture..." row keeps the window's search and filters and selects the search text.
-- Not checked by a person: real key presses in the status menu, an input method in the menu field, and macOS 15.
+- Second check (2026-11-08, after Drew saw a delay before typing): the menu's window resets its first responder while it opens. In one of three opens that came after the field took focus, so typed keys went to the menu and only a click gave the field focus. Nextshot is also not the active app when its menu opens, so the menu's window is not key and AppKit adds no caret: the field looked unfocused even when it had focus. Fixes: the field takes focus back every 20 ms for up to half a second while the menu opens (8 of 8 opens held focus by 0.15 s, and keys typed at 0.2 s landed), and its own editor (`FeedbackMenuFieldEditor`) shows an `NSTextInsertionIndicator` while the window is not key. A key posted 30 ms after a click on the field landed.
+- Option+Shift+S (`feedbackSearch`) clicks the Nshot item on the next turn of the run loop (`FeedbackStatusItem.openSearch`). It is always on while `findCapture` is on, beeps while a capture is open (`hasOpenCapture`, as Option+Shift+G), and is the seventh Nextshot key in Settings > Shortcuts. The guard lists it with the always-on keys. The help box does not list it.
+- Editing keys: Nextshot has no Edit menu, so Command+A, C, X, V, Z, and Shift+Command+Z reached no field editor. `TextEditingKey` (FeedbackKit) maps the key press. The Find Capture panel sends the action in `performKeyEquivalent`. The menu field does it in its own `performKeyEquivalent` and, for a key that reaches its editor as a plain key press, in its delegate. Both editors record undo. In the open menu, Command+A selected all, typing replaced the selection, and Command+Z and Shift+Command+Z undid and redid. Command+W in the panel went on as before.
+- Not checked by a person: real key presses in the status menu, the caret on screen, an input method in the menu field, and macOS 15.
 
 ## Design
 
