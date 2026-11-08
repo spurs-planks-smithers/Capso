@@ -36,8 +36,11 @@ A pure value: the leading label and the buttons, each with its action, title, an
 - The index runs off the main actor. It calls `ScreenshotHistoryIndex.items` with `includeProvenance: false`, so it skips each capture's `-screenshot.json` file. It reads stored summary names from `FeedbackSessionSummary.current` and never calls `names(priming:)`, so opening the window starts no model request.
 - The round name is the Recent Rounds row title: `SessionName.displayName` with `sessionTitle` on, else the date title. The capture name is `SessionName.summaryName` (with `sessionTitle` on), else `RoundTitle.title(for:)`.
 - With `screenshotCopy` off there is no `ScreenshotWorkflow`, so the coordinator passes no local items and never makes `ScreenshotHistoryStore`, whose init makes a folder and prunes.
-- The window reloads when it shows, when it becomes key, and when the active round changes while it shows. A newer reload wins over an older one.
+- The window loads once per open, before it becomes key. It reloads when it becomes key more than one second after the last load (for example after Quick Look closes), and when the active round changes while it shows. A newer reload wins over an older one. A reload that removes the last capture of the chosen app or round drops that filter.
 - The panel is not a nonactivating panel, and the app activates when it shows, so the search field gets real focus. The panel catches Esc in `sendEvent` and sends `cancelOperation`, so Esc works while the search field has focus. A field that composes text with an input method keeps its Esc.
+- A key that types text while the grid has focus goes to the search field. The panel moves focus to the field, puts the caret at the end, and passes the key event on. Space stays with the grid. Space opens Quick Look only for a card that the filters and the search still show.
+- One Resume Round runs at a time. The controller sets a flag before the resume task starts.
+- A query word loses punctuation at its start and end. Combining marks and invisible characters fold to nothing. A query with no word left returns every capture, as an empty query does.
 
 ### One selection
 

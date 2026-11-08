@@ -76,6 +76,8 @@ final class FeedbackController {
     }
     /// The Find Capture window (#125). Made in `start`.
     private var findCapture: FindCaptureCoordinator?
+    /// True while Resume Round runs, from the menu or from Find Capture.
+    private var resumingRound = false
     /// Zip Round and Zip N Selected (#85). Made in `start`.
     private var zip: FeedbackZip?
     private var supportSubmission: FeedbackSupportSubmission?
@@ -744,7 +746,7 @@ final class FeedbackController {
             self?.openRoundFolder(named: round.folderName)
         }
         statusItem.onResumeRound = { [weak self] round in
-            Task { await self?.resumeRound(round) }
+            self?.startResume(round)
         }
     }
 
@@ -791,7 +793,7 @@ final class FeedbackController {
                         NSSound.beep()
                         return
                     }
-                    Task { await self.resumeRound(round) }
+                    self.startResume(round)
                 }
             )
         )
@@ -947,6 +949,19 @@ final class FeedbackController {
             return
         }
         quickLook.show(url)
+    }
+
+    /// Starts Resume Round unless one already runs. The flag is set before the
+    /// task starts, so a second click while the first resume waits for the
+    /// store starts no second resume (#125). `round` stays nil until the
+    /// resume and the refresh end, so it cannot guard this alone.
+    private func startResume(_ listed: FeedbackRound) {
+        guard !resumingRound else { return }
+        resumingRound = true
+        Task { @MainActor in
+            await self.resumeRound(listed)
+            self.resumingRound = false
+        }
     }
 
     /// Reopens an ended round, so the next capture goes into it.

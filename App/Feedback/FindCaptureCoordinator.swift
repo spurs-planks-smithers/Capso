@@ -42,18 +42,30 @@ final class FindCaptureCoordinator {
     /// Each reload takes the next number. A result applies only while its
     /// number is the latest, so an older, slower read never wins.
     private var generation = 0
+    /// When the last load started.
+    private var lastLoad: ContinuousClock.Instant?
+    /// A become-key reload this soon after a load is skipped. Opening the
+    /// window loads, then makes it key. Closing Quick Look makes it key again.
+    private static let keyReloadGap: Duration = .seconds(1)
 
     init(rootURL: URL, sources: Sources, actions: FindCaptureActions) {
         self.rootURL = rootURL
         self.sources = sources
         window = ScreenshotHistoryWindow(actions: actions)
-        window.onBecomeKey = { [weak self] in self?.reload() }
+        window.onBecomeKey = { [weak self] in self?.windowBecameKey() }
     }
 
+    /// One load per open: it starts before the window becomes key, so the
+    /// become-key reload that follows is skipped.
     func show(basket: FeedbackBasket, roundActive: Bool) {
         window.presentation.basket = basket
         window.presentation.roundActive = roundActive
+        reload()
         window.show()
+    }
+
+    private func windowBecameKey() {
+        if let lastLoad, ContinuousClock.now - lastLoad < Self.keyReloadGap { return }
         reload()
     }
 
@@ -70,6 +82,7 @@ final class FindCaptureCoordinator {
 
     private func reload() {
         generation &+= 1
+        lastLoad = .now
         let current = generation
         let rootURL = rootURL
         let sources = sources

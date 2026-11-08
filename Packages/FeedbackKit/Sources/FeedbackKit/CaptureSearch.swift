@@ -58,9 +58,18 @@ public enum CaptureSearch {
         }
     }
 
-    /// The folded words of a query. Empty for an empty or blank query.
+    /// The folded words of a query. White space splits the words. Punctuation
+    /// at the start or end of a word goes, so "logo," finds "logo". A word with
+    /// nothing left is dropped. So a blank query, a query of punctuation only,
+    /// and a query of characters that fold to nothing all have no words, and
+    /// they return every capture, as an empty query does. Punctuation inside a
+    /// word stays and must match as typed ("main.swift").
     public static func words(in query: String) -> [String] {
-        query.split(whereSeparator: \.isWhitespace).map { fold(String($0)) }.filter { !$0.isEmpty }
+        query.split(whereSeparator: \.isWhitespace)
+            // White space can stay when a combining mark joins it to its
+            // character, so it is trimmed after the fold as well.
+            .map { fold(String($0)).trimmingCharacters(in: Self.edgeCharacters) }
+            .filter { !$0.isEmpty }
     }
 
     /// True when every word appears in at least one field. An empty word
@@ -81,9 +90,23 @@ public enum CaptureSearch {
             .map(\.value)
     }
 
+    private static let edgeCharacters = CharacterSet.punctuationCharacters.union(.whitespacesAndNewlines)
+
     /// Lowercase with no diacritics, so "Café" and "CAFE" compare equal.
+    /// Invisible characters (zero-width and other default-ignorable
+    /// characters) go too. So does a combining mark that the diacritic fold
+    /// leaves, such as one with no letter before it. The query and the fields
+    /// fold the same way, so a match never depends on these characters.
     static func fold(_ text: String) -> String {
-        text.folding(options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive], locale: nil)
+        let folded = text.folding(options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive], locale: nil)
+        var scalars = String.UnicodeScalarView()
+        scalars.append(contentsOf: folded.unicodeScalars.filter { scalar in
+            switch scalar.properties.generalCategory {
+            case .nonspacingMark, .enclosingMark: false
+            default: !scalar.properties.isDefaultIgnorableCodePoint
+            }
+        })
+        return String(scalars)
     }
 }
 

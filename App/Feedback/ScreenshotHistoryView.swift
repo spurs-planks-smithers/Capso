@@ -14,6 +14,8 @@ final class ScreenshotHistoryPresentation {
     private(set) var entries: [CaptureSearch.Entry<ScreenshotHistoryItem>] = []
     /// False until the first load ends.
     private(set) var loaded = false
+    /// Rises with each load, so the view can drop a filter that no item matches.
+    private(set) var revision = 0
     /// The Nshot menu's checks.
     var basket = FeedbackBasket()
     var zipEnabled = false
@@ -36,6 +38,7 @@ final class ScreenshotHistoryPresentation {
             )
         }
         loaded = true
+        revision &+= 1
     }
 }
 
@@ -92,6 +95,19 @@ struct ScreenshotHistoryView: View {
         .defaultFocus($focus, .search)
         // Runs at the first show and at each later show.
         .task(id: presentation.focusRequest) { focus = .search }
+        .onChange(of: presentation.revision) { _, _ in dropStaleFilters() }
+    }
+
+    /// A reload can remove the last capture of the chosen app or round. The
+    /// filter then goes, so the list never turns empty with no visible cause.
+    /// A round filter that goes returns the bar to selection mode.
+    private func dropStaleFilters() {
+        if let appFilter, !presentation.items.contains(where: { appName($0) == appFilter }) {
+            self.appFilter = nil
+        }
+        if let roundFilter, !presentation.items.contains(where: { $0.id.basketKey?.folderName == roundFilter }) {
+            self.roundFilter = nil
+        }
     }
 
     private func header(count: Int) -> some View {
@@ -156,9 +172,12 @@ struct ScreenshotHistoryView: View {
         .focusable()
         .focused($focus, equals: .grid)
         .focusEffectDisabled()
+        // Only a card that the filters and the search still show opens.
         .onKeyPress(.space) {
-            if let item = presentation.items.first(where: { $0.id == lastClicked }) {
+            if let item = results.first(where: { $0.id == lastClicked }) {
                 actions.quickLook(item.annotatedURL)
+            } else {
+                NSSound.beep()
             }
             return .handled
         }

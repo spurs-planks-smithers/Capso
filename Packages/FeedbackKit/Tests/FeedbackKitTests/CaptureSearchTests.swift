@@ -73,6 +73,35 @@ struct CaptureSearchTests {
         #expect(CaptureSearch.words(in: "   ").isEmpty)
     }
 
+    /// The rule: punctuation at the start or end of a word goes, and a word
+    /// with nothing left is dropped. A punctuation-only query has no words, so
+    /// it returns every capture, as an empty query does.
+    @Test("A punctuation-only query returns every capture, as an empty query does")
+    func punctuationOnly() {
+        for query in ["...", "?!", " - , ; ", "\"'", "(…)"] {
+            #expect(CaptureSearch.words(in: query).isEmpty, "query '\(query)'")
+            #expect(CaptureSearch.results(Self.sample, query: query) == ["cursor", "cafe", "pricing"], "query '\(query)'")
+        }
+        // Edge punctuation goes from a real word too.
+        #expect(CaptureSearch.results(Self.sample, query: "logo,") == ["cafe"])
+        #expect(CaptureSearch.results(Self.sample, query: "\"cramped.\"") == ["pricing"])
+        // Punctuation inside a word stays and must match as typed.
+        #expect(CaptureSearch.results(Self.sample, query: "main.swift") == ["cursor"])
+        #expect(CaptureSearch.results(Self.sample, query: "main-swift").isEmpty)
+    }
+
+    /// The rule: combining marks and invisible characters fold to nothing. A
+    /// query made only of them has no words, so it returns every capture.
+    @Test("A query of characters that fold to nothing returns every capture, as an empty query does")
+    func foldsToNothing() {
+        for query in ["\u{0301}", "\u{0301}\u{0308}", "\u{200B}", "\u{200B}\u{FEFF} \u{0301}"] {
+            #expect(CaptureSearch.words(in: query).isEmpty, "query \(query.unicodeScalars.map { String($0.value, radix: 16) })")
+            #expect(CaptureSearch.results(Self.sample, query: query) == ["cursor", "cafe", "pricing"])
+        }
+        // Inside a word they go too, so a hidden zero-width space still finds the word.
+        #expect(CaptureSearch.results(Self.sample, query: "lo\u{200B}go") == ["cafe"])
+    }
+
     @Test("Case and diacritics fold in both directions")
     func folding() {
         #expect(CaptureSearch.results(Self.sample, query: "cafe") == ["cafe"])

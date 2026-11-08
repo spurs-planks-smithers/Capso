@@ -58,14 +58,53 @@ private final class ScreenshotHistoryPanel: NSPanel {
 
     /// Esc closes the window, also while the search field has focus. A text
     /// field that composes text with an input method keeps its Esc.
+    ///
+    /// A key that types text while the grid has focus goes to the search
+    /// field (#125): the field takes focus with its caret at the end, and then
+    /// gets the key. The key event itself goes on, so an input method and a
+    /// held key work as in the field. Space stays with the grid for Quick Look.
     override func sendEvent(_ event: NSEvent) {
-        if event.type == .keyDown, event.keyCode == 53,
-           event.modifierFlags.intersection([.command, .option, .control, .shift]).isEmpty,
-           (firstResponder as? NSTextView)?.hasMarkedText() != true {
-            cancelOperation(nil)
-            return
+        if event.type == .keyDown {
+            if event.keyCode == 53,
+               event.modifierFlags.intersection([.command, .option, .control, .shift]).isEmpty,
+               (firstResponder as? NSTextView)?.hasMarkedText() != true {
+                cancelOperation(nil)
+                return
+            }
+            if !(firstResponder is NSText), Self.typesText(event), let field = searchField(),
+               makeFirstResponder(field), let editor = field.currentEditor() {
+                // A field that takes focus selects all its text. Put the caret
+                // at the end instead, so the key adds to the search.
+                editor.selectedRange = NSRange(location: (editor.string as NSString).length, length: 0)
+            }
         }
         super.sendEvent(event)
+    }
+
+    /// True for a key that types text: no Command or Control key, and no
+    /// white space (Space), control (Esc, Return, Tab, Delete), or
+    /// private-use (arrow and function keys) character.
+    private static func typesText(_ event: NSEvent) -> Bool {
+        guard event.modifierFlags.intersection([.command, .control]).isEmpty,
+              let characters = event.characters, !characters.isEmpty else { return false }
+        return characters.unicodeScalars.allSatisfy { scalar in
+            switch scalar.properties.generalCategory {
+            case .control, .format, .privateUse, .surrogate, .unassigned: false
+            default: !scalar.properties.isWhitespace
+            }
+        }
+    }
+
+    /// The search field: the one editable text field in the window.
+    private func searchField() -> NSTextField? {
+        func find(in view: NSView) -> NSTextField? {
+            if let field = view as? NSTextField, field.isEditable { return field }
+            for subview in view.subviews {
+                if let field = find(in: subview) { return field }
+            }
+            return nil
+        }
+        return contentView.flatMap { find(in: $0) }
     }
 
     /// Quick Look takes Esc first while its panel shows.
