@@ -3,7 +3,16 @@ import FeedbackKit
 
 /// A read-only index. Round image files stay in their original folders.
 enum ScreenshotHistoryIndex {
-    static func items(local: [ScreenshotHistoryItem], rounds: [FeedbackRound], rootURL: URL) -> [ScreenshotHistoryItem] {
+    /// - Parameters:
+    ///   - summaries: The stored on-device names. Pass `.none` to keep the cut
+    ///     titles. This reads names only and never starts a model request.
+    ///   - sessionTitle: The `sessionTitle` flag. Off, a round is named by its
+    ///     date and a capture has no summary name, as in Recent Rounds.
+    ///   - includeProvenance: Reads each capture's `-screenshot.json`, which
+    ///     only image copy and annotation need. Find Capture passes false.
+    static func items(local: [ScreenshotHistoryItem], rounds: [FeedbackRound], rootURL: URL,
+                      summaries: SummaryNames = .none, sessionTitle: Bool = false, now: Date = Date(),
+                      includeProvenance: Bool = true) -> [ScreenshotHistoryItem] {
         let root = rootURL.standardizedFileURL.resolvingSymlinksInPath()
         // Round JSON stores whole seconds. Sidecars retain fractional seconds.
         let captureDates = ISO8601DateFormatter()
@@ -13,6 +22,9 @@ enum ScreenshotHistoryIndex {
             guard isComponent(round.folderName), round.folderName != "ScreenshotHistory" else { continue }
             let directory = root.appendingPathComponent(round.folderName, isDirectory: true)
             guard directory.resolvingSymlinksInPath() == directory else { continue }
+            // The name Recent Rounds shows (`FeedbackStatusItem.makeRoundRow`).
+            let dated = FeedbackLibrary.title(startedAt: round.startedAt, now: now, timeZone: .current)
+            let roundName = sessionTitle ? SessionName.displayName(for: round, summaries: summaries) ?? dated : dated
             for capture in round.captures {
                 guard capture.index > 0, isComponent(capture.imageFile), isComponent(capture.cleanImageFile) else { continue }
                 let annotated = directory.appendingPathComponent(capture.imageFile)
@@ -29,7 +41,7 @@ enum ScreenshotHistoryIndex {
                     hasReliableCleanImage: reliableMarks, hasReliableBadges: reliableMarks
                 )
                 let provenance = directory.appendingPathComponent("\(capture.fileStem)-screenshot.json")
-                if provenance.resolvingSymlinksInPath() == provenance,
+                if includeProvenance, provenance.resolvingSymlinksInPath() == provenance,
                    let data = try? Data(contentsOf: provenance),
                    let recorded = try? JSONDecoder().decode(ScreenshotMetadata.self, from: data),
                    recorded.schemaVersion == ScreenshotMetadata.currentSchemaVersion,
@@ -42,8 +54,10 @@ enum ScreenshotHistoryIndex {
                 let clean = directory.appendingPathComponent(capture.cleanImageFile)
                 let safeClean = metadata.hasReliableCleanImage && clean.resolvingSymlinksInPath() == clean
                     && FileManager.default.isReadableFile(atPath: clean.path)
+                let summaryName = sessionTitle ? SessionName.summaryName(for: [capture], summaries: summaries) : nil
                 indexed[id] = ScreenshotHistoryItem(id: id, metadata: metadata, annotatedURL: annotated,
-                    cleanURL: safeClean ? clean : nil)
+                    cleanURL: safeClean ? clean : nil, roundName: roundName,
+                    captureName: summaryName ?? RoundTitle.title(for: capture))
             }
         }
         return indexed.values.sorted(by: ScreenshotRetention.newestFirst)

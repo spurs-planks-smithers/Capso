@@ -14,6 +14,12 @@ extension KeyboardShortcuts.Name {
     /// previous area it runs the `feedbackCapture` path.
     static let feedbackRepeatCapture = Self("feedbackRepeatCapture", default: .init(.g, modifiers: [.option, .shift]))
 
+    /// Fork: open the Nshot menu with the cursor in its search field (Drew,
+    /// 2026-11-08, #125). Always on, like `feedbackCapture`, while
+    /// `findCapture` is on. Off, the key is not registered, so Option+Shift+S
+    /// types its character in other apps.
+    static let feedbackSearch = Self("feedbackSearch", default: .init(.s, modifiers: [.option, .shift]))
+
     static let screenshotCapture = Self("screenshotCapture", default: .init(.four, modifiers: [.option, .shift]))
     static let screenshotAnnotate = Self("screenshotAnnotate", default: .init(.a, modifiers: [.option, .shift]))
 
@@ -32,9 +38,16 @@ extension KeyboardShortcuts.Name {
         .feedbackCopyLastCapture, .feedbackCopyPromptAndEndRound, .feedbackOpenRoundFolder, .feedbackEndRound,
     ]
 
-    /// The fork's keys: the start key, the repeat key, and the round keys.
+    /// The keys that work with or without a round: the start key, the repeat
+    /// key, and the search key while `findCapture` is on.
+    static var alwaysOnKeys: [Self] {
+        [.feedbackCapture, .feedbackRepeatCapture] + (Flags.isOn(.findCapture) ? [.feedbackSearch] : [])
+    }
+
+    /// The fork's keys: the always-on keys and the round keys. The guard
+    /// keeps every one of them apart from every other action's key.
     @MainActor static var nextshotKeys: [Self] {
-        [.feedbackCapture, .feedbackRepeatCapture] + feedbackRoundKeys + (Capabilities.current.screenshotCopy ? [.screenshotCapture, .screenshotAnnotate] : [])
+        alwaysOnKeys + feedbackRoundKeys + (Capabilities.current.screenshotCopy ? [.screenshotCapture, .screenshotAnnotate] : [])
     }
 }
 
@@ -71,7 +84,7 @@ enum FeedbackShortcutGuard {
     /// This registers the always-on keys again.
     private static func reassertAlwaysOnKeys() {
         let upstream = KeyboardShortcuts.Name.allCapso.filter { Capabilities.allowsShortcut($0) }
-        KeyboardShortcuts.enable([.feedbackCapture, .feedbackRepeatCapture] + upstream)
+        KeyboardShortcuts.enable(KeyboardShortcuts.Name.alwaysOnKeys + upstream)
     }
 
     /// Call from a recorder's `onChange`. A key that another action uses is

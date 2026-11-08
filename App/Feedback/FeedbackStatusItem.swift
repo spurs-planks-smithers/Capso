@@ -23,6 +23,9 @@ struct FeedbackMenuState {
     var older: [FeedbackRound] = []
     /// Shows "Get the latest version…" under the version line (#203).
     var updateReminderRow = false
+    /// Shows the search field at the top and "Find Capture..." after "All
+    /// Rounds..." (`findCapture` flag, #125).
+    var findCaptureEnabled = false
 
     /// What the menu shows when no provider is set.
     static let empty = FeedbackMenuState(
@@ -69,6 +72,22 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     var onOpenRecentFolder: ((FeedbackRound) -> Void)?
     var onResumeRound: ((FeedbackRound) -> Void)?
     var onGetLatestVersion: (() -> Void)?
+    var onFindCapture: (() -> Void)?
+    /// Return in the menu's search field: open Find Capture with this text.
+    var onMenuSearch: ((String) -> Void)?
+
+    /// The search field at the top of the menu (#125). Made once and added
+    /// again on each rebuild, like the shortcut rows.
+    private lazy var searchView: FeedbackMenuSearchView = {
+        let view = FeedbackMenuSearchView()
+        view.onSubmit = { [weak self] query in self?.submitSearch(query) }
+        return view
+    }()
+    private lazy var searchItem: NSMenuItem = {
+        let item = NSMenuItem(title: "Search captures", action: nil, keyEquivalent: "")
+        item.view = searchView
+        return item
+    }()
 
     /// One round line in the open menu.
     private struct RoundRow {
@@ -212,6 +231,19 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
 
     // MARK: - Top menu
 
+    /// Keys in the open menu (#125, Drew, 2026-11-08). Before a key reaches
+    /// the search field, AppKit looks for a menu item with that key
+    /// equivalent, and to look it fills every lazy submenu. Filling the Show
+    /// More groups and the round submenus reads the rounds folder, and that
+    /// held the first typed key about 300 ms (measured with posted keys and a
+    /// stack sample of the main thread). No Nshot menu row has a key
+    /// equivalent, so the answer is always no, and no menu is filled.
+    func menuHasKeyEquivalent(_ menu: NSMenu, for event: NSEvent,
+                              target: AutoreleasingUnsafeMutablePointer<AnyObject?>,
+                              action: UnsafeMutablePointer<Selector?>) -> Bool {
+        false
+    }
+
     func menuNeedsUpdate(_ menu: NSMenu) {
         if menu === topMenu {
             rebuildMenu(menu)
@@ -243,6 +275,14 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
             menu.addItem(menuItem(UpdateReminder.rowTitle, action: #selector(getLatestVersion)))
         }
         menu.addItem(.separator())
+
+        // The search field sits right below the build line, which stays the
+        // top row (#7). It starts empty on each open (#125).
+        if state.findCaptureEnabled {
+            searchView.reset()
+            addReused(searchItem, to: menu)
+            menu.addItem(.separator())
+        }
 
         if Capabilities.current.screenshotCopy {
             addReused(screenshotCaptureItem, to: menu)
@@ -285,6 +325,11 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         let allRounds = menuItem("All Rounds...", action: #selector(openAllRounds))
         allRoundsItem = allRounds
         menu.addItem(allRounds)
+        // After All Rounds, so the basket lines, which go in above All
+        // Rounds, never move it (#125).
+        if state.findCaptureEnabled {
+            menu.addItem(menuItem("Find Capture...", action: #selector(findCapture)))
+        }
         menu.addItem(menuItem("Change Start Round Shortcut...", action: #selector(showShortcut)))
         // The capture menu's icon is hidden by default (`ForkDefaults`), so
         // this menu carries Settings and Quit.
@@ -531,9 +576,66 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         }
     }
 
+    /// The top menu opens: the search field takes focus and keeps it while
+    /// the menu's window settles (#125, `FeedbackMenuSearchView.focusWhileOpening`).
+    func menuWillOpen(_ menu: NSMenu) {
+        guard menu === topMenu, searchItem.menu === menu else { return }
+        searchView.focusWhileOpening()
+    }
+
     /// A menu closed. No exit event reaches a row then, so hide the preview here.
     func menuDidClose(_ menu: NSMenu) {
         hoverPreview.endAll()
+        if menu === topMenu, let previous = appBeforeSearch {
+            appBeforeSearch = nil
+            guard !searchSubmitted else { return }
+            // A chosen row can open a Nextshot window or Quick Look. Give
+            // those a moment to show, and give focus back only when none did,
+            // so Esc returns the user to the app they typed in.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                let ownWindowShows = NSApp.windows.contains { $0.isVisible && $0.canBecomeKey }
+                FeedbackLog.logger.notice("menu search closed: own window \(ownWindowShows, privacy: .public), key window \(NSApp.keyWindow != nil, privacy: .public)")
+                if NSApp.keyWindow == nil, !ownWindowShows { previous.activate() }
+            }
+        }
+    }
+
+    /// Option+Shift+S (#125): opens the menu as a click on the Nshot item
+    /// does. The search field has focus when it opens, so typing works at
+    /// once. The click runs on the next turn of the run loop, because the
+    /// open menu runs its own loop until it closes.
+    func openSearch() {
+        // A caret blinks only in the key window of the active app (Drew,
+        // 2026-11-08: "Cursor is not blinking"). So the key activates
+        // Nextshot before the menu opens, and `menuDidClose` gives focus back
+        // to the earlier app when the menu closes with no search and no
+        // Nextshot window. A menu opened by a click leaves the app inactive,
+        // and the field shows its own steady caret (FeedbackMenuFieldEditor).
+        let front = NSWorkspace.shared.frontmostApplication
+        appBeforeSearch = front?.processIdentifier == ProcessInfo.processInfo.processIdentifier ? nil : front
+        searchSubmitted = false
+        NSApp.activate()
+        RunLoop.main.perform(inModes: [.default]) { [weak self] in
+            MainActor.assumeIsolated { self?.item?.button?.performClick(nil) }
+        }
+    }
+
+    /// The app that was in front before Option+Shift+S activated Nextshot.
+    private var appBeforeSearch: NSRunningApplication?
+    /// True once Return in the search field opened Find Capture.
+    private var searchSubmitted = false
+
+    /// Return in the search field: close the menu, then open Find Capture
+    /// with the text. An empty field opens it with every capture.
+    private func submitSearch(_ query: String) {
+        FeedbackLog.logger.notice("menu: search submitted, \(query.count, privacy: .public) characters")
+        searchSubmitted = true
+        topMenu?.cancelTracking()
+        // The window opens once the run loop is back in its default mode,
+        // after menu tracking has ended.
+        RunLoop.main.perform(inModes: [.default]) { [weak self] in
+            MainActor.assumeIsolated { self?.onMenuSearch?(query) }
+        }
     }
 
     /// Option-click on a capture row. The menu closes first, so the Quick Look
@@ -604,6 +706,7 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     @objc private func screenshotAnnotate() { onScreenshotAnnotate?() }
     @objc private func startRound() { onStartRound?() }
     @objc private func openAllRounds() { onOpenAllRounds?() }
+    @objc private func findCapture() { onFindCapture?() }
     @objc private func copySelected() { onCopySelected?() }
     @objc private func submitRecentRound(_ sender: NSMenuItem) {
         if let round = sender.representedObject as? FeedbackRound { onSubmitRecentRound?(round) }

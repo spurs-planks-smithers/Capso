@@ -22,11 +22,9 @@ final class ScreenshotWorkflow {
     private let promote: (FeedbackPromotionInput) async throws -> Void
     private let imageIntent: () -> Void
     private let toast: (String) -> Void
-    private let quickLook = FeedbackQuickLook()
     private var editor: AnnotationEditorWindow?
     private var busy = false
     private var recovery: ScreenshotRecoveryWindow?
-    private var browser: ScreenshotHistoryWindow?
     private var savedEditorSnapshot: (png: Data, marks: [FeedbackMark], item: ScreenshotHistoryItem)?
     var editorIsOpen: Bool { editor != nil || recovery != nil }
     var isBusy: Bool { busy }
@@ -50,19 +48,9 @@ final class ScreenshotWorkflow {
         return ScreenshotHistoryIndex.items(local: local, rounds: roundSnapshot, rootURL: rootURL)
     }
 
-    func showHistory() {
-        Task {
-            do {
-                if browser == nil {
-                    browser = ScreenshotHistoryWindow(
-                        onCopy: { [weak self] item, variant in self?.copy(item, variant: variant) },
-                        onPreview: { [weak self] item in self?.quickLook.show(item.annotatedURL) },
-                        onAnnotate: { [weak self] item in self?.annotate(item) }
-                    )
-                }
-                browser?.show(items: try await items())
-            } catch { report(error) }
-        }
+    /// The saved screenshots only, for Find Capture, which adds the rounds itself.
+    func localItems() async throws -> [ScreenshotHistoryItem] {
+        try await history.items()
     }
 
     func annotateLatest() {
@@ -79,24 +67,6 @@ final class ScreenshotWorkflow {
                 openAnnotationEditor(latest)
             } catch { busy = false; report(error) }
         }
-    }
-
-    func copy(_ item: ScreenshotHistoryItem, variant: ScreenshotImageVariant) {
-        do {
-            let url: URL
-            switch variant {
-            case .annotated: url = item.annotatedURL
-            case .withoutAnnotations:
-                guard let clean = item.cleanURL else { throw WorkflowError.cleanUnavailable }
-                url = clean
-            }
-            let image = try load(url)
-            guard ImageUtilities.copyToPasteboard(image, format: settings.screenshotClipboardFormat) else {
-                throw WorkflowError.clipboard
-            }
-            imageIntent()
-            toast("Screenshot copied")
-        } catch { report(error) }
     }
 
     func copyFresh(_ rendered: CGImage, result: CaptureResult, objects: [any AnnotationObject],
@@ -126,7 +96,6 @@ final class ScreenshotWorkflow {
                 recovery = nil
                 close()
                 toast(history.retentionError == nil ? "Screenshot copied and saved" : "Screenshot saved. History cleanup needs a retry.")
-                await refreshBrowser()
             } catch {
                 busy = false
                 let retry: () -> Void = { [weak self] in
@@ -144,23 +113,6 @@ final class ScreenshotWorkflow {
                     report(error, retry: retry)
                 }
             }
-        }
-    }
-
-    private func annotate(_ selected: ScreenshotHistoryItem) {
-        guard !editorIsOpen, !busy else { NSSound.beep(); return }
-        busy = true
-        Task {
-            do {
-                // Browser rows can predate completed notes. Resolve by stable source identity.
-                let currentItems = try await items()
-                guard let current = currentItems.first(where: { $0.id == selected.id }) else {
-                    throw WorkflowError.image
-                }
-                browser?.update(items: currentItems)
-                busy = false
-                openAnnotationEditor(current)
-            } catch { busy = false; report(error) }
         }
     }
 
@@ -227,7 +179,6 @@ final class ScreenshotWorkflow {
                 window.close()
                 if history.retentionError != nil { toast("Screenshot saved. History cleanup needs a retry.") }
                 else { toast(addToRound ? "Screenshot added to round" : "Screenshot copied and saved") }
-                await refreshBrowser()
             } catch {
                 busy = false
                 report(error) { [weak self] in self?.finishEdit(rendered, source: source, addToRound: addToRound) }
@@ -282,11 +233,6 @@ final class ScreenshotWorkflow {
         guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
               let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else { throw WorkflowError.image }
         return image
-    }
-
-    private func refreshBrowser() async {
-        guard browser != nil else { return }
-        if let items = try? await items() { browser?.update(items: items) }
     }
 
     private func report(_ error: Error, retry: (() -> Void)? = nil) {

@@ -23,6 +23,11 @@ struct FeedbackShortcutSettingsSection: View {
                 }
                 row("Start Round or Capture Area", visibility: .shortcutsCoreFeedbackCapture, name: .feedbackCapture)
                 row("Capture Same Area Again", visibility: .shortcutsCoreFeedbackRepeatCapture, name: .feedbackRepeatCapture)
+                // The seventh key (#125). Always on, like the two above, while
+                // `findCapture` shows the menu's search field.
+                if Flags.isOn(.findCapture) {
+                    row("Search Captures", visibility: .shortcutsCoreFeedbackSearch, name: .feedbackSearch)
+                }
                 row("Copy Last Capture Prompt", visibility: .shortcutsCoreFeedbackCopyLastCapture, name: .feedbackCopyLastCapture, roundOnly: true)
                 row("Copy Prompt and End Round", visibility: .shortcutsCoreFeedbackCopyPromptAndEndRound, name: .feedbackCopyPromptAndEndRound, roundOnly: true)
                 row("Open Round Folder", visibility: .shortcutsCoreFeedbackOpenRoundFolder, name: .feedbackOpenRoundFolder, roundOnly: true)

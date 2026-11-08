@@ -13,6 +13,7 @@ Capso's own history (versions 0.1.0 to 1.2.5) is not part of this file. This for
 ### Added
 
 - Zip Round in each round's submenu, and Zip N Selected for checked captures, save a zip in your Downloads folder for another Mac, mail, Slack, or Teams. The zip holds the whole prompt, the images, and your notes. It was off by default before.
+- A search field sits at the top of the Nshot menu. Type when the menu opens, or press Option+Shift+S to open the menu with the cursor in the field. Press Return to open Find Capture with your search. Command+A, C, X, V, and Z work in both search fields. Find Capture lists every saved capture, newest first, and searches app names, window titles, your notes, and round names. Rest the pointer on a capture for half a second to see it large. The Find Capture row after All Rounds opens it too. Click a capture to check it for Copy N Selected or Zip N Selected. Click its round label to see only that round. Text read from the screen is not searched. ([#125](https://github.com/spurs-planks-smithers/Capso/issues/125))
 
 ### Fixed
 

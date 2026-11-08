@@ -12,6 +12,12 @@ enum ScreenshotSourceID: Hashable, Codable, Sendable {
         case .round(let folder, let index): return "round:\(folder):\(index)"
         }
     }
+
+    /// The key of a round capture in the Nshot menu's checks. A screenshot has none.
+    var basketKey: FeedbackBasketKey? {
+        guard case .round(let folder, let index) = self else { return nil }
+        return FeedbackBasketKey(folderName: folder, captureIndex: index)
+    }
 }
 
 struct ScreenshotMetadata: Codable, Sendable {
@@ -59,14 +65,21 @@ struct ScreenshotHistoryItem: Identifiable, Sendable {
     let annotatedURL: URL
     let cleanURL: URL?
     let thumbnailURL: URL?
+    /// The round's name, as Recent Rounds shows it. Nil for a screenshot.
+    var roundName: String?
+    /// The capture's summary name, else its first instruction. Nil when the
+    /// reviewer wrote no words.
+    var captureName: String?
 
     init(id: ScreenshotSourceID, metadata: ScreenshotMetadata, annotatedURL: URL,
-         cleanURL: URL?, thumbnailURL: URL? = nil) {
+         cleanURL: URL?, thumbnailURL: URL? = nil, roundName: String? = nil, captureName: String? = nil) {
         self.id = id
         self.metadata = metadata
         self.annotatedURL = annotatedURL
         self.cleanURL = cleanURL
         self.thumbnailURL = thumbnailURL
+        self.roundName = roundName
+        self.captureName = captureName
     }
 
     var createdAt: Date { metadata.createdAt }
@@ -76,11 +89,6 @@ struct ScreenshotHistoryItem: Identifiable, Sendable {
     var size: PixelSize { metadata.size }
     var marks: [FeedbackMark] { metadata.marks }
     var note: String? { metadata.note }
-}
-
-enum ScreenshotImageVariant: Sendable {
-    case annotated
-    case withoutAnnotations
 }
 
 enum ScreenshotCapturePurpose: Sendable {

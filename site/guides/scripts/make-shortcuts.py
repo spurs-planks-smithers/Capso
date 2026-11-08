@@ -71,10 +71,11 @@ def build(output):
     y = section("Capture", 655, [
         ("Start or add a capture", "Option + Shift + F"),
         ("Capture the same area again", "Option + Shift + G"),
+        ("Search captures", "Option + Shift + S"),
     ])
     text("Press F, then drag to select an area. G repeats the last area with no drag.", LEFT + 10, y + 1, 496, size=9.5, color=MUTED)
 
-    y = section("Mark the capture", 560, [
+    y = section("Mark the capture", 545, [
         ("Add the next numbered dot (dot tool)", "Click"),
         ("Select the dot tool", "C or N"),
         ("Select the arrow tool", "A"),
@@ -86,7 +87,7 @@ def build(output):
     text("Escape with no marks copies the image and closes the editor.", LEFT + 10, y + 1, 496, size=9.5, color=MUTED)
     text("With marks, Escape copies the marked image, saves it to the round, and closes.", LEFT + 10, y - 13, 496, size=9.5, color=MUTED)
 
-    y = section("Answer the note questions", 350, [
+    y = section("Answer the note questions", 335, [
         ("Save the answer and continue", "Return"),
         ("Skip the current step", "Escape"),
         ("Earlier / later step", "Up / Down arrow"),
