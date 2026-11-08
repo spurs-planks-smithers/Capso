@@ -76,6 +76,8 @@ final class FeedbackController {
     private var supportSubmission: FeedbackSupportSubmission?
     /// The offline update reminder (#203). Made in `start`.
     private var updateReminder: FeedbackUpdateReminder?
+    /// Hands the update to a newer copy when its disk image mounts (#88). Made in `start`.
+    private var imageWatcher: DiskImageWatcher?
     private let quickLook = FeedbackQuickLook()
     /// The Recent list as read from disk. The menu asks for it on every open
     /// and every submenu open. The cache decodes a `feedback.json` only when
@@ -256,6 +258,16 @@ final class FeedbackController {
         )
         updateReminder = reminder
         reminder.start()
+        let watcher = DiskImageWatcher(
+            isBusy: { [weak self] in
+                guard let self else { return false }
+                return self.hasOpenCapture || self.capturePurpose != nil
+                    || self.ending != nil || self.copyingRoundPrompt
+            },
+            waitForSaves: { [weak self] in await self?.waitForSaves() }
+        )
+        imageWatcher = watcher
+        watcher.start()
         notePanel.onClosed = { [weak self] in
             self?.updateHelp()
         }

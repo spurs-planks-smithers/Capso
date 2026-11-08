@@ -60,6 +60,45 @@ Before the Dev identity split on 2026-10-25, Apple Development builds and Develo
 
 On 2026-10-25, resetting ScreenCapture printed 15 lines for the production bundle ID. That output counts reset messages, not independently verified app registrations. "Quit & Reopen" and a `nextshot://` link both started a trial copy from DerivedData. The Dev-only launch helper now opens the installed app by its exact path.
 
+## A drag over a running copy (2026-11-07)
+
+Drew, feedback round `2026-11-07-1613-feedback`, items 1.1 and 2.1: a drag to Applications while an older Nextshot runs must work as a double-click does. Drew dragged 0.7.0 over a running 0.6.0 on a production Mac and got "The operation can't be completed because the item is in use".
+
+### Decision
+
+- The running copy watches for mounted disk images (`DiskImageWatcher`). An image counts when it is a disk image (DiskArbitration model "Disk Image"), it holds an app with this bundle ID and a higher build, and that app passes a strict signature check against the running copy's designated requirement (same bundle ID, same signer).
+- The running copy waits until no capture is open, no round end runs, and saves finish. Then it opens the copy on the image through Launch Services with `--nextshot-update-from <pid>`.
+- That copy quits the running copy first, then asks "Install Nextshot ...?". The text says the old version quit and that a drag also works.
+- While the dialog is open, the copy on the image checks the install place twice a second. When it finds its own build and code hash there in two checks in a row, the drag is done. It closes the dialog, sets the "user approved" quarantine bit, opens the new copy, and exits. A copy that Finder is still writing fails the signature check.
+- Install runs the existing install. Not Now opens the old copy again, which then ejects the image.
+- When the last open fails (Launch Services reports an error), the copy on the image keeps running instead of exiting, so the user always has a Nextshot running.
+- Accepted limits: a capture started while the Gatekeeper prompt for the image copy is open is lost when that copy quits the old one. If the user quits the image copy while its dialog is open, no Nextshot runs until the next launch.
+- A copy from before this change (0.7.0 and earlier) has no watcher. A drag over it still fails, and the DMG text "Already installed? Double-click Nextshot here to update." stays for those users. The fix works for updates from the first release that has it.
+
+### Why
+
+| Finding | Evidence |
+|---|---|
+| Updaters replace a running Mac app with a second process that waits for the app to quit (Sparkle's installer, LetsMove, relauncher helpers). Finder has no such step. | [Apple Developer Forums 110810](https://developer.apple.com/forums/thread/110810), [LetsMove](https://github.com/MacPass/LetsMove) |
+| Nextshot starts no child process (`NetworkSourceScanTests`). The newer copy on the image is a second process that Launch Services can open. | The scan test bans `Process(` and `NSTask`. |
+| The running copy must quit before Finder's Replace, so it cannot ask first. | Issue #88 planned "the running copy asks, then opens the image copy". A drag during that question still fails. |
+| Listing every mounted volume waited on a macOS privacy prompt for external drives. The disk image check reads no files, so it runs first, in the watcher and in the launch-time eject. | 2026-11-07 test: the eject thread stopped in `app(onVolume:)` with LaCie and ccc_backup mounted. |
+| `Bundle(url:)` keeps the first Info.plist it reads for a path, so it cannot see a dragged copy. `DiskImageInstaller.info(of:)` reads the file each time. | Foundation caches bundles by path. |
+
+### Tested
+
+`scripts/test-dmg-drag-update.sh` compiles the real install files into a harness app with its own bundle ID (`com.drewschulz.nextshot.installtest`), as builds 100 and 101 signed with the Apple Development identity. It uses real mounts, Finder's copy with replacing, and Launch Services. On m5pro, macOS 27.0, two runs on 2026-11-07:
+
+| Case | Result, both runs |
+|---|---|
+| control: build 100 runs without the watcher, Finder replace | Refused, -8087 "in use" |
+| drag: build 100 runs, image mounts, Finder replace | Replaced. Build 101 runs from the install place. Image ejected. |
+| install: the same, click Install | Build 101 runs. Image ejected. |
+| not-now: the same, click Not Now | Build 100 runs again. Image ejected. |
+| same-build: build 101 runs, its own image mounts | No hand-off. The same process keeps running. |
+
+Not covered by the harness: the quarantine and Gatekeeper prompt of a downloaded release DMG, the busy wait during an open capture, and a drag with the mouse. The release check on another Mac covers them (Drew's test steps in the PR).
+
 ## Later
 
-Backlog [spurs-planks-smithers/Capso#88](https://github.com/spurs-planks-smithers/Capso/issues/88): the running copy offers the update when a newer image mounts, so no double-click is needed. Its Gatekeeper check is done (the table above). Self-serve updates over the network stay in [spurs-planks-smithers/Capso#4](https://github.com/spurs-planks-smithers/Capso/issues/4).
+Backlog [spurs-planks-smithers/Capso#88](https://github.com/spurs-planks-smithers/Capso/issues/88): item 1 (offer the update when a newer image mounts) is done by the section above, with the hand-off order changed so a drag works. Its Gatekeeper check is done (the table above). Self-serve updates over the network stay in [spurs-planks-smithers/Capso#4](https://github.com/spurs-planks-smithers/Capso/issues/4).

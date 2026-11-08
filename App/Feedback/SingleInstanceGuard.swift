@@ -19,6 +19,10 @@ enum SingleInstanceGuard {
     /// installed copy waits for it to exit before it decides anything.
     static let installedByArgument = "--nextshot-installed-by"
 
+    /// The running copy passes its process ID after this argument when it
+    /// opens a newer copy from a mounted disk image (`DiskImageWatcher`).
+    static let handOffArgument = "--nextshot-update-from"
+
     /// Returns when this copy should start. Otherwise exits, after it brings
     /// the copy that stays to the front or installs this one.
     static func quitIfAnotherCopyRuns(loginLaunch: Bool = false) {
@@ -70,7 +74,11 @@ enum SingleInstanceGuard {
             }
         case .offerInstall:
             if let destination {
-                DiskImageInstaller.offerInstall(destination: destination, runningCopies: installed)
+                if CommandLine.arguments.contains(handOffArgument) {
+                    DiskImageInstaller.offerInstallAfterHandOff(destination: destination, runningCopies: installed)
+                } else {
+                    DiskImageInstaller.offerInstall(destination: destination, runningCopies: installed)
+                }
                 // Not Now, or the install failed: run from the image, unless
                 // another copy still runs. An installed copy goes first.
                 if let keeper = (installed + others).first(where: { !$0.isTerminated }) {

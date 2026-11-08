@@ -10,6 +10,10 @@ Capso's own history (versions 0.1.0 to 1.2.5) is not part of this file. This for
 
 ## [Unreleased]
 
+### Fixed
+
+- Updating no longer fails with "the item is in use" when you drag Nextshot to Applications while an older copy runs. Open the new DMG: Nextshot quits and asks to install, and a drag or Install both work. This works when you update from this version or later; an older running copy still needs the double-click.
+
 ### Changed
 
 - Copied prompts now open with a list of every item you marked, in your own words. They ask the agent to group related items and make one shared decision per group (with three or more items), to ask one question at the end for anything unclear, and to report each item with evidence, with no separate Verify section. Saved files and zip exports do not change.
