@@ -195,6 +195,54 @@ expect "the release commit holds exactly the named files" "site/docs/release-not
 VERSION" "$(git -C "$gitrepo" show --name-only --format= HEAD | sort -r)"
 expect "a file that was not named stays out of the commit" " M other.txt" "$(git -C "$gitrepo" status --short)"
 
+# --- The question ignores keys typed before it (2026-11-08) ---
+# During the 0.8.0 run, a Y typed while the DMG was built answered the
+# question before its summary showed. A pseudo-terminal replays that.
+if python3 -I - "$repo/scripts/release-lib.sh" <<'PY'
+import os
+import pty
+import sys
+import time
+
+lib = sys.argv[1]
+
+
+def ask(ahead, answer):
+    pid, fd = pty.fork()
+    if pid == 0:
+        script = 'source "$1"; sleep 0.6; if confirm "Go?"; then echo ANSWER=yes; else echo ANSWER=no; fi'
+        os.execvp("bash", ["bash", "-c", script, "bash", lib])
+    if ahead:
+        os.write(fd, ahead)
+    time.sleep(1.2)
+    os.write(fd, answer)
+    out = b""
+    while True:
+        try:
+            chunk = os.read(fd, 1024)
+        except OSError:
+            break
+        if not chunk:
+            break
+        out += chunk
+    os.waitpid(pid, 0)
+    return out.decode(errors="replace")
+
+
+cases = [
+    ("a Y and Return typed before the question do not answer it", b"Y\n", b"n\n", "ANSWER=no"),
+    ("a Y typed with no Return before the question does not join the answer", b"Y", b"y\n", "ANSWER=yes"),
+    ("y typed after the question answers yes", b"", b"y\n", "ANSWER=yes"),
+]
+failed = False
+for label, ahead, answer, want in cases:
+    ok = want in ask(ahead, answer)
+    print(("ok    " if ok else "FAIL  ") + label)
+    failed = failed or not ok
+sys.exit(1 if failed else 0)
+PY
+then :; else bad "the release question ignores keys typed before it"; fi
+
 # --- Release record ---
 dmg="$tmp/Nextshot-0.3.0.dmg"
 zip="$tmp/Nextshot-0.3.0.zip"

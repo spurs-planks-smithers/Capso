@@ -23,6 +23,27 @@ rel_fail() {
   exit 1
 }
 
+# --- The question before publishing -----------------------------------------
+
+# Asks on the terminal. A closed stdin, a pipe, or anything but y stops.
+# Keys typed before the question are thrown away first, also a half-typed line
+# with no Return, so only an answer typed after the summary counts. During the
+# 0.8.0 run (2026-11-08), a Y typed while the DMG was built answered the
+# question before its summary showed. If the flush fails, nothing is asked.
+confirm() {
+  local answer
+  if [[ ! -t 0 ]]; then
+    echo "release: no terminal to ask on. Nothing was published." >&2
+    return 1
+  fi
+  if ! python3 -I -c 'import sys, termios; termios.tcflush(sys.stdin, termios.TCIFLUSH)'; then
+    echo "release: could not clear keys typed before the question. Nothing was published." >&2
+    return 1
+  fi
+  read -r -p "$1 [y/N] " answer || return 1
+  [[ "$answer" == y || "$answer" == Y || "$answer" == yes ]]
+}
+
 # --- Release commit -------------------------------------------------------
 
 # commit_release <repo> <message> <path>...: stages exactly these paths and
