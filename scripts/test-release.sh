@@ -1,9 +1,10 @@
 #!/bin/bash
 # Fork: checks the parts of scripts/release.sh that need no network, no
 # notarization, and no Cloudflare: version math, the bump suggestion, the
-# CHANGELOG.md steps, and the release record. Run it after any edit to
-# scripts/release.sh, scripts/release-lib.sh, scripts/release-changelog.py,
-# or scripts/nextshot-local.py.
+# CHANGELOG.md steps, the flag markers and release-notes date, and the release
+# record. Run it after any edit to scripts/release.sh, scripts/release-lib.sh,
+# scripts/release-changelog.py, scripts/release-markers.py, or
+# scripts/nextshot-local.py.
 #
 # Usage: scripts/test-release.sh
 set -uo pipefail
@@ -112,6 +113,63 @@ printf '## [Unreleased]\n\n- x\n\n## [0.3.0] - 2026-10-26\n\n- y\n' >"$tmp/dup.m
 is_false "rotate refuses a version it already holds" python3 -I "$changelog_py" rotate 0.3.0 2026-10-27 "$tmp/dup.md"
 printf '# Changelog\n' >"$tmp/none.md"
 is_false "check refuses a file with no Unreleased heading" python3 -I "$changelog_py" check "$tmp/none.md"
+
+# --- Flag markers and the release-notes date (issue 281) ---
+markers_py="$repo/scripts/release-markers.py"
+cat >"$tmp/Flags.swift" <<'EOF'
+        case .oldFlag:
+            FlagSpec(issue: 1, allowedStates: [.off, .on], devDefault: .on, releaseDefault: .on, releasedInBuild: 911)
+        case .lastFlag:
+            FlagSpec(issue: 2, allowedStates: [.off, .on], devDefault: .on, releaseDefault: .on, releasedInBuild: 919)
+        case .newFlag:
+            // A guess above the last release.
+            FlagSpec(issue: 3, allowedStates: [.off, .on], devDefault: .on, releaseDefault: .on, releasedInBuild: 924)
+        case .otherNew:
+            FlagSpec(issue: 4, allowedStates: [.off, .on], devDefault: .on, releaseDefault: .on, releasedInBuild: 920)
+        case .offFlag:
+            FlagSpec(issue: 5, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
+EOF
+expect "list names each marker above the last build" "newFlag 924 -> 927
+otherNew 920 -> 927" "$(python3 -I "$markers_py" list 919 927 "$tmp/Flags.swift")"
+is_true "set runs" python3 -I "$markers_py" set 919 927 "$tmp/Flags.swift"
+expect "set leaves an older release's marker" 1 "$(grep -c 'releasedInBuild: 911' "$tmp/Flags.swift")"
+expect "set leaves a marker equal to the last build" 1 "$(grep -c 'releasedInBuild: 919' "$tmp/Flags.swift")"
+expect "set writes the release build into both new markers" 2 "$(grep -c 'releasedInBuild: 927' "$tmp/Flags.swift")"
+expect "set leaves a nil marker" 1 "$(grep -c 'releasedInBuild: nil' "$tmp/Flags.swift")"
+expect "a second set changes nothing" "" "$(python3 -I "$markers_py" list 919 927 "$tmp/Flags.swift")"
+is_false "set refuses a new build at the last build" python3 -I "$markers_py" set 919 919 "$tmp/Flags.swift"
+is_false "set refuses a missing file" python3 -I "$markers_py" set 919 927 "$tmp/missing.swift"
+
+cat >"$tmp/release-notes.mdx" <<'EOF'
+---
+title: Release notes
+---
+
+## 0.8.0
+
+- New thing.
+
+## 0.7.0
+
+November 6, 2026 (UTC)
+
+- Old thing.
+EOF
+is_true "notes-check finds the new version" python3 -I "$markers_py" notes-check 0.8.0 "$tmp/release-notes.mdx"
+is_false "notes-check refuses a missing version" python3 -I "$markers_py" notes-check 0.9.0 "$tmp/release-notes.mdx"
+is_true "notes-date runs" python3 -I "$markers_py" notes-date 0.8.0 2026-11-08 "$tmp/release-notes.mdx"
+expect "notes-date writes the date under the heading, with blank lines" "## 0.8.0
+
+November 8, 2026 (UTC)
+
+- New thing." "$(sed -n '5,9p' "$tmp/release-notes.mdx")"
+dated_lines="$(wc -l <"$tmp/release-notes.mdx" | tr -d ' ')"
+is_true "notes-date runs again" python3 -I "$markers_py" notes-date 0.8.0 2026-11-09 "$tmp/release-notes.mdx"
+expect "a second notes-date replaces the date" "November 9, 2026 (UTC)" "$(sed -n 7p "$tmp/release-notes.mdx")"
+expect "a second notes-date adds no line" "$dated_lines" "$(wc -l <"$tmp/release-notes.mdx" | tr -d ' ')"
+expect "notes-date leaves the older version's date" 1 "$(grep -c 'November 6, 2026 (UTC)' "$tmp/release-notes.mdx")"
+is_false "notes-date refuses a bad date" python3 -I "$markers_py" notes-date 0.8.0 08-11-2026 "$tmp/release-notes.mdx"
+is_false "notes-date refuses a missing version" python3 -I "$markers_py" notes-date 0.9.0 2026-11-08 "$tmp/release-notes.mdx"
 
 # --- Release record ---
 dmg="$tmp/Nextshot-0.3.0.dmg"
