@@ -89,7 +89,9 @@ To undo a site deploy by hand: `wrangler rollback`.
 
 ### M3: Automatic Updates
 
-Goal: a person who installed 0.3.x or later gets new versions without a new download.
+Goal: a person who has installed the first Sparkle build gets every later version without a new download.
+
+Update 2026-11-07: the version numbers that this section used (0.3.0, 0.4.0) were examples from the 0.3.0 plan. Releases 0.3.0 to 0.7.0 are out, and none can update itself: `Info.plist` has no `SUFeedURL`, and the release command writes no `appcast.xml`. The first Sparkle build is a later release. The text below names no version, so it stays true whichever release that is.
 
 Update 2026-10-31: until M3, the offline update reminder ([#203](https://github.com/spurs-planks-smithers/Capso/issues/203)) tells people to check nextshot.dev about 7 days after a build first runs. It makes no request. It hides itself when the `automaticUpdates` capability is on, so it and Sparkle never run together. M3 stays open. Record: `docs/decisions/2026-10-31-update-reminder.md`.
 
@@ -100,12 +102,12 @@ Findings first. The app already carries the Sparkle framework, an `UpdateManager
 | Make a Nextshot EdDSA key pair with Sparkle's tool. Store the private key in the Keychain as `SPARKLE_ED_PRIVATE_KEY_NEXTSHOT`. Back it up in 1Password. | S | The public key is in hand. A restore test signs a file. |
 | Replace `SUPublicEDKey` and add `SUFeedURL` (`https://nextshot.dev/appcast.xml`) for the production target only. Log the Info.plist edit in FORK_NOTES. | S | The Dev app has no feed. The production app has one. `UpdateManagerTests` pass. |
 | Have the release command sign the zip, write `appcast.xml` with the build number and the notes, and upload it. | M | `appcast.xml` validates with Sparkle's tool. |
-| Turn automatic checks on for production. Add the "Check for Updates" menu row if it is missing. | S | A production 0.4.0 copy offers 0.4.1 within a day of the release. |
-| Test the full path: 0.3.0 installs, 0.4.0 publishes, the app updates itself, and the screen recording grant stays. | M | Two real releases update in place with no prompt beyond Sparkle's own. |
+| Turn automatic checks on for production. Add the "Check for Updates" menu row if it is missing. | S | A production copy of the first Sparkle build offers the next release within a day of it. |
+| Test the full path: the first Sparkle build installs, the next release publishes, the app updates itself, and the screen recording grant stays. | M | Two real releases update in place with no prompt beyond Sparkle's own. |
 
 Rules that never change once a build with them ships: the bundle ID, the feed URL, and the EdDSA public key. A lost private key strands every installed copy.
 
-People on 0.3.0 and earlier update by hand once, to the first Sparkle build.
+People on any build before the first Sparkle build update by hand once, to that build.
 
 ### M4: Collaborator Readiness
 
