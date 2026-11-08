@@ -231,6 +231,19 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
 
     // MARK: - Top menu
 
+    /// Keys in the open menu (#125, Drew, 2026-11-08). Before a key reaches
+    /// the search field, AppKit looks for a menu item with that key
+    /// equivalent, and to look it fills every lazy submenu. Filling the Show
+    /// More groups and the round submenus reads the rounds folder, and that
+    /// held the first typed key about 300 ms (measured with posted keys and a
+    /// stack sample of the main thread). No Nshot menu row has a key
+    /// equivalent, so the answer is always no, and no menu is filled.
+    func menuHasKeyEquivalent(_ menu: NSMenu, for event: NSEvent,
+                              target: AutoreleasingUnsafeMutablePointer<AnyObject?>,
+                              action: UnsafeMutablePointer<Selector?>) -> Bool {
+        false
+    }
+
     func menuNeedsUpdate(_ menu: NSMenu) {
         if menu === topMenu {
             rebuildMenu(menu)
@@ -573,6 +586,18 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     /// A menu closed. No exit event reaches a row then, so hide the preview here.
     func menuDidClose(_ menu: NSMenu) {
         hoverPreview.endAll()
+        if menu === topMenu, let previous = appBeforeSearch {
+            appBeforeSearch = nil
+            guard !searchSubmitted else { return }
+            // A chosen row can open a Nextshot window or Quick Look. Give
+            // those a moment to show, and give focus back only when none did,
+            // so Esc returns the user to the app they typed in.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                let ownWindowShows = NSApp.windows.contains { $0.isVisible && $0.canBecomeKey }
+                FeedbackLog.logger.notice("menu search closed: own window \(ownWindowShows, privacy: .public), key window \(NSApp.keyWindow != nil, privacy: .public)")
+                if NSApp.keyWindow == nil, !ownWindowShows { previous.activate() }
+            }
+        }
     }
 
     /// Option+Shift+S (#125): opens the menu as a click on the Nshot item
@@ -580,15 +605,31 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     /// once. The click runs on the next turn of the run loop, because the
     /// open menu runs its own loop until it closes.
     func openSearch() {
+        // A caret blinks only in the key window of the active app (Drew,
+        // 2026-11-08: "Cursor is not blinking"). So the key activates
+        // Nextshot before the menu opens, and `menuDidClose` gives focus back
+        // to the earlier app when the menu closes with no search and no
+        // Nextshot window. A menu opened by a click leaves the app inactive,
+        // and the field shows its own steady caret (FeedbackMenuFieldEditor).
+        let front = NSWorkspace.shared.frontmostApplication
+        appBeforeSearch = front?.processIdentifier == ProcessInfo.processInfo.processIdentifier ? nil : front
+        searchSubmitted = false
+        NSApp.activate()
         RunLoop.main.perform(inModes: [.default]) { [weak self] in
             MainActor.assumeIsolated { self?.item?.button?.performClick(nil) }
         }
     }
 
+    /// The app that was in front before Option+Shift+S activated Nextshot.
+    private var appBeforeSearch: NSRunningApplication?
+    /// True once Return in the search field opened Find Capture.
+    private var searchSubmitted = false
+
     /// Return in the search field: close the menu, then open Find Capture
     /// with the text. An empty field opens it with every capture.
     private func submitSearch(_ query: String) {
         FeedbackLog.logger.notice("menu: search submitted, \(query.count, privacy: .public) characters")
+        searchSubmitted = true
         topMenu?.cancelTracking()
         // The window opens once the run loop is back in its default mode,
         // after menu tracking has ended.
