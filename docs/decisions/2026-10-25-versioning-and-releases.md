@@ -47,6 +47,7 @@ Two fields, two jobs.
 - The `VERSION` file at the repo root holds the last released version. Only the release command edits it.
 - A production build uses `VERSION` as it is. A Nextshot Dev build shows `VERSION` plus `-dev`, for example `0.3.0-dev (631)`.
 - `scripts/nextshot-version.sh` reads `VERSION` and counts commits. The date no longer feeds the version.
+- Added 2026-11-08 (Drew, issue 281): the release command also sets the `releasedInBuild` flag markers and the date line of the Guides release notes in the release commit. A marker above the last release's build gets the release commit's build. Before this, a person guessed the number, and the guess was stale in each of the three releases that turned a flag on.
 
 ### Bump rules
 
