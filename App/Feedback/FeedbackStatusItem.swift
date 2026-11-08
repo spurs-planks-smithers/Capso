@@ -23,7 +23,8 @@ struct FeedbackMenuState {
     var older: [FeedbackRound] = []
     /// Shows "Get the latest version…" under the version line (#203).
     var updateReminderRow = false
-    /// Shows "Find Capture..." after "All Rounds..." (`findCapture` flag, #125).
+    /// Shows the search field at the top and "Find Capture..." after "All
+    /// Rounds..." (`findCapture` flag, #125).
     var findCaptureEnabled = false
 
     /// What the menu shows when no provider is set.
@@ -72,6 +73,21 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     var onResumeRound: ((FeedbackRound) -> Void)?
     var onGetLatestVersion: (() -> Void)?
     var onFindCapture: (() -> Void)?
+    /// Return in the menu's search field: open Find Capture with this text.
+    var onMenuSearch: ((String) -> Void)?
+
+    /// The search field at the top of the menu (#125). Made once and added
+    /// again on each rebuild, like the shortcut rows.
+    private lazy var searchView: FeedbackMenuSearchView = {
+        let view = FeedbackMenuSearchView()
+        view.onSubmit = { [weak self] query in self?.submitSearch(query) }
+        return view
+    }()
+    private lazy var searchItem: NSMenuItem = {
+        let item = NSMenuItem(title: "Search captures", action: nil, keyEquivalent: "")
+        item.view = searchView
+        return item
+    }()
 
     /// One round line in the open menu.
     private struct RoundRow {
@@ -246,6 +262,14 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
             menu.addItem(menuItem(UpdateReminder.rowTitle, action: #selector(getLatestVersion)))
         }
         menu.addItem(.separator())
+
+        // The search field sits right below the build line, which stays the
+        // top row (#7). It starts empty on each open (#125).
+        if state.findCaptureEnabled {
+            searchView.reset()
+            addReused(searchItem, to: menu)
+            menu.addItem(.separator())
+        }
 
         if Capabilities.current.screenshotCopy {
             addReused(screenshotCaptureItem, to: menu)
@@ -542,6 +566,18 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     /// A menu closed. No exit event reaches a row then, so hide the preview here.
     func menuDidClose(_ menu: NSMenu) {
         hoverPreview.endAll()
+    }
+
+    /// Return in the search field: close the menu, then open Find Capture
+    /// with the text. An empty field opens it with every capture.
+    private func submitSearch(_ query: String) {
+        FeedbackLog.logger.notice("menu: search submitted, \(query.count, privacy: .public) characters")
+        topMenu?.cancelTracking()
+        // The window opens once the run loop is back in its default mode,
+        // after menu tracking has ended.
+        RunLoop.main.perform(inModes: [.default]) { [weak self] in
+            MainActor.assumeIsolated { self?.onMenuSearch?(query) }
+        }
     }
 
     /// Option-click on a capture row. The menu closes first, so the Quick Look

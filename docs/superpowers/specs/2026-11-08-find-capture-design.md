@@ -19,6 +19,17 @@ All from Drew on 2026-11-08.
 - The bottom bar in selection mode: "N selected", Copy N Selected, Zip N Selected (only with `zipHandoff` on), and Clear.
 - A click on a card's round chip narrows the window to that round's captures. The typed search still applies inside the round. The bar then shows Back (it clears only the round filter), Copy Round Prompt, Zip Round (with `zipHandoff` on), Open Folder, and Resume Round (only when no round is active).
 - No hover preview in the window.
+- 2026-11-08 (Drew, after the Dev check): a search field at the top of the Nshot menu; Return opens the window with the query; the row stays.
+
+## Menu search field
+
+The field sits right below the gray build line and its separator, in both menu states, with `findCapture` on. The build line stays the top row (#7). Its placeholder is "Search captures". It starts empty on each open.
+
+- Focus: the open menu is a key window (`NSPopupMenuWindow`). AppKit gives the editable field in the menu item's view first responder when the menu opens, and `viewDidMoveToWindow` also asks for it. Typed characters and Delete go to the field editor, so the menu does no type-select. The arrow keys still move the menu's highlight, and the field keeps focus.
+- Evidence (2026-11-08, macOS 27): key events posted into an open menu typed into the field ("ab", Delete, "c" gave "ac"), with no highlight change. A Down arrow highlighted the first item. A Carbon raw-key handler on the event dispatcher target and a local key monitor saw no event in the open menu, so neither is used. With the field set to refuse first responder, "b" highlighted the item "Bravo" (type-select).
+- Return reaches the field delegate as `insertNewline:`. It closes the menu and opens the window with the text. With an item highlighted, the menu takes Return and chooses the item, as in any menu. Esc reaches the delegate as `cancelOperation:` and closes the menu.
+- The window gets the text through the field editor, as typing would, so the SwiftUI binding and the results follow, and the caret ends at the end. The app and round filters reset. Empty text clears the search. The "Find Capture..." row keeps the window's search and filters and selects the search text.
+- Not checked by a person: real key presses in the status menu, an input method in the menu field, and macOS 15.
 
 ## Design
 

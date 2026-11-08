@@ -57,11 +57,17 @@ final class FindCaptureCoordinator {
 
     /// One load per open: it starts before the window becomes key, so the
     /// become-key reload that follows is skipped.
-    func show(basket: FeedbackBasket, roundActive: Bool) {
+    /// - Parameter query: The text from the menu's search field, or nil from
+    ///   the "Find Capture..." row. With a query, the search field shows it
+    ///   (empty text clears the field) and the app and round filters reset,
+    ///   so the query searches every capture. With nil, the window keeps its
+    ///   search and filters.
+    func show(basket: FeedbackBasket, roundActive: Bool, query: String? = nil) {
         window.presentation.basket = basket
         window.presentation.roundActive = roundActive
+        if query != nil { window.presentation.filterResetRequest &+= 1 }
         reload()
-        window.show()
+        window.show(query: query)
     }
 
     private func windowBecameKey() {

@@ -21,8 +21,9 @@ final class ScreenshotHistoryPresentation {
     var zipEnabled = false
     /// A round is active, so Resume Round stays hidden.
     var roundActive = false
-    /// Raised each time the window shows, so the search field takes focus.
-    var focusRequest = 0
+    /// Raised when the menu's search field opens the window, so the app and
+    /// round filters reset and its query searches every capture.
+    var filterResetRequest = 0
 
     func setItems(_ items: [ScreenshotHistoryItem]) {
         self.items = items
@@ -92,10 +93,14 @@ struct ScreenshotHistoryView: View {
             bar
         }
         .background(Color(nsColor: .windowBackgroundColor))
-        .defaultFocus($focus, .search)
-        // Runs at the first show and at each later show.
-        .task(id: presentation.focusRequest) { focus = .search }
+        // The panel gives the search field focus at each show
+        // (`ScreenshotHistoryPanel.focusSearch`), so the caret can end after a
+        // query from the menu.
         .onChange(of: presentation.revision) { _, _ in dropStaleFilters() }
+        .onChange(of: presentation.filterResetRequest) { _, _ in
+            appFilter = nil
+            roundFilter = nil
+        }
     }
 
     /// A reload can remove the last capture of the chosen app or round. The

@@ -802,6 +802,12 @@ final class FeedbackController {
             FeedbackLog.logger.notice("menu: Find Capture")
             self.findCapture?.show(basket: self.basket, roundActive: self.round != nil)
         }
+        // Return in the search field at the top of the menu. An empty field
+        // opens the window with every capture.
+        statusItem.onMenuSearch = { [weak self] query in
+            guard let self else { return }
+            self.findCapture?.show(basket: self.basket, roundActive: self.round != nil, query: query)
+        }
     }
 
     /// The rounds for the capture index: every compatible ended round and the

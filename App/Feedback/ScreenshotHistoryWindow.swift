@@ -10,7 +10,7 @@ import SwiftUI
 final class ScreenshotHistoryWindow: NSObject, NSWindowDelegate {
     let presentation = ScreenshotHistoryPresentation()
     private let actions: FindCaptureActions
-    private var window: NSPanel?
+    private var window: ScreenshotHistoryPanel?
     /// Runs each time the window becomes key, so the list reloads.
     var onBecomeKey: (() -> Void)?
 
@@ -20,7 +20,9 @@ final class ScreenshotHistoryWindow: NSObject, NSWindowDelegate {
         self.actions = actions
     }
 
-    func show() {
+    /// - Parameter query: Text for the search field, caret at the end. Nil
+    ///   keeps the field's text and selects it, so typing replaces it.
+    func show(query: String? = nil) {
         if window == nil {
             // Not a nonactivating panel: the search field needs real keyboard focus.
             let panel = ScreenshotHistoryPanel(
@@ -44,7 +46,7 @@ final class ScreenshotHistoryWindow: NSObject, NSWindowDelegate {
         // This is a menu bar app, so it is not active when the menu row runs.
         NSApp.activate(ignoringOtherApps: true)
         window?.makeKeyAndOrderFront(nil)
-        presentation.focusRequest &+= 1
+        window?.focusSearch(query: query)
     }
 
     func windowDidBecomeKey(_ notification: Notification) {
@@ -92,6 +94,29 @@ private final class ScreenshotHistoryPanel: NSPanel {
             case .control, .format, .privateUse, .surrogate, .unassigned: false
             default: !scalar.properties.isWhitespace
             }
+        }
+    }
+
+    /// Gives the search field keyboard focus. With a query, the field's text
+    /// becomes the query through the field editor, as typing would, so the
+    /// SwiftUI binding and the results follow, and the caret ends at the end.
+    /// AppKit does this, not SwiftUI focus: a field that SwiftUI focuses
+    /// selects all its text, and the next key would replace the query. The
+    /// hosting view can build the field after the first show, so a missing
+    /// field is tried again on the next turns of the run loop.
+    func focusSearch(query: String?, attempt: Int = 0) {
+        contentView?.layoutSubtreeIfNeeded()
+        guard let field = searchField() else {
+            guard attempt < 5 else { return }
+            Task { @MainActor [weak self] in self?.focusSearch(query: query, attempt: attempt + 1) }
+            return
+        }
+        guard makeFirstResponder(field), let query, let editor = field.currentEditor() as? NSTextView else { return }
+        editor.selectAll(nil)
+        if query.isEmpty {
+            if editor.selectedRange().length > 0 { editor.delete(nil) }
+        } else {
+            editor.insertText(query, replacementRange: editor.selectedRange())
         }
     }
 
