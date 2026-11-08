@@ -35,6 +35,7 @@ Click **Nshot** in the menu bar to:
 - **Open Round Folder** (**Option+Shift+O**) to see the round's files.
 - **End Round** (**Option+Shift+E**) when you are done.
 - Pick from **Recent Rounds**. Check single captures to copy one combined prompt, or **Resume Round** to keep adding to an old round.
+- **Zip Round** or **Zip N Selected** to save a zip in Downloads for someone on another Mac, or to send in mail, Slack, or Teams.
 - **Change Start Round Shortcut...** to pick a key other than **Option+Shift+F**.
 - Open **Settings...**, or **Quit Nextshot**.
 
