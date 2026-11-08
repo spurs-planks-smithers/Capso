@@ -179,17 +179,19 @@ struct FeatureFlagsTests {
     /// Flags that are not Jev features. They may turn on in a release build.
     private static let nonJevFlags: Set<FeatureFlag> = [.zipHandoff, .supportSubmission, .standaloneCapture, .recordingTools, .translationTools, .cloudShare, .automationURLs, .automaticUpdates, .screenshotCopy, .diagnostics, .sessionTitle, .sessionSummary, .updateReminder, .linkedPlan]
 
-    @Test("The zip handoff flag is not dev-only and starts off")
+    @Test("The zip handoff flag is not a Jev flag, is on in both channels, and an override can turn it off")
     func zipHandoffFlag() {
         let spec = FeatureFlag.zipHandoff.spec
         #expect(spec.issue == 85)
-        #expect(spec.devOnly == false)
+        #expect(spec.devOnly == false && spec.parent == nil)
         #expect(spec.allowedStates == [.off, .on])
-        #expect(spec.devDefault == .off)
-        #expect(spec.releaseDefault == .off)
-        // Not dev-only: an override turns it on in a release build too.
-        #expect(FlagResolver.state(of: .zipHandoff, channel: .release) { _ in "on" } == .on)
-        #expect(FlagResolver.state(of: .zipHandoff, channel: .release) { _ in nil } == .off)
+        #expect(spec.devDefault == .on && spec.releaseDefault == .on)
+        #expect(spec.releasedInBuild != nil)
+        #expect(FlagResolver.state(of: .zipHandoff, channel: .dev) { _ in nil } == .on)
+        #expect(FlagResolver.state(of: .zipHandoff, channel: .release) { _ in nil } == .on)
+        // Not dev-only: an override turns it off in a release build too.
+        #expect(FlagResolver.state(of: .zipHandoff, channel: .release) { _ in "off" } == .off)
+        #expect(FeatureFlag.subFlags(of: .zipHandoff).isEmpty)
     }
 
     @Test("The session title flag is not a Jev flag, is on in both channels, and an override can turn it off")

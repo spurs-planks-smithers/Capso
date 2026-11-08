@@ -173,7 +173,10 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
         case .jevSendScreenText:
             FlagSpec(issue: 36, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil, devOnly: true)
         case .zipHandoff:
-            FlagSpec(issue: 85, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
+            // On in both channels (Drew, 2026-11-08, for 0.8.0). The marker
+            // is a placeholder above the 0.7.0 release build (919). The 0.8.0
+            // release commit sets the real number. Nothing reads it at run time.
+            FlagSpec(issue: 85, allowedStates: [.off, .on], devDefault: .on, releaseDefault: .on, releasedInBuild: 927)
         case .supportSubmission:
             FlagSpec(issue: 0, allowedStates: [.off, .on], devDefault: .on, releaseDefault: .on, releasedInBuild: 887)
         case .screenshotCopy:

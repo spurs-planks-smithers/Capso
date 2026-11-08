@@ -10,6 +10,10 @@ Capso's own history (versions 0.1.0 to 1.2.5) is not part of this file. This for
 
 ## [Unreleased]
 
+### Added
+
+- Zip Round in each round's submenu, and Zip N Selected for checked captures, save a zip in your Downloads folder for another Mac, mail, Slack, or Teams. The zip holds the whole prompt, the images, and your notes. It was off by default before.
+
 ### Fixed
 
 - Updating no longer fails with "the item is in use" when you drag Nextshot to Applications while an older copy runs. Open the new DMG: Nextshot quits and asks to install, and a drag or Install both work. This works when you update from this version or later; an older running copy still needs the double-click.
