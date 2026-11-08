@@ -329,8 +329,7 @@ if [[ -n "$last_build" ]]; then
   python3 -I "$markers_py" set "$last_build" "$release_build" "$repo/$flags_rel"
 fi
 python3 -I "$markers_py" notes-date "$new" "$today" "$repo/$notes_rel"
-git -C "$repo" add VERSION CHANGELOG.md "$flags_rel" "$notes_rel"
-git -C "$repo" commit -q -m "chore: release $new" -- VERSION CHANGELOG.md "$flags_rel" "$notes_rel"
+commit_release "$repo" "chore: release $new" VERSION CHANGELOG.md "$flags_rel" "$notes_rel"
 created_commit="$(git -C "$repo" rev-parse HEAD)"
 [[ "$(git -C "$repo" rev-list --count HEAD)" == "$release_build" ]] ||
   rel_fail "the release commit is build $(git -C "$repo" rev-list --count HEAD), but the markers say $release_build"
