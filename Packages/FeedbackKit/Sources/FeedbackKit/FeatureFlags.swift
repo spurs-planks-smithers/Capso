@@ -180,7 +180,7 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
             // On in both channels (Drew, 2026-11-08, for 0.8.0). The marker
             // is a placeholder above the 0.7.0 release build (919). The 0.8.0
             // release commit sets the real number. Nothing reads it at run time.
-            FlagSpec(issue: 85, allowedStates: [.off, .on], devDefault: .on, releaseDefault: .on, releasedInBuild: 927)
+            FlagSpec(issue: 85, allowedStates: [.off, .on], devDefault: .on, releaseDefault: .on, releasedInBuild: 932)
         case .supportSubmission:
             FlagSpec(issue: 0, allowedStates: [.off, .on], devDefault: .on, releaseDefault: .on, releasedInBuild: 887)
         case .screenshotCopy:
@@ -212,12 +212,12 @@ public enum FeatureFlag: String, Sendable, CaseIterable {
             // placeholder above the 0.7.0 release build (919). The 0.8.0
             // release commit sets the real number (scripts/release.sh, issue
             // 281). Nothing reads the number at run time.
-            FlagSpec(issue: 261, allowedStates: [.off, .on], devDefault: .on, releaseDefault: .on, releasedInBuild: 924)
+            FlagSpec(issue: 261, allowedStates: [.off, .on], devDefault: .on, releaseDefault: .on, releasedInBuild: 932)
         case .findCapture:
             // On in both channels (Drew, 2026-11-08, for 0.8.0). The marker
             // is a placeholder above the 0.7.0 release build (919). The 0.8.0
             // release commit sets the real number. Nothing reads it at run time.
-            FlagSpec(issue: 125, allowedStates: [.off, .on], devDefault: .on, releaseDefault: .on, releasedInBuild: 927)
+            FlagSpec(issue: 125, allowedStates: [.off, .on], devDefault: .on, releaseDefault: .on, releasedInBuild: 932)
         case .standaloneCapture, .recordingTools, .translationTools, .cloudShare, .automationURLs, .automaticUpdates:
             FlagSpec(issue: 119, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .off, releasedInBuild: nil)
         }
