@@ -50,6 +50,9 @@ final class ScreenshotHistoryPresentation {
 struct ScreenshotHistoryView: View {
     let presentation: ScreenshotHistoryPresentation
     let actions: FindCaptureActions
+    /// The pointer entered (true) or left (false) a card. The window shows
+    /// the large preview after a short rest (#125, Drew, 2026-11-08).
+    var onHover: (ScreenshotHistoryItem, Bool) -> Void = { _, _ in }
 
     private enum Focus: Hashable {
         case search
@@ -234,6 +237,7 @@ struct ScreenshotHistoryView: View {
             )
         )
         .contentShape(Rectangle())
+        .onHover { inside in onHover(item, inside) }
         .onTapGesture { click(item) }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(appName(item)), \(captureName(item)), \(item.createdAt.formatted(date: .complete, time: .shortened))")

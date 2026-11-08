@@ -48,6 +48,32 @@ public enum HoverPreviewPolicy {
                        y: clamp(y, low: screen.minY, high: screen.maxY - size.height))
     }
 
+    // MARK: - Find Capture window (#125, Drew, 2026-11-08)
+
+    /// How long the pointer rests on a Find Capture card before its preview shows.
+    public static let windowDelay: TimeInterval = 0.5
+    /// The space between a Find Capture preview and the window's edges.
+    public static let windowMargin: CGFloat = 40
+
+    /// The preview box over a window: the window less `windowMargin` on each
+    /// side, and never past the display less `gap`. Larger than the menu's
+    /// box, so the preview shows the capture big, in front of the user.
+    public static func box(over window: CGRect, on screen: CGRect) -> CGSize {
+        CGSize(
+            width: max(0, min(window.width - 2 * windowMargin, screen.width - 2 * gap)),
+            height: max(0, min(window.height - 2 * windowMargin, screen.height - 2 * gap))
+        )
+    }
+
+    /// Where the preview goes over a window: centered on it, then moved to
+    /// stay on the display.
+    public static func origin(for size: CGSize, centeredOn window: CGRect, in screen: CGRect) -> CGPoint {
+        let x = window.midX - size.width / 2
+        let y = window.midY - size.height / 2
+        return CGPoint(x: clamp(x, low: screen.minX, high: screen.maxX - size.width),
+                       y: clamp(y, low: screen.minY, high: screen.maxY - size.height))
+    }
+
     /// The low end wins when the preview is larger than the display.
     private static func clamp(_ value: CGFloat, low: CGFloat, high: CGFloat) -> CGFloat {
         max(low, min(value, high))

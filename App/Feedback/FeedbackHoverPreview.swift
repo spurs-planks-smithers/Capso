@@ -11,13 +11,29 @@ import ImageIO
 ///
 /// The panel takes no clicks, never becomes key, and stays out of screenshots
 /// (`sharingType = .none`). It reads one local file and opens no connection.
+///
+/// The Find Capture window (#125, Drew, 2026-11-08) uses a second instance:
+/// the pointer rests on a card for `HoverPreviewPolicy.windowDelay`, and the
+/// preview shows large, centered on the window.
 @MainActor
 final class FeedbackHoverPreview {
-    private let delay = HoverDelay()
+    /// Where the preview goes. Frames are in screen points.
+    enum Placement {
+        /// Beside a menu, centered on the hovered row.
+        case besideMenu(row: NSRect, menu: NSRect)
+        /// Centered on a window, sized to the window less its margins.
+        case centered(on: NSRect)
+    }
+
+    private let delay: HoverDelay
     private var panel: NSPanel?
     private var imageView: NSImageView?
-    /// The row the pointer is on. A late exit from an old row is ignored.
-    private var currentKey: FeedbackBasketKey?
+    /// The row or card the pointer is on. A late exit from an old one is ignored.
+    private var currentKey: AnyHashable?
+
+    init(delay: TimeInterval = HoverPreviewPolicy.delay) {
+        self.delay = HoverDelay(delay: delay)
+    }
     /// Counts hovers, so a decode that finishes late shows nothing.
     private var generation = 0
     private var decodeTask: Task<Void, Never>?
@@ -29,18 +45,23 @@ final class FeedbackHoverPreview {
 
     /// The pointer entered a row. `rowFrame` and `menuFrame` are in screen points.
     func begin(key: FeedbackBasketKey, imageURL: URL, rowFrame: NSRect, menuFrame: NSRect, screen: NSScreen?) {
+        begin(key: key, imageURL: imageURL, placement: .besideMenu(row: rowFrame, menu: menuFrame), screen: screen)
+    }
+
+    /// The pointer entered a row or a card.
+    func begin(key: AnyHashable, imageURL: URL, placement: Placement, screen: NSScreen?) {
         endAll()
         currentKey = key
         generation += 1
         let generation = generation
         delay.start { [weak self] in
-            self?.show(generation: generation, imageURL: imageURL, rowFrame: rowFrame, menuFrame: menuFrame, screen: screen)
+            self?.show(generation: generation, imageURL: imageURL, placement: placement, screen: screen)
         }
     }
 
     /// A click on the row. A preview that has not shown yet is dropped. One
     /// that shows stays until the pointer leaves.
-    func cancelPending(key: FeedbackBasketKey) {
+    func cancelPending(key: AnyHashable) {
         guard key == currentKey, panel == nil else { return }
         delay.cancel()
         decodeTask?.cancel()
@@ -49,7 +70,7 @@ final class FeedbackHoverPreview {
     }
 
     /// The pointer left a row. Does nothing when the pointer already entered another.
-    func end(key: FeedbackBasketKey) {
+    func end(key: AnyHashable) {
         guard key == currentKey else { return }
         endAll()
     }
@@ -66,14 +87,23 @@ final class FeedbackHoverPreview {
 
     // MARK: - Show
 
-    private func show(generation: Int, imageURL: URL, rowFrame: NSRect, menuFrame: NSRect, screen: NSScreen?) {
+    private func show(generation: Int, imageURL: URL, placement: Placement, screen: NSScreen?) {
         guard generation == self.generation else { return }
-        let visible = (screen ?? NSScreen.main)?.visibleFrame ?? menuFrame.insetBy(dx: -800, dy: -600)
-        let box = HoverPreviewPolicy.box(on: visible)
+        let anchor: NSRect
+        switch placement {
+        case .besideMenu(_, let menu): anchor = menu
+        case .centered(let window): anchor = window
+        }
+        let visible = (screen ?? NSScreen.main)?.visibleFrame ?? anchor.insetBy(dx: -800, dy: -600)
+        let box: CGSize
+        switch placement {
+        case .besideMenu: box = HoverPreviewPolicy.box(on: visible)
+        case .centered(let window): box = HoverPreviewPolicy.box(over: window, on: visible)
+        }
         let scale = screen?.backingScaleFactor ?? 2
 
         if let cached = cachedImage(for: imageURL) {
-            present(cached, rowFrame: rowFrame, menuFrame: menuFrame, visible: visible, box: box)
+            present(cached, placement: placement, visible: visible, box: box)
             return
         }
         // Decode off the main thread. A capture can be several megabytes.
@@ -84,16 +114,22 @@ final class FeedbackHoverPreview {
             }.value
             guard !Task.isCancelled, let self, let decoded, generation == self.generation else { return }
             self.store(decoded.image, for: imageURL)
-            self.present(decoded.image, rowFrame: rowFrame, menuFrame: menuFrame, visible: visible, box: box)
+            self.present(decoded.image, placement: placement, visible: visible, box: box)
         }
     }
 
-    private func present(_ image: NSImage, rowFrame: NSRect, menuFrame: NSRect, visible: NSRect, box: NSSize) {
+    private func present(_ image: NSImage, placement: Placement, visible: NSRect, box: NSSize) {
         // `image.size` is the natural size in points, so a small capture
         // is not enlarged.
         let size = HoverPreviewPolicy.fittedSize(of: image.size, in: box)
         guard size.width > 0, size.height > 0 else { return }
-        let origin = HoverPreviewPolicy.origin(for: size, besideMenu: menuFrame, anchorY: rowFrame.midY, in: visible)
+        let origin: CGPoint
+        switch placement {
+        case .besideMenu(let row, let menu):
+            origin = HoverPreviewPolicy.origin(for: size, besideMenu: menu, anchorY: row.midY, in: visible)
+        case .centered(let window):
+            origin = HoverPreviewPolicy.origin(for: size, centeredOn: window, in: visible)
+        }
         let panel = self.panel ?? makePanel()
         imageView?.image = image
         panel.setFrame(NSRect(origin: origin, size: size), display: true)

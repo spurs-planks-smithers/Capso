@@ -18,9 +18,10 @@ All from Drew on 2026-11-08.
 - A click anywhere on a card toggles its check. The checks are one selection with the Nshot menu's Recent Rounds checks, the basket behind Copy N Selected, Zip N Selected, and Clear Selection. A double-click does nothing special. A click on a card also moves keyboard focus from the search field to the grid, so Space opens Quick Look on the last clicked card and types no space.
 - The bottom bar in selection mode: "N selected", Copy N Selected, Zip N Selected (only with `zipHandoff` on), and Clear.
 - A click on a card's round chip narrows the window to that round's captures. The typed search still applies inside the round. The bar then shows Back (it clears only the round filter), Copy Round Prompt, Zip Round (with `zipHandoff` on), Open Folder, and Resume Round (only when no round is active).
-- No hover preview in the window.
+- No hover preview in the window. Replaced the same day (third Dev check, below).
 - 2026-11-08 (Drew, after the Dev check): a search field at the top of the Nshot menu; Return opens the window with the query; the row stays.
 - 2026-11-08 (Drew, second Dev check): Option+Shift+S opens the menu with the cursor in the search field; standard editing keys work in both fields.
+- 2026-11-08 (Drew, third Dev check): the pointer resting 0.5 seconds on a card shows the annotated image large, centered on the window, less a 40-point margin. Leaving the card, Quick Look, or closing the window hides it. The same day, the first-key lag was fixed (`menuHasKeyEquivalent`), and Option+Shift+S activates Nextshot so the caret blinks.
 
 ## Menu search field
 
@@ -64,7 +65,7 @@ A pure value: the leading label and the buttons, each with its action, title, an
 ## Not done
 
 - The Windows flag list (`scripts/nextshot-flags.ps1`) leaves out `findCapture`. That list must match the Windows registry, which holds only the flags that Windows uses, and Windows has no Find Capture.
-- No hotkey, by decision.
+- No hotkey, by decision. Replaced the same day by Option+Shift+S (second Dev check).
 
 ## Privacy
 

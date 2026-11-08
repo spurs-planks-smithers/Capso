@@ -14,6 +14,8 @@ final class ScreenshotHistoryWindow: NSObject, NSWindowDelegate {
     private var window: ScreenshotHistoryPanel?
     /// Runs each time the window becomes key, so the list reloads.
     var onBecomeKey: (() -> Void)?
+    /// The large preview of the card under the pointer (#125, Drew, 2026-11-08).
+    private let hoverPreview = FeedbackHoverPreview(delay: HoverPreviewPolicy.windowDelay)
 
     var isVisible: Bool { window?.isVisible == true }
 
@@ -39,7 +41,8 @@ final class ScreenshotHistoryWindow: NSObject, NSWindowDelegate {
             panel.delegate = self
             panel.contentView = NSHostingView(rootView: ScreenshotHistoryView(
                 presentation: presentation,
-                actions: actions
+                actions: actions,
+                onHover: { [weak self] item, inside in self?.hover(item, inside: inside) }
             ))
             panel.center()
             window = panel
@@ -52,6 +55,28 @@ final class ScreenshotHistoryWindow: NSObject, NSWindowDelegate {
 
     func windowDidBecomeKey(_ notification: Notification) {
         onBecomeKey?()
+    }
+
+    /// Quick Look, another app, or a closed window hides the preview.
+    func windowDidResignKey(_ notification: Notification) {
+        hoverPreview.endAll()
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        hoverPreview.endAll()
+    }
+
+    /// The pointer rests on a card for half a second: its annotated image
+    /// shows large, centered on the window. Leaving the card hides it. Only
+    /// the key window shows a preview, so Quick Look stays in front.
+    private func hover(_ item: ScreenshotHistoryItem, inside: Bool) {
+        guard inside else {
+            hoverPreview.end(key: item.id)
+            return
+        }
+        guard let window, window.isKeyWindow else { return }
+        hoverPreview.begin(key: item.id, imageURL: item.annotatedURL,
+                           placement: .centered(on: window.frame), screen: window.screen)
     }
 }
 

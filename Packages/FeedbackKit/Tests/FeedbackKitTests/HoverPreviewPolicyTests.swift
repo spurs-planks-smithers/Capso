@@ -108,4 +108,44 @@ struct HoverPreviewPolicyTests {
         #expect(origin.y >= right.minY)
         #expect(origin.y + 360 <= right.maxY)
     }
+
+    // MARK: Find Capture window (#125)
+
+    @Test("The window preview waits half a second")
+    func windowDelay() {
+        #expect(HoverPreviewPolicy.windowDelay == 0.5)
+    }
+
+    @Test("The window box is the window less its margins")
+    func windowBox() {
+        let window = CGRect(x: 200, y: 100, width: 1000, height: 700)
+        #expect(HoverPreviewPolicy.box(over: window, on: screen) == CGSize(width: 920, height: 620))
+    }
+
+    @Test("The window box never passes the display")
+    func windowBoxOnSmallDisplay() {
+        let small = CGRect(x: 0, y: 0, width: 800, height: 600)
+        let window = CGRect(x: 0, y: 0, width: 1200, height: 900)
+        #expect(HoverPreviewPolicy.box(over: window, on: small) == CGSize(width: 784, height: 584))
+    }
+
+    @Test("A window smaller than its margins gives no box")
+    func windowBoxTooSmall() {
+        let window = CGRect(x: 0, y: 0, width: 60, height: 60)
+        #expect(HoverPreviewPolicy.box(over: window, on: screen) == .zero)
+    }
+
+    @Test("The window preview centers on the window")
+    func windowCentered() {
+        let window = CGRect(x: 200, y: 100, width: 1000, height: 700)
+        let origin = HoverPreviewPolicy.origin(for: CGSize(width: 600, height: 400), centeredOn: window, in: screen)
+        #expect(origin == CGPoint(x: 400, y: 250))
+    }
+
+    @Test("A window near the display edge keeps the preview on the display")
+    func windowCenteredClamped() {
+        let window = CGRect(x: 1200, y: 700, width: 400, height: 300)
+        let origin = HoverPreviewPolicy.origin(for: CGSize(width: 600, height: 400), centeredOn: window, in: screen)
+        #expect(origin == CGPoint(x: 840, y: 500))
+    }
 }
