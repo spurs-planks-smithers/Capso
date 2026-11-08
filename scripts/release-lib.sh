@@ -23,6 +23,20 @@ rel_fail() {
   exit 1
 }
 
+# --- Release commit -------------------------------------------------------
+
+# commit_release <repo> <message> <path>...: stages exactly these paths and
+# commits only them. Upstream's .gitignore ignores every docs/ folder, which
+# covers site/guides/src/content/docs. A plain `git add` of a tracked file
+# there exits 1, and that stopped the 0.8.0 release run on 2026-11-08 before
+# its commit. So the add uses -f; the paths are named one by one, so nothing
+# else is added.
+commit_release() {
+  local repo="$1" message="$2"
+  shift 2
+  git -C "$repo" add -f -- "$@" && git -C "$repo" commit -q -m "$message" -- "$@"
+}
+
 # --- SemVer ---------------------------------------------------------------
 
 # True when $1 is MAJOR.MINOR.PATCH with no leading zero and a MAJOR under 100,

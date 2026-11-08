@@ -171,6 +171,30 @@ expect "notes-date leaves the older version's date" 1 "$(grep -c 'November 6, 20
 is_false "notes-date refuses a bad date" python3 -I "$markers_py" notes-date 0.8.0 08-11-2026 "$tmp/release-notes.mdx"
 is_false "notes-date refuses a missing version" python3 -I "$markers_py" notes-date 0.9.0 2026-11-08 "$tmp/release-notes.mdx"
 
+# --- The release commit and an ignored docs/ folder (2026-11-08) ---
+# Upstream ignores every docs/ folder. The 0.8.0 run stopped when a plain
+# `git add` of the tracked Guides release notes exited 1.
+gitrepo="$tmp/gitrepo"
+mkdir -p "$gitrepo/site/docs"
+git -C "$gitrepo" init -q
+git -C "$gitrepo" config user.name "release test"
+git -C "$gitrepo" config user.email "release-test@example.invalid"
+printf 'docs/\n' >"$gitrepo/.gitignore"
+printf '0.7.0\n' >"$gitrepo/VERSION"
+printf 'notes\n' >"$gitrepo/site/docs/release-notes.mdx"
+printf 'other\n' >"$gitrepo/other.txt"
+git -C "$gitrepo" add .gitignore VERSION other.txt
+git -C "$gitrepo" add -f site/docs/release-notes.mdx
+git -C "$gitrepo" commit -q -m "init"
+printf '0.8.0\n' >"$gitrepo/VERSION"
+printf 'notes\ndated\n' >"$gitrepo/site/docs/release-notes.mdx"
+printf 'changed\n' >"$gitrepo/other.txt"
+is_false "a plain git add of a file under docs/ fails, as on 2026-11-08" git -C "$gitrepo" add VERSION site/docs/release-notes.mdx
+is_true "commit_release commits a file under an ignored docs/ folder" commit_release "$gitrepo" "chore: release 0.8.0" VERSION site/docs/release-notes.mdx
+expect "the release commit holds exactly the named files" "site/docs/release-notes.mdx
+VERSION" "$(git -C "$gitrepo" show --name-only --format= HEAD | sort -r)"
+expect "a file that was not named stays out of the commit" " M other.txt" "$(git -C "$gitrepo" status --short)"
+
 # --- Release record ---
 dmg="$tmp/Nextshot-0.3.0.dmg"
 zip="$tmp/Nextshot-0.3.0.zip"
