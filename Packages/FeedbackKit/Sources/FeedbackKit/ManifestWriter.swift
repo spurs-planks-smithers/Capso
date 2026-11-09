@@ -59,18 +59,31 @@ public enum ManifestWriter {
         } else {
             lines.append("One annotated image per capture. Open each by its path, or attach them with your agent's image input.")
             lines.append("")
-            lines += round.captures.map { "- `\(paths.file($0.imageFile))`" }
+            lines += round.captures.map { "- `\(paths.file(annotatedFile(for: $0, paths: paths)))`" }
         }
 
         for capture in round.captures {
             lines.append("")
-            lines += section(capture, timeZone: timeZone)
+            lines += section(capture, paths: paths, timeZone: timeZone)
         }
         return lines.joined(separator: "\n") + "\n"
     }
 
-    static func section(_ capture: FeedbackCapture, timeZone: TimeZone) -> [String] {
+    /// The file this bundle's text calls the capture's annotated image. It is
+    /// the covered copy when the data guard wrote one (#81): the annotated PNG
+    /// still shows the private data the guard covered, and the covered copy
+    /// holds the same marks over solid boxes. A zip export never holds a Jev
+    /// file, so it always names the annotated image.
+    static func annotatedFile(for capture: FeedbackCapture, paths: BundlePathMode) -> String {
+        guard let folderPath = paths.folderPath else { return capture.imageFile }
+        let covered = PromptBuilder.coveredFile(for: capture)
+        let full = (folderPath as NSString).appendingPathComponent(covered)
+        return FileManager.default.fileExists(atPath: full) ? covered : capture.imageFile
+    }
+
+    static func section(_ capture: FeedbackCapture, paths: BundlePathMode, timeZone: TimeZone) -> [String] {
         let (items, otherMarks) = FeedbackItems.split(capture)
+        let annotated = annotatedFile(for: capture, paths: paths)
         let name = FeedbackNaming.captureName(
             windowTitle: capture.windowTitle,
             sourceApp: capture.sourceApp,
@@ -81,7 +94,7 @@ public enum ManifestWriter {
         var lines = [
             "## \(name)",
             "",
-            "Image: \(capture.imageFile) (annotated), \(capture.cleanImageFile) (no marks), \(capture.size.width)x\(capture.size.height) px",
+            "Image: \(annotated) (annotated), \(capture.cleanImageFile) (no marks), \(capture.size.width)x\(capture.size.height) px",
             "Item prefix: \(capture.index) (badge N is item \(capture.index).N)",
             "Source: \(source(capture))",
             "Note: \(capture.note.map(singleLine) ?? missing)",
@@ -91,7 +104,7 @@ public enum ManifestWriter {
         if items.isEmpty {
             lines.append("Items: n/a (no numbered badges on this capture)")
         } else {
-            lines.append("| Item | Where in \(capture.imageFile) (px, x1 y1 x2 y2) | Text under the mark (OCR) | Instruction |")
+            lines.append("| Item | Where in \(annotated) (px, x1 y1 x2 y2) | Text under the mark (OCR) | Instruction |")
             lines.append("|---|---|---|---|")
             for item in items {
                 let ocr = item.ocrText.map { "\"\(cell(screenText($0)))\"" } ?? missing
