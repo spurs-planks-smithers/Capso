@@ -163,6 +163,7 @@ has_notary_profile() { xcrun notarytool history --keychain-profile "$profile"; }
 route_ok() { github-route status; }
 changelog_ready() { python3 -I "$repo/scripts/release-changelog.py" check "$repo/CHANGELOG.md"; }
 
+
 run_tests() {
   local log="$repo/build/release-tests.log"
   mkdir -p "$repo/build"
@@ -170,7 +171,8 @@ run_tests() {
   {
     "$repo/scripts/test-nextshot-version.sh"
     bash "$repo/scripts/test-release.sh"
-    node --test "$repo/site/test/releases.test.mjs"
+    # Every site test file, so a new one is run without editing this list.
+    node --test "$repo"/site/test/*.test.mjs
     swift test --package-path "$repo/Packages/FeedbackKit"
     swift test --package-path "$repo/Packages/JevKit"
     # An optimizer bug lost a dupes result in Release only, on 2026-10-25.
@@ -188,6 +190,7 @@ need "Developer ID certificate in the keychain" has_cert
 need "notary profile '$profile'" has_notary_profile
 need "GitHub route is the personal account" route_ok
 need "CHANGELOG.md has an entry under Unreleased" changelog_ready
+need "LICENSE carries the Business Source License terms" license_ready "$repo/LICENSE"
 r2_login
 need "R2 bucket $release_bucket is reachable" r2_reachable
 

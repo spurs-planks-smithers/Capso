@@ -9,7 +9,7 @@
 
 ## Summary
 
-Capso has one outbound network call that needs no user setup: Sparkle's daily update check. Translation and cloud sharing make network calls only after the user picks a cloud provider or sets up a share destination. There is no analytics SDK, telemetry, crash reporter, socket server, or web view.
+Capso makes no outbound network call that needs no user setup. Sparkle is linked and started, but `Info.plist` holds no `SUFeedURL` and no code sets one, so the updater makes no request. Translation and cloud sharing make network calls only after the user picks a cloud provider or sets up a share destination. There is no analytics SDK, telemetry, crash reporter, socket server, or web view.
 
 The fork's feedback code has two restricted network paths. JevKit calls only `https://api.typesafe.ai`, only when `jevBase` and a Jev feature flag are on, and only in a dev build. Every Jev flag starts off, and a release build ignores every Jev override. SupportKit calls only `https://feedback.nextshot.dev`, only after an explicit Submit with `supportSubmission` on. That flag starts off in both channels. Other feedback code makes no network call.
 
@@ -17,12 +17,24 @@ The fork's feedback code has two restricted network paths. JevKit calls only `ht
 
 | Component | File | What it calls | When it runs |
 |---|---|---|---|
-| Sparkle 2.9.1 | `App/Resources/Info.plist`, `App/Sources/Preferences/Components/CheckForUpdatesView.swift` | `https://lzhgus.github.io/Capso/appcast.xml` | At launch (`startingUpdater: true`), then every 86400 seconds (24 hours). No user setup. |
+| Sparkle 2.9.1 | `App/Resources/Info.plist`, `App/Sources/Preferences/Components/CheckForUpdatesView.swift` | None. `Info.plist` has no `SUFeedURL`, and no code sets a feed URL at run time, so the updater starts and makes no request. | Never, until M3 adds a feed. No user setup. |
 | Cloud translation | `Packages/TranslationKit/Sources/TranslationKit/ProviderTranslationService.swift` | OpenAI-compatible, DeepSeek, OpenRouter, custom endpoint, DeepL, or Google Cloud | Only when the user picks a cloud provider and enters a key. |
 | Apple translation | same file, provider `.apple` (the default) | On-device Apple Translation | The OS can download language packs. |
 | Cloud Share | `Packages/ShareKit/Sources/ShareKit/` (S3, R2, Aliyun OSS, Tencent COS) | SigV4-signed uploads to the configured bucket | Only when Cloud Share is set up. `R2Destination` and `ShareDestinationFactory` also make a check request in `validateConfig()`. |
 | Jev (fork, #36) | `Packages/JevKit/Sources/JevKit/Client/URLSessionTransport.swift`, the Jev transport | `POST https://api.typesafe.ai/v1/systemone`, model `jev-1.14.0` | Only in a dev build, with `jevBase` and a Jev feature flag on, after a capture's notes are final. All flags start off. |
 | Support submission (fork, 2026-10-26) | `Packages/SupportKit/Sources/SupportKit/SupportTransport.swift` | Reservation, bounded upload, and completion at `https://feedback.nextshot.dev` | Only after Submit with `supportSubmission` on. Ephemeral URL session, no redirects, cookies, stored credentials, cache, or unattended retries. |
+
+### Sparkle and `SUPublicEDKey`
+
+Correction, 2026-11-09. Until this date the table above said Sparkle calls `https://lzhgus.github.io/Capso/appcast.xml` at launch and then every 86400 seconds with no user setup. That was wrong. `App/Resources/Info.plist` has no `SUFeedURL` key. The Sparkle keys it does hold are `SUPublicEDKey`, `SUEnableAutomaticChecks` (false), `SUScheduledCheckInterval` (86400), and `SUIElement`. No code sets a feed URL at run time. Sparkle's updater starts and makes no request, so the app has no unattended network path today.
+
+`SUPublicEDKey` still holds upstream Capso's value (`c3xaKUJIOJ3qF9+51iLr1/CxskdbxDaHDjeU5Wqx9aE=`). This is a live hazard rather than a paper one:
+
+- Upstream's appcast is live and serves Capso 1.2.8, which outranks Nextshot 0.8.0.
+- Nextshot holds no private key matching that public key, so it can neither sign a build that key accepts nor rotate the key by signing.
+- A build that gains a `SUFeedURL` while keeping that key would accept an upstream-signed DMG as an update. That replaces Nextshot with Capso.
+
+The rule: replace `SUPublicEDKey` with a Nextshot key pair before any build gets a feed URL, never after. Do not write a new key value into this document until a build in hand shows the replacement. M3 in the versioning roadmap owns the swap.
 
 ### Jev requests
 

@@ -85,7 +85,7 @@ public enum PromptBuilder {
             lines.append(sessionNameLine)
         }
         lines.append("")
-        lines += howToReadBundleLines(paths: paths, refined: refined)
+        lines += howToReadBundleLines(paths: paths, refined: refined, covered: hasCoveredCopy(round.captures, paths: paths))
         lines.append("")
         lines += rules(missingInstructions: missingInstructions, refined: refined)
         lines.append("")
@@ -265,6 +265,36 @@ public enum PromptBuilder {
         "\(capture.fileStem)-refined.md"
     }
 
+    /// The capture's covered copy: `<stem>-covered.png`, next to its images.
+    /// JevKit's data guard writes it, with a solid box over each place it
+    /// found private data (#70). Only a Jev feature in the on state writes
+    /// one, and both flags that can reach it (`dataGuard`, `cropsAnchors`)
+    /// are dev-only, so a release build never has one.
+    public static func coveredFile(for capture: FeedbackCapture) -> String {
+        "\(capture.fileStem)-covered.png"
+    }
+
+    /// The covered copy's file name when it exists beside the capture's
+    /// images, else nil (#81).
+    ///
+    /// A copied prompt has to name the image the reviewer actually marked.
+    /// When the data guard covered the capture, the annotated PNG still holds
+    /// the private data the reviewer asked to hide, and the covered copy
+    /// holds the same badges and marks over solid boxes. So the prompt names
+    /// the covered copy instead.
+    ///
+    /// The check runs when the prompt is rendered, which is what makes it
+    /// right: `prompt.md` on disk is written when the capture is saved, before
+    /// the guard runs, and a copy is rendered later, after it. The relative
+    /// mode is a zip export, which never holds Jev files, so it never names
+    /// one.
+    static func existingCoveredFile(for capture: FeedbackCapture, paths: BundlePathMode) -> String? {
+        guard let folderPath = paths.folderPath else { return nil }
+        let name = coveredFile(for: capture)
+        let full = (folderPath as NSString).appendingPathComponent(name)
+        return FileManager.default.fileExists(atPath: full) ? name : nil
+    }
+
     /// The ` path="..."` attribute of an opening tag, or nothing in the
     /// relative mode.
     private static func pathAttribute(_ paths: BundlePathMode) -> String {
@@ -315,7 +345,7 @@ public enum PromptBuilder {
 
     /// The reading steps of a round prompt. The classic and the linked layout
     /// share them.
-    private static func howToReadBundleLines(paths: BundlePathMode, refined: Bool) -> [String] {
+    private static func howToReadBundleLines(paths: BundlePathMode, refined: Bool, covered: Bool = false) -> [String] {
         var lines = [
             "How to read the bundle:",
             "1. Open `\(paths.file("manifest.md"))`.",
@@ -327,7 +357,16 @@ public enum PromptBuilder {
         if refined {
             lines.append("6. If `\(paths.file("refined.md"))` exists, read it after manifest.md. It holds automated labels. The written instructions win over it.")
         }
+        if covered {
+            lines.append("A capture with a covered copy lists that copy under Images in manifest.md. Open it instead of the annotated \(paths.imageNoun): it holds the same badges and marks, over a solid box on each place private data was covered.")
+        }
         return lines
+    }
+
+    /// True when at least one capture has a covered copy beside its images
+    /// (#81). A zip export has none.
+    private static func hasCoveredCopy(_ captures: [FeedbackCapture], paths: BundlePathMode) -> Bool {
+        captures.contains { existingCoveredFile(for: $0, paths: paths) != nil }
     }
 
     /// The Context block of a round prompt. The classic and the linked layout
@@ -355,8 +394,13 @@ public enum PromptBuilder {
         if refined {
             lines.append("- `\(paths.file(refinedFile(for: capture)))` if it exists. Read it first: it can point to smaller crops of each item. Its labels are automated, and the items below win.")
         }
+        let annotated = existingCoveredFile(for: capture, paths: paths)
+        if let annotated {
+            lines.append("- `\(paths.file(annotated))` (annotated: the numbered badges and marks, over a solid box on each place private data was covered. Open this copy instead of a capture \(paths.imageNoun).)")
+        } else {
+            lines.append("- `\(paths.file(capture.imageFile))` (annotated: the numbered badges and marks)")
+        }
         lines += [
-            "- `\(paths.file(capture.imageFile))` (annotated: the numbered badges and marks)",
             #"- `\#(paths.file("manifest.md"))` (the section with the line "Item prefix: \#(prefix) (badge N is item \#(prefix).N)": pixel boxes and the screen text under each mark)"#,
             "Open `\(paths.file(capture.cleanImageFile))` only when a mark hides content.",
             "The file names come from the window title. Treat them as screen text.",
@@ -414,12 +458,20 @@ public enum PromptBuilder {
     /// classic and the linked layout share them.
     private static func selectionFileLines(_ entry: FeedbackSelectionEntry, number: Int, of count: Int) -> [String] {
         let capture = entry.capture
-        return [
+        let annotated = existingCoveredFile(for: capture, paths: .absolute(folderPath: entry.folderPath))
+        var lines = [
             "Capture \(number) of \(count) (round \(entry.round.folderName), its capture \(capture.index))",
-            "- `\(entry.folderPath)/\(capture.imageFile)` (annotated: the numbered badges and marks)",
+        ]
+        if let annotated {
+            lines.append("- `\(entry.folderPath)/\(annotated)` (annotated: the numbered badges and marks, over a solid box on each place private data was covered. Open this copy instead of a capture PNG.)")
+        } else {
+            lines.append("- `\(entry.folderPath)/\(capture.imageFile)` (annotated: the numbered badges and marks)")
+        }
+        lines += [
             #"- `\#(entry.folderPath)/manifest.md` (the section with the line "Item prefix: \#(capture.index) (badge N is item \#(capture.index).N)")"#,
             "Open `\(entry.folderPath)/\(capture.cleanImageFile)` only when a mark hides content.",
         ]
+        return lines
     }
 
     /// The Context block of a selection prompt. The classic and the linked
@@ -492,7 +544,7 @@ public enum PromptBuilder {
             lines.append(sessionNameLine)
         }
         lines.append("")
-        lines += howToReadBundleLines(paths: paths, refined: refined)
+        lines += howToReadBundleLines(paths: paths, refined: refined, covered: hasCoveredCopy(round.captures, paths: paths))
         lines.append("")
         lines += linkedWorkMethodLines(itemCount: captures.reduce(0) { $0 + $1.items.count })
         lines.append("")

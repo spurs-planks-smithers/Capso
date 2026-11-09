@@ -25,6 +25,25 @@ expect() { # <label> <want> <got>
 is_true() { if "${@:2}" 2>/dev/null; then pass "$1"; else bad "$1 (was false)"; fi; }
 is_false() { if "${@:2}" 2>/dev/null; then bad "$1 (was true)"; else pass "$1"; fi; }
 
+# --- LICENSE ---
+# The released app ships LICENSE as Resources/LICENSE.txt, so a gutted license
+# would be distributed. a069ecb reduced it to "TBD" and 0.8.0 shipped that.
+is_true "the repo LICENSE carries the BSL terms" license_ready "$repo/LICENSE"
+printf 'TBD\n' >"$tmp/license-tbd"
+is_false "a LICENSE that says TBD is not ready" license_ready "$tmp/license-tbd"
+is_false "a missing LICENSE is not ready" license_ready "$tmp/license-absent"
+sed '/^Licensor:/d' "$repo/LICENSE" >"$tmp/license-no-licensor"
+is_false "a LICENSE with no Licensor line is not ready" license_ready "$tmp/license-no-licensor"
+sed '/^Change License:/d' "$repo/LICENSE" >"$tmp/license-no-change"
+is_false "a LICENSE with no Change License is not ready" license_ready "$tmp/license-no-change"
+is_true "NOTICE credits the upstream Licensor" grep -q "Licensor:" "$repo/NOTICE"
+is_true "NOTICE names the upstream Licensed Work" grep -q "Licensed Work: Capso" "$repo/NOTICE"
+is_true "NOTICE links upstream" grep -q "lzhgus/Capso" "$repo/NOTICE"
+is_true "the app ships LICENSE inside the bundle" \
+  grep -q 'cp "$repo/LICENSE" "$app/Contents/Resources/LICENSE.txt"' "$repo/scripts/release-notarized.sh"
+is_true "the app ships NOTICE inside the bundle" \
+  grep -q 'cp "$repo/NOTICE" "$app/Contents/Resources/NOTICE.txt"' "$repo/scripts/release-notarized.sh"
+
 # --- SemVer ---
 is_true "0.3.0 is a version" semver_ok 0.3.0
 is_true "99.0.0 is a version" semver_ok 99.0.0

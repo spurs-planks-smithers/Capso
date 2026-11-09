@@ -1,0 +1,15 @@
+# Nextshot review owners.
+# A release touches the version, the changelog, and the round format, so those
+# need Drew's review even when a collaborator can merge everything else.
+# See docs/releasing.md.
+
+# Release path: the runbook, the number, the notes, and the flag markers.
+/scripts/release.sh                @spurs-planks-smithers
+/scripts/release-lib.sh            @spurs-planks-smithers
+/scripts/release-notarized.sh      @spurs-planks-smithers
+/scripts/release-markers.py        @spurs-planks-smithers
+/VERSION                           @spurs-planks-smithers
+/CHANGELOG.md                      @spurs-planks-smithers
+
+# The round format, flags, and prompts that every bundle and zip depends on.
+/Packages/FeedbackKit/             @spurs-planks-smithers

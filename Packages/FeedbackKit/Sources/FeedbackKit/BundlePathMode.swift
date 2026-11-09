@@ -54,4 +54,13 @@ public enum BundlePathMode: Sendable, Equatable {
         case .relative: nil
         }
     }
+
+    /// The bundle folder on disk, or nil for a zip export. A caller that
+    /// checks for a file beside the images needs it.
+    var folderPath: String? {
+        switch self {
+        case .absolute(let folderPath): folderPath
+        case .relative: nil
+        }
+    }
 }
