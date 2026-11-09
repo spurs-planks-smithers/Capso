@@ -12,8 +12,9 @@
 # network. The disk image comes from dmgbuild, which the script installs into
 # build/tools/dmgbuild on first use (needs python3).
 #
-# The steps follow upstream's .github/workflows/build-release.yml. The name
-# and bundle ID come from scripts/local-project.yml. DEVELOPMENT_TEAM comes
+# The steps follow upstream's release workflow, which this fork removed on
+# 2026-11-09 because it published to the upstream author's repositories (#292).
+# The name and bundle ID come from scripts/local-project.yml. DEVELOPMENT_TEAM comes
 # from scripts/local-signing.env, which git ignores.
 #
 # The version comes from the VERSION file (scripts/nextshot-version.sh). Edit
