@@ -2,11 +2,11 @@
 
 **Local testing correction, 2026-10-28:** Drew's 2026-10-27 rule permits only Nextshot Dev on m5pro. Older acceptance steps involving both installed apps require another approved Mac. Follow [[local-development]].
 
-Date: 2026-10-25. Updated 2026-10-30. Owner: Drew. The decisions are in [docs/decisions/2026-10-25-versioning-and-releases.md](../decisions/2026-10-25-versioning-and-releases.md). This plan turns them into milestones. M1 and M2 are built and shipped with 0.3.0. M3 to M5 are plans.
+Date: 2026-10-25. Updated 2026-11-09. Owner: Drew. The decisions are in [docs/decisions/2026-10-25-versioning-and-releases.md](../decisions/2026-10-25-versioning-and-releases.md). This plan turns them into milestones. M1 and M2 are built and shipped with 0.3.0. M3 is open and is the top priority. M4 is nearly finished: everything but the fork packages' CI test is done. M5 is open, and its license gate is overdue.
 
 ## Where we are
 
-Nextshot has shipped 0.3.0, 0.4.0, and 0.5.0 with the release command. The history reads:
+Nextshot has shipped 0.3.0 through 0.8.0 with the release command. The history reads:
 
 | Version | What people got | Date |
 |---|---|---|
@@ -15,10 +15,24 @@ Nextshot has shipped 0.3.0, 0.4.0, and 0.5.0 with the release command. The histo
 | 0.3.0 | The in-place DMG installer and update (build 751) | 2026-10-26 |
 | 0.4.0 | Website Guides and guarded support submission | 2026-10-27 |
 | 0.5.0 | Show More in Recent Rounds and reviewed support submission | 2026-10-28 |
+| 0.6.0 | Capture Same Area Again (Option+Shift+G), the offline update reminder, and the `Session Name:` line with an on-device summary. The site gained the one system-matched Download button (Download on a Mac, Coming soon on Windows) and the version-first stats page. | 2026-11-01 |
+| 0.7.0 | Copy Selected, Zip Selected, and Clear Selection at the top of every round's submenu, hover preview in a submenu, round keys working while the note panel is open, five-word round names, and the three gray menu lines removed. | 2026-11-06 |
+| 0.8.0 | Zip Round and Zip N Selected on by default, Find Capture with a menu search field and Option+Shift+S, the linked-plan prompt layout on by default, and the drag-to-Applications update fix. Build 932, commit `0789d34`. | 2026-11-08 |
 
 The date of a release is the UTC date of the `scripts/release.sh` run (`date -u`). `CHANGELOG.md` and the release record carry that date. The 0.3.0 run started at 21:01 on 2026-10-25 in Pacific time, so 0.3.0 reads 2026-10-26, while its commit and tag carry the local date 2026-10-25.
 
 The site shows the version in `latest.json`. Download counts are at nextshot.dev/stats.
+
+### The distribution picture, 2026-11-09
+
+Read from nextshot.dev/stats and the release notes:
+
+- **157 human downloads in total, ever.** 71 more came from bots and link previews, which the page counts apart.
+- People per version, which is the decay: 2026.10.22 **27**, 2026.10.24 **18**, 0.3.0 **39**, 0.4.0 **18**, 0.5.0 **29**, 0.6.0 **16**, 0.7.0 **6**, 0.8.0 **4**. The `0.3.0` spike is the launch of the site and its one-command install; every release after it reached fewer people than the one before.
+- By day, the last 30 days: 12–30 people a day from 2026-10-23 through 2026-10-29, then a fall to **1–4 people a day** from 2026-10-31 on. The three best days are all in the first week the site existed.
+- The numbers are people who press Download. An install cannot be counted, and Nextshot makes no request after launch, so nobody knows how many people actually run it.
+
+That shape is the reason **M3 is the top priority, ahead of M5**. A person who installed 0.3.0 and never heard about 0.4.0 through 0.8.0 cannot benefit from any of it, and the reminder added in 0.6.0 only reaches people who already installed 0.6.0. Six releases of work have reached a shrinking audience. Sparkle is the only thing on this list that changes that without a new download, a post, or a mailing.
 
 ## What the user sees
 
@@ -89,6 +103,8 @@ To undo a site deploy by hand: `wrangler rollback`.
 
 ### M3: Automatic Updates
 
+**Top priority as of 2026-11-09.** The distribution picture above is the reason: every release since 0.3.0 reached fewer people than the one before, and the daily count has fallen to 1–4. A release that nobody installs cannot improve the app. Sparkle is the only item on this roadmap that reaches an already-installed copy.
+
 Goal: a person who has installed the first Sparkle build gets every later version without a new download.
 
 Update 2026-11-07: the version numbers that this section used (0.3.0, 0.4.0) were examples from the 0.3.0 plan. Releases 0.3.0 to 0.7.0 are out, and none can update itself: `Info.plist` has no `SUFeedURL`, and the release command writes no `appcast.xml`. The first Sparkle build is a later release. The text below names no version, so it stays true whichever release that is.
@@ -113,13 +129,23 @@ People on any build before the first Sparkle build update by hand once, to that 
 
 Goal: another person can contribute and Drew can still release.
 
+Status 2026-11-09: **partly finished, and one item is not done.** Verified against the repo rather than assumed:
+
+- `docs/releasing.md` — written 2026-11-09. It covers the seven release steps, recovering the Developer ID certificate, the notary profile, the Cloudflare token, and (from M3) the Sparkle key, and rolling back with `scripts/release.sh --promote <version>`.
+- The PR rule — the checklist line is in `.github/PULL_REQUEST_TEMPLATE.md`, and `CHANGELOG.md` states the rule in its header.
+- `CODEOWNERS` — added at the repository root. It covers `scripts/release.sh` and its helper scripts, `VERSION`, `CHANGELOG.md`, and `Packages/FeedbackKit/`. It needs a branch-protection rule in the repository settings before GitHub blocks a merge; a `CODEOWNERS` file alone only requests a review.
+- **Not done: CI runs no fork package test.** `.github/workflows/ci.yml` tests SharedKit, AnnotationKit, CaptureKit, RecordingKit, OCRKit, and `CapsoTests`. It does **not** run `swift test --package-path Packages/FeedbackKit` or `Packages/JevKit`, which between them hold 819 tests (449 and 370). A pull request that breaks the round format, the prompt writers, the flag registry, or a Jev job gets a green CI. This is the one M4 row still open, and it is not a signing question, so "tests only in CI" does not block it.
+- **Signing stays out of CI.** The certificate, the notary profile, and the Cloudflare token are one person's, and `scripts/release.sh` asks a question on a terminal before publishing anything.
+- **The CI release job question is answered by the existing code, not by a new decision record.** `.github/workflows/build-release.yml` is upstream Capso's workflow and is **retired**. It triggers on `v*` tags, this fork tags `nextshot-v*`, and every repository it names is `lzhgus`'s, so it has never run here and could not have: it was never this fork's release path. No CI release job is planned. The one-command local release is the path, and `docs/releasing.md` is its runbook.
+- **A related cost the deferral should account for:** the `windows` and `windows-capture-smoke` jobs in `ci.yml` run `dotnet test` and a GDI capture smoke test on `windows-latest` whenever `Windows/**` **or `Packages/FeedbackKit/**`** changes. FeedbackKit is the most active package in the fork, so nearly every feature PR currently buys a full Windows .NET build for a track that is now deferred. GitHub already disabled this fork's workflows once for Actions usage (2026-11-03 to 2026-11-06). Dropping `Packages/FeedbackKit/**` from the `windows` filter, or parking the Windows jobs with the rest of the track, is a small change with a real saving. Not made here: it changes CI coverage, which is Drew's call, and another session may hold `ci.yml`.
+
 | Task | Size | Done when |
 |---|---|---|
 | Add `docs/releasing.md`: the runbook, the recovery steps for the certificate and the keys, and the rollback steps. | S | A second person can follow it on paper. |
 | Add a PR rule: a user-facing change adds one line under `Unreleased` in `CHANGELOG.md`. Check it in a PR template. | S | The template shows the line. |
-| Turn on GitHub Actions for tests only: FeedbackKit, JevKit, and the CI package set. No signing in CI. | M | A PR shows a test result. |
+| Turn on GitHub Actions for tests only: FeedbackKit, JevKit, and the CI package set. No signing in CI. | M | A PR shows a test result. **Open:** the CI package set runs, but FeedbackKit and JevKit do not. |
 | Back up the Developer ID certificate (.p12) and the notary credentials in 1Password. | S | A restore test on a clean Keychain signs an app. |
-| Add `CODEOWNERS` so `scripts/release.sh`, `VERSION`, and `CHANGELOG.md` need Drew's review. | S | A PR that edits `VERSION` asks Drew. |
+| Add `CODEOWNERS` so `scripts/release.sh`, `VERSION`, `CHANGELOG.md`, and `Packages/FeedbackKit` need Drew's review. | S | A PR that edits `VERSION` asks Drew. |
 | Decide whether a CI release job is worth its risk. | S | A short note in `docs/decisions/`. |
 
 ### M5: 1.0 Readiness
@@ -128,7 +154,7 @@ Goal: every gate is true. Then Drew decides the date. 1.0.0 is a decision, not a
 
 | Gate | Check |
 |---|---|
-| The license path is decided and carried out: a commercial grant from lzhgus, the clean-room rebuild, or staying free. Decided by 0.8. | A signed grant, a rebuilt codebase, or a dated note that says "free". |
+| The license path is decided and carried out: a commercial grant from lzhgus, the clean-room rebuild, or staying free. **Overdue since 0.8.** Options drafted 2026-11-09 in `docs/decisions/2026-11-09-license-path.md`; the decision is Drew's and is still pending. | A signed grant, a rebuilt codebase, or a dated note that says "free". |
 | Sparkle updated at least two real releases in place. | The M3 test, repeated on a clean Mac. |
 | The scope is frozen: every flag is on in release, removed, or documented as dev-only for good. | `FeatureFlag` has no entry with an open decision. |
 | No open `sev-blocker` or `sev-bug` issue. | `gh issue list` with those labels returns nothing. |
@@ -140,9 +166,8 @@ Expected path (a guide, not a promise): 0.3 is the numbered start, 0.4 adds Spar
 ### Later
 
 - Delta updates in Sparkle, when download size starts to matter.
-- A CI release job.
-- A Windows build, with its own version line.
 - A beta channel in the appcast for testers.
+- A Windows build, with its own version line. **Deferred**, with the Chrome extension: `docs/decisions/2026-11-09-defer-windows-and-chrome.md`. Windows has no shipping download, no owner, and 30 open issues carrying the `deferred` label. It reopens when a named owner takes it or someone paying asks for it.
 
 ## Release day, as it will read
 
@@ -163,10 +188,12 @@ A bad release gets a rollback first (`--promote` the old version), then a new PA
 | Fast-forwarding `main` is a push. | Ask Drew at the start of M1. Run `github-route status` first. |
 | The first production DMG on Drew's Mac replaces a dev-signed copy that has the production bundle ID. | Expect one more screen recording prompt, once. After that, the split removes the prompts. |
 | The version drop from 2026.10.24 to 0.3.0 confuses a version-first comparison in old copies. | Old copies have no `LaunchPlan`. The new copy on the image does the replacing and compares builds. The bridge test proved it on 2026-10-25: 751 beat 524 although the version text fell from 2026.10.24 to 0.3.0. |
-| `SUPublicEDKey` in Info.plist is an upstream file. | Log the edit. Keep it a one-line change at the hook point. |
-| One person holds all the signing keys. | M4 backs them up and writes the recovery steps. |
+| `SUPublicEDKey` in Info.plist is an upstream file, and it still holds upstream's value. | Log the edit. Keep it a one-line change at the hook point. **Live hazard, 2026-11-09:** upstream's appcast is live and serves 1.2.8, which outranks 0.8.0. No feed is configured, so nothing reads the key today, but the moment a `SUFeedURL` is added that key would accept upstream's signed DMG. Swap the key and add the feed in the same change. `docs/SECURITY_BASELINE.md` records this. |
+| One person holds all the signing keys. | M4 backs them up, and `docs/releasing.md` writes the recovery steps. |
 | The DMG grows past 25 MiB. | R2 has no such limit. The Worker streams from R2. |
-| The license may bar a paid launch. | The 1.0 gate decides it by 0.8. The numbering works with any answer. |
+| The license may bar a paid launch. | **Overdue.** The 1.0 gate asked for a decision by 0.8, and 0.8.0 shipped 2026-11-08 without one. Options are drafted in `docs/decisions/2026-11-09-license-path.md`; the decision is Drew's. Separately, `LICENSE` held the four bytes `TBD` from `a069ecb` (2026-10-29) until branch `fix/restore-license-text` (`6de8a22`, 2026-11-09) put the BSL 1.1 text back and added a `NOTICE`, so **0.8.0 ships a license file that says "TBD"** and the next release is the remedy. The release preflight now refuses to ship a missing license. Restoring the text did not wait on the decision, and the decision is still open. |
+| Releases reach a shrinking audience. | M3 is the answer and is now the top priority. See the distribution picture above. |
+| A deferred track quietly becomes urgent. | `deferred` is a label, not a closure: the issues stay open with their full detail, and `docs/decisions/2026-11-09-defer-windows-and-chrome.md` names what reopens them. |
 
 ## Open questions
 
