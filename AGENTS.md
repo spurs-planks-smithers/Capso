@@ -80,7 +80,8 @@ xcodebuild -project Capso.xcodeproj -scheme Capso -configuration Debug CODE_SIGN
 - **Every open `bug` and `enhancement` issue carries exactly one severity label.** Any other open issue may carry one, but never two. Give a new bug or enhancement its severity label in the same call that opens it.
 - **Rate the problem a user meets while the issue stays open.** For a planned feature, rate the gap: a user who cannot finish a task without it means `sev-blocker`.
 - **Swap a rating in one command:** `gh issue edit N --remove-label sev-polish --add-label sev-bug`. An add-only call leaves two severity labels.
-- This fork has no GitHub tracking kit and no drift check. It keeps GitHub's default labels plus the four `sev-` labels. Decision record: `~/.dotfiles/claude-code/docs/decisions/2026-10-24-issue-severity-labels.md`.
+- This fork has no GitHub tracking kit and no drift check. It keeps GitHub's default labels, the four `sev-` labels, and `deferred`. Decision records: `~/.dotfiles/claude-code/docs/decisions/2026-10-24-issue-severity-labels.md` and `docs/decisions/2026-11-09-defer-windows-and-chrome.md`.
+- `deferred` means the work is planned but deliberately outside the current scope. Since 2026-11-09 the Windows port and the Chrome pilot carry it and rank `sev-bug`, because a feature that has never shipped blocks nobody. A deferred issue keeps exactly one severity label like any other.
 
 | Severity, high to low | Meaning | Example (made up) |
 | --- | --- | --- |
