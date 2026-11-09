@@ -82,6 +82,32 @@ a { color: var(--mint); }
   justify-content: space-between;
 }
 
+.top-start {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  min-width: 0;
+}
+
+/* One Guides link, not a navigation bar: the guides are the highest-intent
+   pages, and a second button would compete with Download. */
+.guides-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+
+.guides-link:hover, .guides-link:focus-visible {
+  color: var(--mint);
+  border-bottom-color: rgba(143, 243, 228, 0.5);
+}
+
 .brand {
   display: flex;
   align-items: center;
@@ -194,12 +220,93 @@ h1 {
 
 .below {
   display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 1fr);
   gap: 28px;
   align-items: start;
   padding: 20px 0 0;
   border-top: 1px solid var(--line);
 }
+
+/* The proof sits beside the video, never under it: the page is built to fit one
+   screen, so the two share a row and the video gives up width, not height. */
+.stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  width: 100%;
+}
+
+/* The proof sits beside the video, never under it: the page keeps its one-screen
+   budget at every width above the 860px collapse. The video gives up width only
+   where the proof would otherwise be the taller of the two. */
+.stage .frame {
+  width: min(57%, 780px, calc((100vh - 412px) * 16 / 9));
+  min-width: min(100%, 300px);
+  flex: 0 0 auto;
+}
+
+.proof {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 560px;
+  margin: 0;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  text-align: left;
+}
+
+.proof-label {
+  margin: 0 0 6px;
+  color: var(--mint);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+}
+
+.proof-step { margin: 0 0 4px; color: var(--muted); font-size: 12px; line-height: 1.35; }
+
+.proof-prompt {
+  margin: 0 0 7px;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.28);
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  line-height: 1.38;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.proof-prompt code { font: inherit; color: inherit; }
+
+.proof-plan { width: 100%; border-collapse: collapse; font-size: 11px; line-height: 1.35; }
+
+.proof-plan th {
+  padding: 3px 5px 3px 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.7px;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.proof-plan td { padding: 3px 5px 3px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); vertical-align: top; }
+.proof-plan tr:last-child td { border-bottom: 0; }
+.proof-plan td:first-child { color: var(--mint); font-weight: 600; white-space: nowrap; }
+
+.proof-source { margin: 7px 0 0; color: var(--muted); font-size: 11px; line-height: 1.4; }
+
+.why p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+.why p.why-privacy { margin-top: 8px; }
+.why strong { color: var(--text); font-weight: 600; }
 
 h2 {
   font-size: 13px;
@@ -465,13 +572,19 @@ body.has-note .frame { width: min(100%, 920px, calc((100vh - 412px - 112px) * 16
 .stats .info-box strong { font-weight: 600; }
 .stats .info-note { color: var(--muted); font-size: 13px; }
 
-@media (max-width: 860px) {
-  .below { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+@media (max-width: 1100px) {
+  .stage .frame { width: min(50%, 780px, calc((100vh - 412px) * 16 / 9)); }
 }
 
 @media (max-width: 960px) {
   .page { padding: 18px 16px 24px; }
   .frame { width: 100%; min-width: 0; }
+  .stage { flex-direction: column; }
+  .stage .frame { width: 100%; min-width: 0; }
+  .proof { flex: 0 0 auto; width: 100%; max-width: none; }
+  /* Three columns need the room the video and the proof also want. Stack
+     here rather than at 860px, so the page has one stacking point. */
+  .below { grid-template-columns: minmax(0, 1fr); gap: 24px; }
 }
 
 @media (max-width: 640px) {

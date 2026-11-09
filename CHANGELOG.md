@@ -10,6 +10,14 @@ Capso's own history (versions 0.1.0 to 1.2.5) is not part of this file. This for
 
 ## [Unreleased]
 
+### Added
+
+- The homepage shows the handoff beside the intro video: a copied prompt from the practice page and the plan an agent writes before it edits anything.
+
+### Changed
+
+- The feedback guide now says plainly that the form is not on-device. A screenshot you attach reaches a server and cannot be taken back, and a mark is a pointer, not redaction, so private details arrive with the file.
+
 ## [0.8.0] - 2026-11-08
 
 ### Added

@@ -29,7 +29,7 @@ When the round is done, press **Option+Shift+R**. Nextshot copies one prompt for
 
 Click **Nshot** in the menu bar to:
 
-- See which build you run. The top row shows it, for example **Nextshot 2026.10.22 (497)**.
+- See which build you run. The top row shows it, for example **Nextshot 0.8.0 (934)**.
 - **Copy Last Capture Prompt** (**Option+Shift+C**) again, for example after dictation replaced your clipboard.
 - **Copy Prompt and End Round** (**Option+Shift+R**). Copying the whole prompt ends the round. **Resume Round** in **Recent Rounds** reopens it.
 - **Open Round Folder** (**Option+Shift+O**) to see the round's files.
@@ -64,7 +64,7 @@ A drag to **Applications** works only while Nextshot is not running. Finder cann
 
 The Shortcuts actions **Start Feedback Session** and **End Feedback Session** are now **Start Feedback Round** and **End Feedback Round**. A Shortcut saved before this change keeps working, because Nextshot still answers to the old actions. They no longer show in the action list, so use the new actions in new Shortcuts.
 
-To see which build you have, open the **Nshot** menu. The top row shows the build date and a build number, for example **Nextshot 2026.10.22 (497)**. A newer date or a higher number is a newer build. The DMG's file name starts with the same date.
+To see which build you have, open the **Nshot** menu. The top row shows the version and a build number, for example **Nextshot 0.8.0 (934)**. A higher version or a higher number is a newer build. The DMG's file name starts with the version.
 
 The **Check for Updates** button in Preferences does not apply to Nextshot. It finds nothing.
 
@@ -85,7 +85,7 @@ If you are an agent working from a Nextshot prompt, read [How to read a Nextshot
 - Annotation editor, OCR (copy text from the screen), and translation
 - Screenshot history, pin to screen, and configurable shortcuts
 
-See [Capso's README](../README.md) for the full list.
+See [Capso's README](https://github.com/lzhgus/Capso) for the full list.
 
 ## Build from source
 

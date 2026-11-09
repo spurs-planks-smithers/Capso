@@ -19,7 +19,10 @@
 <canvas id="dots" aria-hidden="true"></canvas>
 <main class="page">
   <header class="top">
-    <a class="brand" href="/"><img src="/nextshot-icon.png" alt="" width="34" height="34"><span>Nextshot</span></a>
+    <div class="top-start">
+      <a class="brand" href="/"><img src="/nextshot-icon.png" alt="" width="34" height="34"><span>Nextshot</span></a>
+      <a class="guides-link" href="/guides/">Guides</a>
+    </div>
     <div class="download-option">
       <a class="download small" href="/download" aria-label="Download Nextshot for Mac"><svg class="platform-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M4.5 3.5h15a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-15a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2zM4.5 5.5v9h15v-9zM11 16.5h2V19h-2zM8.5 19h7a.9.9 0 0 1 0 1.8h-7a.9.9 0 0 1 0-1.8z"/></svg>Download</a>
     </div>
@@ -33,9 +36,31 @@
   <section class="hero">
     <h1>Show AI what you mean.</h1>
     <p class="lead"><span>Stop trying to describe issues to your agents.</span> <span>Start giving visual directions.</span> <span>One-click handoffs built for LLMs.</span></p>
-    <div class="frame">
-      <video class="video" controls playsinline preload="metadata" poster="/media/{{POSTER}}" src="/media/{{VIDEO}}"></video>
-      <button class="play" type="button" hidden><span class="tri" aria-hidden="true"></span>Watch the intro</button>
+    <div class="stage">
+      <div class="frame">
+        <video class="video" controls playsinline preload="metadata" poster="/media/{{POSTER}}" src="/media/{{VIDEO}}"></video>
+        <button class="play" type="button" hidden><span class="tri" aria-hidden="true"></span>Watch the intro</button>
+      </div>
+      <figure class="proof">
+        <p class="proof-label">The handoff, start to finish</p>
+        <p class="proof-step">You mark three things. Nextshot copies this (excerpt):</p>
+        <pre class="proof-prompt"><code>Items (badge N in capture K is item K.N):
+- 1.1: Change the title from Lemonaid to Lemonade.
+- 1.2: Change the price to $3 a cup.
+- 1.3: Make the Buy button larger and easier to click.
+&hellip;
+2. Plan: Write a table with the columns item, group, place, and change. Make no edit before this table is in your reply.</code></pre>
+        <p class="proof-step">Your agent plans before it edits:</p>
+        <table class="proof-plan">
+          <thead><tr><th scope="col">Item</th><th scope="col">Group</th><th scope="col">Place</th><th scope="col">Change</th></tr></thead>
+          <tbody>
+            <tr><td>1.1</td><td>Alone</td><td>index.html, page title</td><td>Change &ldquo;Lemonaid&rdquo; to &ldquo;Lemonade.&rdquo;</td></tr>
+            <tr><td>1.2</td><td>Alone</td><td>index.html, price</td><td>Set the displayed price to $3 a cup.</td></tr>
+            <tr><td>1.3</td><td>Alone</td><td>index.html, Buy button</td><td>Increase the Buy button&rsquo;s clickable area.</td></tr>
+          </tbody>
+        </table>
+        <figcaption class="proof-source">A demonstration against the fictional Lemonaid practice page, not a customer result. The prompt is copied from that round; the ellipsis marks a section left out. The plan is the agent's: its group and place columns follow your own project. <a href="/guides/first-handoff/">Walk the whole round</a>.</figcaption>
+      </figure>
     </div>
   </section>
 
@@ -48,6 +73,11 @@
         <li><b>Repeat</b><span>Grab the next screen. One round holds them all.</span></li>
         <li><b>Hand off</b><span>One click hands any AI the full picture.</span></li>
       </ol>
+    </div>
+    <div class="why">
+      <h2>Why not just paste a screenshot?</h2>
+      <p>A screenshot carries no instructions. Your agent guesses what each circle means. <strong>Nextshot numbers every mark and attaches your words</strong>, then asks for a plan first, so a wrong reading costs a sentence, not a diff.</p>
+      <p class="why-privacy">Pasting into a chat window also uploads your screen. Nextshot stays offline.</p>
     </div>
     <div class="setup">
       <h2>Set up</h2>
