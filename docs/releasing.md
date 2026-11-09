@@ -29,7 +29,7 @@ scripts/release.sh --dry-run patch # preflight and the plan, no tests, build, or
 
 The command runs seven steps and stops at the first failure:
 
-1. **Preflight.** Branch, tree, tests (FeedbackKit, JevKit in Release, CapsoTests), the certificate, the notary profile, R2, the GitHub route, and the changelog entry.
+1. **Preflight.** Branch, tree, tests (FeedbackKit, JevKit in Release, CapsoTests), the certificate, the notary profile, R2, the GitHub route, the changelog entry, and the license text. `license_ready` fails the run when `LICENSE` no longer carries the Business Source License terms, because the image copies that file into the app and a placeholder would ship inside every DMG.
 2. **Bump.** Moves `Unreleased` to the new version with the UTC date of the run, writes `VERSION`, sets each flag marker above the last release's build to the new build (`scripts/release-markers.py`), dates the Guides release notes, then makes the commit `chore: release X.Y.Z` and the tag `nextshot-vX.Y.Z`. **Both stay local.** It commits named paths with `git add -f`, so an ignored `docs/` folder does not stop it.
 3. **Build.** `scripts/release-notarized.sh`: sign, notarize, staple, DMG, zip.
 4. **Check.** The stapled ticket, Gatekeeper, and a mount test on the app inside the image: bundle ID, version, build, signature.
@@ -128,6 +128,8 @@ Point `wrangler dev --persist-to /tmp/rehearsal` at the same folder to read the 
 ## What is deliberately not automated
 
 Signing and notarization never run in CI. The certificate, the notary profile, and the Cloudflare token are one person's, and the release command asks a real question before publishing anything. CI runs tests only.
+
+The license gate in preflight is not a leftover check and must not be removed. `LICENSE` looks like an unused file to anyone reading the tree, because nothing in the app loads it, but `scripts/release-notarized.sh` copies it into the app as `Contents/Resources/LICENSE.txt`. A preflight that cannot be skipped is the only thing that keeps a placeholder out of a DMG: it caught nothing when it was written, which is the point.
 
 `.github/workflows/build-release.yml` is upstream Capso's workflow. It triggers on `v*` tags, this fork tags `nextshot-v*`, and every repository it names is `lzhgus`'s. It has never run here and is being retired. It was never this fork's release path.
 
