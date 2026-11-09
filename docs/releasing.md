@@ -131,7 +131,11 @@ Signing and notarization never run in CI. The certificate, the notary profile, a
 
 The license gate in preflight is not a leftover check and must not be removed. `LICENSE` looks like an unused file to anyone reading the tree, because nothing in the app loads it, but `scripts/release-notarized.sh` copies it into the app as `Contents/Resources/LICENSE.txt`. A preflight that cannot be skipped is the only thing that keeps a placeholder out of a DMG: it caught nothing when it was written, which is the point.
 
-`.github/workflows/build-release.yml` is upstream Capso's workflow. It triggers on `v*` tags, this fork tags `nextshot-v*`, and every repository it names is `lzhgus`'s. It has never run here and is being retired. It was never this fork's release path.
+`.github/workflows/build-release.yml` is upstream Capso's workflow, and it is the one file in this repository that can publish under someone else's name. Every repository it names is `lzhgus`'s: it clones `lzhgus/homebrew-tap` and pushes a cask to it, clones `lzhgus/Capso`'s `gh-pages` and pushes an appcast to it, and attaches its release to `lzhgus/Capso`.
+
+Its two triggers are the reason it is dangerous rather than merely useless. `scripts/release.sh` pushes `nextshot-v*` tags, which never match its `v*` filter, so this fork's own releases cannot start it. But the fork inherited upstream's `v*` tags when it was created, and 93 of them are still on the remote. That filter is therefore armed, not dead: fetching upstream's tags and pushing them with `git push --tags`, which is an ordinary thing to do when syncing a fork, would fire this workflow. The second trigger, `workflow_dispatch`, needs only someone opening the Actions tab and pressing Run.
+
+It has zero recorded runs here, and it was never this fork's release path. `scripts/release.sh` is.
 
 ## See also
 
