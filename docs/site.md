@@ -79,12 +79,37 @@ The script stops when a file is 25 MiB or larger (the static asset limit), when 
 
 - New video cut: render it, then pass explicit `--video` and `--poster` inputs. When the cut becomes the live video, change the `video=` default in `site/deploy.sh` and its fixture in `site/test/releases.test.mjs` in the same change, or the next deploy puts the old cut back.
 - Deploy from a worktree on `origin/main` when the main checkout is on another branch. The deploy stages Guides from the checkout it runs in, so a branch behind main removes newer Guides edits from the live site (2026-10-28).
-- Local check: `site/deploy.sh --stage-only`. It prints the artifact path on its last line and a preview command. The artifact holds a generated `wrangler.json`, which already carries the `SIZES` variable. Populate the local R2 binding before checking app routes. The `.claude/launch.json` file is git-ignored, so use the plain commands:
+- Local check: `site/deploy.sh --stage-only`. It prints the artifact path on its last line and a preview command. The artifact holds a generated `wrangler.json`, which already carries the `SIZES` variable. `--stage-only` still needs the pinned video and poster, so a checkout without them in `build/releases/` has to pass stand-ins (`--video FILE --poster FILE`); the page and app routes do not read their contents.
+
+  The `.claude/launch.json` file is git-ignored, so use the plain commands. A fresh `--persist-to` folder is empty, and `/stats` answers 500 on a missing table while `/releases/…` answers every DMG request with 404. Seed both bindings first, then start the Worker:
 
 ```bash
-artifact="$(site/deploy.sh --stage-only | tail -1)"
-wrangler dev --config "$artifact/wrangler.json" --persist-to /tmp/nextshot-rehearsal-r2
+artifact="$(site/deploy.sh --stage-only --video FILE --poster FILE | tail -1)"
+persist=/tmp/nextshot-seed
+
+# D1: the table /stats reads.
+wrangler d1 execute nextshot-downloads --config "$artifact/wrangler.json" \
+  --local --persist-to "$persist" --file site/schema.sql
 ```
+
+```bash
+# R2: latest.json at the bucket root, then the DMG it names under releases/.
+# The Worker reads releases/<file>, so the object key carries the prefix and
+# the file name in latest.json does not.
+wrangler r2 object put nextshot-releases/latest.json --file latest.json \
+  --config "$artifact/wrangler.json" --local --persist-to "$persist"
+wrangler r2 object put "nextshot-releases/releases/$file" --file "$file" \
+  --config "$artifact/wrangler.json" --local --persist-to "$persist"
+```
+
+```bash
+wrangler dev --config "$artifact/wrangler.json" --persist-to "$persist"
+site/smoke.sh --url http://localhost:8787
+```
+
+  A `latest.json` copied from R2 already holds a real `version`, `build`, `file`, `size` and `sha256`, so the seeded DMG has to be the one it names or the SHA-256 and size checks fail. With both bindings seeded this way the test passes all 14 checks against a local Worker. Without them it stops early rather than reporting the app routes: an empty bucket makes `/latest.json` unusable and the test exits after 2 checks, and a seeded `latest.json` with no DMG fails 6 checks (SHA-256, size, both Range replies, and `/stats` answering 500 on the missing table).
+
+  These commands write a `.wrangler/` folder beside the `wrangler.json` they read. Pass `--persist-to "$persist"` as above and it goes to that folder instead of the checkout. Without the flag it lands in the repository root, which no ignore rule covers, and `git add -A` picks it up. The same is true of `site/guides/dist/`, `site/guides/.astro/`, and `site/guides/node_modules/`; `site/guides/.gitignore` covers those three, and the root `.gitignore` is not ours to edit, so `.wrangler/` at the root has to be watched by hand.
 - Exact retry: `site/deploy.sh --deploy-staged /absolute/path/to/artifact`. This verifies the file inventory without rebuilding.
 - Guides failure: restore and verify the previous Worker deployment. Preserve the new app files and `latest.json` in R2. App promotion and rollback change only the app pointer.
 
@@ -113,7 +138,10 @@ site/deploy.sh --video build/releases/Nextshot-onboarding-2026.10.27.mp4 --poste
 - **Gradient.** Teal light at the top left, indigo at the top right, and mint under the video, over graphite. It drifts over 48 seconds. All of it is CSS on `body::before`.
 - **Dot field.** `dots.js` draws a grid of faint mint dots on one canvas, 15.6 pixels apart (24 pixels until 2026-10-25, when Drew asked for dots 35% tighter). At rest the dots undulate in two slow, crossing waves. Under the pointer they brighten and part by up to 7 pixels. A moving pointer leaves a soft ripple about every 110 pixels, and a click or tap sends a ring outward at 560 pixels per second for 2.2 seconds. Drew asked for the effect after he saw a dot background in the Claude desktop app. Anthropic has published no description of that effect, so this one follows his description.
 - **Cost.** The canvas draws at the display's frame rate only while something moves. At rest it draws 20 frames per second, and it stops while the tab is hidden. People who set Reduce Motion get a still grid and a still gradient.
-- **Checks.** Run the `pdf-polish` wrap check on a local copy of the staged page at 1600, 1440, 1280, 1180, 1024, 768, and 390 pixels. All passed on 2026-10-24.
+- **Checks.** Run the `pdf-polish` wrap check on a local copy of the staged page at 1600, 1440, 1280, 1180, 1024, 768, and 390 pixels. All passed on 2026-10-24. The 2026-11-09 hero proof measured the document height over HTTP at the same seven widths, not the wrap check: 900 at all five desktop widths, 1522 at 768, and 1701 at 390.
+- **Hand-off proof.** The hero carries a `figure.proof` beside the video: the real `Items` block and `2. Plan:` step that `nextshot-prompt --linked` printed for the Lemonaid practice round, then the plan table the agent returned. `first-handoff.mdx` already walks that round with four screenshots, so the page quotes the same round and links to it rather than duplicating it. Every quoted line was checked against a render of the binary, and the `<pre>` joins the `Items` block to the `Plan` step with `…` because the real output separates them with the "How to read the bundle" section; printing them adjacent would claim a continuity the prompt does not have. The step number `2. Plan:` is correct: with three or more items the Work method starts at `1. Links:`. The caption names the round a demonstration against a fictional page, not a customer result.
+- **"Why not paste a screenshot?"** The third `.why` column answers the obvious objection, because a screenshot is free and familiar. A screenshot carries no instructions, so the agent guesses; Nextshot numbers each mark and attaches the reviewer's words; the prompt asks for a plan before any edit; and pasting into a chat window uploads the screen, while Nextshot stays offline.
+- **The one-screen budget has no slack.** At 1440 the page ends at exactly 900: 58 (padding and header) + 495 (hero) + 208 (below) + 66 (gap) + 47 (footer) + 26 = 900, measured over HTTP at seven widths. At 1024 the below section grows to 249, and the gap before the footer shrinks from 66 to 25 to absorb it, so the footer stays at 827 and the document still ends at 900. Any below section taller than about 249 pixels at 1024 therefore starts to scroll. The copy in `.why` is written to that height, and it is why the video is a 57% split rather than half. A first draft of the privacy sentence cost 38 pixels and pushed 1024 to 938; the wording was tightened instead of dropping a column. 768 and 390 stack and scroll, as the page did before this section existed.
 - **Test the motion in Playwright.** The Claude app's browser pane runs only about 2 animation frames per second while the pane is hidden, so a ripple never shows there.
 
 ## Cloudflare access

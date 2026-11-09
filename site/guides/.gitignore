@@ -1,0 +1,10 @@
+# Output of `astro build` and `astro dev`, and the dependency tree they need.
+# The repository root ignores `build/` only, so without this file a single
+# `npm ci` in this folder leaves tens of thousands of files for `git add -A`
+# to pick up. Starlight writes `.astro/` on every command.
+.astro/
+dist/
+node_modules/
+
+# Local Cloudflare state created by `wrangler dev` and `wrangler d1 execute`.
+.wrangler/

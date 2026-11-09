@@ -24,7 +24,7 @@ enum ForkBranding {
         upstreamText.replacingOccurrences(of: "Capso", with: name)
     }
 
-    /// The running build, for example "Nextshot 2026.10.22 (497)". The build
+    /// The running build, for example "Nextshot 0.8.0 (934)". The build
     /// scripts set both numbers from git (`scripts/nextshot-version.sh`).
     static var versionLine: String {
         let info = Bundle.main.infoDictionary

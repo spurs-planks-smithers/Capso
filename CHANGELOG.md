@@ -10,6 +10,14 @@ Capso's own history (versions 0.1.0 to 1.2.5) is not part of this file. This for
 
 ## [Unreleased]
 
+### Added
+
+- The homepage shows the handoff beside the intro video: a copied prompt from the practice page and the plan an agent writes before it edits anything.
+
+### Changed
+
+- The feedback guide now says plainly that the form is not on-device. A screenshot you attach reaches a server and cannot be taken back, and a mark is a pointer, not redaction, so private details arrive with the file.
+
 ### Fixed
 
 - The app carries its license again. From 2026-10-29 the `LICENSE` file in the repository held only the text `TBD`, and the release script copies that file into the app, so 0.8.0 shipped a license that named no license. The Business Source License 1.1 text is restored, a `NOTICE` file credits the upstream author of Capso, and the release preflight refuses to run if the license text ever goes missing again.
