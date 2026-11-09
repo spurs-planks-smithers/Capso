@@ -286,10 +286,16 @@ test("stage-only refuses a Guides build whose search file is empty or missing", 
 
 function releaseFixture() {
   const f = fixture();
-  for (const path of ["scripts/release.sh", "scripts/release-lib.sh", "scripts/release-changelog.py", "scripts/nextshot-local.py"]) {
+  for (const path of ["scripts/release.sh", "scripts/release-lib.sh", "scripts/release-changelog.py", "scripts/nextshot-local.py", "scripts/release-markers.py"]) {
     cpSync(join(source, path), join(f.root, path));
   }
   f.put("VERSION", "0.3.0");
+  // release.sh gates on a release-notes heading and rewrites the flag markers
+  // during the release commit, so both files must exist in the fixture.
+  f.put("site/guides/src/content/docs/release-notes.mdx", "## 0.4.0\n\n## 0.3.0\n");
+  // A marker above the last release build, which is what a person writes. The
+  // release must rewrite it to the real build; leaving it would fail the check.
+  f.put("Packages/FeedbackKit/Sources/FeedbackKit/FeatureFlags.swift", "        case .demo:\n            FlagSpec(issue: 1, allowedStates: [.off, .on], devDefault: .off, releaseDefault: .on, releasedInBuild: 9)\n");
   f.put("CHANGELOG.md", "## [Unreleased]\n\n- Add Guides.\n\n## [0.3.0] - 2026-10-25\n\n- Previous release.\n");
   f.put("build/releases/Nextshot-onboarding-2026.10.27.mp4", "pinned video");
   f.put("build/site-poster.jpg", "pinned poster");
@@ -306,7 +312,7 @@ case "$1" in
     if [[ "$2" == HEAD && -f "$FIXTURE_ROOT/committed" ]]; then echo bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; else echo aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; fi ;;
   describe) echo nextshot-v0.3.0 ;;
   log) echo 'feat: Guides' ;;
-  rev-list) echo 2 ;;
+  rev-list) if [[ -f "$FIXTURE_ROOT/committed" ]]; then echo 3; else echo 2; fi ;;
   commit) touch "$FIXTURE_ROOT/committed" ;;
   reset) rm -f "$FIXTURE_ROOT/committed" ;;
 esac
@@ -346,11 +352,23 @@ function rehearseRelease(f, overrides = {}, terminal = true) {
   delete env.NEXTSHOT_R2_LOCAL;
   if (!terminal) return spawnSync("bash", args, { env, input: "", encoding: "utf8" });
   // Only fixture deliveries run. A pseudo-terminal exercises the real approval.
-  const driver = `import os,pty,sys
+  // release-lib.sh flushes keys typed before the question, so the answer must
+  // arrive after the prompt: the driver waits for it, as a person does.
+  const driver = `import os,pty,sys,time
 pid,fd=pty.fork()
 if pid==0:
  os.execvp('bash',['bash']+sys.argv[1:])
-os.write(fd,b'y\\n')
+seen=b''
+while b'[y/N]' not in seen:
+ try:
+  data=os.read(fd,65536)
+  if not data: break
+  seen+=data
+  os.write(1,data)
+ except OSError: break
+else:
+ time.sleep(0.2)
+ os.write(fd,b'y\\n')
 while True:
  try:
   data=os.read(fd,65536)

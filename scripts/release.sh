@@ -170,7 +170,8 @@ run_tests() {
   {
     "$repo/scripts/test-nextshot-version.sh"
     bash "$repo/scripts/test-release.sh"
-    node --test "$repo/site/test/releases.test.mjs"
+    # Every site test file, so a new one is run without editing this list.
+    node --test "$repo"/site/test/*.test.mjs
     swift test --package-path "$repo/Packages/FeedbackKit"
     swift test --package-path "$repo/Packages/JevKit"
     # An optimizer bug lost a dupes result in Release only, on 2026-10-25.

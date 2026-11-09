@@ -84,6 +84,7 @@ jobs:
     outputs:
       app: ${{ steps.filter.outputs.app }}
       windows: ${{ steps.filter.outputs.windows }}
+      site: ${{ steps.filter.outputs.site }}
     steps:
       - uses: actions/checkout@v4
       - id: filter
@@ -100,6 +101,31 @@ jobs:
               - 'Windows/**'
               - 'Packages/FeedbackKit/**'
               - '.github/workflows/ci.yml'
+            site:
+              - 'site/**'
+              - 'scripts/release.sh'
+              - 'scripts/release-lib.sh'
+              - 'scripts/release-markers.py'
+              - '.github/workflows/ci.yml'
+
+  # The release rehearsals are macOS-only: they drive scripts/release.sh, which
+  # uses stat -f, security, and PlistBuddy. They are the only place a broken
+  # release.sh is caught before Drew runs one, so they run here on a PR too.
+  site:
+    needs: changes
+    if: needs.changes.outputs.site == 'true'
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Test the site and the release scripts
+        run: node --test site/test/*.test.mjs
 
   windows:
     needs: changes
