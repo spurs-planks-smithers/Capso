@@ -132,9 +132,11 @@ if [[ -d "$sparkle" ]]; then
   codesign --force --sign "$sign_id" --options runtime --timestamp "$sparkle"
 fi
 
-# 3. Capso's Business Source License must be shown on each modified copy,
-# so it goes inside the app before the app's own signature seals it.
+# 3. Capso's Business Source License must be shown on each modified copy, and
+# NOTICE credits the Licensor, so both go inside the app before the app's own
+# signature seals it (NOTICE added 2026-11-09).
 cp "$repo/LICENSE" "$app/Contents/Resources/LICENSE.txt"
+cp "$repo/NOTICE" "$app/Contents/Resources/NOTICE.txt"
 
 # Re-sign the app last, with its entitlements, then check it.
 codesign --force --sign "$sign_id" --options runtime --timestamp \

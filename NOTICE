@@ -1,0 +1,18 @@
+Nextshot
+
+This product is a modified copy of Capso, used and distributed under the
+Business Source License 1.1 in LICENSE.
+
+Upstream:      https://github.com/lzhgus/Capso
+Licensor:      lzhgus
+Licensed Work: Capso, (c) 2026 lzhgus
+Modifications: (c) 2026 Drew Schulz. Nextshot is an independent fork and is not
+               endorsed by the Licensor.
+
+The Business Source License changes to the Apache License, Version 2.0 on
+2029-04-08. Until then, the Additional Use Grant in LICENSE governs what you may
+do with this software; in particular it may not be used to provide a Screen
+Capture Service as that license defines it.
+
+"Capso" and its logo remain the Licensor's marks. This fork does not use them;
+see App/Feedback/ForkBranding.swift.
