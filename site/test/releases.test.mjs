@@ -286,7 +286,10 @@ test("stage-only refuses a Guides build whose search file is empty or missing", 
 
 function releaseFixture() {
   const f = fixture();
-  for (const path of ["scripts/release.sh", "scripts/release-lib.sh", "scripts/release-changelog.py", "scripts/nextshot-local.py", "scripts/release-markers.py"]) {
+  // LICENSE is copied, not stubbed: release.sh refuses to ship a build whose
+  // license is missing or says "TBD", so the rehearsal should fail on the real
+  // file for the same reason a real release would.
+  for (const path of ["scripts/release.sh", "scripts/release-lib.sh", "scripts/release-changelog.py", "scripts/nextshot-local.py", "scripts/release-markers.py", "LICENSE"]) {
     cpSync(join(source, path), join(f.root, path));
   }
   f.put("VERSION", "0.3.0");
