@@ -389,3 +389,15 @@ check_dmg() {
 }
 
 plist_value() { /usr/libexec/PlistBuddy -c "Print :$2" "$1/Contents/Info.plist" 2>/dev/null; }
+
+# Capso's Business Source License must be displayed on each modified copy, and
+# release-notarized.sh copies this file into the app, so a LICENSE that says
+# "TBD" or has lost its parameters would ship a binary with no terms at all
+# (Drew, 2026-11-09). Takes the path so a test can point it at a fixture.
+license_ready() {
+  local file="${1:?license path}" line
+  [[ -f "$file" ]] || return 1
+  for line in "Business Source License 1.1" "Licensor:" "Licensed Work:" "Change License:"; do
+    grep -qF -- "$line" "$file" || return 1
+  done
+}

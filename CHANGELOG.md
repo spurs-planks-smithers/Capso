@@ -10,6 +10,10 @@ Capso's own history (versions 0.1.0 to 1.2.5) is not part of this file. This for
 
 ## [Unreleased]
 
+### Fixed
+
+- The app carries its license again. From 2026-10-29 the `LICENSE` file in the repository held only the text `TBD`, and the release script copies that file into the app, so 0.8.0 shipped a license that named no license. The Business Source License 1.1 text is restored, a `NOTICE` file credits the upstream author of Capso, and the release preflight refuses to run if the license text ever goes missing again.
+
 ## [0.8.0] - 2026-11-08
 
 ### Added

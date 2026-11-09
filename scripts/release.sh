@@ -163,6 +163,7 @@ has_notary_profile() { xcrun notarytool history --keychain-profile "$profile"; }
 route_ok() { github-route status; }
 changelog_ready() { python3 -I "$repo/scripts/release-changelog.py" check "$repo/CHANGELOG.md"; }
 
+
 run_tests() {
   local log="$repo/build/release-tests.log"
   mkdir -p "$repo/build"
@@ -188,6 +189,7 @@ need "Developer ID certificate in the keychain" has_cert
 need "notary profile '$profile'" has_notary_profile
 need "GitHub route is the personal account" route_ok
 need "CHANGELOG.md has an entry under Unreleased" changelog_ready
+need "LICENSE carries the Business Source License terms" license_ready "$repo/LICENSE"
 r2_login
 need "R2 bucket $release_bucket is reachable" r2_reachable
 
