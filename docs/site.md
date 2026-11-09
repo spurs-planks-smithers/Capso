@@ -108,6 +108,8 @@ site/smoke.sh --url http://localhost:8787
 ```
 
   A `latest.json` copied from R2 already holds a real `version`, `build`, `file`, `size` and `sha256`, so the seeded DMG has to be the one it names or the SHA-256 and size checks fail. With both bindings seeded this way the test passes all 14 checks against a local Worker. Without them it stops early rather than reporting the app routes: an empty bucket makes `/latest.json` unusable and the test exits after 2 checks, and a seeded `latest.json` with no DMG fails 6 checks (SHA-256, size, both Range replies, and `/stats` answering 500 on the missing table).
+
+  These commands write a `.wrangler/` folder beside the `wrangler.json` they read. Pass `--persist-to "$persist"` as above and it goes to that folder instead of the checkout. Without the flag it lands in the repository root, which no ignore rule covers, and `git add -A` picks it up. The same is true of `site/guides/dist/`, `site/guides/.astro/`, and `site/guides/node_modules/`; `site/guides/.gitignore` covers those three, and the root `.gitignore` is not ours to edit, so `.wrangler/` at the root has to be watched by hand.
 - Exact retry: `site/deploy.sh --deploy-staged /absolute/path/to/artifact`. This verifies the file inventory without rebuilding.
 - Guides failure: restore and verify the previous Worker deployment. Preserve the new app files and `latest.json` in R2. App promotion and rollback change only the app pointer.
 
