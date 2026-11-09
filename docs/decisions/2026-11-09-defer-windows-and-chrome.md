@@ -23,7 +23,7 @@ Windows and Chrome issues that already carried a lower severity gained `deferred
 Windows #222, #229, #230, #235, #236, #237, #238, #242, #243, #245, #247.
 Chrome #124, #172, #177, #182, #185, #186, #188, #189, #190, #191, #192.
 
-43 issues carry `deferred`. Draft PR #173 (the Chrome pilot) stays open and unmerged with a comment recording the park. Closing it would lose the review history.
+45 issues carry `deferred`: 30 Windows and 15 Chrome. Draft PR #173 (the Chrome pilot) stays open and unmerged with a comment recording the park. Closing it would lose the review history.
 
 ### The severity tradeoff
 
