@@ -61,6 +61,8 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     var onScreenshotCapture: (() -> Void)?
     var onScreenshotAnnotate: (() -> Void)?
     var onOpenAllRounds: (() -> Void)?
+    /// Import a round bundle copied here from another Mac (#87).
+    var onImportRound: (() -> Void)?
     var onCopySelected: (() -> Void)?
     var onZipSelected: (() -> Void)?
     var onClearSelection: (() -> Void)?
@@ -325,6 +327,9 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
         let allRounds = menuItem("All Rounds...", action: #selector(openAllRounds))
         allRoundsItem = allRounds
         menu.addItem(allRounds)
+        // Next to All Rounds: both are about rounds this Mac did not just
+        // capture, and one is how a round from elsewhere gets in (#87).
+        menu.addItem(menuItem("Import Round Folder...", action: #selector(importRound)))
         // After All Rounds, so the basket lines, which go in above All
         // Rounds, never move it (#125).
         if state.findCaptureEnabled {
@@ -552,8 +557,9 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
 
         menu.addItem(.separator())
         menu.addItem(menuItem("Open Folder", action: #selector(openRecentFolder(_:)), round: round))
-        // Only one round can be active, so Resume waits until it ends.
-        if state.active == nil {
+        // Only one round can be active, so Resume waits until it ends. An
+        // imported round is never resumable (#87).
+        if state.active == nil, round.importedAt == nil {
             menu.addItem(menuItem("Resume Round", action: #selector(resumeRound(_:)), round: round))
         }
     }
@@ -706,6 +712,7 @@ final class FeedbackStatusItem: NSObject, NSMenuDelegate {
     @objc private func screenshotAnnotate() { onScreenshotAnnotate?() }
     @objc private func startRound() { onStartRound?() }
     @objc private func openAllRounds() { onOpenAllRounds?() }
+    @objc private func importRound() { onImportRound?() }
     @objc private func findCapture() { onFindCapture?() }
     @objc private func copySelected() { onCopySelected?() }
     @objc private func submitRecentRound(_ sender: NSMenuItem) {

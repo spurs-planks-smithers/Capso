@@ -106,6 +106,9 @@ final class FindCaptureCoordinator {
                 )
             }.value
             guard let self, self.generation == current else { return }
+            self.window.presentation.importedRounds = Set(
+                rounds.filter { $0.importedAt != nil }.map(\.folderName)
+            )
             self.window.presentation.setItems(items)
         }
     }

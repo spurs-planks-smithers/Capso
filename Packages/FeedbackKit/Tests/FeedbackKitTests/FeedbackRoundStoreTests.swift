@@ -58,6 +58,111 @@ struct FeedbackRoundStoreTests {
         }
     }
 
+    @Test("Imports a round bundle and lists it with the rounds captured here")
+    func importsBundle() async throws {
+        defer { try? fileManager.removeItem(at: root) }
+        let source = try makeZipBundle(name: "Pricing review", endedAt: FeedbackFixtures.date(21, 9, 0))
+        let store = makeStore()
+
+        let imported = try await store.importRound(from: source)
+
+        #expect(imported.importedAt == FeedbackFixtures.date(20, 19, 12))
+        #expect(imported.endedAt == FeedbackFixtures.date(21, 9, 0))
+        #expect(imported.captures.count == 1)
+        #expect(imported.folderName == "2026-10-21-0900-pricing-review")
+        let folder = root.appendingPathComponent(imported.folderName)
+        #expect(fileManager.fileExists(atPath: folder.appendingPathComponent("feedback.json").path))
+        #expect(fileManager.fileExists(atPath: folder.appendingPathComponent("2224-pricing-acme.png").path))
+
+        // The listing is what the Recent Rounds menu reads, so an import that
+        // is not listed is invisible (#87).
+        let listing = FeedbackLibrary.recent(in: root)
+        #expect(listing.rounds.map(\.folderName) == [imported.folderName])
+    }
+
+    @Test("Imports into a Mac that has never captured here")
+    func importsIntoMissingRoot() async throws {
+        defer { try? fileManager.removeItem(at: root) }
+        // A fresh Mac has no rounds folder, and the copy needs one.
+        try fileManager.removeItem(at: root)
+        let source = try makeZipBundle(name: "Pricing review", endedAt: FeedbackFixtures.date(21, 9, 0))
+
+        let imported = try await makeStore().importRound(from: source)
+
+        #expect(fileManager.fileExists(atPath: root.appendingPathComponent(imported.folderName).path))
+        #expect(FeedbackLibrary.recent(in: root).rounds.map(\.folderName) == [imported.folderName])
+    }
+
+    @Test("Imports an unended zip as a round that ends when it is imported")
+    func importsUnendedBundle() async throws {
+        defer { try? fileManager.removeItem(at: root) }
+        let source = try makeZipBundle(name: "Pricing review", endedAt: nil)
+        let store = makeStore()
+
+        let imported = try await store.importRound(from: source)
+
+        // An unended round is left out of the listing, so the import has to
+        // give it an end time or it disappears (#87).
+        #expect(imported.endedAt == FeedbackFixtures.date(20, 19, 12))
+        #expect(FeedbackLibrary.recent(in: root).rounds.count == 1)
+    }
+
+    @Test("Refuses to resume an imported round")
+    func refusesResumeOfImport() async throws {
+        defer { try? fileManager.removeItem(at: root) }
+        let source = try makeZipBundle(name: "Pricing review", endedAt: FeedbackFixtures.date(21, 9, 0))
+        let store = makeStore()
+        let imported = try await store.importRound(from: source)
+
+        // A capture taken here would be marked against the coordinate space
+        // of the Mac that wrote the zip.
+        await #expect(throws: FeedbackRoundStore.StoreError.roundWasImported(imported.folderName)) {
+            try await makeStore().resume(folderName: imported.folderName)
+        }
+    }
+
+    @Test("Refuses a folder that is not a round")
+    func importRejectsNonRound() async throws {
+        defer { try? fileManager.removeItem(at: root) }
+        let empty = root.appendingPathComponent("not-a-round", isDirectory: true)
+        try fileManager.createDirectory(at: empty, withIntermediateDirectories: true)
+
+        await #expect(throws: FeedbackRoundStore.StoreError.roundNotFound("not-a-round")) {
+            try await makeStore().importRound(from: empty)
+        }
+    }
+
+    /// A bundle laid out as `ZipWriter` writes one, in its own folder outside
+    /// the store, so the import copies rather than reads in place.
+    private func makeZipBundle(name: String, endedAt: Date?) throws -> URL {
+        let folder = fileManager.temporaryDirectory
+            .appendingPathComponent("ZipBundle-\(UUID().uuidString)", isDirectory: true)
+        try fileManager.createDirectory(at: folder, withIntermediateDirectories: true)
+        let round = FeedbackRound(
+            name: name,
+            slug: FeedbackNaming.slug(from: name),
+            folderName: folder.lastPathComponent,
+            startedAt: FeedbackFixtures.date(21, 9, 0),
+            endedAt: endedAt,
+            captures: [FeedbackCapture(
+                index: 1,
+                imageFile: "2224-pricing-acme.png",
+                cleanImageFile: "2224-pricing-acme-clean.png",
+                size: PixelSize(width: 800, height: 600),
+                capturedAt: FeedbackFixtures.date(20, 22, 24),
+                sourceApp: "Safari",
+                windowTitle: "Pricing | Acme",
+                ocrText: "Starter $19/mo",
+                marks: [FeedbackMark(kind: .counter, badge: 1, box: FeedbackBox(x1: 100, y1: 10, x2: 124, y2: 34))]
+            )]
+        )
+        try FeedbackRoundStore.encoder().encode(round)
+            .write(to: folder.appendingPathComponent("feedback.json"))
+        try Data("annotated".utf8).write(to: folder.appendingPathComponent("2224-pricing-acme.png"))
+        try Data("clean".utf8).write(to: folder.appendingPathComponent("2224-pricing-acme-clean.png"))
+        return folder
+    }
+
     @Test("Adds a numeric suffix when the folder already exists")
     func folderCollision() async throws {
         defer { try? fileManager.removeItem(at: root) }

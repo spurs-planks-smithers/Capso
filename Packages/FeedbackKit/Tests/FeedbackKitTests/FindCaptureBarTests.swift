@@ -42,4 +42,17 @@ struct FindCaptureBarTests {
         let noZip = FindCaptureBar(roundName: "Pricing page", selectedCount: 0, zipEnabled: false, roundActive: false)
         #expect(actions(noZip) == [.back, .copyRoundPrompt, .openFolder, .resumeRound])
     }
+
+    @Test("An imported round never offers Resume, because its captures keep another Mac's coordinates")
+    func importedRoundHasNoResume() {
+        let imported = FindCaptureBar(
+            roundName: "Pricing page", selectedCount: 2, zipEnabled: true,
+            roundActive: false, roundImported: true
+        )
+        #expect(actions(imported) == [.back, .copyRoundPrompt, .zipRound, .openFolder])
+
+        // The default keeps every caller that predates #87 on the old rows.
+        let plain = FindCaptureBar(roundName: "Pricing page", selectedCount: 2, zipEnabled: true, roundActive: false)
+        #expect(actions(plain) == [.back, .copyRoundPrompt, .zipRound, .openFolder, .resumeRound])
+    }
 }
