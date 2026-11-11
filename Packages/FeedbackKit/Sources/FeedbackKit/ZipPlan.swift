@@ -148,7 +148,7 @@ public enum ZipPlanner {
                 slug: first?.slug ?? FeedbackNaming.defaultSlug,
                 folderName: folderName,
                 startedAt: first?.startedAt ?? zipTime,
-                endedAt: first?.endedAt,
+                endedAt: first?.endedAt ?? zipTime,
                 captures: captures
             )
         case .selection:

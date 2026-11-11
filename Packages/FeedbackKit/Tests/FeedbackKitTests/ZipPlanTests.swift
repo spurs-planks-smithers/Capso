@@ -95,6 +95,30 @@ struct ZipPlanTests {
         #expect(plan.images[1].sourceURL.lastPathComponent == "1914-pricing-acme-clean.png")
     }
 
+    @Test("A round zip of a finished round keeps its end time")
+    func roundPlanKeepsEndTime() {
+        var round = FeedbackFixtures.round(captures: [FeedbackFixtures.pricingCapture(index: 2)])
+        round.endedAt = FeedbackFixtures.date(20, 19, 40)
+        let plan = ZipPlanner.plan(kind: .round, entries: Self.entries(round), folderName: "z", zipTime: FeedbackFixtures.date(25, 7, 0), pixelScale: 1)
+
+        #expect(plan.round.startedAt == FeedbackFixtures.date(20, 19, 12))
+        #expect(plan.round.endedAt == FeedbackFixtures.date(20, 19, 40))
+    }
+
+    @Test("A round zip of an active round ends at the zip time, not never")
+    func roundPlanOfActiveRoundEndsAtZipTime() {
+        // An active round has no end time. Carrying nil into the zip would say the
+        // round is still active forever, and the history list hides rounds that
+        // never ended, so the imported copy could not be found.
+        let round = FeedbackFixtures.round(captures: [FeedbackFixtures.pricingCapture(index: 2)])
+        #expect(round.endedAt == nil)
+        let zipTime = FeedbackFixtures.date(25, 7, 0)
+        let plan = ZipPlanner.plan(kind: .round, entries: Self.entries(round), folderName: "z", zipTime: zipTime, pixelScale: 1)
+
+        #expect(plan.round.endedAt == zipTime)
+        #expect(plan.round.startedAt == FeedbackFixtures.date(20, 19, 12))
+    }
+
     @Test("A selection zip numbers captures 1 to N by time and lists its source rounds")
     func selectionPlanRenumbersByTime() {
         let roundA = FeedbackFixtures.round(captures: [FeedbackFixtures.pricingCapture(index: 2), FeedbackFixtures.pricingCapture(index: 3)])
