@@ -206,6 +206,7 @@ func runCropsJob(
     highlights: [FeedbackBox] = [],
     screenLines: [FeedbackTextLine]? = nil,
     optionModes: [FeatureFlag: FlagState] = cropsAllOn,
+    dataGuardKinds: [DataGuardKind: FlagState] = [:],
     loadHook: (@Sendable (Int) throws -> Void)? = nil
 ) async throws -> CropsRun {
     let folder = FileManager.default.temporaryDirectory.appendingPathComponent("jev-crops-\(UUID().uuidString)", isDirectory: true)
@@ -253,7 +254,8 @@ func runCropsJob(
             return try bundleLoader.image(of: index, variant, region: region)
         },
         screenLines: screenLines,
-        optionModes: optionModes
+        optionModes: optionModes,
+        dataGuardKinds: dataGuardKinds
     )
     let output = try await job.run(context)
     let finishedAt = ContinuousClock.now
@@ -1486,5 +1488,129 @@ struct CropsAnchorsRunnerTests {
         #expect(refined.contains("Item 1.1:\n- Crop of this item (edges checked; px "))
         #expect(refined.contains("`\(bundle.folder.path)/\(names.annotated)`"))
         #expect(refined.contains("- The same crop without marks: `\(bundle.folder.path)/\(names.clean)`"))
+    }
+}
+
+// MARK: - The data guard's covers on item crops (#81)
+
+/// A screen line inside the default crop, so its cover lands in the crop.
+private let guardLineBox = FeedbackBox(x1: 400, y1: 300, x2: 500, y2: 320)
+private let guardLine = FeedbackTextLine(text: "write to wombat@example.com today", box: guardLineBox)
+/// The cover for `guardLine`: the line padded by 4 pixels.
+private let guardCover = FeedbackBox(x1: 396, y1: 296, x2: 504, y2: 324)
+
+private let cropsNoFaces = DataGuardFaceFinder { _ in [] }
+
+/// The item crop PNG for badge 1, decoded, and where its box starts.
+private func guardedCrop(_ run: CropsRun) throws -> (image: CGImage, origin: FeedbackBox) {
+    let label = try #require(run.output.cropLabels.first)
+    let box = try #require(cropPixelBox(label))
+    let data = try #require(run.output.files.first { $0.name.hasSuffix("-item-1.png") }?.data)
+    let source = try #require(CGImageSourceCreateWithData(data as CFData, nil))
+    return (try #require(CGImageSourceCreateImageAtIndex(source, 0, nil)), box)
+}
+
+@Suite("Data guard covers on item crops")
+struct CropsAnchorsGuardTests {
+    private static func run(
+        _ kinds: [DataGuardKind: FlagState],
+        screenLines: [FeedbackTextLine]? = [guardLine],
+        ocr: String? = cropsOCR,
+        faceFinder: DataGuardFaceFinder = cropsNoFaces,
+        script: CropsScript = CropsScript(noul: ["target_shown": 0.9])
+    ) async throws -> CropsRun {
+        try await runCropsJob(
+            cropsCapture(ocr: ocr),
+            allowed: [.reviewerText, .images],
+            script: script,
+            job: CropsAnchorsJob(requestMargin: .seconds(2), outputMargin: .seconds(1), faceFinder: faceFinder),
+            screenLines: screenLines,
+            optionModes: [.cropsItemCrops: .on],
+            dataGuardKinds: kinds
+        )
+    }
+
+    @Test("A kind in on covers the data inside each crop, and leaves the rest of the crop alone")
+    func coversInsideTheCrop() async throws {
+        let run = try await Self.run([.contact: .on])
+        let (image, origin) = try guardedCrop(run)
+
+        // Inside the cover: black in both crops, so no crop shows the line.
+        let inside = (x: guardCover.x1 + 10 - origin.x1, y: guardCover.y1 + 10 - origin.y1)
+        #expect(pixel(image, x: inside.x, y: inside.y).prefix(3).allSatisfy { $0 == 0 }, "the cover is not black")
+        // Outside it: the annotated PNG is red, so the rest is the capture's own pixels.
+        let outside = (x: guardCover.x1 - 10 - origin.x1, y: guardCover.y1 + 10 - origin.y1)
+        #expect(pixel(image, x: outside.x, y: outside.y).prefix(3) == [255, 0, 0], "the crop changed outside the cover")
+
+        // The clean crop gets the same cover.
+        let cleanData = try #require(run.output.files.first { $0.name.hasSuffix("-item-1-clean.png") }?.data)
+        let source = try #require(CGImageSourceCreateWithData(cleanData as CFData, nil))
+        let clean = try #require(CGImageSourceCreateImageAtIndex(source, 0, nil))
+        #expect(pixel(clean, x: inside.x, y: inside.y).prefix(3).allSatisfy { $0 == 0 }, "the clean crop is not covered")
+    }
+
+    @Test("The crops say they are covered, before the crop rule line")
+    func saysSo() async throws {
+        let run = try await Self.run([.contact: .on])
+        let first = try #require(run.output.lines.first)
+        #expect(first.scope == .capture)
+        #expect(first.label.text == "Private data guard: these item crops have its covers drawn over 1 area that may hold private data. Never copy private data from the screen into code, tests, commits, or messages.")
+        #expect(run.output.lines.dropFirst().first == cropsRuleLine)
+    }
+
+    @Test("With every kind off, the crops are the capture's own pixels")
+    func noKindsNoCovers() async throws {
+        let run = try await Self.run([:])
+        let (image, origin) = try guardedCrop(run)
+        let inside = (x: guardCover.x1 + 10 - origin.x1, y: guardCover.y1 + 10 - origin.y1)
+        #expect(pixel(image, x: inside.x, y: inside.y).prefix(3) == [255, 0, 0])
+        #expect(run.output.lines == [cropsRuleLine, cropLine(1, "edges checked", defaultCrop, file: "1028-claude-item-1.png"), cleanLine(1, file: "1028-claude-item-1-clean.png")])
+    }
+
+    @Test("A kind in shadow covers nothing, as it writes nothing")
+    func shadowCoversNothing() async throws {
+        let run = try await Self.run([.contact: .shadow])
+        let (image, origin) = try guardedCrop(run)
+        let inside = (x: guardCover.x1 + 10 - origin.x1, y: guardCover.y1 + 10 - origin.y1)
+        #expect(pixel(image, x: inside.x, y: inside.y).prefix(3) == [255, 0, 0])
+    }
+
+    @Test("Faces found in the clean PNG are covered too")
+    func faces() async throws {
+        let face = FeedbackBox(x1: 420, y1: 340, x2: 470, y2: 390)
+        let finder = DataGuardFaceFinder { _ in [DataGuardFace(box: face, confidence: 0.9)] }
+        let run = try await Self.run([.faces: .on], faceFinder: finder)
+        let (image, origin) = try guardedCrop(run)
+        let middle = (x: face.x1 + 20 - origin.x1, y: face.y1 + 20 - origin.y1)
+        #expect(pixel(image, x: middle.x, y: middle.y).prefix(3).allSatisfy { $0 == 0 }, "the face is not covered")
+    }
+
+    @Test("A face kind whose finder fails writes no crop, rather than an uncovered one")
+    func faceFinderFails() async throws {
+        let failing = DataGuardFaceFinder { _ in throw JevError(.jobError) }
+        let run = try await Self.run([.faces: .on], faceFinder: failing)
+        #expect(run.output.files.isEmpty)
+        #expect(run.output.cropLabels.isEmpty)
+        let first = try #require(run.output.lines.first)
+        #expect(first.label.text.contains("no item crops were written"))
+    }
+
+    @Test("Private data the guard cannot place writes no crop, as the guard would not send its image")
+    func unplacedTextWithholds() async throws {
+        // Without OCR boxes every screen line has no box, so a hit has nowhere to go.
+        let run = try await Self.run([.contact: .on], screenLines: nil, ocr: "mail wombat@example.com")
+        #expect(run.output.files.isEmpty)
+        #expect(run.output.cropLabels.isEmpty)
+        let first = try #require(run.output.lines.first)
+        #expect(first.label.text.contains("no item crops were written"))
+    }
+
+    @Test("A kind in on that finds nothing writes the crops unchanged, and says nothing")
+    func foundNothing() async throws {
+        let run = try await Self.run([.contact: .on], screenLines: [FeedbackTextLine(text: "Copy Prompt", box: guardLineBox)])
+        let (image, origin) = try guardedCrop(run)
+        let inside = (x: guardCover.x1 + 10 - origin.x1, y: guardCover.y1 + 10 - origin.y1)
+        #expect(pixel(image, x: inside.x, y: inside.y).prefix(3) == [255, 0, 0])
+        #expect(run.output.lines.first == cropsRuleLine)
     }
 }

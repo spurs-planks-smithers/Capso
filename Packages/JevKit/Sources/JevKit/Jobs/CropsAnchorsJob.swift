@@ -55,15 +55,17 @@ public struct CropsAnchorsJob: JevJob {
 
     private let requestMargin: Duration
     private let outputMargin: Duration
+    private let faceFinder: DataGuardFaceFinder
 
     public init() {
         self.init(requestMargin: Self.defaultRequestMargin, outputMargin: Self.defaultOutputMargin)
     }
 
     /// Tests pass wider margins, so a loaded machine cannot close the window between the two (issue #91).
-    init(requestMargin: Duration, outputMargin: Duration) {
+    init(requestMargin: Duration, outputMargin: Duration, faceFinder: DataGuardFaceFinder = .vision) {
         self.requestMargin = requestMargin
         self.outputMargin = outputMargin
+        self.faceFinder = faceFinder
     }
 
     public func run(_ context: JevJobContext) async throws -> JevJobOutput {
@@ -82,13 +84,97 @@ public struct CropsAnchorsJob: JevJob {
         async let search = Self.findSearchLines(items, context: context, cutoff: cutoff)
         let (foundCrops, foundSearch, pngs) = await (crops, search, (annotated, clean))
 
-        var output = Self.output(items: items, crops: foundCrops.crops, search: foundSearch, pngs: pngs, context: context, outputMargin: outputMargin)
+        // The crops hold the raw capture's pixels, so they get the guard's
+        // covers too (#81).
+        let guarded = Self.guarded(pngs, writesCrops: cropsMode == .on, faceFinder: faceFinder, context: context)
+        var output = Self.output(
+            items: items, crops: foundCrops.crops, search: foundSearch,
+            pngs: guarded.pngs, context: context, outputMargin: outputMargin)
+        output.lines.insert(contentsOf: guarded.lines, at: 0)
         output.summary = Self.summary(
             items: items, crops: foundCrops.crops, search: foundSearch, captureIndex: context.capture.index,
             withCrops: cropsMode != .off, withSearch: searchMode != .off
         )
         output.failure = foundCrops.failure ?? foundSearch.failure
         return output
+    }
+
+    // MARK: - The data guard's covers (#81)
+
+    /// The capture PNGs with the data guard's covers drawn on them, and what
+    /// to say about it. The crops cut their pixels from the raw capture, so
+    /// they get the same covers the guard draws on its own copy. When the
+    /// guard would not send its image, no crop is written: a crop would show
+    /// exactly the data the guard refuses to send.
+    ///
+    /// The guard also covers boxes a model returns when it is asked where
+    /// private data is. That answer needs a request, and this job asks its
+    /// own questions in parallel with the guard, so it cannot read them.
+    /// Those boxes are the one thing left uncovered here.
+    static func guarded(
+        _ pngs: (annotated: CGImage?, clean: CGImage?),
+        writesCrops: Bool,
+        faceFinder: DataGuardFaceFinder,
+        context: JevJobContext
+    ) -> (pngs: (annotated: CGImage?, clean: CGImage?), lines: [JevRefinedLine]) {
+        let modes = context.dataGuardKinds
+        guard writesCrops, !modes.isEmpty else { return (pngs, []) }
+
+        let capture = context.capture
+        let sources = DataGuardJob.sources(of: capture, lines: context.screenLines)
+        let textKinds = Set(modes.keys).intersection(DataGuardKind.textKinds)
+        var hits = DataGuardJob.localHits(sources: sources, kinds: textKinds)
+        if modes[.faces] != nil {
+            guard let clean = pngs.clean,
+                  let faces = DataGuardJob.faceHits(in: clean, faceFinder: faceFinder)
+            else {
+                // Faces this job cannot find are faces it cannot cover.
+                return (Self.withheld, [Self.withheldLine])
+            }
+            hits[.faces] = faces
+        }
+        let blockCut = context.screenLines == nil
+            && DataGuardJob.cutPrefix(capture.ocrText ?? "", limit: ScreenText.maxBlockLength) != nil
+        let unplacedText = blockCut || sources.contains {
+            $0.place == .screen && $0.box == nil && !DataGuardPatterns.dataHits(in: $0.text).isEmpty
+        }
+        guard !unplacedText else { return (Self.withheld, [Self.withheldLine]) }
+
+        let (covers, found, unplaced) = DataGuardJob.covers(
+            hits: hits, leftovers: [:], sources: sources, blockCut: false, modes: modes)
+        guard !covers.isEmpty else {
+            return (pngs, found || unplaced ? [Self.uncoveredLine] : [])
+        }
+        guard let annotated = pngs.annotated.flatMap({ DataGuardCovers.draw(covers, on: $0) }),
+              let clean = pngs.clean.flatMap({ DataGuardCovers.draw(covers, on: $0) })
+        else { return (Self.withheld, [Self.withheldLine]) }
+
+        let drawn = covers.filter {
+            DataGuardCovers.clamped($0, width: annotated.width, height: annotated.height) != nil
+        }.count
+        return ((annotated, clean), [Self.coveredLine(count: drawn, complete: !unplaced)])
+    }
+
+    /// No crop PNG, so no crop file.
+    private static let withheld: (annotated: CGImage?, clean: CGImage?) = (nil, nil)
+
+    private static let withheldLine: JevRefinedLine = JevRefinedLine(
+        scope: .capture,
+        label: "Private data guard: no item crops were written, because this capture may show private data the guard cannot cover. Work from the capture PNG, which the guard covers or withholds. Never copy private data from the screen into code, tests, commits, or messages."
+    )
+
+    private static let uncoveredLine: JevRefinedLine = JevRefinedLine(
+        scope: .capture,
+        label: "Private data guard: this capture shows private data that the guard found but has no box to cover, so these crops are not covered. Never copy private data from the screen into code, tests, commits, or messages."
+    )
+
+    private static func coveredLine(count: Int, complete: Bool) -> JevRefinedLine {
+        let areas: JevCodeText = count == 1 ? "1 area" : "\(count) areas"
+        let more: JevCodeText = complete ? "" : ", and these crops may show more that it could not cover"
+        return JevRefinedLine(
+            scope: .capture,
+            label: "Private data guard: these item crops have its covers drawn over \(areas) that may hold private data\(more). Never copy private data from the screen into code, tests, commits, or messages."
+        )
     }
 }
 
