@@ -78,6 +78,9 @@ final class FeedbackController {
     private var findCapture: FindCaptureCoordinator?
     /// True while Resume Round runs, from the menu or from Find Capture.
     private var resumingRound = false
+    /// True while an import runs, so a second Import click cannot copy the
+    /// same folder in twice under a numeric suffix.
+    private var importingRound = false
     /// Zip Round and Zip N Selected (#85). Made in `start`.
     private var zip: FeedbackZip?
     private var supportSubmission: FeedbackSupportSubmission?
@@ -748,6 +751,9 @@ final class FeedbackController {
         statusItem.onOpenAllRounds = { [weak self] in
             self?.openAllRounds()
         }
+        statusItem.onImportRound = { [weak self] in
+            self?.importRound()
+        }
         statusItem.onToggleCapture = { [weak self] key in
             self?.toggleCapture(key)
         }
@@ -900,6 +906,37 @@ final class FeedbackController {
         // The folder does not exist before the first round.
         try? FileManager.default.createDirectory(at: store.rootURL, withIntermediateDirectories: true)
         NSWorkspace.shared.open(store.rootURL)
+    }
+
+    /// Copies a round bundle from another Mac into this Mac's rounds (#87).
+    ///
+    /// A folder is picked rather than a zip: this target has no zip reader, and
+    /// the source scan bans a subprocess (NetworkSourceScanTests). Finder
+    /// unzips a shared zip in one double click, so the reviewer does that and
+    /// points the panel at the folder.
+    private func importRound() {
+        guard !importingRound else { return }
+        FeedbackLog.logger.notice("menu: Import Round Folder")
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.prompt = "Import"
+        panel.message = "Choose the round folder from the zip, the one that holds feedback.json."
+        guard panel.runModal() == .OK, let source = panel.url else { return }
+        importingRound = true
+        Task { @MainActor in
+            defer { importingRound = false }
+            do {
+                let round = try await store.importRound(from: source)
+                FeedbackLog.logger.notice("round imported, \(round.captures.count, privacy: .public) captures")
+                showToast(ImportMessages.ready(name: round.name, captureCount: round.captures.count), screen: nil)
+                await refresh()
+            } catch {
+                showToast(ImportMessages.failure(for: error), screen: nil)
+                report(error, context: "Feedback round was not imported")
+            }
+        }
     }
 
     /// Rewrites `manifest.md` and `prompt.md` of each listed folder when they

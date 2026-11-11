@@ -12,6 +12,7 @@ Capso's own history (versions 0.1.0 to 1.2.5) is not part of this file. This for
 
 ### Added
 
+- Import Round Folder in the Nshot menu opens a round that was zipped on another Mac. Pick the folder that holds `feedback.json` (Finder unzips the shared zip in one double click). The round lists with the rounds captured here, and its prompt copies and zips again. It cannot be resumed, because its marks belong to the other Mac's screen, so Resume does not appear for it. ([#87](https://github.com/spurs-planks-smithers/Capso/issues/87))
 - The homepage shows the handoff beside the intro video: a copied prompt from the practice page and the plan an agent writes before it edits anything.
 
 ### Changed

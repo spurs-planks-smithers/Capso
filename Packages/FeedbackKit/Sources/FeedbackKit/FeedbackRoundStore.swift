@@ -51,6 +51,9 @@ public actor FeedbackRoundStore {
         case badgeNotFound(Int)
         case markCountMismatch
         case roundNotFound(String)
+        /// An imported round (#87) keeps another Mac's coordinates, so new
+        /// captures must not join it.
+        case roundWasImported(String)
     }
 
     private struct ActiveMarker: Codable {
@@ -114,10 +117,55 @@ public actor FeedbackRoundStore {
         // The folder that was read is the one to write back to, even if the
         // folder name saved inside feedback.json is out of date.
         round.folderName = folderName
+        // An imported round (#87) came from another Mac. Its captures keep
+        // that Mac's coordinate space, so a capture taken here would be
+        // marked against the wrong origin.
+        guard round.importedAt == nil else { throw StoreError.roundWasImported(folderName) }
         round.endedAt = nil
         try write(round)
         try writeActiveMarker(folderName: folderName)
         activeRound = round
+        return round
+    }
+
+    /// Copies a round bundle folder from another Mac's zip into this store, so
+    /// it is listed with the rounds captured here (#87). The bundle is copied
+    /// as it is: its captures keep the numbers and coordinates of the Mac it
+    /// came from, and `importedAt` records where it came from so `resume`
+    /// refuses it. Returns the round as written.
+    @discardableResult
+    public func importRound(from sourceFolder: URL) throws -> FeedbackRound {
+        guard var round = FeedbackLibrary.load(
+            sourceFolder.appendingPathComponent(FeedbackRoundStore.roundFileName)
+        ) else {
+            throw StoreError.roundNotFound(sourceFolder.lastPathComponent)
+        }
+
+        // The folder is named from the round's own name, through the same slug
+        // builder a capture uses. The name comes from a file another Mac
+        // wrote, so it is cleaned here rather than trusted as a path.
+        let base = FeedbackNaming.slug(from: round.name)
+        let startedAt = round.startedAt
+        // Nothing has made the rounds folder on a Mac that never captured
+        // here, and the copy needs it to exist.
+        try FileManager.default.createDirectory(at: rootURL, withIntermediateDirectories: true)
+        let folderName = FeedbackNaming.uniqueName(
+            FeedbackNaming.folderName(startedAt: startedAt, slug: base, timeZone: timeZone)
+        ) {
+            FileManager.default.fileExists(atPath: rootURL.appendingPathComponent($0).path)
+        }
+        let destination = rootURL.appendingPathComponent(folderName, isDirectory: true)
+
+        try FileManager.default.copyItem(at: sourceFolder, to: destination)
+        round.folderName = folderName
+        round.importedAt = now()
+        // A zip of a round that was still running has no end time, and an
+        // unended round is left out of the listing. It ended when it was
+        // written, so the zip time is its end.
+        if round.endedAt == nil {
+            round.endedAt = round.importedAt
+        }
+        try write(round)
         return round
     }
 

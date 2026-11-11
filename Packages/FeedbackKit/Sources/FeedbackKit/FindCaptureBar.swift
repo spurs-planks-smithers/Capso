@@ -42,7 +42,10 @@ public struct FindCaptureBar: Equatable, Sendable {
 
     /// - Parameter roundName: The name of the round the window shows, or nil
     ///   for selection mode.
-    public init(roundName: String?, selectedCount: Int, zipEnabled: Bool, roundActive: Bool) {
+    /// - Parameter roundImported: The round was copied in from another Mac's
+    ///   zip, so its captures keep that Mac's coordinates and new captures
+    ///   must not join it.
+    public init(roundName: String?, selectedCount: Int, zipEnabled: Bool, roundActive: Bool, roundImported: Bool = false) {
         if let roundName {
             label = roundName
             var buttons = [
@@ -53,8 +56,9 @@ public struct FindCaptureBar: Equatable, Sendable {
                 buttons.append(Button(action: .zipRound, title: "Zip Round", isEnabled: true))
             }
             buttons.append(Button(action: .openFolder, title: "Open Folder", isEnabled: true))
-            // Only one round can be active, so Resume waits until it ends.
-            if !roundActive {
+            // Only one round can be active, so Resume waits until it ends. An
+            // imported round is never resumable (#87).
+            if !roundActive, !roundImported {
                 buttons.append(Button(action: .resumeRound, title: "Resume Round", isEnabled: true))
             }
             self.buttons = buttons

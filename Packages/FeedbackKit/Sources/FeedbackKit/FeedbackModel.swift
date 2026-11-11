@@ -13,6 +13,12 @@ public struct FeedbackRound: Codable, Equatable, Sendable {
     public var startedAt: Date
     public var endedAt: Date?
     public var captures: [FeedbackCapture]
+    /// When this round was copied in from another Mac's zip (#87), or nil for
+    /// a round captured here. An imported round keeps the captures and the
+    /// coordinate space of the Mac it came from, so it is listed and read but
+    /// never resumed: `FeedbackRoundStore.resume` refuses it. The field is
+    /// additive, so a copy that does not know it decodes the round unchanged.
+    public var importedAt: Date?
 
     public init(
         name: String,
@@ -20,7 +26,8 @@ public struct FeedbackRound: Codable, Equatable, Sendable {
         folderName: String,
         startedAt: Date,
         endedAt: Date? = nil,
-        captures: [FeedbackCapture] = []
+        captures: [FeedbackCapture] = [],
+        importedAt: Date? = nil
     ) {
         self.schemaVersion = Self.currentSchemaVersion
         self.name = name
@@ -29,6 +36,7 @@ public struct FeedbackRound: Codable, Equatable, Sendable {
         self.startedAt = startedAt
         self.endedAt = endedAt
         self.captures = captures
+        self.importedAt = importedAt
     }
 
     /// Items are the numbered badges across all captures.

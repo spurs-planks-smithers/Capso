@@ -21,6 +21,9 @@ final class ScreenshotHistoryPresentation {
     var zipEnabled = false
     /// A round is active, so Resume Round stays hidden.
     var roundActive = false
+    /// Folder names of rounds copied in from another Mac's zip (#87). Their
+    /// captures keep the other Mac's coordinates, so Resume stays hidden.
+    var importedRounds: Set<String> = []
     /// Raised when the menu's search field opens the window, so the app and
     /// round filters reset and its query searches every capture.
     var filterResetRequest = 0
@@ -286,7 +289,8 @@ struct ScreenshotHistoryView: View {
             roundName: roundFilter.map(roundLabel),
             selectedCount: presentation.basket.count,
             zipEnabled: presentation.zipEnabled,
-            roundActive: presentation.roundActive
+            roundActive: presentation.roundActive,
+            roundImported: roundFilter.map { presentation.importedRounds.contains($0) } ?? false
         )
         let leading = model.buttons.filter { $0.action == .back }
         let trailing = model.buttons.filter { $0.action != .back }
