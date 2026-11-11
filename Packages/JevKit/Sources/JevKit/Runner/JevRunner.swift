@@ -201,10 +201,18 @@ public actor JevRunner {
                     entry.job.options.filter { $0 != entry.job.flag }.map { ($0, flagStates[$0] ?? .off) },
                     uniquingKeysWith: { first, _ in first }
                 )
+                // The guard's kinds, capped by `dataGuard`, so a job can
+                // protect its own copies the way the guard protects its own.
+                var dataGuardKinds: [DataGuardKind: FlagState] = [:]
+                for kind in DataGuardKind.allCases {
+                    let kindMode = flagStates[kind.flag] ?? .off
+                    if kindMode != .off { dataGuardKinds[kind] = kindMode }
+                }
                 group.addTask {
                     await self.runJob(entry.job, mode: entry.mode, round: round, capture: capture, folderURL: folderURL,
                                       allowed: allowed, deadline: deadline, budget: budget, images: images,
-                                      screenLines: screenLines, optionModes: optionModes, startedAt: startedAt)
+                                      screenLines: screenLines, optionModes: optionModes,
+                                      dataGuardKinds: dataGuardKinds, startedAt: startedAt)
                 }
             }
             for await result in group {
@@ -238,6 +246,7 @@ public actor JevRunner {
         images: JevImageLoader,
         screenLines: [FeedbackTextLine]?,
         optionModes: [FeatureFlag: FlagState],
+        dataGuardKinds: [DataGuardKind: FlagState],
         startedAt: Date
     ) async -> JevBundleWriter.Finished {
         let clockStart = ContinuousClock.now
@@ -247,7 +256,7 @@ public actor JevRunner {
         }
         let context = JevJobContext(round: round, capture: capture, folderURL: folderURL, allowed: allowed,
                                     deadline: deadline, jev: asker, images: images, screenLines: screenLines,
-                                    optionModes: optionModes)
+                                    optionModes: optionModes, dataGuardKinds: dataGuardKinds)
 
         let outcome = await Self.race(deadline: deadline) {
             do {

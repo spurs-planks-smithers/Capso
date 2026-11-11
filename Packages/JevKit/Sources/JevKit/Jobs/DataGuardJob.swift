@@ -218,12 +218,7 @@ public struct DataGuardJob: JevJob {
 
         // Private data, local text: OCR lines and the window title.
         let textKinds = Set(modes.keys).intersection(DataGuardKind.textKinds)
-        var hits: [DataGuardKind: [LocalHit]] = [:]
-        for source in sources where source.place != .app {
-            for hit in DataGuardPatterns.dataHits(in: source.text, kinds: textKinds) {
-                hits[hit.rule.kind, default: []].append(LocalHit(rule: hit.rule, box: source.box))
-            }
-        }
+        var hits = Self.localHits(sources: sources, kinds: textKinds)
 
         // Faces and the leftover check need the clean PNG. Private screen
         // text with no box cannot be covered, so the image stays home: it
@@ -240,11 +235,9 @@ public struct DataGuardJob: JevJob {
         }
         var facesFailed = false
         if modes[.faces] != nil, let clean {
-            do {
-                hits[.faces] = try faceFinder.faces(in: clean)
-                    .filter { $0.confidence >= DataGuardRule.faceConfidenceMinimum }
-                    .map { LocalHit(rule: .face, box: $0.box) }
-            } catch {
+            if let found = Self.faceHits(in: clean, faceFinder: faceFinder) {
+                hits[.faces] = found
+            } else {
                 // Faces could not be covered, so the image stays home.
                 imageMissing = true
                 facesFailed = true
@@ -346,36 +339,8 @@ public struct DataGuardJob: JevJob {
         }
 
         // The covered copy: kinds in on only.
-        var covers: [FeedbackBox] = []
-        var onKindFound = false
-        var onKindUnplaced = false
-        for kind in DataGuardKind.allCases where modes[kind] == .on {
-            for hit in hits[kind] ?? [] {
-                onKindFound = true
-                guard let box = hit.box else {
-                    onKindUnplaced = true
-                    continue
-                }
-                let grown = kind == .faces
-                    ? DataGuardCovers.grown(box, share: DataGuardRule.faceShare, minimum: DataGuardRule.textPad)
-                    : DataGuardCovers.padded(box, by: DataGuardRule.textPad)
-                if !covers.contains(grown) { covers.append(grown) }
-            }
-            if let leftover = leftovers[kind], leftover.cover, let box = leftover.box {
-                onKindFound = true
-                let grown = DataGuardCovers.grown(box, share: DataGuardRule.jevShare, minimum: DataGuardRule.jevMinimum)
-                if !covers.contains(grown) { covers.append(grown) }
-            }
-        }
-        // Text nobody checked may hold private data. With a text kind in on,
-        // a cut line is covered whole, and a cut block counts as unplaced.
-        if DataGuardKind.textKinds.contains(where: { modes[$0] == .on }) {
-            for box in sources.filter(\.cut).compactMap(\.box) {
-                let padded = DataGuardCovers.padded(box, by: DataGuardRule.textPad)
-                if !covers.contains(padded) { covers.append(padded) }
-            }
-            if blockCut { onKindUnplaced = true }
-        }
+        let (covers, onKindFound, onKindUnplaced) = Self.covers(
+            hits: hits, leftovers: leftovers, sources: sources, blockCut: blockCut, modes: modes)
         var files: [JevRefinedFile] = []
         var coversDrawn = 0
         if !covers.isEmpty {

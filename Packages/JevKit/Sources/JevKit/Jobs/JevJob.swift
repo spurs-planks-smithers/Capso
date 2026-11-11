@@ -98,6 +98,11 @@ public struct JevJobContext: Sendable {
     /// The mode of each flag in the job's `options`, read once with the
     /// other flags when the capture starts. A missing flag means off.
     public let optionModes: [FeatureFlag: FlagState]
+    /// The mode of each data guard kind, capped by the mode of `dataGuard`
+    /// exactly as the guard caps it. A job that writes its own copies of the
+    /// capture can use this to protect them, without owning the guard's flags.
+    /// A kind that is missing is off.
+    public let dataGuardKinds: [DataGuardKind: FlagState]
 
     public init(
         round: FeedbackRound,
@@ -108,7 +113,8 @@ public struct JevJobContext: Sendable {
         jev: JevAsker,
         images: JevImageLoader,
         screenLines: [FeedbackTextLine]? = nil,
-        optionModes: [FeatureFlag: FlagState] = [:]
+        optionModes: [FeatureFlag: FlagState] = [:],
+        dataGuardKinds: [DataGuardKind: FlagState] = [:]
     ) {
         self.round = round
         self.capture = capture
@@ -119,6 +125,7 @@ public struct JevJobContext: Sendable {
         self.images = images
         self.screenLines = screenLines
         self.optionModes = optionModes
+        self.dataGuardKinds = dataGuardKinds
     }
 }
 
