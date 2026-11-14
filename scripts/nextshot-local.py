@@ -12,6 +12,8 @@ import sys
 DEV_ID = "com.drewschulz.nextshot.dev"
 PRODUCTION_ID = "com.drewschulz.nextshot"
 REVIEW_ID = "com.drewschulz.nextshot.historyreview"
+# The one installed Dev copy (Drew, 2026-11-14). It was in ~/Applications before.
+DEV_APP = pathlib.Path("/Applications/Nextshot Dev.app")
 
 
 def app_info(path):
@@ -88,7 +90,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("check", help="Refuse installed or running production copies on m5pro")
-    commands.add_parser("open", help="Verify and open ~/Applications/Nextshot Dev.app")
+    commands.add_parser("open", help="Verify and open /Applications/Nextshot Dev.app")
     verify = commands.add_parser("verify", help="Check a built app's Dev identity")
     verify.add_argument("app", type=pathlib.Path)
     args = parser.parse_args()
@@ -99,7 +101,7 @@ def main():
         else:
             check_machine()
             if args.command == "open":
-                app = pathlib.Path.home() / "Applications/Nextshot Dev.app"
+                app = DEV_APP
                 verify_dev_app(app)
                 subprocess.run(["/usr/bin/codesign", "--verify", "--deep", "--strict", str(app)], check=True)
                 subprocess.run(["/usr/bin/open", str(app)], check=True)

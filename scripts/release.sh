@@ -171,6 +171,7 @@ run_tests() {
   {
     "$repo/scripts/test-nextshot-version.sh"
     bash "$repo/scripts/test-release.sh"
+    python3 -I "$repo/scripts/test-nextshot-scrub.py"
     # Every site test file, so a new one is run without editing this list.
     node --test "$repo"/site/test/*.test.mjs
     swift test --package-path "$repo/Packages/FeedbackKit"
@@ -390,6 +391,9 @@ fi
 app_verified=1
 echo
 echo "Released Nextshot $new (build $build) at $site_url"
+
+# Playbook step: leave no old Nextshot copy for Spotlight (Drew, 2026-11-14).
+python3 -I "$repo/scripts/nextshot-scrub.py" scrub --apply --this-checkout || true
 
 # Snapshot only after the new app passes. A guide rollback changes this Worker
 # version alone. It must never restore the app pointer in latest.json.

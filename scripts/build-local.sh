@@ -1,7 +1,7 @@
 #!/bin/bash
 # Fork: build Nextshot Dev, the copy Drew runs every day, with Apple
 # Development signing under its own bundle ID (com.drewschulz.nextshot.dev)
-# and app name, then install it to ~/Applications/Nextshot Dev.app.
+# and app name, then install it to /Applications/Nextshot Dev.app.
 #
 # On m5pro, only Nextshot Dev may be installed or run. Release means compiler
 # optimization here. Production apps are distribution artifacts only.
@@ -15,7 +15,7 @@
 # Reads DEVELOPMENT_TEAM from scripts/local-signing.env, which git ignores.
 #
 # Usage: scripts/build-local.sh [Release|Debug] [--no-install]
-#   --no-install  build and check the app, but leave ~/Applications alone
+#   --no-install  build and check the app, but leave /Applications alone
 set -euo pipefail
 
 repo="$(cd "$(dirname "$0")/.." && pwd)"
@@ -41,7 +41,9 @@ source "$env_file"
 
 bundle_id="com.drewschulz.nextshot.dev"
 product_name="Nextshot Dev"
-derived="$repo/build/local"
+# A folder that ends in .noindex stays out of Spotlight, so old builds never
+# pile up as extra Nextshot results (Drew, 2026-11-14).
+derived="$repo/build/local.noindex"
 # A dev build shows the VERSION file plus -dev, for example 0.3.0-dev.
 nextshot_channel=dev
 # shellcheck source=scripts/nextshot-version.sh
@@ -65,8 +67,9 @@ if ((install == 0)); then
   exit 0
 fi
 
-dest="$HOME/Applications/$product_name.app"
-mkdir -p "$HOME/Applications"
+# /Applications is the folder Finder's sidebar shows (Drew, 2026-11-14).
+dest="/Applications/$product_name.app"
+legacy="$HOME/Applications/$product_name.app"
 
 # Replace only an earlier build of this same app.
 if [[ -d "$dest" ]]; then
@@ -81,5 +84,18 @@ fi
 ditto "$app" "$dest"
 python3 -I "$repo/scripts/nextshot-local.py" verify "$dest"
 codesign --verify --deep --strict "$dest"
-echo "Installed $dest ($bundle_id)"
+echo "Installed $dest ($bundle_id, $nextshot_version ($nextshot_build))"
+
+# Until 2026-11-14 Dev installed to ~/Applications. Remove that copy only when
+# it is Nextshot Dev, so Spotlight shows one Nextshot app.
+if [[ -d "$legacy" ]]; then
+  legacy_id="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$legacy/Contents/Info.plist" 2>/dev/null || true)"
+  if [[ "$legacy_id" == "$bundle_id" ]]; then
+    /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -u "$legacy" || true
+    rm -rf "$legacy"
+    echo "Removed the old copy $legacy"
+  fi
+fi
+# Remove older copies of this repo's builds that Spotlight can still see.
+python3 -I "$repo/scripts/nextshot-scrub.py" scrub --apply --this-checkout
 echo "Open Dev: python3 scripts/nextshot-local.py open"
