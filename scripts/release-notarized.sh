@@ -33,7 +33,8 @@ profile="${1:-apple-notary}"
 env_file="$repo/scripts/local-signing.env"
 product_name="Nextshot"
 sign_id="Developer ID Application"
-work="$repo/build/release"
+# .noindex keeps the exported Nextshot.app out of Spotlight (Drew, 2026-11-14).
+work="$repo/build/release.noindex"
 archive="$work/$product_name.xcarchive"
 app="$work/export/$product_name.app"
 

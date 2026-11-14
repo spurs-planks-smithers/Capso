@@ -91,7 +91,7 @@ The release command reads the conventional commit prefixes since the last tag. A
 | Signature | Developer ID Application | Apple Development |
 | Build channel | `release` | `dev` |
 | Made by | the release command | `scripts/build-local.sh` |
-| Installed at | Another approved Mac, never m5pro | `~/Applications/Nextshot Dev.app` |
+| Installed at | `/Applications/Nextshot.app` on another approved Mac, never m5pro | `/Applications/Nextshot Dev.app` on m5pro (`~/Applications` until 2026-11-14) |
 | Updates | Sparkle (from M3) | none |
 | Feature flags | Jev flags stay off | Jev flags run here |
 
@@ -99,6 +99,7 @@ The release command reads the conventional commit prefixes since the last tag. A
 - `LaunchPlan` compares copies with the same bundle ID only. A production install never quits Nextshot Dev.
 - Both apps claim the global hotkeys. On m5pro, install and run only Nextshot Dev. Run production release checks on another approved Mac.
 - Both apps write rounds to `~/Library/Application Support/Nextshot`. A copy refuses rounds with a newer `schemaVersion`.
+- A release candidate (2026-11-14, Drew) is a production build with an `-rc.N` version. On m5pro it exists only as a DMG file. It is installed and tested only on the second Mac, where it takes the `/Applications/Nextshot.app` slot. Spotlight on m5pro shows one Nextshot app, Nextshot Dev. Build folders end in `.noindex`, and `scripts/nextshot-scrub.py` removes older copies. The full table is in [[local-development]].
 
 ## Not decided yet
 
